@@ -27,6 +27,7 @@ __pycache__/
 
 # misc
 .logs/*
+target/
 .DS_Store
 tests/*
 data.json

@@ -1,0 +1,40 @@
+[package]
+name = "webdeck"
+version = "1.8.7"
+edition = "2021"
+description = "WebDeck — Rust port (1:1 migration of the Python app)"
+license = "GPL-3.0-or-later"
+
+[[bin]]
+name = "webdeck"
+path = "src/main.rs"
+
+[[bin]]
+name = "console"
+path = "src/bin/console.rs"
+
+[[bin]]
+name = "update"
+path = "src/bin/update.rs"
+
+[lib]
+name = "webdeck"
+path = "src/lib.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+axum = { version = "0.8", features = ["multipart"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["fs"] }
+serde = { version = "1", features = ["derive"] }
+# preserve_order keeps config key order (Python dicts are insertion-ordered;
+# gridsize::unmatrix depends on folder order).
+serde_json = { version = "1", features = ["preserve_order"] }
+clap = { version = "4", features = ["derive"] }
+minijinja = "2"
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls", "webpki-roots"] }
+zip = "2"
+
+[profile.release]
+# Single-file packaging parity with cx_Freeze is handled by packaging scripts
+# (see docs/MIGRATION_RUST.md); keep a plain release profile here.
