@@ -29,7 +29,7 @@ If you prefer to use a language other than English, you can follow these simple 
 
 1. Access the application settings.
 
-2. In the "Language" section, select your preferred language from the available options. Currently, only English and French are supported. Please note that the French translation may not cover all settings at this stage. You can remedy this by right-clicking on the settings page and selecting "Translate to French."
+2. In the "Language" section, select your preferred language from the available options. WebDeck currently ships German, English, Spanish, French, Korean, Polish, and Russian translations. If your language doesn't cover every setting yet, contributions are welcome (see the Languages section of `.github/CONTRIBUTING.md`).
 
 3. In the future, we plan to allow each user to easily contribute to the translation of the application into their preferred language.
 
@@ -47,10 +47,8 @@ Follow these steps to configure the application's soundboard:
    - Click on "Install Driver".
    - Restart your computer.
 
-2. **Install VLC media player:**
-   - If VLC media player is not already installed on your computer, download it from [this link](https://www.videolan.org/vlc/download-windows.html).
-   - Proceed with the installation by following the instructions.
-   - VLC is essential for playing sounds on the soundboard. However, it is not necessary to open the software even once for the soundboard to work. Installation is sufficient, and everything will function perfectly.
+2. **Make sure FFmpeg is available:**
+   - Sound files are converted and played by WebDeck itself (no VLC needed). On Windows, WebDeck provisions FFmpeg automatically on first use; on Linux, install your distro's package (e.g. `apt install ffmpeg`).
 
 3. **Configure Webdeck Settings:**
    - Open the webdeck settings.
@@ -149,11 +147,9 @@ Customizing the background is a breeze. Follow these simple steps:
 This way, you can customize the button backgrounds to your preferences with just a few clicks.
 
 
-## Why is VLC Media Player necessary?
+## Is VLC Media Player necessary?
 
-WebDeck needs the `python-vlc` library for sound playback on the soundboard. Therefore, it is essential to have VLC media player installed on your computer, even if you do not use the VLC software interface. Unfortunately, to date, no alternative solution has been identified to bypass this requirement.
-
-**Note:** This dependency is a current limitation, and the WebDeck development team is actively exploring potential alternatives to streamline the user experience in future updates.
+No. Older WebDeck versions needed the `python-vlc` library (and therefore a VLC install) for soundboard playback, but the current version plays sounds through its own built-in audio engine, so VLC is no longer required. Audio conversion uses FFmpeg, which WebDeck provisions automatically on Windows (on Linux, install the `ffmpeg` system package).
 
 
 ## Does the software communicate with a server?

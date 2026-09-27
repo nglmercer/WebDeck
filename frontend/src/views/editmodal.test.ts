@@ -15,19 +15,19 @@ const COMMANDS = {
     },
   },
   System: {
-    'Execute python code': {
+    'Execute script code': {
       command: '/exec',
       args: [
         {
           TYPE: 'choice',
           options: [
-            { TYPE: 'multiple checked', items: [{ TYPE: 'text', value: 'type:uploaded_file' }, { TYPE: "input filetype['.py']" }] },
-            { TYPE: 'multiple', items: [{ TYPE: 'text', value: 'type:file_path' }, { TYPE: "input filepath['.py']" }] },
+            { TYPE: 'multiple checked', items: [{ TYPE: 'text', value: 'type:uploaded_file' }, { TYPE: "input filetype['.rhai']" }] },
+            { TYPE: 'multiple', items: [{ TYPE: 'text', value: 'type:file_path' }, { TYPE: "input filepath['.rhai']" }] },
             { TYPE: 'multiple', items: [{ TYPE: 'text', value: 'type:single_line' }, { TYPE: 'input text' }] },
           ],
         },
       ],
-      style: { image: 'execpython.png', image_size: '70%' },
+      style: { image: 'execscript.svg', image_size: '70%' },
     },
   },
   Display: {
@@ -149,10 +149,10 @@ describe('edit resave round-trip', () => {
   });
 
   it('preserves upload filenames across resaves', () => {
-    const message = '/exec type:uploaded_file<|§|>C:\\fakepath\\x.py';
+    const message = '/exec type:uploaded_file<|§|>C:\\fakepath\\x.rhai';
     const container = mountEdit(message);
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    expect(fileInput.getAttribute('data-preserved')).toBe('C:\\fakepath\\x.py');
+    expect(fileInput.getAttribute('data-preserved')).toBe('C:\\fakepath\\x.rhai');
     expect(buildCommand('/exec', container)).toBe(message);
   });
 

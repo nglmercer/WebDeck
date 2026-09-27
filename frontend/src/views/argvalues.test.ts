@@ -21,8 +21,8 @@ const EXEC = {
     {
       TYPE: 'choice',
       options: [
-        { TYPE: 'multiple checked', items: [{ TYPE: 'text', value: 'type:uploaded_file' }, { TYPE: "input filetype['.py']" }] },
-        { TYPE: 'multiple', items: [{ TYPE: 'text', value: 'type:file_path' }, { TYPE: "input filepath['.py']" }] },
+        { TYPE: 'multiple checked', items: [{ TYPE: 'text', value: 'type:uploaded_file' }, { TYPE: "input filetype['.rhai']" }] },
+        { TYPE: 'multiple', items: [{ TYPE: 'text', value: 'type:file_path' }, { TYPE: "input filepath['.rhai']" }] },
         { TYPE: 'multiple', items: [{ TYPE: 'text', value: 'type:single_line' }, { TYPE: 'input text' }] },
       ],
     },
@@ -56,12 +56,12 @@ describe('alignArgs', () => {
   });
 
   it('resolves multi-item choices by hidden markers', () => {
-    expect(align(EXEC.args as JsonObject[], ['type:uploaded_file', 'C:\\fakepath\\x.py'])).toEqual({
-      values: ['type:uploaded_file', 'C:\\fakepath\\x.py'],
+    expect(align(EXEC.args as JsonObject[], ['type:uploaded_file', 'C:\\fakepath\\x.rhai'])).toEqual({
+      values: ['type:uploaded_file', 'C:\\fakepath\\x.rhai'],
       choices: new Map([[0, 0]]),
     });
-    expect(align(EXEC.args as JsonObject[], ['type:file_path', 'C:\\x.py'])).toEqual({
-      values: ['type:file_path', 'C:\\x.py'],
+    expect(align(EXEC.args as JsonObject[], ['type:file_path', 'C:\\x.rhai'])).toEqual({
+      values: ['type:file_path', 'C:\\x.rhai'],
       choices: new Map([[0, 1]]),
     });
     expect(align(EXEC.args as JsonObject[], ['type:single_line', 'print(1)'])).toEqual({
@@ -84,7 +84,7 @@ describe('resolveButtonCommand', () => {
   const commands = {
     Text: { 'Press a key': KEY, Copy: COPY },
     System: {
-      'Execute python code': EXEC,
+      'Execute script code': EXEC,
       Open: { command: '/start', args: [{ TYPE: 'input file' }] },
       'Open a website': { command: '/start', args: [{ TYPE: 'input url' }] },
     },
@@ -132,9 +132,9 @@ describe('resolveButtonCommand', () => {
   });
 
   it('resolves fakepath-carrying exec messages', () => {
-    const exec = resolveButtonCommand(commands, '/exec type:uploaded_file<|§|>C:\\fakepath\\x.py')!;
-    expect(exec.command).toBe('Execute python code');
+    const exec = resolveButtonCommand(commands, '/exec type:uploaded_file<|§|>C:\\fakepath\\x.rhai')!;
+    expect(exec.command).toBe('Execute script code');
     expect(exec.prefill.choices.get(0)).toBe(0);
-    expect(exec.prefill.values).toEqual(['type:uploaded_file', 'C:\\fakepath\\x.py']);
+    expect(exec.prefill.values).toEqual(['type:uploaded_file', 'C:\\fakepath\\x.rhai']);
   });
 });

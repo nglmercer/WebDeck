@@ -2,6 +2,7 @@
 
 use serde_json::Value;
 
+use crate::app::buttons::usage::gpu::canonical_gpu_method;
 use crate::app::utils::{logger::log, settings::get_config::config_dir, working_dir};
 
 /// Port of `check_config_update`.
@@ -31,6 +32,33 @@ pub fn check_config_update(config: Value) -> Value {
             if let Some(value) = settings.remove("open_settings_in_browser") {
                 settings.insert("open_settings_in_integrated_browser".to_string(), value);
             }
+        }
+    }
+
+    // Canonicalize legacy Python-era `gpu_method` values (`pynvml`/`GPUtil`
+    // were the old NVML bindings); the UI saves the NVML names now.
+    // Drop the Flask-era server keys: the axum backend never reads them
+    // (gone from `config_default.json`, no UI writes them anymore).
+    if let Some(settings) = config.get_mut("settings").and_then(|s| s.as_object_mut()) {
+        let method = settings
+            .get("gpu_method")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let canonical = canonical_gpu_method(&method);
+        if canonical != method {
+            settings.insert(
+                "gpu_method".to_string(),
+                Value::String(canonical.to_string()),
+            );
+        }
+        for dead in [
+            "server",
+            "flask_debug",
+            "flask_reloader",
+            "flask_secret_key",
+        ] {
+            settings.remove(dead);
         }
     }
 
@@ -345,5 +373,35 @@ mod tests {
             .as_array()
             .map(|a| !a.is_empty())
             .unwrap_or(false));
+    }
+
+    #[test]
+    fn migrates_legacy_gpu_and_drops_flask_keys() {
+        let config = json!({
+            "front": {"buttons": {}},
+            "settings": {
+                "gpu_method": "nvidia (GPUtil)",
+                "server": "flask",
+                "flask_debug": true,
+                "flask_reloader": false,
+                "flask_secret_key": "secret",
+            }
+        });
+        let config = check_config_update(config);
+        assert_eq!(
+            config["settings"]["gpu_method"],
+            json!("nvidia (NVML detailed)")
+        );
+        for dead in [
+            "server",
+            "flask_debug",
+            "flask_reloader",
+            "flask_secret_key",
+        ] {
+            assert!(
+                config["settings"].get(dead).is_none(),
+                "{dead} should be dropped"
+            );
+        }
     }
 }

@@ -10,7 +10,7 @@ export const pageState = {
   disconnectCount: 0,
 };
 
-/** Server -> client events (must match `socketio_layer` in src/app/server.rs). */
+/** Server -> client events (must match `socketio_layer` in src/app/server/realtime.rs). */
 export interface ServerToClientEvents {
   /** Echo of the original command string after it ran. */
   json_data: (message: string) => void;
@@ -18,7 +18,7 @@ export interface ServerToClientEvents {
   message: (data: unknown) => void;
 }
 
-/** Client -> server events (must match `socketio_layer` in src/app/server.rs). */
+/** Client -> server events (must match `socketio_layer` in src/app/server/realtime.rs). */
 export interface ClientToServerEvents {
   message_from_socket: (message: string) => void;
   send: (data: unknown) => void;

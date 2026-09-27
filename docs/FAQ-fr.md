@@ -25,7 +25,7 @@ Le WebDeck est une application qui permet à l'utilisateur de controller son ord
 Si vous préférez utiliser une autre langue que l'anglais, vous pouvez suivre ces étapes simples pour modifier la langue de l'application :
 
 1. Accédez aux paramètres de l'application.
-2. Dans la section "Language" (Langue), sélectionnez la langue de votre choix parmi les options disponibles. Actuellement, seules l'anglais et le français sont pris en charge. Veuillez noter que la traduction en français peut ne pas couvrir l'ensemble des paramètres à ce stade. Vous pouvez remédier à cela en faisant un clic droit sur la page des paramètres et en sélectionnant "Traduire en français".
+2. Dans la section "Language" (Langue), sélectionnez la langue de votre choix parmi les options disponibles. WebDeck propose actuellement des traductions en allemand, anglais, espagnol, français, coréen, polonais et russe. Si votre langue ne couvre pas encore tous les paramètres, les contributions sont les bienvenues (voir la section Langues de `.github/CONTRIBUTING.md`).
 3. Dans le futur, nous prévoyons de permettre à chaque utilisateur de contribuer facilement à la traduction de l'application dans leur langue préférée.
 
 Ainsi, vous pourrez personnaliser la langue de l'application selon vos préférences linguistiques.
@@ -42,10 +42,8 @@ Suivez ces étapes pour configurer la soundboard de l'application:
    - Cliquez sur "Install Driver".
    - Redémarrer l'ordinateur.
 
-2. **Installer VLC media player:**
-   - Si VLC media player n'est pas déjà installé sur votre ordinateur, téléchargez-le à partir de [ce lien](https://www.videolan.org/vlc/download-windows.html).
-   - Procédez à l'installation en suivant les instructions.
-   - VLC est essentiel pour la lecture des sons sur la soundboard. Cependant, il n'est pas nécessaire d'ouvrir le logiciel une seule fois pour que la soundboard fonctionne. L'installation suffit, et tout sera parfaitement fonctionnel.
+2. **Vérifier que FFmpeg est disponible :**
+   - Les sons sont convertis et lus par WebDeck lui-même (VLC n'est pas nécessaire). Sous Windows, WebDeck installe FFmpeg automatiquement à la première utilisation ; sous Linux, installez le paquet de votre distribution (p. ex. `apt install ffmpeg`).
 
 3. **Configurer les paramètres du webdeck:**
    - Ouvrez les paramètres du webdeck.
@@ -144,11 +142,9 @@ La personnalisation de l'arrière est un jeu d'enfant. Suivez ces étapes simple
 Ainsi, vous pourrez personnaliser l'arrière-plan des boutons selon vos préférences en quelques clics.
 
 
-## Pourquoi VLC Media Player est nécessaire ?
+## VLC Media Player est-il nécessaire ?
 
-WebDeck utilise la bibliothèque `python-vlc` pour la lecture des sons sur la soundboard. Par conséquent, il est indispensable d'avoir VLC media player installé sur votre ordinateur, même si vous n'utilisez pas l'interface du logiciel VLC. Malheureusement, à ce jour, aucune solution alternative n'a été identifiée pour contourner cette exigence.
-
-**Remarque :** Cette dépendance est une limitation actuelle, et l'équipe de développement de Webdeck explore activement des alternatives potentielles pour simplifier l'expérience utilisateur dans les futures mises à jour.
+Non. Les anciennes versions de WebDeck avaient besoin de la bibliothèque `python-vlc` (et donc d'une installation de VLC) pour lire les sons de la soundboard, mais la version actuelle lit les sons grâce à son propre moteur audio intégré : VLC n'est donc plus requis. La conversion audio utilise FFmpeg, que WebDeck installe automatiquement sous Windows (sous Linux, installez le paquet système `ffmpeg`).
 
 
 ## Le logiciel communique-t-il avec un serveur ?

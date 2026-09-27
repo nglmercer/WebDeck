@@ -3,7 +3,7 @@
 
 # WebDeck
 
-The WebDeck is a Flask application that allows users to control their computer remotely from any device with a browser and a touchscreen. Unlike Elgato's StreamDeck, which requires physical equipment, WebDeck uses a Flask application that the user hosts on their computer.
+The WebDeck is a Rust application that allows users to control their computer remotely from any device with a browser and a touchscreen. Unlike Elgato's StreamDeck, which requires physical equipment, WebDeck uses a lightweight server that the user hosts on their computer.
 
 <div align="center">
   <img src="https://github.com/Lenochxd/WebDeck/assets/101269524/c9c02a34-1f98-4a12-9cc0-621e06cfe2e5" alt="WebDeck banner">
@@ -41,7 +41,7 @@ To check the compatibility of your device and browser with WebDeck, you can refe
 
 #### 💻 Operating System Support
 
-WebDeck currently supports Windows. We plan to develop versions for Linux and macOS in the future. Unfortunately, Wine emulation is not a viable solution for Linux compatibility. We appreciate your patience as we work on expanding our supported platforms.
+WebDeck supports Windows and Linux (native builds, no emulation). macOS support is planned. We appreciate your patience as we work on expanding our supported platforms.
 
 
 ## ⭐ Contributors

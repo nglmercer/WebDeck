@@ -6,7 +6,7 @@ import { parseArg, type ArgSchema, type ParsedArg } from './argschema';
  * Saved-message → form resolution for the edit modal.
  *
  * A button stores its invocation as one `message` string
- * (`/key a`, `/exec type:file_path<|§|>C:\x.py`, ...). To render the same
+ * (`/key a`, `/exec type:file_path<|§|>C:\x.rhai`, ...). To render the same
  * arg form the add modal showed, the entry is located in `commands` by
  * command id and its `<|§|>`-split segments are aligned to the entry's
  * schema positions (the exact order `collectArgValues` collects):

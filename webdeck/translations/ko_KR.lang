@@ -75,7 +75,6 @@ auto_update_error=WebDeck을 업데이트 하는 중 오류가 발생하였습�
 no_files_found_error=파일을 찾을 수 없습니다.
 
 ffmpeg_not_installed_error=FFMPEG 설치 중...
-vlc_not_installed_error=VLC가 설치되지 않았습니다!
 mp3_loading_error=MP3 파일을 로드하는 중 오류가 발생하였습니다.
 
 obs_failed_connection_error=obs 연결에 실패하였습니다.
@@ -216,8 +215,6 @@ dev_mode=개발 모드
 authorize_windows_firewall=WebDeck을 통해 Windows 방화벽 인증
 automatic_firewall_bypass=시작 시 자동 방화벽 우회
 fix_stop_soundboard=사운드보드 중지 버튼 문제 수정 ( 불안정할 수 있음 )
-
-server=서버
 
 themes_menu_title=테마 목록
 random_bg_menu_title=무작위 배경 목록
@@ -472,13 +469,13 @@ SYSTEM_restart_a_task__btn_default_display_name=
 SYSTEM_restart_a_task__btn_description=
 SYSTEM_restart_a_task__arg_1_name=프로그램 (app.exe)
 
-SYSTEM_execute_python_code__btn_name=파이썬 코드 실행
-SYSTEM_execute_python_code__btn_default_display_name=
-SYSTEM_execute_python_code__btn_description=웹덱에서 파이썬 코드를 실행합니다.
-SYSTEM_execute_python_code__arg_1_name=옵션
-SYSTEM_execute_python_code__arg_1_option_1_name=파이썬 파일 (업로드)
-SYSTEM_execute_python_code__arg_1_option_2_name=파이썬 파일 (경로)
-SYSTEM_execute_python_code__arg_1_option_3_name=파이썬 코드 (한 줄)
+SYSTEM_execute_script_code__btn_name=스크립트 코드 실행
+SYSTEM_execute_script_code__btn_default_display_name=
+SYSTEM_execute_script_code__btn_description=웹덱에서 스크립트 코드를 실행합니다.
+SYSTEM_execute_script_code__arg_1_name=옵션
+SYSTEM_execute_script_code__arg_1_option_1_name=스크립트 파일 (업로드)
+SYSTEM_execute_script_code__arg_1_option_2_name=스크립트 파일 (경로)
+SYSTEM_execute_script_code__arg_1_option_3_name=스크립트 코드 (한 줄)
 
 SYSTEM_execute_batch_code__btn_name=Batch 코드 실행
 SYSTEM_execute_batch_code__btn_default_display_name=

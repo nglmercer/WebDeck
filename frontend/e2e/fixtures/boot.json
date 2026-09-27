@@ -10,10 +10,6 @@
    "update_channel": "stable",
    "update_repo": "Lenochxd/WebDeck",
    "dev_mode": false,
-   "server": "flask",
-   "flask_debug": true,
-   "flask_reloader": false,
-   "flask_secret_key": "secret",
    "app_admin": true,
    "optimized_usage_display": false,
    "show_console": false,
@@ -979,7 +975,7 @@
     ],
     "style": {}
    },
-   "Execute python code": {
+   "Execute script code": {
     "command": "/exec",
     "args": [
      {
@@ -993,7 +989,7 @@
           "value": "type:uploaded_file"
          },
          {
-          "TYPE": "input filetype['.py']"
+          "TYPE": "input filetype['.rhai']"
          }
         ]
        },
@@ -1005,7 +1001,7 @@
           "value": "type:file_path"
          },
          {
-          "TYPE": "input filepath['.py']"
+          "TYPE": "input filepath['.rhai']"
          }
         ]
        },
@@ -1025,7 +1021,7 @@
      }
     ],
     "style": {
-     "image": "execpython.png",
+     "image": "execscript.svg",
      "image_size": "70%"
     }
    },
@@ -2595,7 +2591,7 @@
   "DISPLAY_disks_sub4__btn_name": "Total disk storage (gb)",
   "UTILITIES_color_picker__btn_default_display_name": "",
   "OBSSTUDIO_startrecording__btn_name": "Start recording",
-  "SYSTEM_execute_python_code__btn_description": "Execute python code from the webdeck program",
+  "SYSTEM_execute_script_code__btn_description": "Execute script code from the webdeck program",
   "swap_buttons": "Swap 2 Buttons",
   "spotify_follow_artist_success": "Subscribed to %artist_name%.",
   "OBSSTUDIO_togglevirtualcam__btn_name": "Toggle virtual cam",
@@ -2634,7 +2630,6 @@
   "SPOTIFY_volume_(only_with_spotify_premium)_sub1__btn_default_display_name": "",
   "configuration": "Configuration",
   "SYSTEM_execute_batch_code__btn_description": "Execute batch from the webdeck program",
-  "vlc_not_installed_error": "VLC is not installed!",
   "SYSTEM_opendir__arg_1_name": "Folder location",
   "DISPLAY_gpu_sub3__btn_description": "",
   "SYSTEM_shutdown_pc__btn_default_display_name": "",
@@ -2720,7 +2715,7 @@
   "obs_no_recording_is_paused": "No recording is paused.",
   "enabled_themes": "Selected",
   "themes": "Themes",
-  "SYSTEM_execute_python_code__arg_1_name": "Option",
+  "SYSTEM_execute_script_code__arg_1_name": "Option",
   "SOUNDBOARD_CATEGORY_NAME": "Soundboard",
   "TEXT_copy__arg_1_name": "Option",
   "DISPLAY_memory_sub3__btn_description": "",
@@ -2758,7 +2753,7 @@
   "SPOTIFY_follow_current_played_artist_(doesnt_unfollow_if_already)__btn_description": "Follow the artist of the currently played song",
   "SYSTEM_screensaver__btn_default_display_name": "",
   "obs_no_recording_can_be_paused": "No recording can be paused.",
-  "SYSTEM_execute_python_code__btn_default_display_name": "",
+  "SYSTEM_execute_script_code__btn_default_display_name": "",
   "OBSSTUDIO_startrecording__btn_default_display_name": "",
   "error": "Error",
   "SYSTEM_sleep_pc__btn_description": "",
@@ -2771,7 +2766,6 @@
   "DISPLAY_memory_sub4__btn_default_display_name": "total RAM",
   "TEXT_cut_(ctrl+x)__btn_description": "",
   "show_console": "Show console",
-  "server": "Server",
   "OBSSTUDIO_resumerecording__btn_default_display_name": "",
   "SYSTEM_hibernate_pc__btn_description": "",
   "SYSTEM_shutdown_pc__btn_name": "Shutdown PC",
@@ -2779,7 +2773,7 @@
   "TEXT_copy__btn_default_display_name": "",
   "add_a_button": "Add a button",
   "usage_btn_reload_time": "Usage buttons reload time (ms)",
-  "SYSTEM_execute_python_code__arg_1_option_3_name": "Python code (single line)",
+  "SYSTEM_execute_script_code__arg_1_option_3_name": "Script code (single line)",
   "open_config": "Open Config",
   "SPOTIFY_unfollow_current_played_artist__btn_name": "Unfollow artist",
   "SPOTIFY_volume_(only_with_spotify_premium)_sub2__btn_default_display_name": "",
@@ -2817,7 +2811,7 @@
   "SYSTEM_hibernate_pc__btn_name": "Hibernate PC",
   "copy_to_clipboard_prompt_title": "Copy to Clipboard",
   "SOUNDBOARD_playsound__btn_default_display_name": "Soundboard",
-  "SYSTEM_execute_python_code__arg_1_option_1_name": "Python file (upload)",
+  "SYSTEM_execute_script_code__arg_1_option_1_name": "Script file (upload)",
   "SYSTEM_opendir__btn_default_display_name": "Open directory",
   "SOUNDBOARD_playsound__btn_description": "Play a sound on the soundboard",
   "folder_not_found": "Folder not found",
@@ -2827,7 +2821,7 @@
   "TEXT_speech_recognition__btn_default_display_name": "",
   "SPOTIFY_volume_(only_with_spotify_premium)__category_description": "Manage spotify volume (ONLY WITH SPOTIFY PREMIUM)",
   "DISPLAY_memory__category_name": "Memory (RAM)",
-  "SYSTEM_execute_python_code__arg_1_option_2_name": "Python file (path)",
+  "SYSTEM_execute_script_code__arg_1_option_2_name": "Script file (path)",
   "SYSTEM_volume_sub3__btn_description": "Set computer volume",
   "SYSTEM_open_a_website__btn_default_display_name": "Open website",
   "SPOTIFY_add_current_song_to_a_playlist_(do_not_remove_if_already)__arg_1_name": "Playlist name",
@@ -2835,7 +2829,7 @@
   "OBSSTUDIO_changescene__btn_description": "Set current scene by name on OBS",
   "DISPLAY_gpu__category_description": "",
   "not_specified": "Not specified",
-  "SYSTEM_execute_python_code__btn_name": "Execute python code",
+  "SYSTEM_execute_script_code__btn_name": "Execute script code",
   "DISPLAY_memory_sub4__btn_description": "",
   "SYSTEM_execute_batch_code__btn_default_display_name": "",
   "SPOTIFY_volume_(only_with_spotify_premium)_sub3__btn_name": "Set volume",

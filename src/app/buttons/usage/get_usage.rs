@@ -174,7 +174,7 @@ mod tests {
             "front": {"buttons": {}},
             "settings": {
                 "optimized_usage_display": false,
-                "gpu_method": "nvidia (pynvml)",
+                "gpu_method": "nvidia (NVML)",
             },
         }));
         guard
@@ -295,7 +295,7 @@ mod tests {
         // A failed NVML read must not persist "None" over the configured
         // method (that bricks GPU tiles with no recovery path).
         let after = get_config(false, false);
-        assert_eq!(after["settings"]["gpu_method"], "nvidia (pynvml)");
+        assert_eq!(after["settings"]["gpu_method"], "nvidia (NVML)");
     }
 
     #[test]

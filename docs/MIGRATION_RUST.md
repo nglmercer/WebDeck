@@ -23,9 +23,9 @@ so the three binaries share one implementation.
 |---|---|---|---|
 | `run.py` | `src/main.rs` | ported | server + tray spawn; UAC via `windows` crate |
 | `console.py` | `src/bin/console.rs` | ported | REPL via `reqwest` |
-| `app/server.py` | `src/app/server.rs` | ported | all routes + middleware; `socketioxide` layer; `/` serves the TypeScript SPA bundle, `/api/boot` the ex-template context |
-| `app/tray.py` | `src/app/tray.rs` | ported | `tray-icon` menu + `tao`/`wry` QR/config/port windows; Linux via `ksni` StatusNotifier |
-| `app/buttons/commands.py` | `…/buttons/commands.rs` | ported | full dispatch incl. plugins; input/clipboard via `enigo`/`arboard` |
+| `app/server.py` | `src/app/server/` | ported | all routes + middleware; `socketioxide` layer; `/` serves the TypeScript SPA bundle, `/api/boot` the ex-template context |
+| `app/tray.py` | `src/app/tray/` | ported | `tray-icon` menu + `tao`/`wry` QR/config/port windows; Linux via `ksni` StatusNotifier |
+| `app/buttons/commands.py` | `…/buttons/commands/` | ported | full dispatch incl. plugins; input/clipboard via `enigo`/`arboard` |
 | `app/buttons/audio/*` (4) | `…/audio/*` | ported | CoreAudio via `windows` crate; Linux via `pactl`; media keys via `keybd_event` |
 | `app/buttons/color_picker/*` (6) | `…/color_picker/*` | ported | capture via `screenshots` (+ `grim` fallback on Wayland), clipboard via `arboard`, toast via `winrt-notification`/`notify-rust` |
 | `app/buttons/exec/*` (4) | `…/exec/*` | ported | `/exec` scripts run as **rhai** (see deviations); `/batch` shells out; file-`/batch` mirrors upstream's no-op |
@@ -35,7 +35,7 @@ so the three binaries share one implementation.
 | `app/buttons/system/*` (4) | `…/system/*` | ported | `openfile`/`opendir` real (explorer/xdg-open/open) |
 | `app/buttons/usage/*` (3) | `…/usage/*` | ported | readings via `sysinfo`/`nvml-wrapper` |
 | `app/buttons/window/*` (5) | `…/window/*` | ported | handles via `windows` crate; Linux via `wmctrl`/`xdotool` (X11) |
-| `app/on_start/*` (2) | `…/on_start/*` | ported | shortcuts via `windows` ShellLink, GPU probe via `nvml-wrapper`, VLC cache fix |
+| `app/on_start/*` (2) | `…/on_start/*` | ported | shortcuts via `windows` ShellLink, GPU probe via `nvml-wrapper` |
 | `app/updater/*` (3) | `…/updater/*` | ported | `compare_versions`, `check_files`, download/extract (via `zip`), relaunch; UAC elevation |
 | `app/utils/args.py` | `…/utils/args.rs` | ported | same flags via `clap`; `get_arg('x')` → `get_args().x` |
 | `app/utils/debug/timers.py` | `…/utils/debug/timers.rs` | ported | `Instant`-based |
@@ -83,14 +83,14 @@ so the three binaries share one implementation.
 | deep_translator | `reqwest` web endpoint | in use |
 | plugins (`importlib`) | `rhai` scripts + static registry | in use |
 | `exec()` (buttons) | `rhai` sandbox | in use |
-| cx_Freeze/setup.py | `cargo build --release` + packaging script | planned |
-| VLC install (`fix_vlc_cache`) | registry check only | in use (no libvlc binding needed) |
+| cx_Freeze/setup.py | `cargo build --release` + `src/bin/package.rs` | in use |
+| VLC install (`fix_vlc_cache`) | — | removed (rodio needs no VLC plugin cache) |
 
 ## Build / run / test
 
 ```sh
 cargo check --all-targets   # type-check incl. tests
-cargo test                  # 56+ unit tests (pure ports)
+cargo test                  # unit + integration tests
 cargo build --bins          # webdeck, console, update binaries
 (cd frontend && npm install && npm run build)  # build TS web UI into frontend/dist (required for GET /)
 ./target/debug/webdeck --no-tray -p 18080   # run server (dev: binds LAN IP)
@@ -193,13 +193,14 @@ Every Windows-only API has a Linux equivalent behind `cfg(target_os =
 1. **Windows CI / native testing**: the Windows-only paths (tray, CoreAudio,
    `wry` windows, VB-Cable/rodio device selection, MSI installer) compile
    but need runs on a Windows host for end-to-end proof. MSI generation
-   (`setup.py bdist_msi`) stays a manual WiX step; the portable zip below
-   is the shippable + auto-update artifact.
+   (previously `setup.py bdist_msi`) stays a manual WiX step; the portable
+   zip below is the shippable + auto-update artifact.
 2. **Deliberate 1:1 deviations kept** (all documented at the call site):
    `force` exits terminate on Linux (Python no-ops; tray/updater only ran
-   on Windows there), `.py` plugins are rejected in favor of `.rhai`
-   scripts (executing Python would re-add a Python requirement), and the
-   firewall check uses `netsh` instead of COM `HNetCfg.FwMgr`.
+   on Windows there), `.py` plugins are discovered but cannot be imported
+   (use `.rhai` scripts instead — executing Python would re-add a Python
+   requirement), and the firewall check uses `netsh` instead of COM
+   `HNetCfg.FwMgr`.
 
 ## Verification evidence (2026-09-26, updated 2026-09-27)
 
@@ -232,3 +233,14 @@ Every Windows-only API has a Linux equivalent behind `cfg(target_os =
 - Python removal (2026-09-27): `app/`, `run.py`, `console.py`, `setup.py`,
   `requirements.txt`, and `build.bat` deleted after the audit + gap work
   above; the repo builds, tests, packages, and runs with no Python.
+- Stale-reference cleanup (2026-09-27): dead Flask-era settings
+  (`server`, `flask_debug`, `flask_reloader`, `flask_secret_key`) removed
+  from `config_default.json` + the config UI (`check_config_update` strips
+  them from existing configs); `gpu_method` canonicalized to
+  `nvidia (NVML)` / `nvidia (NVML detailed)` with the `pynvml`/`GPUtil`
+  values kept as read aliases + migrated on load; the `/exec` command
+  renamed "Execute python code" → "Execute script code" (`.rhai` file
+  filters, new `execscript.svg` icon, all 8 `.lang` files) since scripts
+  run as rhai; VLC leftovers removed (`fix_vlc_cache`, the
+  `vlc_not_installed_error` string, FAQ `python-vlc` claims); READMEs,
+  FAQs, and CONTRIBUTING updated for the Rust backend.

@@ -3,7 +3,7 @@
 pub mod asked_devices;
 pub mod get_usage;
 mod disks;
-mod gpu;
+pub(crate) mod gpu;
 pub(crate) mod gpu_amd;
 
 pub use asked_devices::extract_asked_device;

@@ -75,7 +75,6 @@ auto_update_error=Erreur lors de la mise à jour de WebDeck, veuillez le mettre 
 no_files_found_error=Aucun fichier trouvé
 
 ffmpeg_not_installed_error=Installation de FFMPEG en cours...
-vlc_not_installed_error=VLC n'est pas installé !
 mp3_loading_error=Erreur lors du chargement du fichier MP3 nommé.
 
 obs_failed_connection_error=Échec de la connexion à l'obs.
@@ -216,8 +215,6 @@ dev_mode=Mode développeur
 authorize_windows_firewall=Autoriser WebDeck via le pare feu windows
 automatic_firewall_bypass=Contournement automatique du pare-feu au démarrage
 fix_stop_soundboard=Correction du bouton stop soundboard (peut être instable)
-
-server=Serveur
 
 themes_menu_title=Liste des thèmes
 random_bg_menu_title=Liste d'arrière-plans aléatoires
@@ -472,13 +469,13 @@ SYSTEM_restart_a_task__btn_default_display_name=Redémarrer l'application
 SYSTEM_restart_a_task__btn_description=
 SYSTEM_restart_a_task__arg_1_name=Tache (app.exe)
 
-SYSTEM_execute_python_code__btn_name=Exécuter du code python
-SYSTEM_execute_python_code__btn_default_display_name=Exécuter le code python
-SYSTEM_execute_python_code__btn_description=Exécute du code python depuis le programme du webdeck
-SYSTEM_execute_python_code__arg_1_name=Option
-SYSTEM_execute_python_code__arg_1_option_1_name=Fichier Python (upload)
-SYSTEM_execute_python_code__arg_1_option_2_name=Fichier Python (chemin)
-SYSTEM_execute_python_code__arg_1_option_3_name=Code Python (une seule ligne)
+SYSTEM_execute_script_code__btn_name=Exécuter du script
+SYSTEM_execute_script_code__btn_default_display_name=Exécuter le script
+SYSTEM_execute_script_code__btn_description=Exécute du script depuis le programme du webdeck
+SYSTEM_execute_script_code__arg_1_name=Option
+SYSTEM_execute_script_code__arg_1_option_1_name=Fichier de script (upload)
+SYSTEM_execute_script_code__arg_1_option_2_name=Fichier de script (chemin)
+SYSTEM_execute_script_code__arg_1_option_3_name=Code de script (une seule ligne)
 
 SYSTEM_execute_batch_code__btn_name=Exécuter du batch
 SYSTEM_execute_batch_code__btn_default_display_name=Exécuter le code batch

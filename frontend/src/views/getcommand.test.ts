@@ -117,20 +117,20 @@ describe('getCommand goldens', () => {
     expect(getCommand('/screensaver', MODAL_ID)).toBe('/screensaver full');
   });
 
-  it('serializes multi-item choices positionally (System / Execute python code)', () => {
-    render(testCtx(), 'System', 'Execute python code', {
+  it('serializes multi-item choices positionally (System / Execute script code)', () => {
+    render(testCtx(), 'System', 'Execute script code', {
       command: '/exec',
       args: [
         {
           TYPE: 'choice',
           options: [
-            { TYPE: 'multiple checked', items: [{ TYPE: 'text', value: 'type:uploaded_file' }, { TYPE: "input filetype['.py']" }] },
-            { TYPE: 'multiple', items: [{ TYPE: 'text', value: 'type:file_path' }, { TYPE: "input filepath['.py']" }] },
+            { TYPE: 'multiple checked', items: [{ TYPE: 'text', value: 'type:uploaded_file' }, { TYPE: "input filetype['.rhai']" }] },
+            { TYPE: 'multiple', items: [{ TYPE: 'text', value: 'type:file_path' }, { TYPE: "input filepath['.rhai']" }] },
             { TYPE: 'multiple', items: [{ TYPE: 'text', value: 'type:single_line' }, { TYPE: 'input text' }] },
           ],
         },
       ],
-      style: { image: 'execpython.png', image_size: '70%' },
+      style: { image: 'execscript.svg', image_size: '70%' },
     });
     // Default: uploaded-file pane (file input contributes nothing).
     expect(getCommand('/exec', MODAL_ID)).toBe('/exec type:uploaded_file');

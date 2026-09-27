@@ -279,19 +279,13 @@ export function configView(ctx: BootContext): Html {
   const portraitRotate = asString(front['portrait_rotate']);
   const reloadTime = asString(front['computer_usage_reload_time']);
   const gpuMethod = asString(settings['gpu_method']).toLowerCase();
-  const server = asString(settings['server']).toLowerCase();
 
   const gpuOptions: SelectOption[] = [
-    { value: 'nvidia (pynvml)', label: 'nvidia (pynvml)', selected: gpuMethod === 'nvidia (pynvml)' },
-    { value: 'nvidia (GPUtil)', label: 'nvidia (GPUtil)', selected: gpuMethod === 'nvidia (gputil)' },
+    { value: 'nvidia (NVML)', label: 'nvidia (NVML)', selected: gpuMethod === 'nvidia (nvml)' },
+    { value: 'nvidia (NVML detailed)', label: 'nvidia (NVML detailed)', selected: gpuMethod === 'nvidia (nvml detailed)' },
     { value: 'AMD', label: `AMD (${text('doesnt_work')})`, selected: gpuMethod === 'amd' },
     { value: 'Intel', label: `Intel (${text('lmao')})`, selected: gpuMethod === 'intel' },
     { value: 'None', label: text('none'), selected: gpuMethod === 'none' },
-  ];
-
-  const serverOptions: SelectOption[] = [
-    { value: 'flask', label: 'Flask (app.run)', selected: server === 'flask' },
-    { value: 'werkzeug', label: 'Werkzeug (make_server)', selected: server === 'werkzeug' },
   ];
 
   // NOTE: upstream renders this unescaped (invalid HTML, breaks theme
@@ -458,9 +452,6 @@ export function configView(ctx: BootContext): Html {
                 </div>
                 ${switchField({ dark, containerClass: 'automatic-firewall-bypass-toggle', label: text('automatic_firewall_bypass'), id: 'automatic_firewall_bypass', name: 'settings.automatic_firewall_bypass', checked: asBool(settings['automatic_firewall_bypass']) })}
                 ${switchField({ dark, containerClass: 'fix-stop-soundboard', label: text('fix_stop_soundboard'), id: 'fix_stop_soundboard', name: 'settings.fix_stop_soundboard', checked: asBool(settings['fix_stop_soundboard']) })}
-                ${selectField({ containerClass: 'server', id: 'server', name: 'settings.server', label: text('server'), options: serverOptions })}
-                ${switchField({ dark, containerClass: 'flask-debug', label: text('flask_debug'), id: 'flask_debug', name: 'settings.flask_debug', checked: asBool(settings['flask_debug']) })}
-                ${switchField({ dark, containerClass: 'flask-reloader', label: text('flask_reloader'), id: 'flask_reloader', name: 'settings.flask_reloader', checked: asBool(settings['flask_reloader']) })}
                 ${switchField({ dark, containerClass: 'dev-mode', label: text('dev_mode'), id: 'dev_mode', name: 'settings.dev_mode', checked: asBool(settings['dev_mode']) })}`,
                 })}
               </div>

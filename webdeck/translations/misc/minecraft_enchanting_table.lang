@@ -75,7 +75,6 @@ auto_update_error=ᒷ∷∷𝙹∷  ∴⍑╎ꖎᒷ  ⚍!¡↸ᔑℸ ̣ ╎リ�
 no_files_found_error=リ𝙹  ⎓╎ꖎᒷᓭ  ∴ᒷ∷ᒷ  ⎓𝙹⚍リ↸
 
 ffmpeg_not_installed_error=╎リᓭℸ ̣ ᔑꖎꖎ╎リ⊣  ⎓⎓ᒲ!¡ᒷ⊣...
-vlc_not_installed_error=⍊ꖎᓵ  ╎ᓭ  リ𝙹ℸ ̣   ╎リᓭℸ ̣ ᔑꖎꖎᒷ↸!
 mp3_loading_error=ᒷ∷∷𝙹∷  ∴⍑╎ꖎᒷ  ꖎ𝙹ᔑ↸╎リ⊣  ᒲ!¡3  ⎓╎ꖎᒷ  リᔑᒲᒷ↸.
 
 obs_failed_connection_error=⎓ᔑ╎ꖎᒷ↸  ᓵ𝙹リリᒷᓵℸ ̣ ╎𝙹リ  ℸ ̣ 𝙹  𝙹ʖᓭ.
@@ -209,8 +208,6 @@ dev_mode=↸ᒷ⍊  ᒲ𝙹↸ᒷ
 authorize_windows_firewall=ᔑ⚍ℸ ̣ ⍑𝙹∷╎⨅ᒷ  ∴ᒷʖ↸ᒷᓵꖌ  ⍊╎ᔑ  ∴╎リ↸𝙹∴ᓭ  ⎓╎∷ᒷ∴ᔑꖎꖎ
 automatic_firewall_bypass=ᔑ⚍ℸ ̣ 𝙹ᒲᔑℸ ̣ ╎ᓵ  ⎓╎∷ᒷ∴ᔑꖎꖎ  ʖ||!¡ᔑᓭᓭ  ᔑℸ ̣   ᓭℸ ̣ ᔑ∷ℸ ̣ ⚍!¡
 fix_stop_soundboard=⎓╎ ̇/  ᓭℸ ̣ 𝙹!¡  ᓭ𝙹⚍リ↸ʖ𝙹ᔑ∷↸  ʖ⚍ℸ ̣ ℸ ̣ 𝙹リ  ╎ᓭᓭ⚍ᒷ  (ᒲᔑ||  ʖᒷ  ⚍リᓭℸ ̣ ᔑʖꖎᒷ)
-
-server=ᓭᒷ∷⍊ᒷ∷
 
 themes_menu_title=ℸ ̣ ⍑ᒷᒲᒷᓭ  ꖎ╎ᓭℸ ̣
 random_bg_menu_title=∷ᔑリ↸𝙹ᒲ  ʖᔑᓵꖌ⊣∷𝙹⚍リ↸ᓭ  ꖎ╎ᓭℸ ̣
@@ -465,13 +462,13 @@ SYSTEM_restart_a_task__btn_default_display_name=∷ᒷᓭℸ ̣ ᔑ∷ℸ ̣   �
 SYSTEM_restart_a_task__btn_description=
 SYSTEM_restart_a_task__arg_1_name=ℸ ̣ ᔑᓭꖌ  (ᔑ!¡!¡.ᒷ ̇/ᒷ)
 
-SYSTEM_execute_python_code__btn_name=ᒷ ̇/ᒷᓵ⚍ℸ ̣ ᒷ  !¡||ℸ ̣ ⍑𝙹リ  ᓵ𝙹↸ᒷ
-SYSTEM_execute_python_code__btn_default_display_name=
-SYSTEM_execute_python_code__btn_description=ᒷ ̇/ᒷᓵ⚍ℸ ̣ ᒷ  !¡||ℸ ̣ ⍑𝙹リ  ᓵ𝙹↸ᒷ  ⎓∷𝙹ᒲ  ℸ ̣ ⍑ᒷ  ∴ᒷʖ↸ᒷᓵꖌ  !¡∷𝙹⊣∷ᔑᒲ
-SYSTEM_execute_python_code__arg_1_name=𝙹!¡ℸ ̣ ╎𝙹リ
-SYSTEM_execute_python_code__arg_1_option_1_name=!¡||ℸ ̣ ⍑𝙹リ  ⎓╎ꖎᒷ  (⚍!¡ꖎ𝙹ᔑ↸)
-SYSTEM_execute_python_code__arg_1_option_2_name=!¡||ℸ ̣ ⍑𝙹リ  ⎓╎ꖎᒷ  (!¡ᔑℸ ̣ ⍑)
-SYSTEM_execute_python_code__arg_1_option_3_name=!¡||ℸ ̣ ⍑𝙹リ  ᓵ𝙹↸ᒷ  (ᓭ╎リ⊣ꖎᒷ  ꖎ╎リᒷ)
+SYSTEM_execute_script_code__btn_name=ᒷ ̇/ᒷᓵ⚍ℸ ̣ ᒷ  ᓭᓵ∷╎!¡ℸ ̣   ᓵ𝙹↸ᒷ
+SYSTEM_execute_script_code__btn_default_display_name=
+SYSTEM_execute_script_code__btn_description=ᒷ ̇/ᒷᓵ⚍ℸ ̣ ᒷ  ᓭᓵ∷╎!¡ℸ ̣   ᓵ𝙹↸ᒷ  ⎓∷𝙹ᒲ  ℸ ̣ ⍑ᒷ  ∴ᒷʖ↸ᒷᓵꖌ  !¡∷𝙹⊣∷ᔑᒲ
+SYSTEM_execute_script_code__arg_1_name=𝙹!¡ℸ ̣ ╎𝙹リ
+SYSTEM_execute_script_code__arg_1_option_1_name=ᓭᓵ∷╎!¡ℸ ̣   ⎓╎ꖎᒷ  (⚍!¡ꖎ𝙹ᔑ↸)
+SYSTEM_execute_script_code__arg_1_option_2_name=ᓭᓵ∷╎!¡ℸ ̣   ⎓╎ꖎᒷ  (!¡ᔑℸ ̣ ⍑)
+SYSTEM_execute_script_code__arg_1_option_3_name=ᓭᓵ∷╎!¡ℸ ̣   ᓵ𝙹↸ᒷ  (ᓭ╎リ⊣ꖎᒷ  ꖎ╎リᒷ)
 
 SYSTEM_execute_batch_code__btn_name=ᒷ ̇/ᒷᓵ⚍ℸ ̣ ᒷ  ʖᔑℸ ̣ ᓵ⍑  ᓵ𝙹↸ᒷ
 SYSTEM_execute_batch_code__btn_default_display_name=

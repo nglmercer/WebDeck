@@ -531,7 +531,7 @@
       ],
       "style": {}
     },
-    "Execute python code": {
+    "Execute script code": {
       "command": "/exec",
       "args": [
         {
@@ -545,7 +545,7 @@
                   "value": "type:uploaded_file"
                 },
                 {
-                  "TYPE": "input filetype['.py']"
+                  "TYPE": "input filetype['.rhai']"
                 }
               ]
             },
@@ -557,7 +557,7 @@
                   "value": "type:file_path"
                 },
                 {
-                  "TYPE": "input filepath['.py']"
+                  "TYPE": "input filepath['.rhai']"
                 }
               ]
             },
@@ -577,7 +577,7 @@
         }
       ],
       "style": {
-        "image": "execpython.png",
+        "image": "execscript.svg",
         "image_size": "70%"
       }
     },

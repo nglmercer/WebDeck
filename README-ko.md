@@ -1,6 +1,6 @@
 # WebDeck
 
-WebDeck은 브라우저와 터치스크린이 있는 모든 장치에서 원격으로 컴퓨터를 제어할 수 있는 Flask 애플리케이션입니다. 물리적 장치가 필요한 Elgato의 StreamDeck과 다르게 WebDeck은 사용자가 컴퓨터에서 호스팅하는 Flask 애플리케이션을 사용합니다.
+WebDeck은 브라우저와 터치스크린이 있는 모든 장치에서 원격으로 컴퓨터를 제어할 수 있는 Rust 애플리케이션입니다. 물리적 장치가 필요한 Elgato의 StreamDeck과 다르게 WebDeck은 사용자가 컴퓨터에서 호스팅하는 경량 서버를 사용합니다.
 
 <div align="center">
   <img src="https://github.com/Lenochxd/WebDeck/assets/101269524/c9c02a34-1f98-4a12-9cc0-621e06cfe2e5" alt="WebDeck banner">
@@ -38,7 +38,7 @@ WebDeck과 장치 및 브라우저의 호환성을 확인하려면  [테스트 �
 
 #### 💻 운영 체제 지원
 
-WebDeck은 현재 Windows를 지원합니다. 향후 Linux 및 macOS용 버전을 개발할 계획입니다. 아쉽게도 Wine 에뮬레이션을 통한 실행은 Linux 에서 실행되지 않습니다. 지원되는 플랫폼을 확장하는 동안 기다려 주셔서 감사합니다.
+WebDeck은 Windows와 Linux를 지원합니다 (에뮬레이션 없는 네이티브 빌드). macOS 지원은 계획 중입니다. 지원되는 플랫폼을 확장하는 동안 기다려 주셔서 감사합니다.
 
 
 ## ⭐ 기여자

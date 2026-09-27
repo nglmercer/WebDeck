@@ -75,7 +75,6 @@ auto_update_error=Wystąpił błąd podczas aktualizowania WebDeck, zaktualizuj 
 no_files_found_error=Nie znaleziono plików
 
 ffmpeg_not_installed_error=Instalowanie FFMPEG...
-vlc_not_installed_error=VLC nie jest zainstalowane!
 mp3_loading_error=Błąd podczas ładowania pliku MP3 nazwanego.
 
 obs_failed_connection_error=Nie udało się połączyć z OBS.
@@ -216,8 +215,6 @@ dev_mode=Tryb dewelopera
 authorize_windows_firewall=Autoryzuj WebDeck przez zaporę Windows Defender
 automatic_firewall_bypass=Automatyczne obejście zapory przy uruchomieniu
 fix_stop_soundboard=Napraw przycisk zatrzymania Soundboard (może być niestabilne)
-
-server=Serwer
 
 themes_menu_title=Lista motywów
 random_bg_menu_title=Lista losowych teł
@@ -472,13 +469,13 @@ SYSTEM_restart_a_task__btn_default_display_name=Uruchom zadanie
 SYSTEM_restart_a_task__btn_description=
 SYSTEM_restart_a_task__arg_1_name=Zadanie (app.exe)
 
-SYSTEM_execute_python_code__btn_name=Uruchom kod Python
-SYSTEM_execute_python_code__btn_default_display_name=
-SYSTEM_execute_python_code__btn_description=Uruchom kod Python z programu WebDeck
-SYSTEM_execute_python_code__arg_1_name=Opcja
-SYSTEM_execute_python_code__arg_1_option_1_name=Plik Python (wczytaj)
-SYSTEM_execute_python_code__arg_1_option_2_name=Plik Python (ścieżka)
-SYSTEM_execute_python_code__arg_1_option_3_name=Kod Python (jedna linia)
+SYSTEM_execute_script_code__btn_name=Uruchom kod skryptu
+SYSTEM_execute_script_code__btn_default_display_name=
+SYSTEM_execute_script_code__btn_description=Uruchom kod skryptu z programu WebDeck
+SYSTEM_execute_script_code__arg_1_name=Opcja
+SYSTEM_execute_script_code__arg_1_option_1_name=Plik skryptu (wczytaj)
+SYSTEM_execute_script_code__arg_1_option_2_name=Plik skryptu (ścieżka)
+SYSTEM_execute_script_code__arg_1_option_3_name=Kod skryptu (jedna linia)
 
 SYSTEM_execute_batch_code__btn_name=Uruchom kod Batch
 SYSTEM_execute_batch_code__btn_default_display_name=

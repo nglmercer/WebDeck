@@ -242,8 +242,8 @@ pub fn remove_startup_shortcut() {
 
 /// Port of `get_gpu_method`.
 ///
-/// Keeps the config default + save flow 1:1; the `pynvml.nvmlInit()` probe
-/// maps to `nvml_wrapper::Nvml::init()` (failure → `"AMD"` fallback).
+/// Keeps the config default + save flow 1:1; the NVML probe is
+/// `nvml_wrapper::Nvml::init()` (failure → `"AMD"` fallback).
 ///
 /// Deviation: a stuck `"None"` method is re-probed (NVML → amdgpu →
 /// stay `"None"`). Past NVML failures persisted `"None"` into the config
@@ -270,13 +270,15 @@ pub fn get_gpu_method() -> Value {
 
     let mut config = get_config(false, false);
     if method_of(&config).is_empty() {
-        set_method(&mut config, "nvidia (pynvml)");
+        set_method(&mut config, "nvidia (NVML)");
     }
-    if method_of(&config) == "nvidia (pynvml)" && nvml_wrapper::Nvml::init().is_err() {
+    if matches!(method_of(&config), "nvidia (NVML)" | "nvidia (pynvml)")
+        && nvml_wrapper::Nvml::init().is_err()
+    {
         set_method(&mut config, "AMD");
     } else if method_of(&config) == "None" {
         if nvml_wrapper::Nvml::init().is_ok() {
-            set_method(&mut config, "nvidia (pynvml)");
+            set_method(&mut config, "nvidia (NVML)");
         } else if has_amdgpu_card() {
             set_method(&mut config, "AMD");
         }
@@ -289,86 +291,6 @@ pub fn get_gpu_method() -> Value {
     }
     save_config(config.clone());
     config
-}
-
-/// Port of `fix_vlc_cache`.
-///
-/// Non-Windows returns immediately like Python. On Windows reads
-/// `HKLM\SOFTWARE\VideoLAN\VLC\InstallDir` and runs `vlc-cache-gen.exe`
-/// over the plugins dir (missing key = no VLC = silent return, like the
-/// `FileNotFoundError` path in Python).
-pub fn fix_vlc_cache() {
-    #[cfg(windows)]
-    {
-        use windows::core::w;
-        use windows::Win32::System::Registry::{
-            RegCloseKey, RegOpenKeyExW, RegQueryValueExW, HKEY, HKEY_LOCAL_MACHINE, KEY_READ,
-            REG_VALUE_TYPE,
-        };
-
-        let install_dir: Option<String> = unsafe {
-            let mut key = HKEY::default();
-            if RegOpenKeyExW(
-                HKEY_LOCAL_MACHINE,
-                w!(r"SOFTWARE\VideoLAN\VLC"),
-                None,
-                KEY_READ,
-                &mut key,
-            )
-            .is_err()
-            {
-                None
-            } else {
-                let mut value_type = REG_VALUE_TYPE::default();
-                let mut buffer = [0u16; 512];
-                let mut length = (buffer.len() * 2) as u32;
-                let result = RegQueryValueExW(
-                    key,
-                    w!("InstallDir"),
-                    None,
-                    Some(&mut value_type),
-                    Some(buffer.as_mut_ptr() as *mut u8),
-                    Some(&mut length),
-                );
-                let _ = RegCloseKey(key);
-                if result.is_err() {
-                    None
-                } else {
-                    let chars = (length as usize / 2).saturating_sub(1);
-                    Some(String::from_utf16_lossy(&buffer[..chars.min(buffer.len())]))
-                }
-            }
-        };
-
-        let Some(vlc_path) = install_dir else {
-            return;
-        };
-        let command = format!("\"{vlc_path}\\vlc-cache-gen.exe\" \"{vlc_path}\\plugins\"");
-        match std::process::Command::new("cmd")
-            .args(["/C", &command])
-            .status()
-        {
-            Ok(status) if status.success() => {}
-            Ok(status) => log().exception(
-                &format!("exit status {status}"),
-                Some("Failed to execute VLC cache generation command"),
-                true,
-                true,
-                true,
-            ),
-            Err(e) => log().exception(
-                &e,
-                Some("Failed to execute VLC cache generation command"),
-                true,
-                true,
-                true,
-            ),
-        }
-    }
-    #[cfg(not(windows))]
-    {
-        // No-op off Windows, like Python's `os.name != 'nt'` early return.
-    }
 }
 
 /// Port of `on_start` — returns `(config, commands, local_ip)`.
@@ -477,9 +399,10 @@ pub async fn on_start() -> (Value, Value, String) {
 
 /// Port of `on_start_threaded` — spawns a background task like Python's thread.
 pub fn on_start_threaded(config: Value) {
+    // NOTE: Python's `fix_vlc_cache` step is gone: sound plays through
+    // rodio/cpal now, so no VLC install (and no plugin-cache rebuild)
+    // is needed on any platform.
     tokio::spawn(async move {
-        fix_vlc_cache();
-
         let sort = config
             .get("settings")
             .and_then(|s| s.get("sort_colors_on_startup"))
@@ -510,7 +433,7 @@ mod tests {
         let config = get_gpu_method();
         let method = config["settings"]["gpu_method"].as_str().unwrap_or("");
         if nvml_wrapper::Nvml::init().is_ok() {
-            assert_eq!(method, "nvidia (pynvml)");
+            assert_eq!(method, "nvidia (NVML)");
         } else if has_amdgpu_card() {
             assert_eq!(method, "AMD");
         } else {

@@ -8,6 +8,17 @@ use serde_json::{json, Value};
 use super::gpu_amd::{amd_gpu_entries, has_amdgpu_card};
 use crate::app::utils::logger::log;
 
+/// Canonical `gpu_method` value. Legacy Python-era names (`pynvml`/`GPUtil`
+/// were the old NVML bindings) survive in existing configs, so they map to
+/// the canonical NVML names the UI saves now; anything else passes through.
+pub(crate) fn canonical_gpu_method(configured: &str) -> &str {
+    match configured {
+        "nvidia (pynvml)" => "nvidia (NVML)",
+        "nvidia (GPUtil)" => "nvidia (NVML detailed)",
+        other => other,
+    }
+}
+
 /// Port of the GPU branch of `get_usage` (both `nvidia` methods via NVML).
 pub(crate) fn gpu_info(config: &Value) -> Value {
     let configured = config
@@ -15,15 +26,16 @@ pub(crate) fn gpu_info(config: &Value) -> Value {
         .and_then(|s| s.get("gpu_method"))
         .and_then(|v| v.as_str())
         .unwrap_or("");
+    let configured = canonical_gpu_method(configured);
     // A stuck `"None"` (or empty/unknown) method must not brick GPU tiles:
     // stale UI saves can re-persist it at any time, so probe for a working
     // backend on the read path instead of reporting empty. "Intel" stays
     // empty (explicit choice, no backend).
     let method = match configured {
-        "nvidia (pynvml)" | "nvidia (GPUtil)" | "AMD" | "Intel" => configured.to_string(),
+        "nvidia (NVML)" | "nvidia (NVML detailed)" | "AMD" | "Intel" => configured.to_string(),
         _ => {
             if nvml_wrapper::Nvml::init().is_ok() {
-                "nvidia (pynvml)".to_string()
+                "nvidia (NVML)".to_string()
             } else if has_amdgpu_card() {
                 "AMD".to_string()
             } else {
@@ -34,7 +46,7 @@ pub(crate) fn gpu_info(config: &Value) -> Value {
     let method = method.as_str();
     let mut gpus = serde_json::Map::new();
 
-    if method == "nvidia (pynvml)" {
+    if method == "nvidia (NVML)" {
         match nvml_devices() {
             Ok(devices) => {
                 for (count, device) in devices.iter().enumerate() {
@@ -58,7 +70,7 @@ pub(crate) fn gpu_info(config: &Value) -> Value {
         for (key, value) in amd_gpu_entries() {
             gpus.insert(key, value);
         }
-    } else if method == "nvidia (GPUtil)" {
+    } else if method == "nvidia (NVML detailed)" {
         match nvml_devices() {
             Ok(devices) => {
                 for (count, device) in devices.iter().enumerate() {
@@ -122,10 +134,25 @@ mod tests {
     use super::*;
 
     #[test]
+    fn legacy_aliases_canonicalize() {
+        assert_eq!(canonical_gpu_method("nvidia (pynvml)"), "nvidia (NVML)");
+        assert_eq!(
+            canonical_gpu_method("nvidia (GPUtil)"),
+            "nvidia (NVML detailed)"
+        );
+        assert_eq!(canonical_gpu_method("nvidia (NVML)"), "nvidia (NVML)");
+        assert_eq!(canonical_gpu_method("AMD"), "AMD");
+        assert_eq!(canonical_gpu_method("bogus"), "bogus");
+    }
+
+    #[test]
     fn default_gpu_key_always_present() {
         // Every method — including failing NVML and card-less AMD — must
         // yield `defaultGPU` so tile lookups hit a stable shape.
         for method in [
+            "nvidia (NVML)",
+            "nvidia (NVML detailed)",
+            // Legacy Python-era aliases must keep working for old configs.
             "nvidia (pynvml)",
             "nvidia (GPUtil)",
             "AMD",
@@ -146,7 +173,7 @@ mod tests {
     fn none_method_falls_back_to_working_backend() {
         let gpus = gpu_info(&serde_json::json!({"settings": {"gpu_method": "None"}}));
         if nvml_wrapper::Nvml::init().is_ok() {
-            // NVML answers: pynvml-shaped entries (or an empty defaultGPU
+            // NVML answers: basic-shaped entries (or an empty defaultGPU
             // when the driver reports zero devices).
             assert!(gpus.get("GPU1").is_some() || gpus.get("defaultGPU") == Some(&json!({})));
         } else if has_amdgpu_card() {

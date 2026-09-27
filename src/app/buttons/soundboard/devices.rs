@@ -13,7 +13,6 @@
 
 use rodio::cpal::traits::{DeviceTrait, HostTrait};
 
-use crate::app::utils::languages::text;
 use crate::app::utils::logger::log;
 
 /// Port of `get_device`: configured-name → live output-device name.
@@ -22,16 +21,18 @@ pub fn get_device(device: &str) -> Result<String, String> {
     let devices = match host.output_devices() {
         Ok(devices) => devices,
         Err(e) => {
+            // No VLC involved anymore (rodio/cpal backend): enumeration
+            // itself failed, so report it like the no-match branch below.
             log().exception(
                 &e,
                 Some(&format!(
-                    "Failed to retrieve audio device '{device}'. Ensure VLC is installed properly."
+                    "Failed to enumerate audio output devices for '{device}'."
                 )),
                 true,
                 true,
                 true,
             );
-            return Err(text(Some("vlc_not_installed_error"), None));
+            return Err(format!("Failed to retrieve audio device '{device}'."));
         }
     };
     for candidate in devices {

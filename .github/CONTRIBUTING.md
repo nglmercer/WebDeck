@@ -8,8 +8,8 @@ Thank you for considering contributing to WebDeck! Here are some guidelines to h
 - [Code of Conduct](#code-of-conduct)
 - [Development Setup](#development-setup)
 - [Languages](#languages)
-- [Python](#python)
-- [Jinja Templates/HTML/JS](#jinja-templateshtmljs)
+- [Rust](#rust)
+- [Frontend (TypeScript)](#frontend-typescript)
 - [Website](#website)
 - [Reporting Issues](#reporting-issues)
 - [Submitting a Pull Request](#submitting-a-pull-request)
@@ -53,18 +53,20 @@ To set up the development environment, follow these steps:
 > - Translating `README.md` files is optional but not recommended as it increases maintenance work.
 
 
-## Python
+## Rust
 
+- The backend lives in `src/` (see `docs/MIGRATION_RUST.md` for the module map).
 - Write clean, readable, and maintainable code.
-- Write descriptive docstrings and comments for complex logic.
+- Write descriptive doc comments for complex logic.
 - Avoid using deprecated functions and libraries.
+- Before submitting, run `cargo check --all-targets` and `cargo test`, and keep new code `cargo fmt`-clean.
 
 
-## Jinja Templates/HTML/JS
+## Frontend (TypeScript)
 
-- The current codebase is messy and will be rewritten.
-- Contributions are welcome but be aware that the code is temporary and will be replaced.
-- Focus on fixing immediate issues or improving layout consistency.
+- The web UI lives in `frontend/` (custom zero-dependency framework + Vite build).
+- `cd frontend && npm install` once, then `npm run build` so `GET /` can serve the bundle.
+- Before submitting, run `npm run typecheck` and `npm test` in `frontend/`.
 
 
 ## Website

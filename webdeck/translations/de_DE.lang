@@ -75,7 +75,6 @@ auto_update_error=Fehler beim Aktualisieren von WebDeck, bitte aktualisieren Sie
 no_files_found_error=Keine Dateien gefunden.
 
 ffmpeg_not_installed_error=Installiere FFMPEG...
-vlc_not_installed_error=VLC ist nicht installiert!
 mp3_loading_error=Fehler beim Laden einer MP3-Datei mit dem Namen.
 
 obs_failed_connection_error=Fehlgeschlagene Verbindung zu obs.
@@ -216,8 +215,6 @@ dev_mode=Dev-Modus
 authorize_windows_firewall=WebDeck über die Windows-Firewall autorisieren
 automatic_firewall_bypass=Automatische Umgehung der Firewall beim Starten
 fix_stop_soundboard= Behebt das Problem mit der Schaltfläche zum Anhalten des Soundboards (kann instabil sein)
-
-server=Server
 
 themes_menu_title=Themenliste
 random_bg_menu_title=Zufällige Hintergründe Liste
@@ -472,13 +469,13 @@ SYSTEM_restart_a_task__btn_default_display_name=Restart task
 SYSTEM_restart_a_task__btn_description=
 SYSTEM_restart_a_task__arg_1_name=Task (app.exe)
 
-SYSTEM_execute_python_code__btn_name=Execute python code
-SYSTEM_execute_python_code__btn_default_display_name=
-SYSTEM_execute_python_code__btn_description=Execute python code from the webdeck program
-SYSTEM_execute_python_code__arg_1_name=Option
-SYSTEM_execute_python_code__arg_1_option_1_name=Python file (upload)
-SYSTEM_execute_python_code__arg_1_option_2_name=Python file (path)
-SYSTEM_execute_python_code__arg_1_option_3_name=Python code (single line)
+SYSTEM_execute_script_code__btn_name=Execute script code
+SYSTEM_execute_script_code__btn_default_display_name=
+SYSTEM_execute_script_code__btn_description=Execute script code from the webdeck program
+SYSTEM_execute_script_code__arg_1_name=Option
+SYSTEM_execute_script_code__arg_1_option_1_name=Script file (upload)
+SYSTEM_execute_script_code__arg_1_option_2_name=Script file (path)
+SYSTEM_execute_script_code__arg_1_option_3_name=Script code (single line)
 
 SYSTEM_execute_batch_code__btn_name=Execute batch code
 SYSTEM_execute_batch_code__btn_default_display_name=
