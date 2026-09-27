@@ -14,4 +14,9 @@ export interface SocketLike {
   emit: (event: string, data?: unknown) => void;
 }
 
+/** Minimal shape of the socket.io client global (guarded lookup). */
+export interface SocketIoClient {
+  connect: (url: string) => SocketLike;
+}
+
 export const socketHolder: { socket: SocketLike | null } = { socket: null };

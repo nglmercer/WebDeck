@@ -1,12 +1,6 @@
-// Globals from CDN scripts (loaded in index.html exactly like upstream).
-// Typed `any`: these come from untracked CDN bundles.
-
-declare const Toastify: any;
-declare const $: any;
-declare const jQuery: any;
-
-// socket.io client (conditionally loaded 1:1; 404s upstream too).
-declare const io: any;
+// Window globals installed by the app (no external script globals remain:
+// jQuery was unused, Toastify is a bundled typed import, socket.io stays
+// behind a guarded lookup in wireup.ts).
 
 interface Window {
   folder?: (folderId: string) => void;

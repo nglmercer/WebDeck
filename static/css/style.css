@@ -37,6 +37,15 @@ body {
   justify-content: center;
 }
 
+#app {
+  width: 100%;
+  max-width: 100%;
+}
+
+#deck-scale {
+  width: 100%;
+}
+
 #loading-screen {
   position: fixed;
   display: flex;
@@ -92,8 +101,9 @@ div.void {
 div.buttons-center {
   display: flex;
   flex-wrap: wrap;
-  justify-content: left;
-  margin: auto;
+  justify-content: center;
+  margin: 0 auto;
+  max-width: 100%;
   /* border: 3px solid rgba(253, 252, 252, 0.1); */
   border-radius: 20px;
 }
@@ -101,9 +111,10 @@ div.buttons-center {
 div.all-buttons {
   display: flex;
   flex-wrap: wrap;
-  justify-content: left;
-  align-items: left;
+  justify-content: center;
+  align-items: flex-start;
   width: max-content;
+  max-width: 100%;
 }
 
 
@@ -537,11 +548,12 @@ h1.config-title {
 form.form, div.fakeform {
   width: 132px;
   height: 153.79px;
-  
+
   display: flex;
   justify-content: center;
   align-items: flex-start;
   flex-wrap: wrap;
+  position: relative;
 }
 
 div.fakeform-container {
@@ -778,8 +790,10 @@ input::placeholder {
 }
 
 .container-editmode {
-  position: relative;
-  right: -130; /* yeah ik */
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
 }
 
 .edit-button, .delete-button {
@@ -844,8 +858,9 @@ input::placeholder {
 #EditorButtons {
   display: none;
   position: fixed;
-  bottom: 16;
-  left: 0;
+  bottom: 16px;
+  left: auto;
+  right: 0;
 }
 
 div.swapMode-open-folder {

@@ -1,4 +1,4 @@
-import { join } from '../framework/html';
+import { html, join } from '../framework/html';
 import { asObject, asString, get, type BootContext } from '../framework/types';
 import { initBackgroundSetting } from '../legacy/background-setting';
 import { initColorSetting } from '../legacy/color-setting';
@@ -25,7 +25,10 @@ export function renderApp(mount: HTMLElement, ctx: BootContext): void {
   mount.innerHTML = join([
     loadingScreen(ctx.svgs),
     shellView(ctx),
-    gridView(ctx),
+    // Scale wrapper: auto_resize scales ONLY the grid, so fixed UI
+    // (folder bar, editor bar, modals) stays viewport-anchored instead
+    // of drifting/scaling with the body transform.
+    html`<div id="deck-scale">${gridView(ctx)}</div>`,
     editorBarView(),
     configView(ctx),
     addModalChrome(ctx),

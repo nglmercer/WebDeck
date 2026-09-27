@@ -18,7 +18,7 @@ import {
   show_modal,
   wireModals,
 } from './modals';
-import { pageState, socketHolder } from './state';
+import { pageState, socketHolder, type SocketIoClient } from './state';
 import { showError } from './toast';
 import { updateUsageTiles } from './usage';
 import { auto_resize, wireZoomControls } from './zoom';
@@ -77,7 +77,7 @@ function wireSocket(transferMethod: string): void {
   // NOTE: upstream dereferences `io` unguarded (the script 404s, so socket
   // mode aborts page wiring entirely there); degrade gracefully instead.
   const client = (window as unknown as Record<string, unknown>)['io'] as
-    | { connect: (url: string) => { on: (e: string, cb: (d?: unknown) => void) => void; emit: (e: string, d?: unknown) => void } }
+    | SocketIoClient
     | undefined;
   if (!client) {
     console.error('socket.io client missing; socket mode unavailable');
@@ -138,15 +138,17 @@ function wireSubmits(transferMethod: string): void {
             let obj: Record<string, unknown> = config_data;
 
             for (let i = 0; i < keys.length; i++) {
-              if (!Object.prototype.hasOwnProperty.call(obj, keys[i])) {
-                obj[keys[i] as string] = {};
+              const k = keys[i];
+              if (k === undefined) continue;
+              if (!Object.prototype.hasOwnProperty.call(obj, k)) {
+                obj[k] = {};
               }
 
               if (i === keys.length - 1) {
-                obj[keys[i] as string] = config_dataTemp[key];
+                obj[k] = config_dataTemp[key];
               }
 
-              obj = obj[keys[i] as string] as Record<string, unknown>;
+              obj = obj[k] as Record<string, unknown>;
             }
           }
 

@@ -149,8 +149,7 @@ export function deleteFolder(folderName: string): void {
       folderElement.remove();
 
       const folderButtons = document.querySelectorAll(`button[onclick="folder(\`${folderName}\`)"]`);
-      for (let i = 0; i < folderButtons.length; i++) {
-        const btn = folderButtons[i];
+      for (const btn of folderButtons) {
         if (btn.classList.contains('wd_button')) {
           createVoidButton(null, btn.parentNode as Element | null);
         } else {
@@ -198,11 +197,11 @@ function swapForms(parentId1: string, formNumber1: string, parentId2: string, fo
 
   const editButtonElements = document.querySelectorAll('.edit-button');
   const deleteButtonElements = document.querySelectorAll('.delete-button');
-  for (let i = 0; i < editButtonElements.length; i++) {
-    editButtonElements[i].addEventListener('click', showEditWindow);
+  for (const el of editButtonElements) {
+    el.addEventListener('click', showEditWindow);
   }
-  for (let i = 0; i < deleteButtonElements.length; i++) {
-    deleteButtonElements[i].addEventListener('click', showDeleteConfirmation);
+  for (const el of deleteButtonElements) {
+    el.addEventListener('click', showDeleteConfirmation);
   }
 
   const folderButtons = (
@@ -274,53 +273,33 @@ export function swapButton(event: Event): void {
   }
 }
 
+function setEditorButtonsDisplay(selector: string, display: string): void {
+  for (const el of document.querySelectorAll<HTMLElement>(selector)) {
+    el.style.display = display;
+  }
+}
+
 export function toggleEditorButtonsMode(): void {
-  const addButtonElements = document.querySelectorAll('.add-button');
-  const editButtonElements = document.querySelectorAll('.edit-button');
-  const deleteButtonElements = document.querySelectorAll('.delete-button');
-  for (let i = 0; i < addButtonElements.length; i++) {
-    (addButtonElements[i] as HTMLElement).style.display = pageState.editorMode === 0 ? 'none' : 'flex';
-  }
-  for (let i = 0; i < editButtonElements.length; i++) {
-    (editButtonElements[i] as HTMLElement).style.display = pageState.editorMode === 0 ? 'none' : 'flex';
-  }
-  for (let i = 0; i < deleteButtonElements.length; i++) {
-    (deleteButtonElements[i] as HTMLElement).style.display = pageState.editorMode === 0 ? 'none' : 'flex';
-  }
+  const display = pageState.editorMode === 0 ? 'none' : 'flex';
+  setEditorButtonsDisplay('.add-button', display);
+  setEditorButtonsDisplay('.edit-button', display);
+  setEditorButtonsDisplay('.delete-button', display);
   const bar = editorButtons();
-  if (bar) bar.style.display = pageState.editorMode === 0 ? 'none' : 'flex';
+  if (bar) bar.style.display = display;
   const folders = editorButtonsFolders();
   if (folders) folders.style.display = pageState.editorMode === 0 ? 'none' : 'block';
 }
 
 export function hideEditorPartially(): void {
-  const editButtonElements = document.querySelectorAll('.edit-button');
-  const deleteButtonElements = document.querySelectorAll('.delete-button');
-  const addButtonElements = document.querySelectorAll('.add-button');
-  for (let i = 0; i < addButtonElements.length; i++) {
-    (addButtonElements[i] as HTMLElement).style.display = 'none';
-  }
-  for (let i = 0; i < editButtonElements.length; i++) {
-    (editButtonElements[i] as HTMLElement).style.display = 'none';
-  }
-  for (let i = 0; i < deleteButtonElements.length; i++) {
-    (deleteButtonElements[i] as HTMLElement).style.display = 'none';
-  }
+  setEditorButtonsDisplay('.add-button', 'none');
+  setEditorButtonsDisplay('.edit-button', 'none');
+  setEditorButtonsDisplay('.delete-button', 'none');
 }
 
 export function showEditorPartially(): void {
-  const editButtonElements = document.querySelectorAll('.edit-button');
-  const deleteButtonElements = document.querySelectorAll('.delete-button');
-  const addButtonElements = document.querySelectorAll('.add-button');
-  for (let i = 0; i < addButtonElements.length; i++) {
-    (addButtonElements[i] as HTMLElement).style.display = 'flex';
-  }
-  for (let i = 0; i < editButtonElements.length; i++) {
-    (editButtonElements[i] as HTMLElement).style.display = 'flex';
-  }
-  for (let i = 0; i < deleteButtonElements.length; i++) {
-    (deleteButtonElements[i] as HTMLElement).style.display = 'flex';
-  }
+  setEditorButtonsDisplay('.add-button', 'flex');
+  setEditorButtonsDisplay('.edit-button', 'flex');
+  setEditorButtonsDisplay('.delete-button', 'flex');
 }
 
 export function toggleEditorMode(): void {
@@ -421,24 +400,17 @@ export function swapEditorButtonFunction(_event?: Event): void {
   swapSecondBtn = 0;
   console.log('La valeur de swapMode a été modifiée :', swapMode);
 
-  const checkboxDivs = document.querySelectorAll('div.checkbox');
-  const openFolderDivs = document.querySelectorAll('.swapMode-open-folder');
   if (pageState.editorMode === 1 && swapMode === 1) {
     if (swapEditorButton && swapEditorButton.childNodes[1]) {
       swapEditorButton.childNodes[1].nodeValue = `[S] ${text('stop_swap_mode')}`;
     }
     hideEditorPartially();
-    for (let i = 0; i < openFolderDivs.length; i++) {
-      (openFolderDivs[i] as HTMLElement).style.display = 'inline-flex';
-    }
-    for (let i = 0; i < checkboxDivs.length; i++) {
-      (checkboxDivs[i] as HTMLElement).style.display = 'block';
-    }
+    setEditorButtonsDisplay('.swapMode-open-folder', 'inline-flex');
+    setEditorButtonsDisplay('div.checkbox', 'block');
 
     const buttons = document.getElementsByTagName('button');
-    for (let i = 0; i < buttons.length; i++) {
-      if (!buttons[i].classList.contains('EditorButtons-Folder')) {
-        const button = buttons[i];
+    for (const button of buttons) {
+      if (!button.classList.contains('EditorButtons-Folder')) {
         const onclickAttr = button.getAttribute('onclick');
         const onclickHandlerAttr = button.getAttribute('onclickhandler');
         if (onclickHandlerAttr) {
@@ -454,19 +426,12 @@ export function swapEditorButtonFunction(_event?: Event): void {
     swapMode = 0;
     showEditorPartially();
 
-    const checkboxDivs2 = document.querySelectorAll('div.checkbox');
-    const openFolderDivs2 = document.querySelectorAll('.swapMode-open-folder');
-    for (let i = 0; i < openFolderDivs2.length; i++) {
-      (openFolderDivs2[i] as HTMLElement).style.display = 'none';
-    }
-    for (let i = 0; i < checkboxDivs2.length; i++) {
-      (checkboxDivs2[i] as HTMLElement).style.display = 'none';
-    }
+    setEditorButtonsDisplay('.swapMode-open-folder', 'none');
+    setEditorButtonsDisplay('div.checkbox', 'none');
 
     const buttons = document.getElementsByTagName('button');
-    for (let i = 0; i < buttons.length; i++) {
-      if (!buttons[i].classList.contains('EditorButtons-Folder')) {
-        const button = buttons[i];
+    for (const button of buttons) {
+      if (!button.classList.contains('EditorButtons-Folder')) {
         const onclickHandlerAttr = button.getAttribute('onclickhandler');
         const savedOnClick = onclickHandlerAttr ? savedOnClicks[onclickHandlerAttr] : undefined;
         if (savedOnClick) {
@@ -538,17 +503,17 @@ export function reloadEditorEvents(): void {
   const AllButtons2 = document.querySelectorAll('div.void');
   const AllButtons = Array.from(AllButtons1).concat(Array.from(AllButtons2));
 
-  for (let i = 0; i < addButtonElements.length; i++) {
-    addButtonElements[i].addEventListener('click', showAddConfirmation);
+  for (const el of addButtonElements) {
+    el.addEventListener('click', showAddConfirmation);
   }
-  for (let i = 0; i < editButtonElements.length; i++) {
-    editButtonElements[i].addEventListener('click', showEditWindow);
+  for (const el of editButtonElements) {
+    el.addEventListener('click', showEditWindow);
   }
-  for (let i = 0; i < deleteButtonElements.length; i++) {
-    deleteButtonElements[i].addEventListener('click', showDeleteConfirmation);
+  for (const el of deleteButtonElements) {
+    el.addEventListener('click', showDeleteConfirmation);
   }
-  for (let i = 0; i < AllButtons.length; i++) {
-    AllButtons[i].addEventListener('click', swapButton);
+  for (const el of AllButtons) {
+    el.addEventListener('click', swapButton);
   }
 
   const open_modal_addbutton = document.querySelectorAll('div.add-button');
@@ -565,11 +530,11 @@ export function reloadEditorEvents(): void {
 
 export function wireEditorChrome(): void {
   const openFolderDivs = document.querySelectorAll('.swapMode-open-folder');
-  for (let i = 0; i < openFolderDivs.length; i++) {
-    openFolderDivs[i].addEventListener('mouseover', function () {
+  for (const el of openFolderDivs) {
+    el.addEventListener('mouseover', function () {
       isMouseOverOpenFolder = true;
     });
-    openFolderDivs[i].addEventListener('mouseout', function () {
+    el.addEventListener('mouseout', function () {
       setTimeout(function () {
         isMouseOverOpenFolder = false;
       }, 150);

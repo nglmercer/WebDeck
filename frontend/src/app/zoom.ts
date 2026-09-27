@@ -52,52 +52,31 @@ export function goFullscreen(): void {
 }
 
 export function auto_resize(): void {
+  const scaler = document.getElementById('deck-scale');
+  if (!scaler) return;
   const divs = document.querySelectorAll('.buttons-center');
-  let div: Element | undefined;
-  for (let i = 0; i < divs.length; i++) {
-    if (!divs[i].classList.contains('invisible')) {
-      div = divs[i];
+  let div: Element | null = null;
+  for (const candidate of divs) {
+    if (!candidate.classList.contains('invisible')) {
+      div = candidate;
       break;
     }
   }
   if (!div) return;
-  const target = div;
-  let currentZoom = document.body.offsetWidth / 100;
-
-  function applyZoom(newZoom: number): void {
-    currentZoom = newZoom;
-    const scalePercentage = 100 / currentZoom;
-    document.body.style.transformOrigin = 'left top';
-    document.body.style.transform = `scale(${currentZoom})`;
-    document.body.style.width = `${scalePercentage}%`;
-    document.body.style.height = `${scalePercentage}%`;
-  }
-
-  let count = 0;
-  while (count < 1000) {
-    count++;
-    const rect = target.getBoundingClientRect();
-    if (!(rect.right > window.innerWidth || rect.bottom > window.innerHeight)) {
-      currentZoom += 0.05;
-      applyZoom(currentZoom);
-    } else {
-      count = 1000;
-      break;
-    }
-  }
-
-  count = 0;
-  while (count < 1000) {
-    count++;
-    const rect = target.getBoundingClientRect();
-    if (rect.right > window.innerWidth || rect.bottom > window.innerHeight) {
-      currentZoom -= 0.05;
-      applyZoom(currentZoom);
-    } else {
-      count = 1000;
-      break;
-    }
-  }
+  // Reset so the measurement is unscaled. getBoundingClientRect is the
+  // transformed bbox, so a portrait-rotated grid measures rotated and
+  // the fit below keeps it on-screen too.
+  scaler.style.transform = 'none';
+  const rect = div.getBoundingClientRect();
+  const w = rect.width;
+  const h = rect.height;
+  if (!(w > 0) || !(h > 0)) return;
+  // Same intent as the upstream grow/shrink loop (fill as much as fits)
+  // computed directly: exact, instant, and unable to miss convergence.
+  const s = Math.min(window.innerWidth / w, window.innerHeight / h);
+  if (!isFinite(s) || s <= 0) return;
+  scaler.style.transformOrigin = 'top center';
+  scaler.style.transform = `scale(${s})`;
 }
 
 export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string, frontHeight: string): void {
@@ -195,16 +174,14 @@ export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string, 
 
   let currentZoom = 1;
 
+  const scaler = document.getElementById('deck-scale');
+
   try {
     dezoomBtn?.addEventListener('click', () => {
-      if (!isSwapMode()) {
+      if (!isSwapMode() && scaler) {
         currentZoom = currentZoom - 0.05;
-        const calcWidth = 100 / currentZoom;
-        const calcHeight = 100 / currentZoom;
-        document.body.style.transformOrigin = 'left top';
-        document.body.style.transform = 'scale(' + currentZoom + ')';
-        document.body.style.width = `${calcWidth}%`;
-        document.body.style.height = `${calcHeight}%`;
+        scaler.style.transformOrigin = 'top center';
+        scaler.style.transform = 'scale(' + currentZoom + ')';
       }
     });
   } catch {
@@ -213,14 +190,10 @@ export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string, 
 
   try {
     zoomBtn?.addEventListener('click', () => {
-      if (!isSwapMode()) {
+      if (!isSwapMode() && scaler) {
         currentZoom = currentZoom + 0.05;
-        const calcWidth = 100 / currentZoom;
-        const calcHeight = 100 / currentZoom;
-        document.body.style.transformOrigin = 'left top';
-        document.body.style.transform = 'scale(' + currentZoom + ')';
-        document.body.style.width = `${calcWidth}%`;
-        document.body.style.height = `${calcHeight}%`;
+        scaler.style.transformOrigin = 'top center';
+        scaler.style.transform = 'scale(' + currentZoom + ')';
       }
     });
   } catch {

@@ -750,17 +750,11 @@ function buttonCommandAdd(argModalId: string, command: string): void {
 /** Add-modal dropdown toggles (index.jinja inline script after commands). */
 export function wireBrowserDropdowns(): void {
   const dropdown = document.getElementsByClassName('dropdown-btn');
-  for (let i = 0; i < dropdown.length; i++) {
-    ((index: number) => {
-      dropdown[index]?.addEventListener('click', function (this: Element) {
-        if (
-          !(
-            dropdown[index]?.classList.contains('final-btn') ||
-            dropdown[index]?.classList.contains('no-dropdown')
-          )
-        ) {
-          this.classList.toggle('active');
-        }
+  for (const btn of dropdown) {
+    btn.addEventListener('click', function (this: Element) {
+      if (!(btn.classList.contains('final-btn') || btn.classList.contains('no-dropdown'))) {
+        this.classList.toggle('active');
+      }
         const dropdownContent = this.nextElementSibling as HTMLElement | null;
         try {
           if (dropdownContent?.style.display === 'block') {
@@ -774,6 +768,5 @@ export function wireBrowserDropdowns(): void {
           // Ne rien faire (pass)
         }
       });
-    })(i);
   }
 }

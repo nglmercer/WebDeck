@@ -1,4 +1,6 @@
 // Toast helpers (index.jinja showToast/showError/showInfo) + wake lock.
+import Toastify from 'toastify-js';
+import 'toastify-js/src/toastify.css';
 
 export function showToast(kind: number, message: string): void {
   let bg: string;

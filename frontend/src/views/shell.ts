@@ -188,7 +188,7 @@ function foldersBar(ctx: BootContext): Html {
         </div>`;
   });
   return html`
-    <div id="EditorButtons-Folders" style="color: white; display: none; position: fixed; top: 0; left: 0;">
+    <div id="EditorButtons-Folders" style="color: white; display: none; position: fixed; top: 0; right: 0; text-align: right;">
       ${text('open_folder')}:
       ${join(folders)}
     </div>

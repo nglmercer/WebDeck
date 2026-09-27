@@ -10,7 +10,11 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "typescript": "^5.6.2",
-    "vite": "^5.4.8"
+    "@types/toastify-js": "1.12.4",
+    "typescript": "7.0.2",
+    "vite": "8.3.1"
+  },
+  "dependencies": {
+    "toastify-js": "1.12.0"
   }
 }
