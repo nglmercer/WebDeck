@@ -1,0 +1,30 @@
+/* Settings form: category dividers + .setting rows. */
+form#config-form {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+.setting-category {
+  margin-bottom: 7;
+}
+.setting-category::before {
+  content: "";
+  display: block;
+  height: 1px;
+  background-color: #d5d5d5;
+  margin: 10px 0;
+}
+.setting-category.dark-theme::before {
+  background-color: #d5d5d52b!important;
+}
+
+.setting {
+  margin-bottom: 15px;
+  margin-left: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+

@@ -1,0 +1,38 @@
+/* Round .checkbox picker. */
+.checkbox {
+  width: 1.3em;
+  height: 1.3em;
+  background-color: white;
+  border-radius: 50%;
+  vertical-align: middle;
+  border: 1px solid #ddd;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  cursor: pointer;
+  position: absolute;
+  z-index: 1;
+  margin-right: 70px;
+  margin-top: 20px;
+}
+
+.checkbox::before {
+  content: "";
+  display: none;
+}
+
+.checkbox-checked {
+  background-color: #66bb6a;
+}
+
+.checkbox-checked::before {
+  content: url(/static/img//checked.svg);
+  display: inline-block;
+  color: rgb(0, 0, 0);
+  font-weight: bold;
+  text-align: center;
+  margin-top: 3px;
+  margin-left: 2px;
+}
+
+

@@ -1,0 +1,144 @@
+/* Buttons: .button, .wd_button deck buttons, usage tiles, info icons. */
+button.button {
+  background-color: #F0f0f2;
+  color: #333333;
+  border-radius: 8px;
+  border-width: 0;
+  cursor: pointer;
+  display: inline-block;
+  font-family: "Haas Grot Text R Web", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  list-style: none;
+  margin: 0;
+  padding: 3px 10px;
+  text-align: center;
+  transition: all 200ms;
+  vertical-align: baseline;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+/* button.button.dark-theme {
+  background-color: rgba(51, 51, 51, 0.05);
+  color: #333333;
+} */
+
+.wd_button, .wd_button:focus {
+  align-items: center;
+  background-color: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 1.25rem;
+  box-shadow: rgb(255, 255, 255) 0 1px 3px 0;
+  box-sizing: border-box;
+  color: rgba(0, 0, 0, 0.85);
+  cursor: pointer;
+  display: inline-flex;
+  flex-direction: column; /* alignement vertical */
+  font-family: system-ui,-apple-system,"Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  justify-content: center;
+  line-height: 1.25;
+  margin: 10;
+  min-height: 7rem;
+  padding: calc(0.875rem - 1px) calc(1.5rem - 1px);
+  position: relative;
+  text-decoration: none;
+  transition: all 250ms;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  vertical-align: baseline;
+  width: 7rem;
+}
+.wd_button p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.settings-title-info {
+  display: flex;
+}
+
+.info-icon {
+  fill: #515151;
+  height: 25;
+  margin-top: 3;
+  margin-left: 3;
+}
+.info-icon:hover {
+  fill: #9b9b9b;
+}
+
+@keyframes wd-button-press {
+  100% {background-color: rgb(255, 255, 255);}
+  100% {background-color: none;}
+}
+
+.wd_button:hover {
+  transform: translateY(-1px);
+  animation-name: wd-button-press;
+  animation-duration: 1s;
+}
+
+.wd_button:active {
+  background-color: #F0F0F1;
+  border-color: rgba(0, 0, 0, 0.15);
+  box-shadow: rgba(0, 0, 0, 0.06) 0 2px 4px;
+  color: rgba(0, 0, 0, 0.65);
+  transform: translateY(0);
+}
+.red {
+  background-color: red;
+}
+.blue {
+  background-color: blue;
+}
+
+
+p.buttontext {
+  color: #b3b3b3;
+  margin-top: -7px;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-family: system-ui,-apple-system,"Helvetica Neue",Helvetica,Arial,sans-serif;
+  text-align: center;
+  line-height: 1.4;
+  display: block;
+}
+
+
+div.usage {
+  position: absolute;
+  max-height: 80px;
+  max-width: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  margin-bottom: -25px;
+}
+div.usage-title {
+  display: block;
+  margin-top: -30px;
+  max-height: 50px;
+  max-width: 120px;
+  width: 120;
+  font-weight: bolder;
+}
+div.usage-value {
+  display: block;
+  margin-top: 10px;
+  max-height: 50px;
+  max-width: 120px;
+  font-weight: bolder;
+}
+
+
+

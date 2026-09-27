@@ -203,10 +203,51 @@ async fn after_request(req: Request<Body>, next: Next) -> Response {
 
 // --- Helpers -----------------------------------------------------------
 
-/// Port of `get_svgs` — collects `url(….svg)` references from style.css.
+/// Stylesheet sources scanned by [`get_svgs`]: `style.css` is a manifest —
+/// the rules (and their `url(….svg)` references) live in the `@import`ed
+/// modules, which resolve relative to `static/css/` in import order.
+fn stylesheet_sources() -> Vec<String> {
+    let mut sources = Vec::new();
+    let Ok(manifest) = std::fs::read_to_string("static/css/style.css") else {
+        return sources;
+    };
+    let mut rest = manifest.as_str();
+    let mut found_import = false;
+    while let Some(start) = rest.find("@import") {
+        rest = &rest[start + "@import".len()..];
+        let path = rest
+            .trim_start()
+            .strip_prefix("url(")
+            .and_then(|u| u.split(')').next())
+            .or_else(|| {
+                rest.trim_start()
+                    .split([';', '\n'])
+                    .next()
+                    .map(|s| s.trim().trim_end_matches(';'))
+            })
+            .map(|s| s.trim().trim_matches(|c| c == '"' || c == '\''))
+            .unwrap_or("");
+        // Only local `.css` targets count (the manifest's own header
+        // comment mentions `@import` without one).
+        if path.ends_with(".css") && !path.starts_with("http") {
+            found_import = true;
+            if let Ok(content) = std::fs::read_to_string(format!("static/css/{path}")) {
+                sources.push(content);
+            }
+        }
+    }
+    // No `@import`s (legacy monolith or custom entry): scan it directly.
+    if !found_import {
+        sources.push(manifest);
+    }
+    sources
+}
+
+/// Port of `get_svgs` — collects `url(….svg)` references from the active
+/// stylesheet, following `style.css` `@import`s in cascade order.
 pub fn get_svgs() -> Vec<String> {
     let mut svgs = Vec::new();
-    if let Ok(content) = std::fs::read_to_string("static/css/style.css") {
+    for content in stylesheet_sources() {
         let mut rest = content.as_str();
         while let Some(start) = rest.find("url(") {
             rest = &rest[start + 4..];
@@ -983,6 +1024,30 @@ pub async fn run_server() -> Result<(), ServerError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn svgs_follow_stylesheet_imports_in_order() {
+        // `style.css` is a manifest: the references live in the `@import`ed
+        // modules and must surface in cascade order, exactly as the old
+        // monolithic file produced them.
+        assert_eq!(
+            get_svgs(),
+            vec![
+                "/static/img//eye.svg",
+                "/static/img//eye-slash.svg",
+                "/static/img//checked.svg",
+                "/static/img//chevron_down.svg",
+                "/static/img//plus-circle2.svg",
+                "/static/img//plus-circle.svg",
+                "/static/img//caret-up.svg",
+                "/static/img//caret-up.svg",
+                "/static/img//caret-up.svg",
+                "/static/img//caret-up.svg",
+                "/static/img//square.svg",
+                "/static/img//square-checked.svg",
+            ]
+        );
+    }
 
     #[test]
     fn rotated_copy_swaps_dimensions() {

@@ -1,0 +1,114 @@
+/* Editor-mode chrome: floating edit/delete/add/swap buttons. */
+.container-editmode {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.edit-button, .delete-button {
+  position: absolute;
+  top: 0;
+  right: 24px;
+  margin: 5px;
+  width: 20px;
+  height: 20px;
+  color: #03104e;
+  background-color: #abc5d6;
+  border-radius: 50%;
+  text-align: center;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+}
+.delete-button {
+  right: 0;
+}
+
+
+.add-button {
+  position: relative;
+  top: 0;
+  right: 0;
+  margin: 15px;
+  width: 50px;
+  height: 50px;
+  color: black;
+  background-color: #abc5d6;
+  border-radius: 50%;
+  text-align: center;
+  font-size: 25px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+}
+
+#swapEditorButton {
+  display: flex;
+  position: fixed;
+  bottom: 16;
+  right: 16;
+}
+
+#EditorButtonLogo {
+  margin-right: 5px;
+}
+
+#SaveExitEditorButton {
+  display: inline-flex;
+  margin-right: 5px;
+}
+
+#EditorButtons {
+  display: none;
+  position: fixed;
+  bottom: 16px;
+  left: auto;
+  right: 0;
+}
+
+div.swapMode-open-folder {
+  align-items: center;
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 1rem;
+  box-shadow: rgb(242, 242, 242) 0 1px 3px 0;
+  box-sizing: border-box;
+  color: rgba(0, 0, 0, 0.85);
+  cursor: pointer;
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center; /* alignement vertical */
+  font-family: system-ui,-apple-system,"Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  text-decoration: none;
+  text-align: center;
+  line-height: 1.25;
+
+  min-height: 26px;
+  padding: calc(0.875rem - 1px) calc(1.5rem - 1px);
+  position: absolute;
+  z-index: 1;
+  transition: all 250ms;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: fill;
+  vertical-align: baseline;
+  width: 88px;
+  margin-left: 55px;
+  margin-top: 65px;
+}
+
+form.selected {
+  border: 8px ridge #508bff;
+}
+
+

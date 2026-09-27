@@ -1,0 +1,28 @@
+/* Modal close-icon SVG skins. */
+svg.config-modal,
+svg.addbutton-config-modal,
+svg.addbutton-args-config-modal,
+svg.editbutton-config-modal {
+  fill: black;
+}
+svg.config-modal.dark-theme,
+svg.addbutton-config-modal.dark-theme,
+svg.addbutton-args-config-modal.dark-theme,
+svg.editbutton-config-modal.dark-theme {
+  fill:#fbfbfd!important;
+}
+
+svg.config-modal:hover,
+svg.addbutton-config-modal:hover,
+svg.addbutton-args-config-modal:hover,
+svg.editbutton-config-modal:hover {
+  fill: #2a2a2a!important;
+}
+
+svg.config-modal.dark-theme:hover,
+svg.addbutton-config-modal.dark-theme:hover,
+svg.addbutton-args-config-modal.dark-theme:hover,
+svg.editbutton-config-modal.dark-theme:hover {
+  fill: #e6e6e8!important;
+}
+

@@ -1,0 +1,73 @@
+/* Base: page reset, loading screen, global utilities (.invisible, .bold). */
+html, body {
+  /* Désactiver le zoom */
+  -ms-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+  user-scalable: no;
+  -moz-user-select: none; /* Empêcher la sélection de texte sur Firefox */
+  -webkit-user-select: none; /* Empêcher la sélection de texte sur Chrome et Safari */
+  -ms-user-select: none; /* Empêcher la sélection de texte sur IE */
+  user-select: none; /* Empêcher la sélection de texte sur les navigateurs modernes */
+
+  overflow: hidden;
+  font-family: "Lato", sans-serif;
+  background-color: rgb(20,20,20);
+  margin: inherit;
+}
+
+body {
+  background-color: rgb(20,20,20);
+  transition-delay: 250ms;
+  transition-property: margin-right;
+  font-family: system-ui,-apple-system,"Helvetica Neue",Helvetica,Arial,sans-serif;
+  display: flex;
+  justify-content: center;
+  height: 100dvh;
+}
+
+#app {
+  width: 100%;
+  max-width: 100%;
+}
+
+#deck-scale {
+  width: 100%;
+}
+
+#loading-screen {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgb(20,20,20);
+  color: #fbfbfd;
+  text-align: center;
+  font-size: 3rem;
+  opacity: 1;
+  transition: opacity 0.5s ease-out;
+}
+#loading-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+#loading-screen.transparent {
+  background-color: rgb(0 0 0 / 70%);
+}
+#server-disconnected {
+  font-size: xx-large;
+}
+
+
+.invisible {
+  display: none !important;
+}
+
+.bold {
+  font-weight: bold;
+}
+
