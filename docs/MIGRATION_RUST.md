@@ -23,7 +23,7 @@ so the three binaries share one implementation.
 |---|---|---|---|
 | `run.py` | `src/main.rs` | ported | server + tray spawn; UAC via `windows` crate |
 | `console.py` | `src/bin/console.rs` | ported | REPL via `reqwest` |
-| `app/server.py` | `src/app/server.rs` | ported | all routes + middleware; `socketioxide` layer; `/` renders via minijinja compat shims |
+| `app/server.py` | `src/app/server.rs` | ported | all routes + middleware; `socketioxide` layer; `/` serves the TypeScript SPA bundle, `/api/boot` the ex-template context |
 | `app/tray.py` | `src/app/tray.rs` | ported | `tray-icon` menu + `tao`/`wry` QR/config/port windows; Linux via `ksni` StatusNotifier |
 | `app/buttons/commands.py` | `…/buttons/commands.rs` | ported | full dispatch incl. plugins; input/clipboard via `enigo`/`arboard` |
 | `app/buttons/audio/*` (4) | `…/audio/*` | ported | CoreAudio via `windows` crate; Linux via `pactl`; media keys via `keybd_event` |
@@ -63,7 +63,7 @@ so the three binaries share one implementation.
 |---|---|---|
 | Flask | `axum` + `tower-http` | in use |
 | Flask-SocketIO | `socketioxide` | in use |
-| Jinja2 | `minijinja` | in use (compat shims at call site) |
+| Jinja2 | TypeScript SPA (`frontend/`, custom framework) | templates deleted; `/api/boot` serves the ex-template context as JSON |
 | argparse | `clap` | in use |
 | requests | `reqwest` (rustls) | in use |
 | zipfile/tqdm | `zip` + logs | in use |
@@ -183,12 +183,16 @@ Every Windows-only API has a Linux equivalent behind `cfg(target_os =
 
 ## Known gaps / next steps
 
-1. **Packaging**: release profile + installer/portable-zip script replacing
-   `setup.py`/`build.bat`; Windows CI for `cfg(windows)` runtime coverage
-   (compile coverage exists via the `x86_64-pc-windows-gnu` check).
-2. **Native testing**: the Windows-only paths (tray, CoreAudio, `wry`
-   windows, VB-Cable/rodio device selection) compile but need runs on a
-   Windows host with OBS/Spotify/VLC-adjacent setups for end-to-end proof.
+1. **Windows CI / native testing**: the Windows-only paths (tray, CoreAudio,
+   `wry` windows, VB-Cable/rodio device selection, MSI installer) compile
+   but need runs on a Windows host for end-to-end proof. MSI generation
+   (`setup.py bdist_msi`) stays a manual WiX step; the portable zip below
+   is the shippable + auto-update artifact.
+2. **Deliberate 1:1 deviations kept** (all documented at the call site):
+   `force` exits terminate on Linux (Python no-ops; tray/updater only ran
+   on Windows there), `.py` plugins are rejected in favor of `.rhai`
+   scripts (executing Python would re-add a Python requirement), and the
+   firewall check uses `netsh` instead of COM `HNetCfg.FwMgr`.
 
 ## Verification evidence (2026-09-26, updated 2026-09-27)
 
@@ -196,17 +200,28 @@ Every Windows-only API has a Linux equivalent behind `cfg(target_os =
   `screenshots` future-incompat note from the crate itself).
 - `cargo check --target x86_64-pc-windows-gnu --all-targets`: clean, zero
   warnings — full Windows backend coverage including tray/rodio/cpal.
-- `cargo test`: 76 passed, 0 failed, 1 ignored (incl. Linux pactl/wmctrl/
-  grim-parser/backend unit tests; tray menu test inits real lang files;
-  volume failures surface as `{"success": false}` like Python; usage-tile
-  template chain + `/proc/net/dev` network-totals oracle; gpu_metrics
-  fixture parse + live amdgpu shape + disk-alias/rounding checks).
-- Live smoke test (`--no-tray -p 18080`, isolated copy of
-  `webdeck/`+`templates/`+`static/`): `POST /usage` → 200,
+- `cargo test`: 77 passed (75 lib + 2 CLI), 0 failed, 1 ignored (incl.
+  Linux pactl/wmctrl/grim-parser/backend unit tests; tray menu test inits
+  real lang files; volume failures surface as `{"success": false}` like
+  Python; usage-tile template chain + `/proc/net/dev` network-totals
+  oracle; gpu_metrics fixture parse + live amdgpu shape +
+  disk-alias/rounding checks; `exit` positional terminates; bad CLI args
+  exit(2) like argparse).
+- Full Python→Rust audit (2026-09-27): every `app/*.py` module has a
+  same-named Rust counterpart; 51/51 button symbols and 83/83 command
+  prefixes ported; all 15 server routes + socket.io namespace ported;
+  tray menu/popup/console ported; no `todo!`/`unimplemented!` bodies.
+  Gaps found and closed: argparse exit(2) + release dev-flag rejection,
+  `.lang` error propagation, Windows locale API, local log timestamps,
+  exception stack capture, console 200-exactness, and `src/bin/package.rs`
+  (`setup.py`/`build.bat` replacement, verified end-to-end with a runnable
+  portable zip — unlike `setup.py`, it ships `frontend/dist`, which the
+  old ignore rules silently excluded and left the frozen web UI broken).
+- Live smoke test (`--no-tray -p 18080`): `POST /usage` → 200,
   `POST /send-data` (`/debug-send`, `/volume +`, `/exec type:single_line …`)
   → `{"success":true}`, `GET /get_config` → 200 real config,
   `/static/*` → 200, `POST /save_config` → `{"success":true}`,
-  `GET /` → 200 rendered (minijinja compat shims).
-- Repo tree untouched except additive `Cargo.toml`, `Cargo.lock`, `src/`,
-  `docs/MIGRATION_RUST.md`, and a `target/` `.gitignore` entry; the Python
-  app runs exactly as before.
+  `GET /` → 200 rendered TypeScript SPA.
+- Python removal (2026-09-27): `app/`, `run.py`, `console.py`, `setup.py`,
+  `requirements.txt`, and `build.bat` deleted after the audit + gap work
+  above; the repo builds, tests, packages, and runs with no Python.

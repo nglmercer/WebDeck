@@ -199,13 +199,10 @@ Si vous préférez compiler le fichier `WebDeck.exe` vous-même par mesure de s�
 
 1. Téléchargez le code source et extrayez-le.
 2. Ouvrez un terminal dans le dossier du code source.
-3. Créez un environnement virtuel :\
-`python -m venv webdeck`\
-`webdeck\Scripts\activate.bat`
-4. Installez les dépendances :\
-`pip install -r requirements.txt`
-5. Effectuez la compilation :\
-`python setup.py build`
+3. Installez la chaîne d'outils Rust (https://rustup.rs) et Node.js.
+4. Construisez le paquet portable :\
+`cargo run --release --bin package`
+5. L'archive est écrite dans `dist/` (dossier `WebDeck/` à la racine).
 6. (Optionnel) Si vous souhaitez signer les exécutables avecsigntool, suivez les instructions fournies dans le lien pour l'installer: https://stackoverflow.com/a/52963704/17100464.
 7. `signtool sign /a /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 WebDeck.exe`
 8. `signtool sign /a /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 update.exe`

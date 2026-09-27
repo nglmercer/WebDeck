@@ -201,13 +201,10 @@ theme-author-github = YourGithubHere
 
 1. 소스 코드를 다운로드하고 압축을 풉니다.
 2. 소스코드 폴더에서 터미널을 엽니다.
-3. 가상 환경을 생성합니다.:\
-`python -m venv webdeck`\
-`webdeck\Scripts\activate.bat`
-4. 종속성을 설치합니다.:\
-`pip install -r requirements.txt`
-5. 컴파일을 시작합니다.:\
-`python setup.py build`
+3. Rust 툴체인(https://rustup.rs)과 Node.js를 설치합니다.
+4. 포터블 패키지를 빌드합니다:\
+`cargo run --release --bin package`
+5. 압축 파일은 `dist/`에 생성됩니다(최상위 `WebDeck/` 폴더).
 6. (선택사항) sigtool을 사용하여 실행 파일에 서명하려면 [이 링크](https://stackoverflow.com/a/52963704/17100464)에 제공된 지침을 따르세요.
 7. `signtool sign /a /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 WebDeck.exe`
 8. `signtool sign /a /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 update.exe`

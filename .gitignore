@@ -7,19 +7,11 @@ temp/*
 .config/themes
 .config/plugins
 
-# virtual environment directory
-venv
-
 # compiled files
 build/
 dist/
 *.dll
 *.exe
-
-# Python bytecode
-__pycache__/
-.cache-*
-*.pyc
 
 # backup files
 *copy.*

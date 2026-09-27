@@ -204,13 +204,10 @@ If you prefer to compile the executable files yourself for security reasons, her
 
 1. Download the source code and extract it.
 2. Open a terminal in the source code folder.
-3. Create a virtual environment:\
-`python -m venv webdeck`\
-`webdeck\Scripts\activate.bat`
-4. Install the dependencies:\
-`pip install -r requirements.txt`
-5. Start the compilation:\
-`python setup.py build`
+3. Install the Rust toolchain (https://rustup.rs) and Node.js.
+4. Build the portable package:\
+`cargo run --release --bin package`
+5. The zip is written to `dist/` (top-level `WebDeck/` folder).
 6. (Optional) If you want to sign the executables with signtool, follow the instructions provided in [this link](https://stackoverflow.com/a/52963704/17100464).
 7. `signtool sign /a /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 WebDeck.exe`
 8. `signtool sign /a /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 update.exe`
