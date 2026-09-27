@@ -1,6 +1,6 @@
 // Window globals installed by the app (no external script globals remain:
-// jQuery was unused, Toastify is a bundled typed import, socket.io stays
-// behind a guarded lookup in wireup.ts).
+// jQuery was unused, Toastify and socket.io-client are bundled typed
+// imports).
 
 interface Window {
   folder?: (folderId: string) => void;

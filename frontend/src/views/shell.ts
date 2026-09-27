@@ -13,10 +13,9 @@ export function applyHead(ctx: BootContext): void {
     if (name.startsWith('//')) continue;
     head.append(q('<link>').attr({ rel: 'stylesheet', href: `.config/themes/${name}` }));
   }
-  if (asString(get(ctx.config, 'settings', 'data_transfer_method')) === 'socket') {
-    // 1:1 with index.jinja (this file 404s upstream too).
-    head.append(q('<script>').attr('src', 'static/js/socketio.js'));
-  }
+  // NOTE: socket.io is a bundled `socket.io-client` import in wireup.ts;
+  // upstream injected static/js/socketio.js here, but that file never
+  // existed (404), so there is nothing to inject 1:1.
 }
 
 function backgroundVideo(randomBg: string): Html {

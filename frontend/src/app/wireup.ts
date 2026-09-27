@@ -19,7 +19,8 @@ import {
   show_modal,
   wireModals,
 } from './modals';
-import { pageState, socketHolder, type SocketIoClient } from './state';
+import { io } from 'socket.io-client';
+import { pageState, socketHolder, type AppSocket } from './state';
 import { showError } from './toast';
 import { updateUsageTiles } from './usage';
 import { auto_resize, wireZoomControls } from './zoom';
@@ -76,24 +77,15 @@ function wireVideos(): void {
 
 function wireSocket(transferMethod: string): void {
   if (transferMethod !== 'socket') return;
-  // NOTE: upstream dereferences `io` unguarded (the script 404s, so socket
-  // mode aborts page wiring entirely there); degrade gracefully instead.
-  const client = (window as unknown as Record<string, unknown>)['io'] as
-    | SocketIoClient
-    | undefined;
-  if (!client) {
-    console.error('socket.io client missing; socket mode unavailable');
-    return;
-  }
-  const socket = client.connect('http://' + document.domain + ':' + location.port);
+  const socket: AppSocket = io('http://' + document.domain + ':' + location.port);
   socketHolder.socket = socket;
 
   socket.on('connect', function () {
     console.log('Connected');
   });
 
-  socket.on('json_data', function (data) {
-    console.log((data as { message?: unknown } | undefined)?.message);
+  socket.on('json_data', function (message) {
+    console.log(message);
   });
 }
 

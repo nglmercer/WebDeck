@@ -1,3 +1,4 @@
+import type { Socket } from 'socket.io-client';
 import type { JsonObject } from '../framework/types';
 
 // Shared mutable page state (was implicit globals in the inline script).
@@ -9,14 +10,20 @@ export const pageState = {
   disconnectCount: 0,
 };
 
-export interface SocketLike {
-  on: (event: string, cb: (data?: unknown) => void) => void;
-  emit: (event: string, data?: unknown) => void;
+/** Server -> client events (must match `socketio_layer` in src/app/server.rs). */
+export interface ServerToClientEvents {
+  /** Echo of the original command string after it ran. */
+  json_data: (message: string) => void;
+  /** Broadcast from the `send` handler. */
+  message: (data: unknown) => void;
 }
 
-/** Minimal shape of the socket.io client global (guarded lookup). */
-export interface SocketIoClient {
-  connect: (url: string) => SocketLike;
+/** Client -> server events (must match `socketio_layer` in src/app/server.rs). */
+export interface ClientToServerEvents {
+  message_from_socket: (message: string) => void;
+  send: (data: unknown) => void;
 }
 
-export const socketHolder: { socket: SocketLike | null } = { socket: null };
+export type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
+
+export const socketHolder: { socket: AppSocket | null } = { socket: null };
