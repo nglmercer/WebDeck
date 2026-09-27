@@ -13,13 +13,19 @@ import {
 } from '../framework/types';
 import { q, byId, post } from '../query';
 import { editorSaveButton, editorStyleBlock } from '../components/editor';
+import { wireKeyField } from '../components/keyfield';
+import { buildCommand, registerShowArg, renderArgsBlock } from './args';
+import { resolveButtonCommand } from './argvalues';
+import { wireFoldernameForm } from './addbutton';
 import { swapPreviewImage, updateButtonBackgroundColor, updateImageSize, type ButtonState } from './modalstyle';
 import { svgSlot } from './svg';
 
 /**
- * Port of editbutton_modal.jinja. `command_value` always resolves to
- * `button_settings` (the match loop is scope-dead) and `command_id`
- * renders "" — both verified against the live page.
+ * Port of editbutton_modal.jinja. The saved message resolves back to its
+ * commands entry so the modal renders the same arg form as the add modal
+ * (prefilled); unresolvable messages keep the legacy form-less rendering.
+ * (Upstream's match loop is scope-dead — `command_value` always fell back
+ * to `button_settings` and `command_id` rendered "".)
  */
 export function editButtonModal(
   ctx: BootContext,
@@ -27,13 +33,13 @@ export function editButtonModal(
   _buttonId: number,
   editModalId: string,
   buttonSettings: JsonObject,
-  _message: string
+  message: string
 ): Html {
   void _folderId;
   void _buttonId;
-  void _message;
   const dark = ctx.dark_theme;
   const hasSettings = Object.keys(buttonSettings).length > 0;
+  const resolved = resolveButtonCommand(ctx.commands, message);
 
   let fill = '';
   if ('color' in buttonSettings) {
@@ -72,11 +78,20 @@ export function editButtonModal(
     <div class="editbutton-modal-main">
       <div class="config-container ${raw(dark)}">
         <form class="args-form" edit_modal_ID="${editModalId}" novalidate>
-          <!--
-          <div class="args-container ${raw(dark)}" edit_modal_ID="${editModalId}">
-            future maj
-          </div>
-          -->
+          ${resolved
+            ? renderArgsBlock({
+                ctx,
+                category: resolved.category,
+                command: resolved.command,
+                subId: resolved.subId,
+                parentCommand: resolved.parentCommand,
+                commandValue: resolved.commandValue,
+                modalId: editModalId,
+                idAttr: 'edit_modal_ID',
+                cursor: { prefill: resolved.prefill, pos: 0 },
+              })
+            : raw('')}
+          ${resolved ? html`<div class="editorStyle-bar ${raw(dark)}"></div>` : raw('')}
           ${editorStyleBlock({
             dark,
             id: editModalId,
@@ -87,7 +102,9 @@ export function editButtonModal(
             nameValue: hasName ? buttonName : '',
           })}
           ${
-            devMode
+            // The raw command box stays for messages without an arg form;
+            // otherwise the form itself is the editor (single source of truth).
+            devMode && !resolved
               ? html`
           <div class="editorStyle-bar ${raw(dark)}"></div>
           <div class="arg_container" edit_modal_ID="${editModalId}">
@@ -209,6 +226,8 @@ function editImageLink(image: string): string {
 
 export interface EditModalState {
   button: ButtonState;
+  /** Resolved command id when the modal renders an arg form (message rebuild). */
+  commandId?: string;
 }
 
 const modalStates = new Map<string, EditModalState>();
@@ -240,16 +259,18 @@ export function collectEditModals(ctx: BootContext): EditModalTarget[] {
   return out;
 }
 
-export function wireEditModal(
-  ctx: BootContext,
-  editModalId: string,
-  buttonSettings: JsonObject,
-  commandId: string
-): void {
+export function wireEditModal(ctx: BootContext, editModalId: string, buttonSettings: JsonObject): void {
   const devMode = asBool(get(ctx.config, 'settings', 'dev_mode'));
   const button: ButtonState = { ...buttonSettings };
   button['name'] = byId(`button-text-preview_${editModalId}`).text()?.trim() ?? '';
-  modalStates.set(editModalId, { button });
+  const resolved = resolveButtonCommand(ctx.commands, asString(buttonSettings['message']));
+  const state: EditModalState = { button };
+  if (resolved) state.commandId = resolved.commandId;
+  modalStates.set(editModalId, state);
+
+  registerShowArg(editModalId, 'edit_modal_ID');
+  wireFoldernameForm(editModalId);
+  wireKeyField(editModalId);
 
   const image = byId<HTMLElement>(`button-image_${editModalId}`).get(0) ?? null;
   const imageSizeSlider = byId<HTMLInputElement>(`image-size-slider_${editModalId}`).get(0) ?? null;
@@ -304,56 +325,26 @@ export function wireEditModal(
 
   byId(`${editModalId}_submit`).on('click', function (event) {
     setTimeout(function () {
-      buttonCommand(editModalId, commandId, event);
+      buttonCommand(editModalId, event);
     }, 1000);
   });
 }
 
-function buttonCommand(editModalID: string, command: string, event: Event): void {
-  if (editModalID === 'NONE') {
-    void command;
-  } else {
+function buttonCommand(editModalID: string, event: Event): void {
+  if (editModalID !== 'NONE') {
     event.preventDefault();
-    try {
-      const inputs = q(`form[edit_modal_ID="${editModalID}"]`).find('input, select, textarea').toArray();
-      const values = inputs
-        .filter((input) => {
-          if (q(input).parent().css('display') === 'none') {
-            return false;
-          }
-          if (q(input).hasClass('choice')) {
-            return false;
-          }
-          if (q(input).closest('.editorStyle, .webdeck_foldername_div').length > 0) {
-            return false;
-          }
-          return true;
-        })
-        .map((input) => {
-          if (q(input).is('select')) {
-            const select = input as HTMLSelectElement;
-            return select.options[select.selectedIndex]?.value ?? '';
-          }
-          const field = input as HTMLInputElement;
-          const kind = q(field).prop('type');
-          if (kind === 'radio' || kind === 'checkbox') {
-            return q(field).prop('checked') === true ? String(q(field).val() ?? '') : '';
-          } else if (kind === 'submit' || kind === 'button') {
-            return '';
-          } else {
-            return String(q(field).val() ?? '');
-          }
-        })
-        .filter((value) => value !== '');
-      void (command + ' ' + values.join(' '));
-    } catch {
-      // Falls back to the untouched message (upstream String.raw template).
+  }
+
+  const state = modalStates.get(editModalID);
+  if (state && state.commandId !== undefined) {
+    const container = q(`form[edit_modal_ID="${editModalID}"] .args-container`).get(0) ?? null;
+    if (container) {
+      state.button['message'] = buildCommand(state.commandId, container);
     }
   }
 
   console.log('buttonCommand received, from: edit');
 
-  const state = modalStates.get(editModalID);
   const final_button = {
     location_Folder: rep(editModalID, 'e', '').split('X')[0],
     location_Id: rep(editModalID, 'e', '').split('X')[1],

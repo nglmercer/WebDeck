@@ -40,7 +40,7 @@ export function renderApp(mount: HTMLElement, ctx: BootContext): void {
   installGlobals();
 
   for (const m of collectEditModals(ctx)) {
-    wireEditModal(ctx, m.editModalId, m.entry, '');
+    wireEditModal(ctx, m.editModalId, m.entry);
   }
   for (const m of collectAddModals(ctx)) {
     wireAddModal(ctx, m);

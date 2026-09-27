@@ -13,8 +13,7 @@ import {
 import { q, byId, post } from '../query';
 import { editorSaveButton, editorStyleBlock } from '../components/editor';
 import { wireKeyField } from '../components/keyfield';
-import { renderField, type ArgsRenderContext } from './args';
-import { consumesArgNumber, parseArg } from './argschema';
+import { buildCommand, catKey, cmdKey, registerShowArg, renderArgsBlock } from './args';
 import { swapPreviewImage, updateButtonBackgroundColor, updateImageSize, type ButtonState } from './modalstyle';
 import { svgSlot } from './svg';
 
@@ -27,14 +26,6 @@ export interface AddModalContext {
   commandValue: JsonObject;
   commandId: string;
   buttonTitle: string;
-}
-
-function catKey(category: string): string {
-  return category.replace(/ /g, '').toUpperCase();
-}
-
-function cmdKey(command: string): string {
-  return command.replace(/ /g, '_').replace(/'/g, '').toLowerCase();
 }
 
 /** Command browser (index.jinja `.all-commands` block). */
@@ -178,21 +169,15 @@ export function addArgsModal(ctx: BootContext, mctx: AddModalContext): Html {
   const dark = ctx.dark_theme;
   const { argModalId: id, commandValue } = mctx;
   const args = asArray(commandValue['args']);
-
-  let argCounter = 0;
-  const argBlocks = args.map((argValue, argIndex) => {
-    const arg = asObject(argValue);
-    if (consumesArgNumber(arg)) argCounter++;
-    const rctx: ArgsRenderContext = {
-      ctx,
-      category: mctx.category,
-      command: mctx.command,
-      subId: mctx.subId,
-      parentCommand: mctx.parentCommand,
-      argModalId: id,
-      commandValue,
-    };
-    return argBranch(ctx, rctx, arg, argIndex, argCounter);
+  const argsBlock = renderArgsBlock({
+    ctx,
+    category: mctx.category,
+    command: mctx.command,
+    subId: mctx.subId,
+    parentCommand: mctx.parentCommand,
+    commandValue,
+    modalId: id,
+    idAttr: 'arg_modal_ID',
   });
 
   const style = asObject(commandValue['style']);
@@ -220,9 +205,7 @@ export function addArgsModal(ctx: BootContext, mctx: AddModalContext): Html {
     <div class="addbutton-modal-main-args">
       <div class="config-container ${raw(dark)}">
         <form class="args-form" arg_modal_ID="${id}" novalidate>
-          <div class="args-container ${raw(dark)}" arg_modal_ID="${id}">
-            ${join(argBlocks)}
-          </div>
+          ${argsBlock}
           ${args.length > 0 ? html`<div class="editorStyle-bar ${raw(dark)}"></div>` : raw('')}
           ${editorStyleBlock({
             dark,
@@ -259,68 +242,6 @@ function addButtonName(ctx: BootContext, mctx: AddModalContext, btn: 'btn' | 'ca
   }
   return text(`${base}__${btn}_name`);
 }
-
-function argBranch(
-  ctx: BootContext,
-  rctx: ArgsRenderContext,
-  arg: JsonObject,
-  argIndex: number,
-  argCounter: number
-): Html {
-  const dark = ctx.dark_theme;
-  const parsed = parseArg(arg);
-  const base =
-    rctx.subId !== 0
-      ? `${catKey(rctx.category)}_${cmdKey(rctx.parentCommand)}_sub${rctx.subId}`
-      : `${catKey(rctx.category)}_${cmdKey(rctx.command)}`;
-
-  if (parsed.kind === 'input') {
-    const argName = parsed.label ?? text(`${base}__arg_${argCounter}_name`);
-    const folderForm = parsed.folderForm
-      ? html`<div class="webdeck_foldername_div">
-                      <form id="webdeck_foldername_form" novalidate>
-                        <input class="${raw(dark)}" type="text" id="folderName" name="folderName" placeholder="New folder name" />
-                        <button id="submitButton" type="submit">Create folder</button>
-                      </form>
-                    </div>`
-      : raw('');
-    return join([
-      html`<div class="arg_container" arg_modal_ID="${rctx.argModalId}" arg_id="${String(argIndex)}">
-                  <label for="${argName}_${rctx.argModalId}">${argName}:</label>
-                  ${renderField(rctx, parsed.field, argCounter)}
-                </div>`,
-      folderForm,
-    ]);
-  }
-  if (parsed.kind === 'choice') {
-    const choices = parsed.options.map((option, choiceIndex) => {
-      const choiceId = choiceIndex + 1;
-      const choiceName = option.label ?? text(`${base}__arg_${argCounter}_option_${choiceId}_name`);
-      // NOTE: nested fields keep the legacy 0-based choice index as their
-      // label id (only nested dropdowns consume it; none exist in
-      // commands.json, so this preserves behavior exactly).
-      const items = join(option.fields.map((field) => renderField(rctx, field, choiceIndex)));
-      return join([
-        html`<div class="choice">
-                      <input ${option.checked ? raw('checked') : raw('')} class="choice ${raw(dark)}" type="radio" name="choice" value="${String(choiceIndex)}" onchange="showArg_${rctx.argModalId}('${String(choiceIndex)}')" />
-                      <label for="${choiceName}">${choiceName}</label>
-                    </div>`,
-        html`<div ${option.checked ? raw('') : raw('style="display: none;"')} class="arg_container" arg_modal_ID="${rctx.argModalId}" arg_id="${String(choiceIndex)}">
-                      ${items}
-                    </div>`,
-      ]);
-    });
-    return html`<div class="choices_ALL">
-                  <label for="choice">${text('choose_option')} :</label><br />
-                  ${join(choices)}
-                </div>`;
-  }
-  if (parsed.kind === 'hidden') {
-    return html`<input class="invisible" type="text" size="10" value="${parsed.value}" />`;
-  }
-  return raw('');
-}
-
 function addPreview(ctx: BootContext, mctx: AddModalContext, buttonName: string): Html {
   const dark = ctx.dark_theme;
   const { argModalId: id, commandValue } = mctx;
@@ -447,49 +368,9 @@ export function collectAddModals(ctx: BootContext): AddModalContext[] {
 
 /** Collect arg values in DOM order (exported for tests; powers submit + usage preview). */
 export function getCommand(command: string, argModalId: string): string {
-  const inputs = q(`form[arg_modal_ID="${argModalId}"] .args-container`)
-    .find('input, select, textarea')
-    .toArray();
-  const values = inputs
-    .filter((input) => {
-      if (q(input).parent().css('display') === 'none') {
-        return false;
-      }
-      if (q(input).hasClass('choice')) {
-        return false;
-      }
-      if (q(input).hasClass('key-aux')) {
-        return false;
-      }
-      if (q(input).closest('.editorStyle, .webdeck_foldername_div').length > 0) {
-        return false;
-      }
-      return true;
-    })
-    .map((input) => {
-      if (q(input).is('select')) {
-        const select = input as HTMLSelectElement;
-        return select.options[select.selectedIndex]?.value ?? '';
-      }
-      const field = input as HTMLInputElement;
-      const kind = q(field).prop('type');
-      if (kind === 'radio' || kind === 'checkbox') {
-        return q(field).prop('checked') === true ? String(q(field).val() ?? '') : '';
-      } else if (kind === 'submit' || kind === 'button') {
-        return '';
-      } else {
-        const current = String(q(field).val() ?? '');
-        if (current.startsWith('/folder')) {
-          const stripped = current.replace(/"/g, '');
-          q(field).val(stripped);
-          return stripped;
-        }
-        return current;
-      }
-    })
-    .filter((value) => value !== '');
-
-  return command + ' ' + values.join('<|§|>');
+  const container = q(`form[arg_modal_ID="${argModalId}"] .args-container`).get(0);
+  if (!container) return command + ' ';
+  return buildCommand(command, container);
 }
 
 export function wireAddModal(ctx: BootContext, mctx: AddModalContext): void {
@@ -505,19 +386,9 @@ export function wireAddModal(ctx: BootContext, mctx: AddModalContext): void {
   // breaks usage add-modals); the intent is unambiguously the command id.
   addModalStates.set(id, { button: buttonState, command: mctx.commandId });
 
-  (window as unknown as Record<string, unknown>)[`showArg_${id}`] = (argId: string) => {
-    q(`div.arg_container[arg_modal_ID="${id}"]:not([arg_id="${argId}"])`)
-      .toArray()
-      .forEach(function (element) {
-        if (q(element).attr('arg_id') === argId) {
-          q(element).css('display', 'block');
-        } else {
-          q(element).css('display', 'none');
-        }
-      });
-  };
+  registerShowArg(id, 'arg_modal_ID');
 
-  wireFoldernameForm();
+  wireFoldernameForm(id);
   wireUsagePreview(id);
   wireKeyField(id);
 
@@ -581,11 +452,11 @@ export function wireAddModal(ctx: BootContext, mctx: AddModalContext): void {
   });
 }
 
-/** Folder-creation form (document-first matching reproduces upstream). */
-function wireFoldernameForm(): void {
-  byId('submitButton').on('click', function (event) {
+/** Folder-creation form (per-modal binding; created folders update every folder list). */
+export function wireFoldernameForm(modalId: string): void {
+  byId(`submitButton_${modalId}`).on('click', function (event) {
     event.preventDefault();
-    const folderName = String(byId<HTMLInputElement>('folderName').val() ?? '');
+    const folderName = String(byId<HTMLInputElement>(`folderName_${modalId}`).val() ?? '');
     if (folderName.trim() !== '') {
       const parentFolderEl = q('.buttons-center:not(.invisible)').get(0) ?? null;
       const parentFolder = (q(parentFolderEl).prop('id') ?? '').replace(/^folder-/, '');
