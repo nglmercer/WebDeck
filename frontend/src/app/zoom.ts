@@ -59,7 +59,7 @@ function applyFit(scaler: HTMLElement, s: number, tx: number, ty: number): void 
   fitState = { s, tx, ty };
   // NOTE: translate() on #deck-scale is conflictive — commented out, scale only.
   // Original: transform: `translate(${tx}px, ${ty}px) scale(${s})`
-  q(scaler).css({ transformOrigin: '0 0', transform: `scale(${s})` });
+  q(scaler).css({ transform: `scale(${s})` });
 }
 
 export function auto_resize(): void {

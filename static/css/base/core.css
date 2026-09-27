@@ -32,6 +32,7 @@ body {
 
 #deck-scale {
   width: 100%;
+  transform-origin: center !important;
 }
 
 #loading-screen {
@@ -70,4 +71,3 @@ body {
 .bold {
   font-weight: bold;
 }
-
