@@ -21,8 +21,9 @@
 //!   `frontend/` (custom zero-dependency framework, 1:1 port). `GET /`
 //!   serves its bundle; `GET /api/boot` returns the old template context
 //!   (plus `lang`, `audio_devices`, `dark_theme`) as JSON.
-//! - Flask-SocketIO (`connect`/`send`/`message_from_socket`) is TODO via
-//!   `socketioxide` — the emit points are marked in `handle_command` callers.
+//! - Flask-SocketIO (`connect`/`send`/`message_from_socket`) is ported via
+//!   `socketioxide` ([`socketio_layer`]); the emit points live in the
+//!   `handle_command` callers.
 //! - `werkzeug` vs `app.run` selection collapses to one axum backend.
 
 use std::collections::HashMap;

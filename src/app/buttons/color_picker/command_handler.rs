@@ -2,7 +2,7 @@
 //!
 //! Selection/copy formatting logic is ported 1:1 (including the upstream
 //! `TODO: rewrite` and `FIXME` quirks). Screen capture, clipboard writes, and
-//! toasts delegate to their (stubbed) modules.
+//! toasts delegate to their ported modules.
 
 use std::collections::HashMap;
 

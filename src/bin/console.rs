@@ -49,7 +49,8 @@ async fn main() {
         let elapsed = start.elapsed().as_secs_f64();
 
         match result {
-            Ok(response) if response.status().is_success() => {
+            // Python checks `status_code == 200` exactly, not 2xx.
+            Ok(response) if response.status().as_u16() == 200 => {
                 println!("success! {elapsed:.2}s");
             }
             Ok(response) => println!("Error: {}", response.status()),

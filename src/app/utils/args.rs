@@ -152,25 +152,48 @@ pub fn parse_args() {
 
     match Args::try_parse_from(&argv) {
         Ok(parsed) => {
+            reject_dev_flags_in_release(&parsed);
             if !parsed.no_debug && !parsed.version {
                 log().debug(&format!("All args: {parsed:?}"));
             }
             save_args(parsed);
         }
-        Err(e) => {
-            // `--help` still prints help and exits like argparse.
-            if matches!(
-                e.kind(),
-                clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion
-            ) {
-                e.exit();
-            }
-            log().error(&format!("Error parsing arguments: {e}"));
-            save_args(Args::default());
-        }
+        // argparse calls `sys.exit` on any parse error (`SystemExit` is not
+        // caught by Python's `except Exception`), so a bad invocation exits
+        // instead of starting with defaults. `e.exit()` reproduces that:
+        // usage error + exit code 2 (exit code 0 for `--help`).
+        Err(e) => e.exit(),
     }
 
     handle_startup_arguments();
+}
+
+/// Frozen Python does not register `--fake-error` / `--test-ffmpeg`
+/// (`"condition": not frozen`), so passing them is an unrecognized-argument
+/// error there. In release builds (`cfg!(debug_assertions)` ⇔ unfrozen)
+/// reject them the same way instead of running the dev action.
+fn reject_dev_flags_in_release(parsed: &Args) {
+    #[cfg(not(debug_assertions))]
+    {
+        use clap::CommandFactory;
+        let flag = if parsed.fake_error {
+            Some("--fake-error")
+        } else if parsed.test_ffmpeg {
+            Some("--test-ffmpeg")
+        } else {
+            None
+        };
+        if let Some(flag) = flag {
+            Args::command()
+                .error(
+                    clap::error::ErrorKind::UnknownArgument,
+                    format!("unexpected argument '{flag}' found"),
+                )
+                .exit();
+        }
+    }
+    #[cfg(debug_assertions)]
+    let _ = parsed;
 }
 
 /// Port of `clear_args`.

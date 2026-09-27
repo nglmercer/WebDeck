@@ -3,7 +3,7 @@
 //! Startup sequence (same as Python):
 //! 1. `chdir_base()` so relative paths (`webdeck/`, `.config/`, …) resolve.
 //! 2. `parse_args()` + load config (with update check + save).
-//! 3. Windows UAC self-elevation when `settings.app_admin` (TODO, stubbed).
+//! 3. Windows UAC self-elevation when `settings.app_admin`.
 //! 4. Single-instance guard unless `--force-start`.
 //! 5. Init translations, spawn server task + welcome popup.
 //! 6. Run tray icon (blocking) or wait for Ctrl+C with `--no-tray`.

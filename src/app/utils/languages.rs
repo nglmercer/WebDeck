@@ -138,6 +138,12 @@ pub fn set_default_language(lang: &str) {
 }
 
 /// Port of `load_all_lang_files`.
+/// Language key for a file name — port of Python's `file.split(".")[0]`
+/// (so `en_US.extra.lang` keys as `en_US`, quirks included).
+fn lang_key(file_name: &str) -> String {
+    file_name.split('.').next().unwrap_or("").to_string()
+}
+
 pub fn load_all_lang_files() -> HashMap<String, HashMap<String, String>> {
     let (dir, misc_dir) = state()
         .read()
@@ -147,27 +153,31 @@ pub fn load_all_lang_files() -> HashMap<String, HashMap<String, String>> {
     let mut files = HashMap::new();
     let mut misc = HashSet::new();
 
-    if let Ok(entries) = std::fs::read_dir(&dir) {
-        for entry in entries.flatten() {
-            let file_name = entry.file_name().to_string_lossy().to_string();
-            if file_name.ends_with(".lang") {
-                let lang = file_name.trim_end_matches(".lang").to_string();
-                if let Ok(dict) = load_lang_file(&lang) {
-                    files.insert(lang, dict);
-                }
-            }
+    // Python lets every error here propagate (missing directory, unreadable
+    // or malformed file) and dies with a traceback during `init`; mirror
+    // that instead of skipping bad files.
+    let entries =
+        std::fs::read_dir(&dir).unwrap_or_else(|_| panic!("No such file or directory: '{dir}'"));
+    for entry in entries.flatten() {
+        let file_name = entry.file_name().to_string_lossy().to_string();
+        if file_name.ends_with(".lang") {
+            let lang = lang_key(&file_name);
+            let dict = load_lang_file(&lang)
+                .unwrap_or_else(|e| panic!("Error loading language file: {e}"));
+            files.insert(lang, dict);
         }
     }
+    // The misc directory is optional in Python too (`os.path.isdir` guard).
     if !misc_dir.is_empty() {
         if let Ok(entries) = std::fs::read_dir(&misc_dir) {
             for entry in entries.flatten() {
                 let file_name = entry.file_name().to_string_lossy().to_string();
                 if file_name.ends_with(".lang") {
-                    let lang = file_name.trim_end_matches(".lang").to_string();
+                    let lang = lang_key(&file_name);
                     if !files.contains_key(&lang) {
-                        if let Ok(dict) = load_lang_file(&lang) {
-                            files.insert(lang.clone(), dict);
-                        }
+                        let dict = load_lang_file(&lang)
+                            .unwrap_or_else(|e| panic!("Error loading language file: {e}"));
+                        files.insert(lang.clone(), dict);
                     }
                     misc.insert(lang);
                 }
@@ -216,26 +226,50 @@ pub fn get_languages_info() -> Vec<LanguageInfo> {
     files
         .iter()
         .map(|(lang, data)| LanguageInfo {
+            // Python indexes these keys directly (`KeyError` on a corrupt
+            // file); direct indexing panics here the same way.
             code: lang.clone(),
-            code_short: data.get("lang_code").cloned().unwrap_or_default(),
-            native_name: data.get("native_name").cloned().unwrap_or_default(),
-            english_name: data.get("english_name").cloned().unwrap_or_default(),
-            author_name: data.get("author_name").cloned().unwrap_or_default(),
-            author_github_username: data
-                .get("author_github_username")
-                .cloned()
-                .unwrap_or_default(),
+            code_short: data["lang_code"].clone(),
+            native_name: data["native_name"].clone(),
+            english_name: data["english_name"].clone(),
+            author_name: data["author_name"].clone(),
+            author_github_username: data["author_github_username"].clone(),
             misc: misc.contains(lang),
         })
         .collect()
 }
 
-/// Port of `get_system_language`.
+/// Windows system locale name via `GetUserDefaultLocaleName`, normalized to
+/// Python's `locale.getdefaultlocale()` format (`en-US` → `en_US`).
+#[cfg(windows)]
+fn windows_locale_name() -> Option<String> {
+    const LOCALE_NAME_MAX_LENGTH: usize = 85;
+    let mut buf = [0u16; LOCALE_NAME_MAX_LENGTH];
+    // SAFETY: `GetUserDefaultLocaleName` fills at most the slice it is given.
+    let written = unsafe { windows::Win32::Globalization::GetUserDefaultLocaleName(&mut buf) };
+    if written <= 0 {
+        return None;
+    }
+    let name = String::from_utf16_lossy(&buf[..(written as usize).saturating_sub(1)]);
+    if name.is_empty() {
+        return None;
+    }
+    Some(name.replace('-', "_"))
+}
+
+/// Port of `get_system_language` (`locale.getdefaultlocale()`).
 ///
-/// Python uses `locale.getdefaultlocale()`; Rust std has no locale API, so we
-/// parse the `LANG`/`LC_ALL`/`LANGUAGE` environment (e.g. `fr_FR.UTF-8` →
-/// `fr_FR`), falling back to the default language.
+/// On Windows the OS locale API is queried (Python reads it via the C
+/// library there); elsewhere the `LC_ALL`/`LANG`/`LANGUAGE` environment is
+/// parsed, which is what `getdefaultlocale()` itself consults. Falls back
+/// to the default language.
 pub fn get_system_language() -> String {
+    #[cfg(windows)]
+    {
+        if let Some(code) = windows_locale_name() {
+            return code;
+        }
+    }
     for var in ["LC_ALL", "LANG", "LANGUAGE"] {
         if let Ok(value) = std::env::var(var) {
             let code = value

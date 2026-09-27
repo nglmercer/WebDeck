@@ -37,18 +37,70 @@ fn days_to_civil_date(days_since_epoch: i64) -> (i32, u32, u32) {
     (y, m, d)
 }
 
+/// Local date/time parts — Python's `datetime.now()` is local, not UTC.
+fn now_local_parts() -> Option<(i32, u32, u32, u32, u32, u32)> {
+    #[cfg(unix)]
+    {
+        let secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs() as libc::time_t)
+            .unwrap_or(0);
+        let mut broken = std::mem::MaybeUninit::<libc::tm>::zeroed();
+        // SAFETY: `localtime_r` writes a valid `struct tm` into `broken`
+        // (or returns null on failure, which we check).
+        let ok = unsafe { !libc::localtime_r(&secs, broken.as_mut_ptr()).is_null() };
+        if !ok {
+            return None;
+        }
+        let broken = unsafe { broken.assume_init() };
+        return Some((
+            broken.tm_year + 1900,
+            (broken.tm_mon + 1) as u32,
+            broken.tm_mday as u32,
+            broken.tm_hour as u32,
+            broken.tm_min as u32,
+            broken.tm_sec as u32,
+        ));
+    }
+    #[cfg(windows)]
+    {
+        // SAFETY: `GetLocalTime` takes no pointers in windows 0.62.
+        let systime = unsafe { windows::Win32::System::SystemInformation::GetLocalTime() };
+        return Some((
+            systime.wYear as i32,
+            systime.wMonth as u32,
+            systime.wDay as u32,
+            systime.wHour as u32,
+            systime.wMinute as u32,
+            systime.wSecond as u32,
+        ));
+    }
+    #[cfg(not(any(unix, windows)))]
+    {
+        None
+    }
+}
+
 fn now_date_and_time() -> (String, String) {
-    let secs = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs() as i64)
-        .unwrap_or(0);
-    let (y, m, d) = days_to_civil_date(secs.div_euclid(86_400));
-    let day_secs = secs.rem_euclid(86_400);
-    let (hh, mm, ss) = (day_secs / 3600, (day_secs % 3600) / 60, day_secs % 60);
-    (
-        format!("{y:04}-{m:02}-{d:02}"),
-        format!("{hh:02}:{mm:02}:{ss:02}"),
-    )
+    if let Some((y, m, d, hh, mm, ss)) = now_local_parts() {
+        (
+            format!("{y:04}-{m:02}-{d:02}"),
+            format!("{hh:02}:{mm:02}:{ss:02}"),
+        )
+    } else {
+        // Fallback: UTC via the civil-date algorithm (avoids a chrono dep).
+        let secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
+        let (y, m, d) = days_to_civil_date(secs.div_euclid(86_400));
+        let day_secs = secs.rem_euclid(86_400);
+        let (hh, mm, ss) = (day_secs / 3600, (day_secs % 3600) / 60, day_secs % 60);
+        (
+            format!("{y:04}-{m:02}-{d:02}"),
+            format!("{hh:02}:{mm:02}:{ss:02}"),
+        )
+    }
 }
 
 fn default_log_file(from_updater: bool) -> PathBuf {
@@ -166,7 +218,12 @@ impl Logger {
     ) {
         let exception_title = format!("{:?}:\n {error:?}\n", std::any::type_name::<E>());
         let exception_message = if log_traceback {
-            format!("{error:#?}")
+            // Closest port of Python's `traceback` attachment: Rust errors
+            // carry no raise-site stack, so capture the log-site backtrace.
+            format!(
+                "{error:#?}\nStack:\n{:?}",
+                std::backtrace::Backtrace::capture()
+            )
         } else {
             format!("{error:?}")
         };
