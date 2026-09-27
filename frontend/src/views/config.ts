@@ -10,6 +10,16 @@ import {
   type BootContext,
   type JsonObject,
 } from '../framework/types';
+import { collapseSection } from '../components/collapse';
+import {
+  colorField,
+  normalizeHexColor,
+  numberField,
+  selectField,
+  switchField,
+  textField,
+  type SelectOption,
+} from '../components/fields';
 import { infoIcon } from './svg';
 
 /** Port of `get_language` for the language dropdown (prefix match). */
@@ -20,24 +30,6 @@ function resolveLanguage(requested: string, langs: JsonObject[]): string {
     if (code.toLowerCase().startsWith(lowered)) return code;
   }
   return 'en_US';
-}
-
-function switchRow(
-  dark: string,
-  cls: string,
-  label: string,
-  id: string,
-  name: string,
-  checked: boolean,
-  extraCls = ''
-): Html {
-  return html`<div class="setting ${raw(cls)} ${raw(extraCls)}">
-                  <p> ${label} </p>
-                  <label for="${id}" class="switch">
-                    <input class="${raw(dark)}" type="checkbox" id="${id}" name="${name}" ${checked ? raw('checked') : raw('')} />
-                    <span class="slider round"></span>
-                  </label>
-                </div>`;
 }
 
 function themesPanel(ctx: BootContext): Html {
@@ -202,10 +194,16 @@ function backgroundsPanel(ctx: BootContext): Html {
               ${text('back')}
             </button>
             <h1 class="config-title"> ${text('random_bg_menu_title')} </h1>
-            <div class="background-color-input-container">
-              <input type="color" class="background-color-input ${raw(dark)}" id="background-color-input" />
-              <input type="text" id="background-color-hex" class="background-color-setting ${raw(dark)}" placeholder="${text('wallpaper_color')} (HEX)" />
-            </div>
+            ${colorField({
+              dark,
+              containerClass: 'background-color-input-container',
+              colorClass: 'background-color-input',
+              colorId: 'background-color-input',
+              hexClass: 'background-color-setting',
+              hexId: 'background-color-hex',
+              placeholder: `${text('wallpaper_color')} (HEX)`,
+              value: '',
+            })}
             <div id="create-bg-choices">
               <button class="${raw(dark)}" id="create-color-bg"> ${text('add_background_color')} </button>
               ${text('or')}
@@ -219,47 +217,29 @@ function backgroundsPanel(ctx: BootContext): Html {
 }
 
 function audioSelect(
-  ctx: BootContext,
   id: string,
   name: string,
   label: string,
   devices: string[],
   configured: string
 ): Html {
-  const dark = ctx.dark_theme;
   const needle = configured.slice(configured.indexOf('(') + 1).toLowerCase();
-  const options = devices.map((device) => {
+  const options: SelectOption[] = devices.map((device) => {
     const display = !device.endsWith(')') && device.includes('(') ? device + '...' : device;
     // NOTE: empty needle matches everything upstream (Python `in`).
-    const selected = display.toLowerCase().includes(needle);
-    return html`<option value="${rep(display, '...', '')}" ${selected ? raw('selected') : raw('')}>
-                          ${display}
-                        </option>`;
+    return {
+      value: rep(display, '...', ''),
+      label: display,
+      selected: display.toLowerCase().includes(needle),
+    };
   });
-  return html`<div class="setting ${id === 'mic_input_device' ? 'mic_input_device' : 'mic_output_device'}">
-                    <label for="${id}"> ${label} </label>
-                    <select id="${id}" name="${name}">
-                      ${join(options)}
-                    </select>
-                  </div>`;
-}
-
-function textInput(
-  dark: string,
-  cls: string,
-  id: string,
-  name: string,
-  value: string,
-  password: boolean,
-  toggleId?: string
-): Html {
-  // NOTE: spotify-username/obs-HOST carry a duplicated class attribute upstream.
-  const dupCls = id === 'spotify-username' || id === 'obs-HOST' ? html` class="${cls}"` : raw('');
-  const field = html`<input class="${cls} ${raw(dark)}" type="${password ? 'password' : 'text'}"${dupCls} id="${id}" name="${name}" ${
-    value.trim() !== '' ? html`value="${value}"` : raw('')
-  } />`;
-  if (!password || !toggleId) return field;
-  return html`<div class="password-container">${field}<span id="${toggleId}" class="show-password" onclick="togglePasswordVisibility('${id}', '${toggleId}')"></span></div>`;
+  return selectField({
+    containerClass: id === 'mic_input_device' ? 'mic_input_device' : 'mic_output_device',
+    id,
+    name,
+    label,
+    options,
+  });
 }
 
 /** Settings modal (index.jinja modal-container block). */
@@ -269,12 +249,13 @@ export function configView(ctx: BootContext): Html {
   const settings = asObject(get(config, 'settings'));
   const front = asObject(get(config, 'front'));
 
-  const langs = ctx.langs.map((lang) => {
+  const langOptions: SelectOption[] = ctx.langs.map((lang) => {
     const code = asString(lang['code']);
-    const selected = resolveLanguage(asString(settings['language']), ctx.langs) === code;
-    return html`<option value="${code}" ${selected ? raw('selected') : raw('')}>
-                        ${asString(lang['native_name'])} (${code})
-                      </option>`;
+    return {
+      value: code,
+      label: `${asString(lang['native_name'])} (${code})`,
+      selected: resolveLanguage(asString(settings['language']), ctx.langs) === code,
+    };
   });
 
   const audioInput = asArray(ctx.audio_devices['input']).map((d) => asString(d));
@@ -282,25 +263,26 @@ export function configView(ctx: BootContext): Html {
   const spotify = asObject(settings['spotify_api']);
   const obs = asObject(settings['obs']);
 
-  const namesColor = asString(front['names_color']).trim();
-  const defaultNamesColor =
-    asString(front['names_color']) !== '' && namesColor !== ''
-      ? namesColor.startsWith('#')
-        ? `value="${namesColor}"`
-        : `value="#${namesColor}"`
-      : '';
-  const buttonsColorCfg = asString(front['buttons_color']).trim();
-  const defaultButtonsColor =
-    asString(front['buttons_color']) !== '' && buttonsColorCfg !== ''
-      ? buttonsColorCfg.startsWith('#')
-        ? `value="${buttonsColorCfg}"`
-        : `value="#${buttonsColorCfg}"`
-      : '';
+  const namesColor = normalizeHexColor(asString(front['names_color']));
+  const buttonsColor = normalizeHexColor(asString(front['buttons_color']));
 
   const portraitRotate = asString(front['portrait_rotate']);
   const reloadTime = asString(front['computer_usage_reload_time']);
   const gpuMethod = asString(settings['gpu_method']).toLowerCase();
   const server = asString(settings['server']).toLowerCase();
+
+  const gpuOptions: SelectOption[] = [
+    { value: 'nvidia (pynvml)', label: 'nvidia (pynvml)', selected: gpuMethod === 'nvidia (pynvml)' },
+    { value: 'nvidia (GPUtil)', label: 'nvidia (GPUtil)', selected: gpuMethod === 'nvidia (gputil)' },
+    { value: 'AMD', label: `AMD (${text('doesnt_work')})`, selected: gpuMethod === 'amd' },
+    { value: 'Intel', label: `Intel (${text('lmao')})`, selected: gpuMethod === 'intel' },
+    { value: 'None', label: text('none'), selected: gpuMethod === 'none' },
+  ];
+
+  const serverOptions: SelectOption[] = [
+    { value: 'flask', label: 'Flask (app.run)', selected: server === 'flask' },
+    { value: 'werkzeug', label: 'Werkzeug (make_server)', selected: server === 'werkzeug' },
+  ];
 
   // NOTE: upstream renders this unescaped (invalid HTML, breaks theme
   // persistence); emit valid JSON so the feature actually works.
@@ -337,82 +319,85 @@ export function configView(ctx: BootContext): Html {
             <form id="config-form" class="config-form">
               <div class="setting-category settings ${raw(dark)}">
                 <h1 class="config-title"> ${text('settings')} </h1>
-                <div class="setting language">
-                  <label for="language"> ${text('language')} </label>
-                  <select id="language" name="settings.language">
-                    ${join(langs)}
-                  </select>
-                </div>
-                ${switchRow(dark, 'windows-startup', text('config-windows_startup'), 'windows-startup', 'settings.windows_startup', 'windows-startup' in settings ? asBool(settings['windows_startup']) : true, ctx.is_exe ? '' : 'invisible')}
-                ${switchRow(dark, 'auto-updates', text('auto_updates'), 'auto-updates', 'settings.auto_updates', 'auto-updates' in settings ? asBool(settings['auto_updates']) : true, ctx.is_exe ? '' : 'invisible')}
-                <div class="setting soundboard ${raw(dark)}">
-                  <div class="settings-title-info">
-                    <label for="soundboard" style="margin-top: 3px;"> ${text('soundboard')} </label>
-                    <a href="${text('link_soundboard')}" target="_blank" title="${text('soundboard_tutorial')}">
-                        ${infoIcon(dark)}
-                    </a>
-                  </div>
-                  ${switchRow(dark, 'toggle-soundboard', text('toggle_soundboard'), 'toggle_soundboard', 'settings.soundboard.enabled', asBool(get(settings, 'soundboard', 'enabled')))}
-                  ${audioSelect(ctx, 'mic_input_device', 'settings.soundboard.mic_input_device', text('input_device'), audioInput, asString(get(settings, 'soundboard', 'mic_input_device')))}
-                  ${audioSelect(ctx, 'mic_output_device', 'settings.soundboard.vbcable', text('output_device'), audioOutput, asString(get(settings, 'soundboard', 'vbcable')))}
-                  ${switchRow(dark, 'ear-soundboard', text('ear_soundboard'), 'ear_soundboard', 'settings.ear_soundboard', asBool(settings['ear_soundboard']))}
-                </div>
-                <div class="setting spotify-api">
-                  <div class="settings-title-info">
-                    <label for="spotify" style="margin-top: 3px;"> ${text('spotify_api')} </label>
-                    <a href="${text('link_spotify')}" target="_blank" title="${text('spotify_tutorial')}">
-                        ${infoIcon(dark)}
-                    </a>
-                  </div>
-                  <ul>
-                    <li>
-                      <label for="spotify-client_id"> ${text('username')} </label>
-                      ${textInput(dark, 'spotify-setting', 'spotify-username', 'settings.spotify_api.username', asString(spotify['username']), false)}
-                      <label for="spotify-client_id">Client ID</label>
-                      ${textInput(dark, 'spotify-setting', 'spotify-client_id', 'settings.spotify_api.client_id', asString(spotify['client_id']), false)}
-                      <label for="spotify-client_secret">Client Secret</label>
-                      ${textInput(dark, 'spotify-setting', 'spotify-client_secret', 'settings.spotify_api.client_secret', asString(spotify['client_secret']), true, 'show-password-spotify')}
-                    </li>
-                  </ul>
-                </div>
-                <div class="setting obs-ws">
-                  <div class="settings-title-info">
-                    <label for="obs" style="margin-top: 3px;"> ${text('obs_studio')} </label>
-                    <a href="${text('link_obs')}" target="_blank" title="${text('obs_tutorial')}">
-                        ${infoIcon(dark)}
-                    </a>
-                  </div>
-                  <ul>
-                    <li>
-                      <label for="obs-HOST"> ${text('host')} </label>
-                      ${textInput(dark, 'obs-setting', 'obs-HOST', 'settings.obs.host', asString(obs['host']), false)}
-                      <label for="obs-PORT"> ${text('port')} </label>
-                      ${textInput(dark, 'obs-setting', 'obs-PORT', 'settings.obs.port', asString(obs['port']), false)}
-                      <label for="obs-PASSWORD"> ${text('password')} </label>
-                      ${textInput(dark, 'obs-setting', 'obs-PASSWORD', 'settings.obs.password', asString(obs['password']), true, 'show-password-obs')}
-                    </li>
-                  </ul>
-                </div>
+                ${collapseSection({
+                  id: 'settings-general',
+                  title: text('settings_group_general'),
+                  open: true,
+                  body: html`
+                ${selectField({ containerClass: 'language', id: 'language', name: 'settings.language', label: text('language'), options: langOptions })}
+                ${switchField({ dark, containerClass: 'windows-startup', label: text('config-windows_startup'), id: 'windows-startup', name: 'settings.windows_startup', checked: 'windows-startup' in settings ? asBool(settings['windows_startup']) : true, extraClass: ctx.is_exe ? undefined : 'invisible' })}
+                ${switchField({ dark, containerClass: 'auto-updates', label: text('auto_updates'), id: 'auto-updates', name: 'settings.auto_updates', checked: 'auto-updates' in settings ? asBool(settings['auto_updates']) : true, extraClass: ctx.is_exe ? undefined : 'invisible' })}`,
+                })}
+                ${collapseSection({
+                  id: 'settings-soundboard',
+                  title: text('soundboard'),
+                  info: { href: text('link_soundboard'), title: text('soundboard_tutorial'), icon: infoIcon(dark) },
+                  body: html`
+                ${switchField({ dark, containerClass: 'toggle-soundboard', label: text('toggle_soundboard'), id: 'toggle_soundboard', name: 'settings.soundboard.enabled', checked: asBool(get(settings, 'soundboard', 'enabled')) })}
+                ${audioSelect('mic_input_device', 'settings.soundboard.mic_input_device', text('input_device'), audioInput, asString(get(settings, 'soundboard', 'mic_input_device')))}
+                ${audioSelect('mic_output_device', 'settings.soundboard.vbcable', text('output_device'), audioOutput, asString(get(settings, 'soundboard', 'vbcable')))}
+                ${switchField({ dark, containerClass: 'ear-soundboard', label: text('ear_soundboard'), id: 'ear_soundboard', name: 'settings.ear_soundboard', checked: asBool(settings['ear_soundboard']) })}`,
+                })}
+                ${collapseSection({
+                  id: 'settings-spotify',
+                  title: text('spotify_api'),
+                  info: { href: text('link_spotify'), title: text('spotify_tutorial'), icon: infoIcon(dark) },
+                  body: html`
+                ${textField({ dark, cls: 'spotify-setting', label: text('username'), labelFor: 'spotify-username', id: 'spotify-username', name: 'settings.spotify_api.username', value: asString(spotify['username']) })}
+                ${textField({ dark, cls: 'spotify-setting', label: 'Client ID', id: 'spotify-client_id', name: 'settings.spotify_api.client_id', value: asString(spotify['client_id']) })}
+                ${textField({ dark, cls: 'spotify-setting', label: 'Client Secret', id: 'spotify-client_secret', name: 'settings.spotify_api.client_secret', value: asString(spotify['client_secret']), password: true, toggleId: 'show-password-spotify' })}`,
+                })}
+                ${collapseSection({
+                  id: 'settings-obs',
+                  title: text('obs_studio'),
+                  info: { href: text('link_obs'), title: text('obs_tutorial'), icon: infoIcon(dark) },
+                  body: html`
+                ${textField({ dark, cls: 'obs-setting', label: text('host'), id: 'obs-HOST', name: 'settings.obs.host', value: asString(obs['host']) })}
+                ${textField({ dark, cls: 'obs-setting', label: text('port'), id: 'obs-PORT', name: 'settings.obs.port', value: asString(obs['port']) })}
+                ${textField({ dark, cls: 'obs-setting', label: text('password'), id: 'obs-PASSWORD', name: 'settings.obs.password', value: asString(obs['password']), password: true, toggleId: 'show-password-obs' })}`,
+                })}
               </div>
               <div class="setting-category visuals ${raw(dark)}">
                 <h1 class="config-title"> ${text('visuals')} </h1>
+                ${collapseSection({
+                  id: 'visuals-grid',
+                  title: text('settings_group_grid_layout'),
+                  open: true,
+                  body: html`
                 <div class="setting gridsize">
                   <p> ${text('gridsize')} </p>
                   <div class="gridsize-container">
                     <div class="gridsize-height">
                       <label for="gridsize-height"> ${text('height')} </label>
-                      <input min="1" pattern="[0-9]*"
-                        oninput="this.value = this.value.replace(/[^0-9]/g, '');"
-                        class="${raw(dark)}" type="number" id="gridsize-height" name="front.height" ${asString(front['height']).trim() !== '' ? html`value="${asString(front['height'])}"` : raw('')} />
+                      ${numberField({ dark, id: 'gridsize-height', name: 'front.height', value: asString(front['height']), min: '1' })}
                     </div>
                     <div class="gridsize-width">
                       <label for="gridsize-width"> ${text('width')} </label>
-                      <input min="1" pattern="[0-9]*"
-                        oninput="this.value = this.value.replace(/[^0-9]/g, '');"
-                        class="${raw(dark)}" type="number" id="gridsize-width" name="front.width" ${asString(front['width']).trim() !== '' ? html`value="${asString(front['width'])}"` : raw('')} />
+                      ${numberField({ dark, id: 'gridsize-width', name: 'front.width', value: asString(front['width']), min: '1' })}
                     </div>
                   </div>
                 </div>
+                <div class="setting portrait-rotate">
+                  <label for="portrait-rotate"> ${text('portrait_rotate')} </label>
+                  <div id="portrait-rotate-setting-container">
+                    ${numberField({ dark, id: 'portrait-rotate', name: 'front.portrait_rotate', value: portraitRotate, defaultValue: '90', min: '0', required: true, style: 'width: 75px;' })}
+                    <div class="deg">&deg;</div>
+                    <button type="button" onclick="document.getElementById('portrait-rotate').value = '270'" class="button">
+                      270&deg;
+                    </button>
+                    <button type="button" onclick="document.getElementById('portrait-rotate').value = '90'" class="button">
+                      90&deg;
+                    </button>
+                    <button type="button" onclick="document.getElementById('portrait-rotate').value = '0'" class="button">
+                      0&deg;
+                    </button>
+                  </div>
+                </div>`,
+                })}
+                ${collapseSection({
+                  id: 'visuals-theme',
+                  title: text('settings_group_theme_background'),
+                  body: html`
                 <div class="setting themes">
                   <label for="themes"> ${text('themes')} </label>
                   <button type="button" id="setting-themes" class="${raw(dark)}">
@@ -426,108 +411,50 @@ export function configView(ctx: BootContext): Html {
                     ${text('open_background_image_menu')}
                   </button>
                   <input type="text" name="front.background" id="choose-background-handler" class="invisible" value="${bgRepr}" />
-                </div>
-                <div class="setting ${raw(dark)}">
-                  <p> ${text('dark_theme')} </p>
-                  <label for="dark-theme" class="switch">
-                    <input class="${raw(dark)}" type="checkbox" id="dark-theme" name="front.dark_theme" ${asBool(front['dark_theme']) ? raw('checked') : raw('')} />
-                    <span class="slider round"></span>
-                  </label>
-                </div>
-                <div class="setting portrait-rotate">
-                  <label for="portrait-rotate"> ${text('portrait_rotate')} </label>
-                  <div id="portrait-rotate-setting-container">
-                    <input required class="${raw(dark)}" type="number" min="0" pattern="[0-9]*"
-                      style="width: 75px;"
-                      oninput="this.value = this.value.replaceAll(/[^0-9]/g, '');"
-                      id="portrait-rotate" name="front.portrait_rotate"
-                      ${portraitRotate.trim() !== '' ? html`value="${portraitRotate}"` : raw('value="90"')}
-                    />
-                    <div class="deg">&deg;</div>
-                    <button type="button" onclick="document.getElementById('portrait-rotate').value = '270'" class="button">
-                      270&deg;
-                    </button>
-                    <button type="button" onclick="document.getElementById('portrait-rotate').value = '90'" class="button">
-                      90&deg;
-                    </button>
-                    <button type="button" onclick="document.getElementById('portrait-rotate').value = '0'" class="button">
-                      0&deg;
-                    </button>
-                  </div>
-                </div>
-                <div class="setting show-names">
-                  <p> ${text('show_btn_names')} </p>
-                  <label for="show-names" class="switch">
-                    <input class="${raw(dark)}" type="checkbox" id="show-names" name="front.show_names" ${asBool(front['show_names']) ? raw('checked') : raw('')} />
-                    <span class="slider round"></span>
-                  </label>
-                  <div class="names-color-input-container">
-                    <input type="color" class="names-color-input ${raw(dark)}" id="names-color-input" ${raw(defaultNamesColor)} />
-                    <input type="text" name="front.names_color" id="names-color-hex" class="names-color-setting ${raw(dark)}" placeholder="Button names color (HEX)" ${raw(defaultNamesColor)} />
-                  </div>
-                </div>
-                <div class="setting edit-buttons-color">
-                  <p> ${text('edit_btn_color')} </p>
-                  <label for="edit_buttons_color" class="switch">
-                    <input class="${raw(dark)}" type="checkbox" id="edit_buttons_color" name="front.edit_buttons_color" ${asBool(front['edit_buttons_color']) ? raw('checked') : raw('')} />
-                    <span class="slider round"></span>
-                  </label>
-                  <div class="buttons-color-input-container">
-                    <input type="color" class="buttons-color-input ${raw(dark)}" id="buttons-color-input" ${raw(defaultButtonsColor)} />
-                    <input type="text" name="front.buttons_color" id="buttons-color-hex" class="buttons-color-setting ${raw(dark)}" placeholder="Button default color (HEX)" ${raw(defaultButtonsColor)} />
-                  </div>
-                </div>
+                </div>`,
+                })}
+                ${collapseSection({
+                  id: 'visuals-appearance',
+                  title: text('settings_group_appearance'),
+                  body: html`
+                ${switchField({ dark, containerClass: dark, label: text('dark_theme'), id: 'dark-theme', name: 'front.dark_theme', checked: asBool(front['dark_theme']) })}
+                ${switchField({ dark, containerClass: 'show-names', label: text('show_btn_names'), id: 'show-names', name: 'front.show_names', checked: asBool(front['show_names']) })}
+                ${colorField({ dark, containerClass: 'names-color-input-container', colorClass: 'names-color-input', colorId: 'names-color-input', hexClass: 'names-color-setting', hexId: 'names-color-hex', hexName: 'front.names_color', placeholder: 'Button names color (HEX)', value: namesColor })}
+                ${switchField({ dark, containerClass: 'edit-buttons-color', label: text('edit_btn_color'), id: 'edit_buttons_color', name: 'front.edit_buttons_color', checked: asBool(front['edit_buttons_color']) })}
+                ${colorField({ dark, containerClass: 'buttons-color-input-container', colorClass: 'buttons-color-input', colorId: 'buttons-color-input', hexClass: 'buttons-color-setting', hexId: 'buttons-color-hex', hexName: 'front.buttons_color', placeholder: 'Button default color (HEX)', value: buttonsColor })}`,
+                })}
               </div>
               <div class="setting-category experimental ${raw(dark)}">
                 <h1 class="config-title"> ${text('experimental')} </h1>
+                ${collapseSection({
+                  id: 'experimental-usage',
+                  title: text('settings_group_usage'),
+                  open: true,
+                  body: html`
                 <div class="setting usage-reload-time">
-                  <label for="usage-reload-time"> ${text('usage_btn_reload_time')} </label>
-                  <input required class="${raw(dark)}" type="number" min="0" pattern="[0-9]*"
-                    oninput="this.value = this.value.replaceAll(/[^0-9]/g, '');"
-                    id="usage-reload-time" name="front.computer_usage_reload_time"
-                    ${reloadTime.trim() !== '' ? html`value="${reloadTime}"` : raw('value="3000"')}
-                  />
+                  ${numberField({ dark, id: 'usage-reload-time', name: 'front.computer_usage_reload_time', label: text('usage_btn_reload_time'), value: reloadTime, defaultValue: '3000', min: '0', required: true })}
                 </div>
-                <div class="setting gpu_method">
-                  <label for="gpu_method"> ${text('gpu_usage_method')} </label>
-                  <select id="gpu_method" name="settings.gpu_method">
-                    <option value="nvidia (pynvml)" ${gpuMethod === 'nvidia (pynvml)' ? raw('selected') : raw('')}>nvidia (pynvml)</option>
-                    <option value="nvidia (GPUtil)" ${gpuMethod === 'nvidia (gputil)' ? raw('selected') : raw('')}>nvidia (GPUtil)</option>
-                    <option value="AMD" ${gpuMethod === 'amd' ? raw('selected') : raw('')}>AMD (${text('doesnt_work')})</option>
-                    <option value="Intel" ${gpuMethod === 'intel' ? raw('selected') : raw('')}>Intel (${text('lmao')})</option>
-                    <option value="None" ${gpuMethod === 'none' ? raw('selected') : raw('')}> ${text('none')} </option>
-                  </select>
-                </div>
-                ${switchRow(dark, 'optimized-usage-display', text('optimized_usage_display'), 'optimized_usage_display', 'settings.optimized_usage_display', asBool(settings['optimized_usage_display']))}
-                ${switchRow(dark, 'open-settings-in-integrated-browser', text('open_settings_in_integrated_browser'), 'open_settings_in_integrated_browser', 'settings.open_settings_in_integrated_browser', asBool(settings['open_settings_in_integrated_browser']))}
-                <div class="setting show-console">
-                  <p> ${text('show_console')} </p>
-                  <label for="show_console" class="switch">
-                    <input class="${raw(dark)}" type="checkbox" id="show_console" name="settings.show_console" ${asBool(settings['show_console']) ? raw('checked') : raw('')} />
-                    <span class="slider round"></span>
-                  </label>
-                </div>
+                ${selectField({ containerClass: 'gpu_method', id: 'gpu_method', name: 'settings.gpu_method', label: text('gpu_usage_method'), options: gpuOptions })}
+                ${switchField({ dark, containerClass: 'optimized-usage-display', label: text('optimized_usage_display'), id: 'optimized_usage_display', name: 'settings.optimized_usage_display', checked: asBool(settings['optimized_usage_display']) })}`,
+                })}
+                ${collapseSection({
+                  id: 'experimental-advanced',
+                  title: text('settings_group_advanced'),
+                  body: html`
+                ${switchField({ dark, containerClass: 'open-settings-in-integrated-browser', label: text('open_settings_in_integrated_browser'), id: 'open_settings_in_integrated_browser', name: 'settings.open_settings_in_integrated_browser', checked: asBool(settings['open_settings_in_integrated_browser']) })}
+                ${switchField({ dark, containerClass: 'show-console', label: text('show_console'), id: 'show_console', name: 'settings.show_console', checked: asBool(settings['show_console']) })}
                 <div class="setting automatic-firewall-bypass">
                   <button type="button" onclick="send_data('/bypass-windows-firewall')" class="button" id="authorize_windows_firewall">
                     ${text('authorize_windows_firewall')}
                   </button>
-                  <p> ${text('automatic_firewall_bypass')} </p>
-                  <label for="automatic_firewall_bypass" class="switch">
-                    <input class="${raw(dark)}" type="checkbox" id="automatic_firewall_bypass" name="settings.automatic_firewall_bypass" ${asBool(settings['automatic_firewall_bypass']) ? raw('checked') : raw('')} />
-                    <span class="slider round"></span>
-                  </label>
                 </div>
-                ${switchRow(dark, 'fix-stop-soundboard', text('fix_stop_soundboard'), 'fix_stop_soundboard', 'settings.fix_stop_soundboard', asBool(settings['fix_stop_soundboard']))}
-                <div class="setting server">
-                  <label for="server"> ${text('server')} </label>
-                  <select id="server" name="settings.server">
-                    <option value="flask" ${server === 'flask' ? raw('selected') : raw('')}>Flask (app.run)</option>
-                    <option value="werkzeug" ${server === 'werkzeug' ? raw('selected') : raw('')}>Werkzeug (make_server)</option>
-                  </select>
-                </div>
-                ${switchRow(dark, 'flask-debug', text('flask_debug'), 'flask_debug', 'settings.flask_debug', asBool(settings['flask_debug']))}
-                ${switchRow(dark, 'flask-reloader', text('flask_reloader'), 'flask_reloader', 'settings.flask_reloader', asBool(settings['flask_reloader']))}
-                ${switchRow(dark, 'dev-mode', text('dev_mode'), 'dev_mode', 'settings.dev_mode', asBool(settings['dev_mode']))}
+                ${switchField({ dark, containerClass: 'automatic-firewall-bypass-toggle', label: text('automatic_firewall_bypass'), id: 'automatic_firewall_bypass', name: 'settings.automatic_firewall_bypass', checked: asBool(settings['automatic_firewall_bypass']) })}
+                ${switchField({ dark, containerClass: 'fix-stop-soundboard', label: text('fix_stop_soundboard'), id: 'fix_stop_soundboard', name: 'settings.fix_stop_soundboard', checked: asBool(settings['fix_stop_soundboard']) })}
+                ${selectField({ containerClass: 'server', id: 'server', name: 'settings.server', label: text('server'), options: serverOptions })}
+                ${switchField({ dark, containerClass: 'flask-debug', label: text('flask_debug'), id: 'flask_debug', name: 'settings.flask_debug', checked: asBool(settings['flask_debug']) })}
+                ${switchField({ dark, containerClass: 'flask-reloader', label: text('flask_reloader'), id: 'flask_reloader', name: 'settings.flask_reloader', checked: asBool(settings['flask_reloader']) })}
+                ${switchField({ dark, containerClass: 'dev-mode', label: text('dev_mode'), id: 'dev_mode', name: 'settings.dev_mode', checked: asBool(settings['dev_mode']) })}`,
+                })}
               </div>
               <input type="submit" value="${text('save')}" class="modal-button save-config ${raw(dark)}" />
             </form>

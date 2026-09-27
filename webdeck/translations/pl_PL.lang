@@ -679,3 +679,11 @@ SPOTIFY_follow_current_played_artist_(doesnt_unfollow_if_already)__btn_descripti
 SPOTIFY_unfollow_current_played_artist__btn_name=Przestań obserwować wykonawcę
 SPOTIFY_unfollow_current_played_artist__btn_default_display_name=
 SPOTIFY_unfollow_current_played_artist__btn_description=Przestań obserwować wykonawcę aktualnie odtwarzanego utworu
+
+// Settings groups
+settings_group_general=Ogólne
+settings_group_grid_layout=Siatka i układ
+settings_group_theme_background=Motyw i tło
+settings_group_appearance=Wygląd
+settings_group_usage=Monitor użycia
+settings_group_advanced=Zaawansowane

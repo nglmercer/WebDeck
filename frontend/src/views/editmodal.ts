@@ -12,6 +12,7 @@ import {
   type JsonValue,
 } from '../framework/types';
 import { q, byId, post } from '../query';
+import { editorSaveButton, editorStyleBlock } from '../components/editor';
 import { swapPreviewImage, updateButtonBackgroundColor, updateImageSize, type ButtonState } from './modalstyle';
 import { svgSlot } from './svg';
 
@@ -51,11 +52,6 @@ export function editButtonModal(
   const defaultSize = imageSize !== '' && imageSize.trim() !== '' ? imageSize.trim().replace('%', '') : '75';
 
   const bgColor = asString(buttonSettings['background_color']);
-  let defaultBgcolor = '';
-  if (bgColor !== '' && bgColor.trim() !== '') {
-    defaultBgcolor =
-      bgColor.trim().startsWith('#') ? `value="${bgColor.trim()}"` : `value="#${bgColor.trim()}"`;
-  }
 
   const nameValue = asString(buttonSettings['name']);
   const hasName = 'name' in buttonSettings && nameValue.trim() !== '';
@@ -81,34 +77,15 @@ export function editButtonModal(
             future maj
           </div>
           -->
-          <div class="editorStyle">
-            <div class="fakeform-container ${raw(dark)}">
-              <div class="fakeform">
-                ${preview}
-              </div>
-            </div>
-            <div class="inputs_container">
-              <label for="image-input_${editModalId}"> ${text('image')}: </label>
-              <input type="file" id="image-input_${editModalId}" class="${raw(dark)}" />
-              <div class="slider-container">
-                <label for="image-size-slider_${editModalId}"> ${text('image_size')}: </label>
-                <input type="range" id="image-size-slider_${editModalId}" class="${raw(dark)}" name="image-size" min="0" max="100" value="${defaultSize}" step="1" />
-                <input type="number" id="image-size-value_${editModalId}" class="image-size-value ${raw(dark)}" min="0" step="1" value="${defaultSize}" />
-                %
-              </div>
-              <label for="background-color-input_${editModalId}"> ${text('background_color')}: </label>
-              <div class="background-color-input-container">
-                <input type="color" class="background-color-input ${raw(dark)}" id="background-color-input_${editModalId}" ${raw(defaultBgcolor)} />
-                <input type="text" id="background-color-hex_${editModalId}" class="${raw(dark)}" placeholder="${text('background_color_hex')}" ${raw(defaultBgcolor)} />
-              </div>
-              <label for="button-text-input_${editModalId}"> ${text('button_title')}: </label>
-              ${
-                hasName
-                  ? html`<input type="text" id="button-text-input_${editModalId}" class="${raw(dark)}" placeholder="${buttonName}" value="${buttonName}" />`
-                  : html`<input type="text" id="button-text-input_${editModalId}" class="${raw(dark)}" placeholder="${buttonName}" />`
-              }
-            </div>
-          </div>
+          ${editorStyleBlock({
+            dark,
+            id: editModalId,
+            preview,
+            defaultSize,
+            backgroundColor: bgColor,
+            buttonName,
+            nameValue: hasName ? buttonName : '',
+          })}
           ${
             devMode
               ? html`
@@ -123,7 +100,7 @@ export function editButtonModal(
           </div>`
               : raw('')
           }
-          <input type="submit" value="${text('save')}" id="${editModalId}_submit" class="createbutton_submit ${raw(dark)}" style="margin-top: 30;" />
+          ${editorSaveButton(dark, editModalId)}
         </form>
       </div>
     </div>

@@ -646,8 +646,79 @@ form#config-form {
   flex-direction: column;
   align-items: flex-start;
 }
-#config-form > div.setting-category.settings > div.setting.spotify-api {
-  margin-bottom: 25px;
+
+/* Reusable collapsible section (frontend/src/components/collapse.ts). */
+details.wd-collapse {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin: 0 0 10px 0;
+  overflow: hidden;
+}
+.dark-theme details.wd-collapse {
+  border-color: #333;
+  background-color: #1b1b1b;
+}
+summary.wd-collapse-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 15px;
+  list-style: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+summary.wd-collapse-summary::-webkit-details-marker {
+  display: none;
+}
+summary.wd-collapse-summary::marker {
+  content: '';
+}
+summary.wd-collapse-summary:hover {
+  background-color: rgba(127, 127, 127, 0.12);
+}
+summary.wd-collapse-summary:focus-visible {
+  outline: 2px solid #4c8dff;
+  outline-offset: -2px;
+}
+.wd-collapse-chevron {
+  width: 0;
+  height: 0;
+  border-left: 6px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  flex: none;
+  transition: transform 0.15s ease;
+}
+details.wd-collapse[open] .wd-collapse-chevron {
+  transform: rotate(90deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .wd-collapse-chevron {
+    transition: none;
+  }
+}
+.wd-collapse-title {
+  flex: 1 1 auto;
+}
+a.wd-collapse-info {
+  display: inline-flex;
+  flex: none;
+}
+a.wd-collapse-info .info-icon {
+  margin: 0;
+  height: 20px;
+}
+.wd-collapse-body {
+  padding: 12px 12px 0 12px;
+}
+.wd-collapse-body > .setting {
+  margin-left: 0;
+}
+.wd-collapse-body > .setting:last-child {
+  margin-bottom: 12px;
 }
 .gridsize-container {
   display: flex;
@@ -960,8 +1031,10 @@ form.args-form {
 
 div.editorStyle {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
 }
 
 div.editorStyle-bar {
@@ -973,6 +1046,64 @@ div.editorStyle-bar {
 }
 div.editorStyle-bar.dark-theme {
   background-color: #515151!important;
+}
+
+/* Button editor layout: the preview used the 132px grid-cell box, so the
+   button overflowed it and the caption overlapped the button. Give the
+   preview its own column and the inputs a flexible one (both modals). */
+.editorStyle .fakeform-container {
+  margin: 0;
+  flex: none;
+}
+.editorStyle div.fakeform {
+  width: auto;
+  min-width: 170px;
+  height: auto;
+  min-height: 190px;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  gap: 6px;
+}
+.editorStyle .fakeform .wd_button {
+  margin: 0;
+  max-width: 100%;
+}
+.editorStyle p.buttontext {
+  margin-top: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.inputs_container {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 260px;
+  min-width: 0;
+  gap: 2px;
+}
+.inputs_container > label {
+  margin-top: 8px;
+}
+.inputs_container > label:first-child {
+  margin-top: 0;
+}
+.inputs_container .slider-container {
+  flex-wrap: wrap;
+  margin: 2px 0 4px;
+}
+.inputs_container .slider-container input[type="range"] {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+.inputs_container input[type="file"] {
+  max-width: 100%;
+}
+.inputs_container .background-color-input-container {
+  justify-content: flex-start;
+  margin-bottom: 0;
 }
 
 div.background-color-input-container,

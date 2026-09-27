@@ -40,6 +40,6 @@ export default defineConfig({
   },
   test: {
     environment: 'happy-dom',
-    include: ['src/query/**/*.test.ts'],
+    include: ['src/query/**/*.test.ts', 'src/components/**/*.test.ts'],
   },
 });

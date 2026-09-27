@@ -11,6 +11,7 @@ import {
   type JsonObject,
 } from '../framework/types';
 import { q, byId, post } from '../query';
+import { editorSaveButton, editorStyleBlock } from '../components/editor';
 import { argField, type ArgsRenderContext } from './args';
 import { swapPreviewImage, updateButtonBackgroundColor, updateImageSize, type ButtonState } from './modalstyle';
 import { svgSlot } from './svg';
@@ -220,36 +221,21 @@ export function addArgsModal(ctx: BootContext, mctx: AddModalContext): Html {
             ${join(argBlocks)}
           </div>
           ${args.length > 0 ? html`<div class="editorStyle-bar ${raw(dark)}"></div>` : raw('')}
-          <div class="editorStyle">
-            <div class="fakeform-container ${raw(dark)}">
-              <div class="fakeform">
-                ${addPreview(ctx, mctx, buttonName)}
-              </div>
-            </div>
-            <div class="inputs_container">
-              <label for="image-input_${id}"> ${text('image')}: </label>
-              <input type="file" id="image-input_${id}" class="${raw(dark)}" />
-              <div class="slider-container">
-                <label for="image-size-slider_${id}"> ${text('image_size')}: </label>
-                <input type="range" id="image-size-slider_${id}" class="${raw(dark)}" name="image-size" min="0" max="100" value="${defaultSize}" step="1" />
-                <input type="number" id="image-size-value_${id}" class="image-size-value ${raw(dark)}" min="0" step="1" value="${defaultSize}" />
-                %
-              </div>
-              <label for="background-color-input_${id}"> ${text('background_color')}: </label>
-              <div class="background-color-input-container">
-                <input type="color" class="background-color-input ${raw(dark)}" id="background-color-input_${id}" />
-                <input type="text" id="background-color-hex_${id}" class="${raw(dark)}" placeholder="${text('background_color_hex')}" />
-              </div>
-              <label for="button-text-input_${id}"> ${text('button_title')}: </label>
-              <input type="text" id="button-text-input_${id}" class="${raw(dark)}" placeholder="${buttonName}" />
-            </div>
-          </div>
+          ${editorStyleBlock({
+            dark,
+            id,
+            preview: addPreview(ctx, mctx, buttonName),
+            defaultSize,
+            backgroundColor: '',
+            buttonName,
+            nameValue: '',
+          })}
           <div class="editorStyle-bar ${raw(dark)}" style="display: none;"></div>
           <div class="arg_container" arg_modal_ID="${id}" style="display: none;">
             <label for="command_${id}">Command (experimental):</label>
             <input class="${raw(dark)}" type="text" name="" id="command_${id}" value="${asString(commandValue['command'])}" readonly />
           </div>
-          <input type="submit" value="${text('save')}" id="${id}_submit" class="createbutton_submit ${raw(dark)}" style="margin-top: 30;" />
+          ${editorSaveButton(dark, id)}
         </form>
       </div>
     </div>

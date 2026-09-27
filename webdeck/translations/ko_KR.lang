@@ -679,3 +679,11 @@ SPOTIFY_follow_current_played_artist_(doesnt_unfollow_if_already)__btn_descripti
 SPOTIFY_unfollow_current_played_artist__btn_name=아티스트 언팔로우
 SPOTIFY_unfollow_current_played_artist__btn_default_display_name=
 SPOTIFY_unfollow_current_played_artist__btn_description=현재 재생 중인 음악의 아티스트를 언팔로우합니다.
+
+// Settings groups
+settings_group_general=일반
+settings_group_grid_layout=그리드 및 레이아웃
+settings_group_theme_background=테마 및 배경
+settings_group_appearance=모양
+settings_group_usage=사용량 모니터
+settings_group_advanced=고급

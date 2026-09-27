@@ -679,3 +679,11 @@ SPOTIFY_follow_current_played_artist_(doesnt_unfollow_if_already)__btn_descripti
 SPOTIFY_unfollow_current_played_artist__btn_name=Unfollow artist
 SPOTIFY_unfollow_current_played_artist__btn_default_display_name=
 SPOTIFY_unfollow_current_played_artist__btn_description=Unfollow the artist of the currently played song
+
+// Settings groups
+settings_group_general=General
+settings_group_grid_layout=Grid & layout
+settings_group_theme_background=Theme & background
+settings_group_appearance=Appearance
+settings_group_usage=Usage monitor
+settings_group_advanced=Advanced
