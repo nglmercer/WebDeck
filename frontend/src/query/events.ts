@@ -2,6 +2,8 @@
 // listener purge on remove(), and listener cloning. Entries are keyed by
 // element in a WeakMap, so dropped elements never leak registrations.
 
+import { Q } from './core';
+
 /** Loosely-typed stored handler (public overloads narrow per event). */
 export type EventHandler = (this: Element, event: Event) => void;
 
@@ -155,3 +157,133 @@ function cloneOne(src: Element, dst: Element): void {
     addListener(dst, type, reg.selector, reg.handler, { once: reg.once, capture: reg.capture });
   }
 }
+
+// -- Q event methods (extracted from core.ts) --------------------------------
+
+declare module './core' {
+  interface Q<T extends Element> {
+    /** Subscribe (typed event object). Space-separated types allowed. */
+    on<K extends keyof HTMLElementEventMap>(
+      type: K,
+      handler: (this: T, event: HTMLElementEventMap[K]) => void
+    ): this;
+    /** Subscribe with delegation (`this` is the matched descendant). */
+    on<K extends keyof HTMLElementEventMap>(
+      type: K,
+      selector: string,
+      handler: (this: T, event: HTMLElementEventMap[K]) => void
+    ): this;
+    /** Subscribe to custom/unknown event types. */
+    on(type: string, handler: (this: T, event: Event) => void): this;
+    /** Custom types with delegation. */
+    on(type: string, selector: string, handler: (this: T, event: Event) => void): this;
+    /** Subscribe once (typed event object). */
+    one<K extends keyof HTMLElementEventMap>(
+      type: K,
+      handler: (this: T, event: HTMLElementEventMap[K]) => void
+    ): this;
+    /** Subscribe once with delegation. */
+    one<K extends keyof HTMLElementEventMap>(
+      type: K,
+      selector: string,
+      handler: (this: T, event: HTMLElementEventMap[K]) => void
+    ): this;
+    /** Subscribe once to custom/unknown event types. */
+    one(type: string, handler: (this: T, event: Event) => void): this;
+    /** Subscribe once to custom types with delegation. */
+    one(type: string, selector: string, handler: (this: T, event: Event) => void): this;
+    /** Unsubscribe. Omitted criteria are wildcards (`off()` clears all). */
+    off(): this;
+    off(type: string): this;
+    off(type: string, selector: string): this;
+    off(type: string, handler: (...args: never[]) => unknown): this;
+    off(type: string, selector: string, handler: (...args: never[]) => unknown): this;
+    /**
+     * Dispatch a bubbling event. DEVIATION: always a CustomEvent carrying
+     * `detail` (jQuery synthesizes per-type event objects); namespaces in
+     * `type` are ignored for filtering.
+     */
+    trigger<K extends keyof HTMLElementEventMap>(type: K, detail?: unknown): this;
+    trigger(type: string, detail?: unknown): this;
+    /** Shorthand for mouseenter/mouseleave (single handler covers both). */
+    hover(
+      over: (this: T, event: MouseEvent) => void,
+      out?: (this: T, event: MouseEvent) => void
+    ): this;
+  }
+}
+
+function onImpl<T extends Element>(
+  this: Q<T>,
+  type: string,
+  selectorOrHandler: string | ((this: T, event: never) => void),
+  handler?: (this: T, event: never) => void
+): Q<T> {
+  const selector = typeof selectorOrHandler === 'string' ? selectorOrHandler : undefined;
+  const fn = (typeof selectorOrHandler === 'string' ? handler : selectorOrHandler) as
+    | EventHandler
+    | undefined;
+  if (fn === undefined) return this;
+  for (const el of this.els) {
+    addListener(el, type, selector, fn);
+  }
+  return this;
+}
+
+Q.prototype.on = onImpl as Q<Element>['on'];
+
+function oneImpl<T extends Element>(
+  this: Q<T>,
+  type: string,
+  selectorOrHandler: string | ((this: T, event: never) => void),
+  handler?: (this: T, event: never) => void
+): Q<T> {
+  const selector = typeof selectorOrHandler === 'string' ? selectorOrHandler : undefined;
+  const fn = (typeof selectorOrHandler === 'string' ? handler : selectorOrHandler) as
+    | EventHandler
+    | undefined;
+  if (fn === undefined) return this;
+  for (const el of this.els) {
+    addListener(el, type, selector, fn, { once: true });
+  }
+  return this;
+}
+
+Q.prototype.one = oneImpl as Q<Element>['one'];
+
+function offImpl<T extends Element>(
+  this: Q<T>,
+  type?: string,
+  selectorOrHandler?: string | ((...args: never[]) => unknown),
+  handler?: (...args: never[]) => unknown
+): Q<T> {
+  const selector = typeof selectorOrHandler === 'string' ? selectorOrHandler : undefined;
+  const fn = (
+    typeof selectorOrHandler === 'string' ? handler : selectorOrHandler
+  ) as EventHandler | undefined;
+  for (const el of this.els) {
+    removeListener(el, type, selector, fn);
+  }
+  return this;
+}
+
+Q.prototype.off = offImpl as Q<Element>['off'];
+
+function triggerImpl<T extends Element>(this: Q<T>, type: string, detail?: unknown): Q<T> {
+  const base = type.split('.')[0] ?? type;
+  for (const el of this.els) {
+    el.dispatchEvent(new CustomEvent(base, { bubbles: true, cancelable: true, detail }));
+  }
+  return this;
+}
+
+Q.prototype.trigger = triggerImpl as Q<Element>['trigger'];
+
+Q.prototype.hover = function <T extends Element>(
+  this: Q<T>,
+  over: (this: T, event: MouseEvent) => void,
+  out?: (this: T, event: MouseEvent) => void
+): Q<T> {
+  const leave = out ?? over;
+  return this.on('mouseenter', over).on('mouseleave', leave);
+};

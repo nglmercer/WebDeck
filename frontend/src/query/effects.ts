@@ -3,6 +3,8 @@
 // - `prefers-reduced-motion` → durations collapse to 0 (jump to end).
 // - Every animation resolves (never rejects): `stop()` cancels cleanly.
 
+import { Q } from './core';
+
 export interface EffectOptions {
   duration?: number;
   easing?: string;
@@ -268,3 +270,134 @@ export function stopAnimations(el: Element, gotoEnd: boolean): void {
     }
   }
 }
+
+export function normalizeEffectOptions(duration?: number | EffectOptions): EffectOptions {
+  if (duration === undefined) return {};
+  return typeof duration === 'number' ? { duration } : duration;
+}
+
+// -- Q effect methods (extracted from core.ts) --------------------------------
+
+declare module './core' {
+  interface Q<T extends Element> {
+    /** Fade every element in. Resolves when done. */
+    fadeIn(duration?: number | EffectOptions): Promise<void>;
+    /** Fade every element out (then display:none). Resolves when done. */
+    fadeOut(duration?: number | EffectOptions): Promise<void>;
+    /** Fade to `opacity` (0–1). Resolves when done. */
+    fadeTo(opacity: number, duration?: number | EffectOptions): Promise<void>;
+    /** Fade in/out depending on current visibility. Resolves when done. */
+    fadeToggle(duration?: number | EffectOptions): Promise<void>;
+    /** Slide every element down. Resolves when done. */
+    slideDown(duration?: number | EffectOptions): Promise<void>;
+    /** Slide every element up (then display:none). Resolves when done. */
+    slideUp(duration?: number | EffectOptions): Promise<void>;
+    /** Slide down/up depending on current visibility. Resolves when done. */
+    slideToggle(duration?: number | EffectOptions): Promise<void>;
+    /** Run raw WAAPI keyframes on every element. Resolves when done. */
+    animate(
+      keyframes: Keyframe[] | PropertyIndexedKeyframes,
+      duration?: number | EffectOptions
+    ): Promise<void>;
+    /** Cancel running animations (`gotoEnd` jumps to end state). */
+    stop(gotoEnd?: boolean): this;
+  }
+}
+
+Q.prototype.fadeIn = function (
+  this: Q,
+  duration?: number | EffectOptions
+): Promise<void> {
+  const options = normalizeEffectOptions(duration);
+  return Promise.all(
+    this.els.map((el) => {
+      showInstant(el);
+      return animateOpacity(el, 0, 1, options);
+    })
+  ).then(() => undefined);
+};
+
+Q.prototype.fadeOut = function (
+  this: Q,
+  duration?: number | EffectOptions
+): Promise<void> {
+  const options = normalizeEffectOptions(duration);
+  return Promise.all(
+    this.els.map((el) =>
+      animateOpacity(el, null, 0, options).then(() => {
+        hideInstant(el);
+      })
+    )
+  ).then(() => undefined);
+};
+
+Q.prototype.fadeTo = function (
+  this: Q,
+  opacity: number,
+  duration?: number | EffectOptions
+): Promise<void> {
+  const options = normalizeEffectOptions(duration);
+  return Promise.all(this.els.map((el) => animateOpacity(el, null, opacity, options))).then(
+    () => undefined
+  );
+};
+
+Q.prototype.fadeToggle = function (
+  this: Q,
+  duration?: number | EffectOptions
+): Promise<void> {
+  const options = normalizeEffectOptions(duration);
+  return Promise.all(
+    this.els.map((el) => {
+      if (isHidden(el)) {
+        showInstant(el);
+        return animateOpacity(el, 0, 1, options);
+      }
+      return animateOpacity(el, null, 0, options).then(() => {
+        hideInstant(el);
+      });
+    })
+  ).then(() => undefined);
+};
+
+Q.prototype.slideDown = function (
+  this: Q,
+  duration?: number | EffectOptions
+): Promise<void> {
+  const options = normalizeEffectOptions(duration);
+  return Promise.all(this.els.map((el) => animateSlide(el, true, options))).then(() => undefined);
+};
+
+Q.prototype.slideUp = function (
+  this: Q,
+  duration?: number | EffectOptions
+): Promise<void> {
+  const options = normalizeEffectOptions(duration);
+  return Promise.all(this.els.map((el) => animateSlide(el, false, options))).then(() => undefined);
+};
+
+Q.prototype.slideToggle = function (
+  this: Q,
+  duration?: number | EffectOptions
+): Promise<void> {
+  const options = normalizeEffectOptions(duration);
+  return Promise.all(this.els.map((el) => animateSlide(el, isHidden(el), options))).then(
+    () => undefined
+  );
+};
+
+Q.prototype.animate = function (
+  this: Q,
+  keyframes: Keyframe[] | PropertyIndexedKeyframes,
+  duration?: number | EffectOptions
+): Promise<void> {
+  const options = normalizeEffectOptions(duration);
+  return Promise.all(this.els.map((el) => runAnimation(el, keyframes, options))).then(
+    () => undefined
+  );
+};
+
+Q.prototype.stop = function <T extends Element>(this: Q<T>, gotoEnd = false): Q<T> {
+  for (const el of this.els) stopAnimations(el, gotoEnd);
+  return this;
+};
