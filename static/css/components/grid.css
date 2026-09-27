@@ -2,6 +2,7 @@
 div.void {
   margin-top: 0em;
   margin-block-end: 1em;
+  position: relative;
   width: 132px;
   height: 153.79px;
   background-position: center;

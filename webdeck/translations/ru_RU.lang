@@ -111,6 +111,7 @@ spotify_unfollow_artist_success=Отписался от %artist_name%.
 // -- Button configuration --
 
 add_a_button=Добавить кнопку
+search_commands=Поиск команд…
 configure_your_button=Настроить кнопку
 
 image=Изображение

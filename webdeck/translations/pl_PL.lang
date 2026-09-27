@@ -111,6 +111,7 @@ spotify_unfollow_artist_success=Odsubskrybowano %artist_name%.
 // -- Button configuration --
 
 add_a_button=Dodaj przycisk
+search_commands=Szukaj poleceń…
 configure_your_button=Skonfiguruj przycisk
 
 image=Obraz

@@ -142,9 +142,9 @@ function gridButton(
   }
 
   return join([
-    folderDiv,
     html`
               <form class="form-${String(buttonId)} form" id="${editModalId}">
+                ${folderDiv}
                 <div class="container-editmode">
                   <div class="edit-button" style="display: none;" edit_modal_ID="${editModalId}">
                     ${editPencilIcon()}

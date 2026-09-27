@@ -8,5 +8,6 @@ export {
   getCommand,
   wireAddModal,
   wireBrowserDropdowns,
+  wireBrowserSearch,
   wireFoldernameForm,
 } from './wireup';

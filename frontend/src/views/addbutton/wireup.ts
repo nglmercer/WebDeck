@@ -323,6 +323,64 @@ function buttonCommandAdd(argModalId: string, command: string): void {
   q(element).removeAttr('add_FOLDER');
 }
 
+/**
+ * Filter the add-button browser by label/command text. Leaf buttons that
+ * match (or sit under a matching branch) stay visible; empty branches
+ * hide, and containers holding matches open. An empty query restores
+ * every button but leaves containers as they are.
+ */
+export function filterAddBrowser(root: Element, query: string): void {
+  const needle = query.trim().toLowerCase();
+  const leaves = [...root.querySelectorAll('.dropdown-btn.no-dropdown')] as HTMLElement[];
+  const branches = [...root.querySelectorAll('.dropdown-btn:not(.no-dropdown)')] as HTMLElement[];
+  const descs = [...root.querySelectorAll('.addbutton-description')] as HTMLElement[];
+  if (needle === '') {
+    for (const el of [...leaves, ...branches, ...descs]) el.style.display = '';
+    return;
+  }
+  for (const leaf of leaves) {
+    const hay =
+      `${leaf.textContent ?? ''} ${leaf.getAttribute('dropdown-commandTag') ?? ''}`.toLowerCase();
+    leaf.style.display = hay.includes(needle) ? '' : 'none';
+  }
+  // Descriptions follow their button (the next sibling).
+  for (const desc of descs) {
+    const next = desc.nextElementSibling as HTMLElement | null;
+    desc.style.display = next !== null && next.style.display === 'none' ? 'none' : '';
+  }
+  // Reversed document order is bottom-up here: every branch panel follows
+  // its button, so descendants always settle before their ancestors.
+  for (const branch of branches.reverse()) {
+    const panel = branch.nextElementSibling as HTMLElement | null;
+    const selfMatch = (branch.textContent ?? '').toLowerCase().includes(needle);
+    if (selfMatch && panel !== null) {
+      for (const el of panel.querySelectorAll('.dropdown-btn, .addbutton-description')) {
+        (el as HTMLElement).style.display = '';
+      }
+    }
+    const visible =
+      selfMatch ||
+      (panel !== null &&
+        [...panel.querySelectorAll('.dropdown-btn')].some(
+          (b) => (b as HTMLElement).style.display !== 'none'
+        ));
+    branch.style.display = visible ? '' : 'none';
+    if (panel !== null && panel.classList.contains('dropdown-container')) {
+      panel.style.display = visible ? 'block' : 'none';
+    }
+  }
+}
+
+/** Live-filter wiring for the add-button browser search box. */
+export function wireBrowserSearch(): void {
+  const input = byId<HTMLInputElement>('addbutton-search').get(0) ?? null;
+  const root = q('.all-commands').get(0) ?? null;
+  if (input === null || root === null) return;
+  q(input).on('input', function () {
+    filterAddBrowser(root, String(q(input).val() ?? ''));
+  });
+}
+
 /** Add-modal dropdown toggles (index.jinja inline script after commands). */
 export function wireBrowserDropdowns(): void {
   for (const btn of q('.dropdown-btn').toArray()) {

@@ -8,7 +8,7 @@ import { initFolderpath } from '../legacy/folderpath';
 import { initLoadingScreen } from '../legacy/loadingscreen';
 import { initThemesSetting } from '../legacy/themes-setting';
 import { initUploadFile } from '../legacy/upload-file';
-import { collectAddModals, addModalChrome, wireAddModal, wireBrowserDropdowns } from '../views/addbutton';
+import { collectAddModals, addModalChrome, wireAddModal, wireBrowserDropdowns, wireBrowserSearch } from '../views/addbutton';
 import { configView } from '../views/config';
 import { collectEditModals, wireEditModal } from '../views/editmodal';
 import { editorBarView } from '../app/editor';
@@ -46,6 +46,7 @@ export function renderApp(mount: HTMLElement, ctx: BootContext): void {
     wireAddModal(ctx, m);
   }
   wireBrowserDropdowns();
+  wireBrowserSearch();
   void hydrateSvgs(document);
 
   initBackgroundSetting();

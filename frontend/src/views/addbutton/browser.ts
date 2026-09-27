@@ -140,6 +140,7 @@ export function addModalChrome(ctx: BootContext): Html {
         </div>
         <div class="addbutton-modal-main">
           <br class="addbutton-container ${raw(dark)}" />
+          <input type="text" id="addbutton-search" class="addbutton-search ${raw(dark)}" placeholder="${text('search_commands')}" />
           <div class="all-commands ${raw(dark)}">
             ${addBrowserView(ctx)}
           </div>

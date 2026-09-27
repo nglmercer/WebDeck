@@ -119,6 +119,13 @@ describe('swapButton picks', () => {
     expect(editorUiState.swapFirstBtn).toBe(0);
     expect(form(0).classList.contains('swap-picked')).toBe(false);
   });
+
+  it('lets folder-chip taps navigate instead of selecting', () => {
+    form(0).insertAdjacentHTML('afterbegin', '<div class="swapMode-open-folder"><span>Open</span></div>');
+    click(form(0).querySelector('.swapMode-open-folder span') as Element);
+    expect(editorUiState.swapFirstBtn).toBe(0);
+    expect(form(0).classList.contains('swap-picked')).toBe(false);
+  });
 });
 
 describe('editorBarView', () => {

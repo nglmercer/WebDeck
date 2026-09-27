@@ -77,4 +77,15 @@ describe('gridView editor chrome', () => {
     expect(out).toContain('class="add-button"');
     expect(out).not.toContain('40.3675');
   });
+
+  it('renders the folder chip inside the form so it anchors to the tile', () => {
+    const out = gridView(
+      testCtx({ index: [{ message: '/folder docs', name: 'docs', image: '' }] })
+    ).value;
+    const formOpen = out.indexOf('<form');
+    const chip = out.indexOf('swapMode-open-folder');
+    const formClose = out.indexOf('</form>');
+    expect(chip).toBeGreaterThan(formOpen);
+    expect(chip).toBeLessThan(formClose);
+  });
 });

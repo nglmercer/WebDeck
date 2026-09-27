@@ -111,6 +111,7 @@ spotify_unfollow_artist_success=%artist_name% 아티스트 팔로우를 취소�
 // -- Button configuration --
 
 add_a_button=버튼 추가
+search_commands=명령 검색…
 configure_your_button=버튼 구성
 
 image=Image

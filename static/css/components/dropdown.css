@@ -89,4 +89,21 @@
   content: url(/static/img//plus-circle.svg)!important;
 }
 
+.addbutton-search {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 2px 0 10px;
+  padding: 8px 12px;
+  font-size: 16px;
+  border: 1px solid #c9c9c9;
+  border-radius: 10px;
+  background-color: #fff;
+  color: #111;
+}
+.addbutton-search.dark-theme {
+  background-color: #1d1d1d;
+  border-color: #3a3a3a;
+  color: #f2f2f2;
+}
+
 

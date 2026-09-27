@@ -13,8 +13,9 @@
   cursor: pointer;
   position: absolute;
   z-index: 1;
-  margin-right: 70px;
-  margin-top: 20px;
+  top: 8px;
+  left: 8px;
+  margin: 0;
 }
 
 .checkbox::before {

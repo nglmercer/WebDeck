@@ -49,6 +49,9 @@ function swapForms(parentId1: string, formNumber1: string, parentId2: string, fo
 
 export function swapButton(event: Event): void {
   if (pageState.editorMode === 1 && editorUiState.swapMode === 1 && !editorUiState.isMouseOverOpenFolder) {
+    // The folder chip lives inside the form now: taps on it navigate
+    // instead of selecting (covers touch, where no mouseover precedes).
+    if (q(event.target as Element).closest('.swapMode-open-folder').get(0)) return;
     let closestForm = q(event.target as Element).closest('form.form').get(0) ?? null;
     if (closestForm === null) {
       closestForm = q(event.target as Element).closest('div.void').get(0) ?? null;
