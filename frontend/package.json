@@ -8,9 +8,11 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "demo:video": "playwright test --config playwright.config.ts && node e2e/finalize-video.mjs"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/toastify-js": "1.12.4",
     "happy-dom": "20.14.5",
     "typescript": "7.0.2",

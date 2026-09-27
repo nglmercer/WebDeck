@@ -24,4 +24,7 @@ target/
 data.json
 /frontend/node_modules
 /frontend/dist
+/frontend/demo/*.mp4
+/frontend/demo/*.webm
+/frontend/e2e/test-results
 /node_modules

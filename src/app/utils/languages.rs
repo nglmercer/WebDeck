@@ -86,7 +86,44 @@ pub fn load_lang_file(lang: &str) -> Result<HashMap<String, String>, String> {
     Ok(dictionary)
 }
 
-/// Port of `get_language`.
+/// Negotiate a requested locale against the available language codes:
+/// exact match (case-insensitive, `-`/`_` equivalent), then short-code
+/// request (`es` → `es_ES`), then same-language sibling (`es_PE` →
+/// `es_ES`). Pure over the available codes so it unit-tests without the
+/// global state. `None` means no linguistic match (caller falls back).
+fn negotiate_language(requested: &str, available: &[String]) -> Option<String> {
+    let req = requested.replace('-', "_");
+    if req.is_empty() {
+        return None;
+    }
+    if let Some(hit) = available.iter().find(|code| code.eq_ignore_ascii_case(&req)) {
+        return Some(hit.clone());
+    }
+    let req_lower = req.to_lowercase();
+    let mut hits: Vec<&String> = available
+        .iter()
+        .filter(|code| code.to_lowercase().starts_with(&req_lower))
+        .collect();
+    hits.sort();
+    if let Some(hit) = hits.first() {
+        return Some((*hit).clone());
+    }
+    let req_lang = req_lower.split('_').next().unwrap_or("");
+    if !req_lang.is_empty() {
+        let mut siblings: Vec<&String> = available
+            .iter()
+            .filter(|code| code.to_lowercase().split('_').next() == Some(req_lang))
+            .collect();
+        siblings.sort();
+        if let Some(hit) = siblings.first() {
+            return Some((*hit).clone());
+        }
+    }
+    None
+}
+
+/// Port of `get_language` (plus same-language-sibling matching, so e.g.
+/// a system `es_PE` resolves to the shipped `es_ES` instead of English).
 pub fn get_language(lang: Option<&str>) -> String {
     let state = state().read();
     let (default_lang, files) = match state.as_ref() {
@@ -99,12 +136,8 @@ pub fn get_language(lang: Option<&str>) -> String {
     if lang.eq_ignore_ascii_case("system") {
         lang = get_system_language();
     }
-    for available in files.keys() {
-        if available.to_lowercase().starts_with(&lang.to_lowercase()) {
-            return available.clone();
-        }
-    }
-    default_lang
+    let available: Vec<String> = files.keys().cloned().collect();
+    negotiate_language(&lang, &available).unwrap_or(default_lang)
 }
 
 /// Port of `language_exists`.
@@ -119,21 +152,34 @@ pub fn language_exists(language_code: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// Port of `set_default_language`.
+/// Port of `set_default_language` (accepts negotiated matches: a system
+/// `es_PE` sets the default to the shipped `es_ES`).
 pub fn set_default_language(lang: &str) {
     let mut lang = lang.to_string();
     if lang.eq_ignore_ascii_case("system") {
         lang = get_system_language();
     }
-    if language_exists(&lang) {
-        if let Ok(mut state) = state().write() {
-            state.default_lang = lang;
+    let resolved = state().read().ok().and_then(|state| {
+        let available: Vec<String> = state.files.keys().cloned().collect();
+        negotiate_language(&lang, &available)
+    });
+    match resolved {
+        Some(code) => {
+            if !code.eq_ignore_ascii_case(&lang) {
+                println!("Language '{lang}' matched '{code}'.");
+            }
+            if let Ok(mut state) = state().write() {
+                state.default_lang = code;
+            }
         }
-    } else if let Ok(state) = state().read() {
-        println!(
-            "Language '{lang}' does not exist. Default language remains '{}'.",
-            state.default_lang
-        );
+        None => {
+            if let Ok(state) = state().read() {
+                println!(
+                    "Language '{lang}' does not exist. Default language remains '{}'.",
+                    state.default_lang
+                );
+            }
+        }
     }
 }
 
@@ -359,5 +405,44 @@ mod tests {
         assert_eq!(missing, "definitely_not_a_key_zzz");
         let infos = get_languages_info();
         assert!(infos.iter().any(|info| info.code == "en_US"));
+    }
+
+    fn codes(list: &[&str]) -> Vec<String> {
+        list.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn negotiates_exact_short_and_sibling_locales() {
+        let available = codes(&["en_US", "es_ES", "fr_FR"]);
+        assert_eq!(
+            negotiate_language("es_ES", &available).as_deref(),
+            Some("es_ES")
+        );
+        assert_eq!(
+            negotiate_language("ES_es", &available).as_deref(),
+            Some("es_ES")
+        );
+        assert_eq!(negotiate_language("es", &available).as_deref(), Some("es_ES"));
+        // Region variant falls back to the same-language sibling.
+        assert_eq!(
+            negotiate_language("es_PE", &available).as_deref(),
+            Some("es_ES")
+        );
+        // BCP47 dashes normalize to underscores.
+        assert_eq!(
+            negotiate_language("es-PE", &available).as_deref(),
+            Some("es_ES")
+        );
+        assert_eq!(negotiate_language("xx_YY", &available), None);
+        assert_eq!(negotiate_language("", &available), None);
+    }
+
+    #[test]
+    fn sibling_pick_is_deterministic() {
+        let available = codes(&["es_MX", "es_ES"]);
+        assert_eq!(
+            negotiate_language("es_PE", &available).as_deref(),
+            Some("es_ES")
+        );
     }
 }

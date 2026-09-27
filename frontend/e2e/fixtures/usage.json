@@ -1,0 +1,33 @@
+{
+ "cpu": {
+  "usage_percent": 12.1
+ },
+ "memory": {
+  "total_gb": 16.0,
+  "used_gb": 6.1,
+  "available_gb": 9.9,
+  "usage_percent": 38.4
+ },
+ "disks": {
+  "C": {
+   "total_gb": 512.0,
+   "used_gb": 210.5,
+   "free_gb": 301.5,
+   "usage_percent": 41.1
+  }
+ },
+ "network": {
+  "bytes_sent": 1048576,
+  "bytes_recv": 2097152
+ },
+ "gpus": {
+  "defaultGPU": {
+   "name": "Demo GPU",
+   "used_mb": 512.0,
+   "total_mb": 8192.0,
+   "available_mb": 7680.0,
+   "temperature_c": 58.0,
+   "usage_percent": 23.7
+  }
+ }
+}

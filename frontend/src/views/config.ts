@@ -23,12 +23,25 @@ import {
 import { infoIcon } from './svg';
 import { modalCloseIcon, trashIcon } from '../components/icons';
 
-/** Port of `get_language` for the language dropdown (prefix match). */
-function resolveLanguage(requested: string, langs: JsonObject[]): string {
-  const lowered = requested.toLowerCase();
-  for (const lang of langs) {
-    const code = asString(lang['code']);
-    if (code.toLowerCase().startsWith(lowered)) return code;
+/**
+ * Port of `get_language` for the language dropdown: exact match, then
+ * short-code request (`es` → `es_ES`), then same-language sibling
+ * (`es_PE` → `es_ES`). Exported for tests.
+ */
+export function resolveLanguage(requested: string, langs: JsonObject[]): string {
+  const req = requested.replace(/-/g, '_');
+  const codes = langs.map((lang) => asString(lang['code']));
+  const exact = codes.find((code) => code.toLowerCase() === req.toLowerCase());
+  if (exact !== undefined) return exact;
+  const lowered = req.toLowerCase();
+  const shorts = codes.filter((code) => code.toLowerCase().startsWith(lowered)).sort();
+  if (shorts.length > 0) return shorts[0] as string;
+  const reqLang = lowered.split('_')[0] ?? '';
+  if (reqLang !== '') {
+    const siblings = codes
+      .filter((code) => (code.toLowerCase().split('_')[0] ?? '') === reqLang)
+      .sort();
+    if (siblings.length > 0) return siblings[0] as string;
   }
   return 'en_US';
 }
