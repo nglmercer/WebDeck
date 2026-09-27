@@ -79,6 +79,23 @@ fn disk_alias_key(disk_name: &str) -> String {
     alias
 }
 
+/// Response keys for one disk, in insert order: the eval-safe basename
+/// alias (Linux only; elsewhere `alias == disk_name` so it collapses),
+/// the Linux-only `"C"` alias when this disk is the root filesystem
+/// (`C:` is the Windows system drive, so Windows-authored "C disk" tiles
+/// keep working on Linux), then the 1:1 key last so it wins collisions.
+fn disk_response_keys(disk_name: &str, alias: &str, mount_point: &std::path::Path) -> Vec<String> {
+    let mut keys = Vec::with_capacity(3);
+    if alias != disk_name {
+        keys.push(alias.to_string());
+    }
+    if mount_point == std::path::Path::new("/") {
+        keys.push("C".to_string());
+    }
+    keys.push(disk_name.to_string());
+    keys
+}
+
 /// Port of `get_usage`.
 pub fn get_usage(get_all: Option<bool>, asked_devices: &[Vec<String>]) -> Value {
     let config = get_config(false, false);
@@ -157,12 +174,10 @@ pub fn get_usage(get_all: Option<bool>, asked_devices: &[Vec<String>]) -> Value 
             // basename alias is exposed (and matchable) alongside the 1:1 key.
             #[cfg(target_os = "linux")]
             let alias = disk_alias_key(&disk_name);
-            #[cfg(target_os = "linux")]
-            let wanted = get_all
-                || asked_metric(asked_devices, 1, &disk_name)
-                || (alias != disk_name && asked_metric(asked_devices, 1, &alias));
             #[cfg(not(target_os = "linux"))]
-            let wanted = get_all || asked_metric(asked_devices, 1, &disk_name);
+            let alias = disk_name.clone();
+            let keys = disk_response_keys(&disk_name, &alias, disk.mount_point());
+            let wanted = get_all || keys.iter().any(|k| asked_metric(asked_devices, 1, k));
             if !wanted {
                 continue;
             }
@@ -191,11 +206,9 @@ pub fn get_usage(get_all: Option<bool>, asked_devices: &[Vec<String>]) -> Value 
                 entry.insert("usage_percent".to_string(), json!(round1(usage_percent)));
             }
             let value = Value::Object(entry);
-            #[cfg(target_os = "linux")]
-            if alias != disk_name {
-                disks_map.insert(alias, value.clone());
+            for key in &keys {
+                disks_map.insert(key.clone(), value.clone());
             }
-            disks_map.insert(disk_name, value);
         }
         computer_info["disks"] = Value::Object(disks_map);
     }
@@ -363,9 +376,25 @@ fn amd_devices() -> Result<Vec<AmdDeviceInfo>, String> {
         let metrics = std::fs::read(format!("{dev}/gpu_metrics"))
             .ok()
             .and_then(|b| parse_gpu_metrics(&b));
+        let pdev = std::fs::read_to_string(format!("{dev}/uevent"))
+            .ok()
+            .and_then(|u| {
+                u.lines().find_map(|l| {
+                    l.strip_prefix("PCI_SLOT_NAME=")
+                        .map(|s| s.trim().to_string())
+                })
+            })
+            .unwrap_or_default();
         let usage_percent = read_u64_file(&format!("{dev}/gpu_busy_percent"))
             .filter(|pct| *pct <= 100)
             .map(|pct| pct as i64)
+            .or_else(|| {
+                if pdev.is_empty() {
+                    None
+                } else {
+                    amd_fdinfo_load_percent(&pdev)
+                }
+            })
             .or_else(|| metrics.as_ref().and_then(|m| m.gfx_activity));
         devices.push(AmdDeviceInfo {
             name: format!("AMD GPU{}", devices.len() + 1),
@@ -450,6 +479,125 @@ fn read_u64_file(path: &str) -> Option<u64> {
         .trim()
         .parse::<u64>()
         .ok()
+}
+
+/// Last fdinfo GFX sample per PCI device (`total_ns`, timestamp).
+#[cfg(target_os = "linux")]
+fn amd_gfx_cache(
+) -> &'static std::sync::Mutex<std::collections::HashMap<String, (u64, std::time::Instant)>> {
+    static CACHE: std::sync::OnceLock<
+        std::sync::Mutex<std::collections::HashMap<String, (u64, std::time::Instant)>>,
+    > = std::sync::OnceLock::new();
+    CACHE.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+/// Load % from two GFX-time samples. `None` on zero/out-of-order elapsed
+/// time or a counter reset (client churn between polls). Concurrent
+/// clients can legitimately sum past wall time, so the result clamps to
+/// 100 instead of rejecting.
+#[cfg(target_os = "linux")]
+fn gfx_load_percent(
+    prev_ns: u64,
+    prev_t: std::time::Instant,
+    cur_ns: u64,
+    cur_t: std::time::Instant,
+) -> Option<i64> {
+    let elapsed = cur_t.checked_duration_since(prev_t)?.as_nanos();
+    if elapsed == 0 {
+        return None;
+    }
+    let delta = cur_ns.checked_sub(prev_ns)?;
+    Some(
+        (delta as f64 / elapsed as f64 * 100.0)
+            .round()
+            .clamp(0.0, 100.0) as i64,
+    )
+}
+
+/// GFX load % for one amdgpu PCI device, measured from the DRM
+/// scheduler's per-client `drm-engine-gfx` counters in
+/// `/proc/*/fdinfo/*`. Fallback for chips whose firmware exposes no
+/// `gpu_busy_percent`/`gfx_activity` counter (e.g. BC-250, where the
+/// sysfs node reads back EOPNOTSUPP and the metrics blob says 0xFFFF).
+/// The counters are scheduler-side, so this is real measured load — but
+/// only same-user processes' fdinfo is readable, so GPU clients owned by
+/// other users are invisible and load undercounts accordingly.
+///
+/// The first call per device primes the cache and yields `None`;
+/// callers must tolerate that (`-` until the second poll).
+#[cfg(target_os = "linux")]
+fn amd_fdinfo_load_percent(pdev: &str) -> Option<i64> {
+    let current = amd_gfx_total_ns(pdev)?;
+    let now = std::time::Instant::now();
+    let previous = amd_gfx_cache()
+        .lock()
+        .ok()?
+        .insert(pdev.to_string(), (current, now));
+    let (prev_ns, prev_t) = previous?;
+    gfx_load_percent(prev_ns, prev_t, current, now)
+}
+
+/// Sum of `drm-engine-gfx` nanoseconds across distinct amdgpu DRM clients
+/// of one PCI device. Clients dedup by (`drm-pdev`, `drm-client-id`) so
+/// dup'd descriptors count once; entries the kernel leaves unattributed
+/// degrade to per-file counting. `None` when no client stats exist.
+#[cfg(target_os = "linux")]
+fn amd_gfx_total_ns(pdev: &str) -> Option<u64> {
+    let mut clients: std::collections::HashMap<(String, String), u64> =
+        std::collections::HashMap::new();
+    for pid in std::fs::read_dir("/proc").ok()?.flatten() {
+        let pid_name = pid.file_name().to_string_lossy().into_owned();
+        if pid_name.is_empty() || !pid_name.bytes().all(|b| b.is_ascii_digit()) {
+            continue;
+        }
+        let fdinfos = std::fs::read_dir(format!("/proc/{pid_name}/fdinfo"));
+        for fd in fdinfos.ok().into_iter().flatten().flatten() {
+            let content = std::fs::read_to_string(fd.path()).unwrap_or_default();
+            if !content.contains("drm-engine-gfx:") {
+                continue;
+            }
+            let mut driver = "";
+            let mut dev = "";
+            let mut client = "";
+            let mut gfx = None;
+            for line in content.lines() {
+                if let Some(v) = line.strip_prefix("drm-driver:") {
+                    driver = v.trim();
+                } else if let Some(v) = line.strip_prefix("drm-pdev:") {
+                    dev = v.trim();
+                } else if let Some(v) = line.strip_prefix("drm-client-id:") {
+                    client = v.trim();
+                } else if let Some(v) = line.strip_prefix("drm-engine-gfx:") {
+                    gfx = v
+                        .split_whitespace()
+                        .next()
+                        .and_then(|n| n.parse::<u64>().ok());
+                }
+            }
+            let gfx = match gfx {
+                Some(g) => g,
+                None => continue,
+            };
+            if driver != "amdgpu" || (!dev.is_empty() && dev != pdev) {
+                continue;
+            }
+            let key = if client.is_empty() {
+                // Kernels without client ids: per-file counting (dup'd
+                // fds may double-count).
+                (
+                    format!("{pid_name}/{}", fd.file_name().to_string_lossy()),
+                    String::new(),
+                )
+            } else {
+                (dev.to_string(), client.to_string())
+            };
+            clients.insert(key, gfx);
+        }
+    }
+    if clients.is_empty() {
+        return None;
+    }
+    Some(clients.values().sum())
 }
 
 struct NvmlDeviceInfo {
@@ -576,6 +724,18 @@ mod tests {
         assert_eq!(disk_alias_key("9lives"), "_9lives");
     }
 
+    #[test]
+    fn disk_keys_expose_root_as_c() {
+        let keys = disk_response_keys("/dev/nvme0n1p4", "nvme0n1p4", std::path::Path::new("/"));
+        assert_eq!(keys, vec!["nvme0n1p4", "C", "/dev/nvme0n1p4"]);
+        // Non-root mounts get no "C" alias.
+        let keys = disk_response_keys("/dev/sda1", "sda1", std::path::Path::new("/mnt/data"));
+        assert_eq!(keys, vec!["sda1", "/dev/sda1"]);
+        // 1:1 keys without alias stay untouched (Windows shape).
+        let keys = disk_response_keys("C", "C", std::path::Path::new("C:\\"));
+        assert_eq!(keys, vec!["C"]);
+    }
+
     #[cfg(target_os = "linux")]
     #[test]
     fn parses_gpu_metrics_v2_2() {
@@ -637,7 +797,54 @@ mod tests {
         if let Some(temp) = gpu1.get("temperature_c").and_then(|v| v.as_f64()) {
             assert!((0.0..150.0).contains(&temp));
         }
+        if let Some(pct) = gpu1.get("usage_percent").and_then(|v| v.as_i64()) {
+            assert!((0..=100).contains(&pct), "out of range: {pct}");
+        }
         assert!(gpus.get("defaultGPU").is_some());
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn gfx_load_percent_handles_edges() {
+        use std::time::{Duration, Instant};
+        let t0 = Instant::now();
+        let t1 = t0 + Duration::from_secs(1);
+        assert_eq!(gfx_load_percent(0, t0, 500_000_000, t1), Some(50));
+        assert_eq!(gfx_load_percent(0, t0, 0, t0), None);
+        assert_eq!(gfx_load_percent(100, t0, 50, t1), None);
+        assert_eq!(gfx_load_percent(0, t0, 3_000_000_000, t1), Some(100));
+        assert_eq!(gfx_load_percent(0, t1, 0, t0), None);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn fdinfo_sampler_yields_range_gated_load() {
+        let cards = std::fs::read_dir("/sys/class/drm")
+            .map(|entries| {
+                entries
+                    .flatten()
+                    .filter_map(|e| {
+                        let n = e.file_name().to_string_lossy().into_owned();
+                        let uevent =
+                            std::fs::read_to_string(format!("/sys/class/drm/{n}/device/uevent"))
+                                .ok()?;
+                        uevent.lines().find_map(|l| {
+                            l.strip_prefix("PCI_SLOT_NAME=")
+                                .map(|s| s.trim().to_string())
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        let Some(pdev) = cards.into_iter().next() else {
+            return;
+        };
+        let _ = amd_fdinfo_load_percent(&pdev);
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        if let Some(pct) = amd_fdinfo_load_percent(&pdev) {
+            assert!((0..=100).contains(&pct), "out of range: {pct}");
+        }
+        // None is fine too (no same-user GPU clients on this box).
     }
 
     #[cfg(target_os = "linux")]
@@ -663,6 +870,17 @@ mod tests {
         ] {
             let pct = pct.expect("percent present");
             assert!((pct * 10.0).fract().abs() < 1e-6, "not 1-decimal: {pct}");
+        }
+        // Windows-authored "C disk" tiles resolve against the root fs.
+        let has_root = Disks::new_with_refreshed_list()
+            .iter()
+            .any(|d| d.mount_point() == std::path::Path::new("/"));
+        if has_root {
+            assert!(
+                disks.contains_key("C"),
+                "root filesystem missing \"C\" alias: {:?}",
+                disks.keys().collect::<Vec<_>>()
+            );
         }
     }
 
