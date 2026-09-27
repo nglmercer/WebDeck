@@ -11,7 +11,12 @@ export function applyHead(ctx: BootContext): void {
   for (const file of [...themes].reverse()) {
     const name = asString(file);
     if (name.startsWith('//')) continue;
-    head.append(q('<link>').attr({ rel: 'stylesheet', href: `.config/themes/${name}` }));
+    // The server appends the built-in theme to this same list; it is served
+    // from /static, not .config/themes (blindly prefixing 404s).
+    // Exact match on purpose: anything else keeps the prefix, so a hostile
+    // config value can never turn into an arbitrary remote stylesheet URL.
+    const href = name === 'static/css/style.css' ? '/static/css/style.css' : `.config/themes/${name}`;
+    head.append(q('<link>').attr({ rel: 'stylesheet', href }));
   }
   // NOTE: socket.io is a bundled `socket.io-client` import in wireup.ts;
   // upstream injected static/js/socketio.js here, but that file never
