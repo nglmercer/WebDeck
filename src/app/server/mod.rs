@@ -3,7 +3,7 @@
 //! Route table (same paths + methods as the Flask app):
 //! `GET /`, `GET /api/boot`, `POST /usage`, `POST /save_config`,
 //! `POST /COMPLETE_save_config`, `POST /save_single_button`,
-//! `POST /save_buttons_only`, `GET /get_config`, `POST /upload_folderpath`,
+//! `POST /save_buttons_only`, `GET+POST /get_config`, `POST /upload_folderpath`,
 //! `POST /upload_filepath`, `POST /upload_file`, `POST /create_folder`,
 //! `GET /.config/<dir>/<file>`, `POST /send-data`, plus `/static/*` (Flask
 //! static folder) and `/assets/*` (TypeScript frontend bundle).
@@ -106,6 +106,36 @@ pub(crate) fn internal_error(
         .into_response()
 }
 
+/// Route table shared by [`run_server`] and the routing regression tests.
+/// (The SocketIO layer + TCP bind stay in [`run_server`].)
+fn app_router(state: AppState) -> Router {
+    Router::new()
+        .route("/", get(home))
+        .route("/api/boot", get(boot))
+        .route("/usage", post(usage))
+        .route("/save_config", post(saveconfig))
+        .route("/COMPLETE_save_config", post(complete_save_config))
+        .route("/save_single_button", post(save_single_button))
+        .route("/save_buttons_only", post(save_buttons_only))
+        // Both methods: boot + editor config loads POST, editor save flows GET.
+        .route("/get_config", get(get_config_route).post(get_config_route))
+        .route("/upload_folderpath", post(upload_folderpath))
+        .route("/upload_filepath", post(upload_filepath))
+        .route("/upload_file", post(upload_file))
+        .route("/create_folder", post(create_folder))
+        .route("/.config/{directory}/{filename}", get(get_config_file))
+        .route("/send-data", post(send_data_route))
+        .nest_service("/static", ServeDir::new("static"))
+        .nest_service("/assets", ServeDir::new("frontend/dist/assets"))
+        .layer(axum_middleware::from_fn_with_state(
+            state.clone(),
+            check_local_network,
+        ))
+        .layer(DefaultBodyLimit::disable())
+        .with_state(state)
+        .layer(axum_middleware::from_fn(after_request))
+}
+
 /// Port of `run_server`.
 ///
 /// Python runs `on_start()` + firewall checks at import time; Rust runs them
@@ -132,30 +162,7 @@ pub async fn run_server() -> Result<(), ServerError> {
         local_ip: local_ip.clone(),
     };
 
-    let app = Router::new()
-        .route("/", get(home))
-        .route("/api/boot", get(boot))
-        .route("/usage", post(usage))
-        .route("/save_config", post(saveconfig))
-        .route("/COMPLETE_save_config", post(complete_save_config))
-        .route("/save_single_button", post(save_single_button))
-        .route("/save_buttons_only", post(save_buttons_only))
-        .route("/get_config", get(get_config_route))
-        .route("/upload_folderpath", post(upload_folderpath))
-        .route("/upload_filepath", post(upload_filepath))
-        .route("/upload_file", post(upload_file))
-        .route("/create_folder", post(create_folder))
-        .route("/.config/{directory}/{filename}", get(get_config_file))
-        .route("/send-data", post(send_data_route))
-        .nest_service("/static", ServeDir::new("static"))
-        .nest_service("/assets", ServeDir::new("frontend/dist/assets"))
-        .layer(axum_middleware::from_fn_with_state(
-            state.clone(),
-            check_local_network,
-        ))
-        .layer(DefaultBodyLimit::disable())
-        .with_state(state)
-        .layer(axum_middleware::from_fn(after_request));
+    let app = app_router(state);
 
     let host = get_args().host.clone().unwrap_or(local_ip);
     let port = get_port();
@@ -171,4 +178,47 @@ pub async fn run_server() -> Result<(), ServerError> {
     .await
     .map_err(|e| ServerError(format!("Server failed: {e}")))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::body::Body;
+    use axum::http::{Request, StatusCode};
+    use tower::ServiceExt;
+
+    use crate::app::utils::settings::get_config::test_support::{config_guard, seed_config};
+
+    fn test_state() -> AppState {
+        AppState {
+            folders_to_create: Arc::new(Mutex::new(Vec::new())),
+            local_ip: "127.0.0.1".to_string(),
+        }
+    }
+
+    /// `/get_config` serves both methods the frontend uses (boot + editor
+    /// config loads POST, editor save flows GET). Regression: POST 405'd.
+    #[tokio::test]
+    async fn get_config_accepts_get_and_post() {
+        let _guard = config_guard();
+        seed_config(&serde_json::json!({
+            "url": {"port": 5000},
+            "front": {"buttons": {}},
+            "settings": {},
+        }));
+        for method in ["GET", "POST"] {
+            let response = app_router(test_state())
+                .oneshot(
+                    Request::builder()
+                        .method(method)
+                        .uri("/get_config")
+                        .header("content-type", "application/json")
+                        .body(Body::from("{}"))
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::OK, "{method} /get_config");
+        }
+    }
 }

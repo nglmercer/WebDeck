@@ -94,6 +94,10 @@ tray-icon = { version = "0.25.1", default-features = false, features = ["ksni"] 
 wry = "0.57.0"
 tao = "0.37.1"
 
+[dev-dependencies]
+# Router regression tests drive the real route table via `oneshot`.
+tower = { version = "0.5", features = ["util"] }
+
 [profile.release]
 # Single-file packaging parity with cx_Freeze is handled by packaging scripts
 # (see docs/MIGRATION_RUST.md); keep a plain release profile here.
