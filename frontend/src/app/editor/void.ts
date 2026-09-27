@@ -8,6 +8,7 @@
 import { text } from '../../framework/i18n';
 import type { JsonObject } from '../../framework/types';
 import { q, byId } from '../../query';
+import { addPlusIcon } from '../../components/icons';
 import { pageState } from '../state';
 import { reloadEditorEvents } from './events';
 import { editorUiState } from './state';
@@ -42,9 +43,7 @@ export function createVoidButton(event: Event | null = null, form: Element | nul
   const checkboxDiv = q('<div>').addClass('checkbox').css('display', 'none');
   // Parsed from markup: <svg>/<path> land in the SVG namespace, exactly
   // like the createElementNS version (attribute order is irrelevant).
-  const svg = q(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-  );
+  const svg = q(addPlusIcon().value);
 
   addButtonDiv.append(svg);
   voidDiv.append(checkboxDiv).append(addButtonDiv);

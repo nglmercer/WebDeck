@@ -2,6 +2,7 @@ import { html, join, raw, type Html } from '../framework/html';
 import { text } from '../framework/i18n';
 import { asArray, asBool, asObject, asString, get, rep, type BootContext } from '../framework/types';
 import { q } from '../query';
+import { folderDeleteIcon } from '../components/icons';
 
 /** <head> extras that depend on boot data: title + theme stylesheets. */
 export function applyHead(ctx: BootContext): void {
@@ -181,9 +182,7 @@ function foldersBar(ctx: BootContext): Html {
         <div style="display: inline-block; margin-right: 10px;">
           <button class="button EditorButtons-Folder" onclick="folder(\`${safe}\`)" style="display: flex; justify-content: center;align-items: center;">
             ${folderId}
-            <svg class="delete-icon" onclick="event.stopPropagation(); deleteFolder('${safe}')" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-circle" viewBox="0 0 16 16">
-              <path d="M11.742 4.258a1 1 0 0 0-1.414 0L8 6.586 5.672 4.258a1 1 0 1 0-1.414 1.414L6.586 8 4.258 10.328a1 1 0 0 0 1.414 1.414L8 9.414l2.328 2.328a1 1 0 0 0 1.414-1.414L9.414 8l2.328-2.328a1 1 0 0 0 0-1.414z"/>
-            </svg>
+            ${folderDeleteIcon(safe)}
           </button>
         </div>`;
   });

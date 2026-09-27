@@ -21,6 +21,7 @@ import {
   type SelectOption,
 } from '../components/fields';
 import { infoIcon } from './svg';
+import { modalCloseIcon, trashIcon } from '../components/icons';
 
 /** Port of `get_language` for the language dropdown (prefix match). */
 function resolveLanguage(requested: string, langs: JsonObject[]): string {
@@ -144,11 +145,7 @@ function backgroundsPanel(ctx: BootContext): Html {
       : 'choose-bg-activate-button choose-bg-activate-button-checked';
     const buttons = html`<div class="choose-bg-buttons">
                       <div class="${raw(activateCls)}"></div>
-                      <svg class="choose-bg-delete-button" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
-                        <title> ${text('remove_background')} </title>
-                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6Z"></path>
-                        <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1ZM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118ZM2.5 3h11V2h-11v1Z"></path>
-                      </svg>
+                      ${trashIcon(text('remove_background'))}
                     </div>`;
     const stripped = rep(bg, '//', '');
     if (stripped.startsWith('rgb(') || stripped.startsWith('#')) {
@@ -296,9 +293,7 @@ export function configView(ctx: BootContext): Html {
         <div class="modal-header bold">
           <h1 class="config-modal"> ${text('configuration')} </h1>
           <div class="modal-close">
-            <svg class="config-modal ${raw(dark)}" xmlns="http://www.w3.org/2000/svg" width="19" height="19" fill="currentColor" class="bi bi-x-circle-fill" viewBox="0 0 16 16">
-              <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"/>
-            </svg>
+            ${modalCloseIcon('config-modal', raw(dark))}
           </div>
         </div>
         <div style="display: flex; flex-direction: column;">
