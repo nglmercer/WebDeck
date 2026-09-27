@@ -13,6 +13,15 @@ use crate::app::utils::{
     settings::save_config::save_config,
 };
 
+/// True when the dialog result is an explicit "don't show again".
+///
+/// NOTE: compare the enum, not `to_string()` — rfd renders
+/// `Custom(label)` as `"Custom(label)"`, so a string comparison against the
+/// bare label never matches and the popup can never be disabled.
+fn is_dont_show_again(result: &rfd::MessageDialogResult, dont_show_label: &str) -> bool {
+    matches!(result, rfd::MessageDialogResult::Custom(label) if label == dont_show_label)
+}
+
 /// Port of `show_popup`.
 pub fn show_popup() {
     let mut config = get_config(false, false);
@@ -37,13 +46,41 @@ pub fn show_popup() {
         .set_buttons(rfd::MessageButtons::OkCancelCustom(dont_show.clone(), ok))
         .show();
 
-    // Custom buttons report back their label; treat anything that is not an
-    // explicit "don't show again" as a plain dismiss.
-    if result.to_string() == dont_show {
+    // Treat anything that is not an explicit "don't show again" as a
+    // plain dismiss.
+    if is_dont_show_again(&result, &dont_show) {
         log().info("Disabling popup message");
         if let Some(settings) = config.get_mut("settings").and_then(|s| s.as_object_mut()) {
             settings.insert("show_popup".to_string(), serde_json::Value::Bool(false));
         }
         save_config(config);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detects_dont_show_again_result() {
+        let label = "No mostrar de nuevo";
+        assert!(is_dont_show_again(
+            &rfd::MessageDialogResult::Custom(label.to_string()),
+            label
+        ));
+    }
+
+    #[test]
+    fn treats_other_results_as_plain_dismiss() {
+        let label = "No mostrar de nuevo";
+        for result in [
+            rfd::MessageDialogResult::Ok,
+            rfd::MessageDialogResult::Cancel,
+            rfd::MessageDialogResult::Yes,
+            rfd::MessageDialogResult::No,
+            rfd::MessageDialogResult::Custom("Aceptar".to_string()),
+        ] {
+            assert!(!is_dont_show_again(&result, label), "result: {result:?}");
+        }
     }
 }
