@@ -1,4 +1,5 @@
-import { createLogger, defineConfig } from 'vite';
+import { createLogger } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 // `/static/*` URLs in index.html are served by the Rust server at runtime
 // (ServeDir on repo `static/`), so Vite's "doesn't exist at build time,
@@ -36,5 +37,9 @@ export default defineConfig({
       '^/(send-data|usage|save_config|COMPLETE_save_config|save_single_button|save_buttons_only|get_config|upload_folderpath|upload_filepath|upload_file|create_folder|\\.config|static|socket\\.io)':
         'http://127.0.0.1:59997',
     },
+  },
+  test: {
+    environment: 'happy-dom',
+    include: ['src/query/**/*.test.ts'],
   },
 });

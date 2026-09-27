@@ -1,6 +1,7 @@
 import { html, type Html } from '../framework/html';
 import { text } from '../framework/i18n';
 import type { JsonObject } from '../framework/types';
+import { q } from '../query';
 import { show_addbutton_modal } from './modals';
 import { pageState } from './state';
 import { showError } from './toast';
@@ -274,9 +275,7 @@ export function swapButton(event: Event): void {
 }
 
 function setEditorButtonsDisplay(selector: string, display: string): void {
-  for (const el of document.querySelectorAll<HTMLElement>(selector)) {
-    el.style.display = display;
-  }
+  q(selector).css('display', display);
 }
 
 export function toggleEditorButtonsMode(): void {
