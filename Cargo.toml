@@ -4,6 +4,7 @@ version = "1.8.7"
 edition = "2021"
 description = "WebDeck — Rust port (1:1 migration of the Python app)"
 license = "GPL-3.0-or-later"
+default-run = "webdeck"
 
 [[bin]]
 name = "webdeck"
@@ -31,7 +32,7 @@ serde = { version = "1", features = ["derive"] }
 # gridsize::unmatrix depends on folder order).
 serde_json = { version = "1", features = ["preserve_order"] }
 clap = { version = "4", features = ["derive"] }
-minijinja = "2"
+minijinja = { version = "2", features = ["preserve_order"] }
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "query", "rustls", "webpki-roots"] }
 zip = "2"
 sysinfo = "0.39.6"

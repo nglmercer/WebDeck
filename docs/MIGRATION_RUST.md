@@ -165,7 +165,7 @@ cargo check --target x86_64-pc-windows-gnu --all-targets  # Windows coverage
   `screenshots` future-incompat note from the crate itself).
 - `cargo check --target x86_64-pc-windows-gnu --all-targets`: clean, zero
   warnings — full Windows backend coverage including tray/rodio/cpal.
-- `cargo test`: 56 passed, 0 failed, 1 ignored.
+- `cargo test`: 57 passed, 0 failed, 1 ignored.
 - Live smoke test (`--no-tray -p 18080`, isolated copy of
   `webdeck/`+`templates/`+`static/`): `POST /usage` → 200,
   `POST /send-data` (`/debug-send`, `/volume +`, `/exec type:single_line …`)

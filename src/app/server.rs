@@ -551,6 +551,10 @@ fn py_str(value: &minijinja::Value) -> String {
 }
 
 /// Python `repr()` for numbers, bools, None, lists, and dicts.
+///
+/// Precedence matters: sequences and maps are truthy when non-empty, so
+/// they must render BEFORE any truthiness test (else `['index']` becomes
+/// `"True"` and the index page boots into the wrong folder — or none).
 fn py_repr(value: &minijinja::Value) -> String {
     use minijinja::Value;
     if value.is_undefined() {
@@ -559,11 +563,19 @@ fn py_repr(value: &minijinja::Value) -> String {
     if let Some(s) = value.as_str() {
         return format!("'{s}'");
     }
-    if value.is_true() && !is_number(value) {
-        return "True".to_string();
+    if is_bool_or_none(value) {
+        if is_none(value) {
+            return "None".to_string();
+        }
+        return if format!("{value:?}").as_str() == "true" {
+            "True".to_string()
+        } else {
+            "False".to_string()
+        };
     }
-    if !value.is_true() && is_bool_or_none(value) {
-        return if is_none(value) { "None".to_string() } else { "False".to_string() };
+    if is_number(value) {
+        // Integers plain, floats shortest-roundtrip like Python repr.
+        return format!("{value:?}").trim_matches('"').to_string();
     }
     if !is_map_value(value) {
         if let Ok(iter) = value.try_iter() {
@@ -1418,6 +1430,23 @@ mod tests {
             .expect("index.jinja renders");
         assert!(html.contains("WebDeck"), "missing brand marker");
         assert!(html.contains("static/css/style.css"), "missing base theme entry");
+    }
+
+    #[test]
+    fn folder_name_chain_matches_python() {
+        // index.jinja boot: folder('{{str(config["front"]["buttons"].keys()).split("'")[1]}}')
+        // must yield the first folder name (empty string = black page).
+        let env = minijinja_env();
+        let ctx = serde_json::json!({
+            "config": {"front": {"buttons": {"index": [], "folder1": []}}},
+        });
+        let out = env
+            .render_str(
+                "{{ str(config['front']['buttons'].keys()).split(\"'\")[1] }}",
+                &ctx,
+            )
+            .expect("renders");
+        assert_eq!(out, "index");
     }
 
     #[test]
