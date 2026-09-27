@@ -101,7 +101,9 @@ export function createVoidButton(event: Event | null = null, form: Element | nul
   addButtonDiv.setAttribute('add_FOLDER', parentId);
   addButtonDiv.setAttribute('add_ID', formNumber);
 
-  if (pageState.tempEditorConfig === null || pageState.tempEditorConfig === ({} as JsonObject)) {
+  // Upstream also ORs `tempEditorConfig == {}`, which is always false in
+  // JS (object identity), so the 1:1 condition is just the null check.
+  if (pageState.tempEditorConfig === null) {
     void loadEditorConfig().then((config) => {
       pageState.tempEditorConfig = loadEditorConfigSync(config);
     });

@@ -5,13 +5,13 @@ import { getJson } from './framework/api';
 import { initI18n } from './framework/i18n';
 import type { BootContext } from './framework/types';
 import { renderApp } from './views/app';
+import { loadingScreen } from './views/loading';
 
 async function boot(): Promise<void> {
   const mount = document.getElementById('app');
   if (!mount) throw new Error('missing #app mount');
 
   // Loading screen first (same visual sequence as the Jinja page).
-  const { loadingScreen } = await import('./views/loading');
   mount.innerHTML = loadingScreen([]).value;
 
   try {
