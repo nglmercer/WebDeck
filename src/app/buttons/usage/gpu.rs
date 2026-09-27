@@ -5,16 +5,33 @@
 
 use serde_json::{json, Value};
 
-use super::gpu_amd::amd_gpu_entries;
-use crate::app::utils::{logger::log, settings::save_config::save_config};
+use super::gpu_amd::{amd_gpu_entries, has_amdgpu_card};
+use crate::app::utils::logger::log;
 
 /// Port of the GPU branch of `get_usage` (both `nvidia` methods via NVML).
 pub(crate) fn gpu_info(config: &Value) -> Value {
-    let method = config
+    let configured = config
         .get("settings")
         .and_then(|s| s.get("gpu_method"))
         .and_then(|v| v.as_str())
         .unwrap_or("");
+    // A stuck `"None"` (or empty/unknown) method must not brick GPU tiles:
+    // stale UI saves can re-persist it at any time, so probe for a working
+    // backend on the read path instead of reporting empty. "Intel" stays
+    // empty (explicit choice, no backend).
+    let method = match configured {
+        "nvidia (pynvml)" | "nvidia (GPUtil)" | "AMD" | "Intel" => configured.to_string(),
+        _ => {
+            if nvml_wrapper::Nvml::init().is_ok() {
+                "nvidia (pynvml)".to_string()
+            } else if has_amdgpu_card() {
+                "AMD".to_string()
+            } else {
+                configured.to_string()
+            }
+        }
+    };
+    let method = method.as_str();
     let mut gpus = serde_json::Map::new();
 
     if method == "nvidia (pynvml)" {
@@ -27,14 +44,12 @@ pub(crate) fn gpu_info(config: &Value) -> Value {
                     );
                 }
             }
-            Err(_) => {
-                // Unsupported graphics cards (mirrors the except branch).
-                gpus.insert("defaultGPU".to_string(), json!({}));
-                let mut config = config.clone();
-                if let Some(settings) = config.get_mut("settings").and_then(|s| s.as_object_mut()) {
-                    settings.insert("gpu_method".to_string(), json!("None"));
-                }
-                save_config(config);
+            Err(e) => {
+                // Unsupported graphics cards. Python rewrote
+                // `gpu_method` to "None" here, permanently bricking GPU
+                // tiles (nothing ever flips it back); just report empty
+                // and leave the configured method alone.
+                log().debug(&format!("GPU read failed: {e}"));
             }
         }
     } else if method == "AMD" {
@@ -63,10 +78,13 @@ pub(crate) fn gpu_info(config: &Value) -> Value {
                 log().debug(&format!("GPU read failed: {e}"));
             }
         }
-    } else {
-        gpus.insert("defaultGPU".to_string(), json!({}));
     }
 
+    // Every method yields at least an (empty) `defaultGPU` so the section
+    // shape — and the tile lookup — is stable even with no GPU data.
+    if gpus.is_empty() {
+        gpus.insert("defaultGPU".to_string(), json!({}));
+    }
     if let Some(gpu1) = gpus.get("GPU1").cloned() {
         gpus.insert("defaultGPU".to_string(), gpu1);
     }
@@ -102,6 +120,44 @@ fn nvml_devices() -> Result<Vec<NvmlDeviceInfo>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn default_gpu_key_always_present() {
+        // Every method — including failing NVML and card-less AMD — must
+        // yield `defaultGPU` so tile lookups hit a stable shape.
+        for method in [
+            "nvidia (pynvml)",
+            "nvidia (GPUtil)",
+            "AMD",
+            "Intel",
+            "None",
+            "",
+            "bogus",
+        ] {
+            let gpus = gpu_info(&serde_json::json!({"settings": {"gpu_method": method}}));
+            assert!(
+                gpus.get("defaultGPU").is_some(),
+                "method {method} lost defaultGPU"
+            );
+        }
+    }
+
+    #[test]
+    fn none_method_falls_back_to_working_backend() {
+        let gpus = gpu_info(&serde_json::json!({"settings": {"gpu_method": "None"}}));
+        if nvml_wrapper::Nvml::init().is_ok() {
+            // NVML answers: pynvml-shaped entries (or an empty defaultGPU
+            // when the driver reports zero devices).
+            assert!(gpus.get("GPU1").is_some() || gpus.get("defaultGPU") == Some(&json!({})));
+        } else if has_amdgpu_card() {
+            assert!(
+                gpus.get("GPU1").is_some(),
+                "None should fall back to AMD entries, got {gpus}"
+            );
+        } else {
+            assert_eq!(gpus.get("defaultGPU"), Some(&json!({})));
+        }
+    }
 
     #[cfg(target_os = "linux")]
     #[test]

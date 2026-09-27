@@ -244,24 +244,47 @@ pub fn remove_startup_shortcut() {
 ///
 /// Keeps the config default + save flow 1:1; the `pynvml.nvmlInit()` probe
 /// maps to `nvml_wrapper::Nvml::init()` (failure → `"AMD"` fallback).
+///
+/// Deviation: a stuck `"None"` method is re-probed (NVML → amdgpu →
+/// stay `"None"`). Past NVML failures persisted `"None"` into the config
+/// with no recovery path, bricking GPU tiles on machines whose GPU works
+/// fine under another method.
 pub fn get_gpu_method() -> Value {
-    let mut config = get_config(false, false);
-    if config
-        .get("settings")
-        .and_then(|s| s.get("gpu_method"))
-        .is_none()
-    {
+    use crate::app::buttons::usage::gpu_amd::has_amdgpu_card;
+
+    fn method_of(config: &Value) -> &str {
+        config
+            .get("settings")
+            .and_then(|s| s.get("gpu_method"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+    }
+    fn set_method(config: &mut Value, method: &str) {
         if let Some(settings) = config.get_mut("settings").and_then(|s| s.as_object_mut()) {
             settings.insert(
                 "gpu_method".to_string(),
-                Value::String("nvidia (pynvml)".to_string()),
+                Value::String(method.to_string()),
             );
         }
     }
-    if config["settings"]["gpu_method"] == "nvidia (pynvml)" && nvml_wrapper::Nvml::init().is_err()
-    {
-        if let Some(settings) = config.get_mut("settings").and_then(|s| s.as_object_mut()) {
-            settings.insert("gpu_method".to_string(), Value::String("AMD".to_string()));
+
+    let mut config = get_config(false, false);
+    if method_of(&config).is_empty() {
+        set_method(&mut config, "nvidia (pynvml)");
+    }
+    if method_of(&config) == "nvidia (pynvml)" && nvml_wrapper::Nvml::init().is_err() {
+        set_method(&mut config, "AMD");
+    } else if method_of(&config) == "None" {
+        if nvml_wrapper::Nvml::init().is_ok() {
+            set_method(&mut config, "nvidia (pynvml)");
+        } else if has_amdgpu_card() {
+            set_method(&mut config, "AMD");
+        }
+        if method_of(&config) != "None" {
+            log().debug(&format!(
+                "Recovered stuck gpu_method to {:?}",
+                method_of(&config)
+            ));
         }
     }
     save_config(config.clone());
@@ -471,6 +494,29 @@ pub fn on_start_threaded(config: Value) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn stuck_none_method_recovers_to_working_backend() {
+        use crate::app::buttons::usage::gpu_amd::has_amdgpu_card;
+        use crate::app::utils::settings::get_config::test_support::{
+            config_guard, seed_config,
+        };
+        let _guard = config_guard();
+        seed_config(&serde_json::json!({
+            "url": {"port": 5000},
+            "front": {"buttons": {}},
+            "settings": {"gpu_method": "None"},
+        }));
+        let config = get_gpu_method();
+        let method = config["settings"]["gpu_method"].as_str().unwrap_or("");
+        if nvml_wrapper::Nvml::init().is_ok() {
+            assert_eq!(method, "nvidia (pynvml)");
+        } else if has_amdgpu_card() {
+            assert_eq!(method, "AMD");
+        } else {
+            assert_eq!(method, "None");
+        }
+    }
 
     #[test]
     fn color_distance_black_white() {

@@ -286,6 +286,19 @@ mod tests {
     }
 
     #[test]
+    fn failed_nvml_read_keeps_configured_method() {
+        if nvml_wrapper::Nvml::init().is_ok() {
+            return;
+        }
+        let _guard = test_env();
+        let _ = get_usage(Some(true), &[]);
+        // A failed NVML read must not persist "None" over the configured
+        // method (that bricks GPU tiles with no recovery path).
+        let after = get_config(false, false);
+        assert_eq!(after["settings"]["gpu_method"], "nvidia (pynvml)");
+    }
+
+    #[test]
     fn filtered_merges_with_full() {
         let _guard = test_env();
         let info = get_usage(Some(false), &[vec!["cpu".to_string()]]);

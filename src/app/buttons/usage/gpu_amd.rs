@@ -52,6 +52,30 @@ pub(crate) fn amd_gpu_entries() -> Vec<(String, Value)> {
     Vec::new()
 }
 
+/// Whether an amdgpu-driven card exists (Linux sysfs probe, no metrics
+/// read). Used by startup recovery to pick a working `gpu_method`.
+#[cfg(target_os = "linux")]
+pub(crate) fn has_amdgpu_card() -> bool {
+    let Ok(entries) = std::fs::read_dir("/sys/class/drm") else {
+        return false;
+    };
+    entries.flatten().any(|e| {
+        let n = e.file_name().to_string_lossy().into_owned();
+        let is_card = n
+            .strip_prefix("card")
+            .is_some_and(|rest| !rest.is_empty() && rest.chars().all(|c| c.is_ascii_digit()));
+        is_card
+            && std::fs::read_link(format!("/sys/class/drm/{n}/device/driver"))
+                .map(|p| p.to_string_lossy().ends_with("amdgpu"))
+                .unwrap_or(false)
+    })
+}
+
+#[cfg(not(target_os = "linux"))]
+pub(crate) fn has_amdgpu_card() -> bool {
+    false
+}
+
 struct AmdDeviceInfo {
     name: String,
     used_mb: Option<f64>,

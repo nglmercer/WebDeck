@@ -180,6 +180,13 @@ Every Windows-only API has a Linux equivalent behind `cfg(target_os =
   `gpu_metrics` / `mem_info_vram_*` sysfs reads (offsets per
   `kgd_pp_interface.h`, range-gated; missing counters are omitted,
   never zero-filled).
+- GPU method resilience (deviation from Python, which bricked GPU tiles
+  on any NVML failure): a failed NVML read no longer rewrites
+  `gpu_method` to `"None"`; startup re-probes a stuck `"None"` (NVML →
+  amdgpu → stay `"None"`); and the read path falls back to a working
+  backend when the configured method is `"None"`/empty/unknown, so
+  stale saves can't blank the tiles. Every method yields at least an
+  (empty) `defaultGPU` key.
 
 ## Known gaps / next steps
 

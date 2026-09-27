@@ -180,8 +180,11 @@ describe('getCommand goldens', () => {
     );
   });
 
-  it('serializes gpu selects by device name (Display / GPU)', () => {
-    const ctx = testCtx({ usage_example: { gpus: { '0': { name: 'RTX 4090' } } } });
+  it('serializes gpu selects by device key (Display / GPU)', () => {
+    // The message fragment is a `usage_dict['gpus']` key (`GPU1`, …), never
+    // the display name: names miss the lookup (and spaced names break the
+    // dotted tile-path eval), leaving the tile at `-`.
+    const ctx = testCtx({ usage_example: { gpus: { GPU1: { name: 'RTX 4090' } } } });
     render(ctx, 'Display', 'GPU', {
       command: "/usage '",
       args: [
@@ -193,8 +196,10 @@ describe('getCommand goldens', () => {
       style: {},
     });
     expect(getCommand("/usage '", MODAL_ID)).toBe(
-      "/usage ' GPU<|§|>' usage_dict['gpus']['<|§|>RTX 4090<|§|>']['usage_percent']"
+      "/usage ' GPU<|§|>' usage_dict['gpus']['<|§|>GPU1<|§|>']['usage_percent']"
     );
+    // The device name stays visible as the option label.
+    expect(document.querySelector('select')!.innerHTML).toContain('> RTX 4090 </option>');
   });
 
   it('serializes folder radios, ignoring the create-folder form (Webdeck / Open a folder)', () => {

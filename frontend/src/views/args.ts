@@ -246,9 +246,15 @@ export function renderField(
       const gpus = asObject(get(ctx.usage_example, 'gpus'));
       const selected = nextPrefill(cursor);
       const options = Object.entries(gpus).map(([gpu, usage]) => {
+        // The option value is embedded verbatim as the `usage_dict['gpus']`
+        // key in the tile message, so it must be the dict key (`GPU1`,
+        // `defaultGPU`, …): names never match a key, and names with spaces
+        // also break the dotted tile-path lookup — either way the tile
+        // sticks at `-`. The name stays as the visible label.
         const name = asString(asObject(usage)['name']);
         const label = name !== '' ? name : gpu;
-        return html`<option value="${label}"${selected !== undefined && label === selected ? raw(' selected') : raw('')}> ${label} </option>`;
+        const isSelected = selected !== undefined && (gpu === selected || label === selected);
+        return html`<option value="${gpu}"${isSelected ? raw(' selected') : raw('')}> ${label} </option>`;
       });
       return html`<select name="${file}">
         ${join(options)}
