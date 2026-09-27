@@ -29,7 +29,6 @@ __pycache__/
 .logs/*
 target/
 .DS_Store
-tests/*
 data.json
 /frontend/node_modules
 /frontend/dist

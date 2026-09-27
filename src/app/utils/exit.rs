@@ -7,8 +7,16 @@ use crate::app::utils::logger::log;
 /// Windows behavior mirrors Python (kill `nircmd.exe`, plus `webdeck.exe`
 /// when forced, then exit). The WMI enumeration is approximated with
 /// `taskkill` (same observable effect; a `windows`-crate WMI port can refine
-/// this later). Non-Windows behavior mirrors Python exactly: `force` only
-/// logs, `!force` terminates this process (exit code 130 ≈ SIGINT).
+/// this later). Non-Windows: `!force` terminates this process (exit code
+/// 130 ≈ SIGINT, like Python's `os.kill(pid, SIGINT)`); `force` also
+/// terminates it (exit code 0, like the Windows force path).
+///
+/// DELIBERATE DEVIATION: Python's `exit.py` returns without doing anything
+/// for `force=True` off Windows. That was unobservable there — every
+/// `force=True` caller (tray Exit, updater, restart, timeout) only runs on
+/// Windows — but the Rust tray runs on Linux too, so returning would leave
+/// the app (and `--timeout` / the `exit` positional / release restart)
+/// running forever after asking to quit.
 pub fn exit_program(force: bool, from_timeout: bool) {
     if from_timeout {
         log().info("Timeout reached. Exiting WebDeck...");
@@ -60,9 +68,11 @@ pub fn exit_program(force: bool, from_timeout: bool) {
 
     #[cfg(not(windows))]
     {
+        // No separate kill step exists here (unlike WMI/taskkill on
+        // Windows), so a forced exit terminates this process directly.
         if force {
-            log().debug("Force exit on non-Windows: nothing to terminate (mirrors exit.py).");
-            return;
+            log().debug("Force exit on non-Windows: terminating current process.");
+            std::process::exit(0);
         }
     }
 
