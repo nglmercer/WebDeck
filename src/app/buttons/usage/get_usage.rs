@@ -346,9 +346,8 @@ fn amd_devices() -> Result<Vec<AmdDeviceInfo>, String> {
         .flatten()
         .map(|e| e.file_name().to_string_lossy().into_owned())
         .filter(|n| {
-            n.strip_prefix("card").is_some_and(|rest| {
-                !rest.is_empty() && rest.chars().all(|c| c.is_ascii_digit())
-            })
+            n.strip_prefix("card")
+                .is_some_and(|rest| !rest.is_empty() && rest.chars().all(|c| c.is_ascii_digit()))
         })
         .collect();
     cards.sort();
@@ -361,10 +360,9 @@ fn amd_devices() -> Result<Vec<AmdDeviceInfo>, String> {
         if !driver.ends_with("amdgpu") {
             continue;
         }
-        let metrics =
-            std::fs::read(format!("{dev}/gpu_metrics")).ok().and_then(|b| {
-                parse_gpu_metrics(&b)
-            });
+        let metrics = std::fs::read(format!("{dev}/gpu_metrics"))
+            .ok()
+            .and_then(|b| parse_gpu_metrics(&b));
         let usage_percent = read_u64_file(&format!("{dev}/gpu_busy_percent"))
             .filter(|pct| *pct <= 100)
             .map(|pct| pct as i64)
@@ -585,9 +583,9 @@ mod tests {
         // activity unsupported (0xFFFF).
         let mut blob = vec![0u8; 128];
         let prefix: [u8; 32] = [
-            0x80, 0x00, 0x02, 0x02, 0xa9, 0x1a, 0xfa, 0x19, 0xe1, 0x19, 0x71,
-            0x1b, 0x5e, 0x1a, 0xaf, 0x19, 0xc8, 0x19, 0x64, 0x19, 0xff, 0xff,
-            0xff, 0xff, 0x13, 0x1a, 0x96, 0x19, 0xff, 0xff, 0xff, 0xff,
+            0x80, 0x00, 0x02, 0x02, 0xa9, 0x1a, 0xfa, 0x19, 0xe1, 0x19, 0x71, 0x1b, 0x5e, 0x1a,
+            0xaf, 0x19, 0xc8, 0x19, 0x64, 0x19, 0xff, 0xff, 0xff, 0xff, 0x13, 0x1a, 0x96, 0x19,
+            0xff, 0xff, 0xff, 0xff,
         ];
         blob[..32].copy_from_slice(&prefix);
         let m = parse_gpu_metrics(&blob).expect("v2.2 parses");
@@ -620,11 +618,9 @@ mod tests {
                 entries.flatten().any(|e| {
                     let n = e.file_name().to_string_lossy().into_owned();
                     n.starts_with("card")
-                        && std::fs::read_link(format!(
-                            "/sys/class/drm/{n}/device/driver"
-                        ))
-                        .map(|p| p.to_string_lossy().ends_with("amdgpu"))
-                        .unwrap_or(false)
+                        && std::fs::read_link(format!("/sys/class/drm/{n}/device/driver"))
+                            .map(|p| p.to_string_lossy().ends_with("amdgpu"))
+                            .unwrap_or(false)
                 })
             })
             .unwrap_or(false);
@@ -649,7 +645,10 @@ mod tests {
     fn live_disks_have_aliases_and_rounded_percents() {
         let _guard = test_env();
         let info = get_usage(Some(true), &[]);
-        let disks = info.get("disks").and_then(|d| d.as_object()).expect("disks");
+        let disks = info
+            .get("disks")
+            .and_then(|d| d.as_object())
+            .expect("disks");
         for key in disks.keys() {
             if key.contains('/') {
                 assert!(
@@ -663,10 +662,7 @@ mod tests {
             info["memory"]["usage_percent"].as_f64(),
         ] {
             let pct = pct.expect("percent present");
-            assert!(
-                (pct * 10.0).fract().abs() < 1e-6,
-                "not 1-decimal: {pct}"
-            );
+            assert!((pct * 10.0).fract().abs() < 1e-6, "not 1-decimal: {pct}");
         }
     }
 

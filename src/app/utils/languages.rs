@@ -38,6 +38,16 @@ fn state() -> &'static RwLock<LangState> {
     STATE.get_or_init(|| RwLock::new(LangState::default()))
 }
 
+/// Resolved translation dict for the TypeScript frontend's `text()`.
+pub fn lang_dict(lang: Option<&str>) -> HashMap<String, String> {
+    let effective = get_language(lang);
+    state()
+        .read()
+        .ok()
+        .and_then(|guard| guard.files.get(&effective).cloned())
+        .unwrap_or_default()
+}
+
 /// Port of `load_lang_file`.
 pub fn load_lang_file(lang: &str) -> Result<HashMap<String, String>, String> {
     let (dir, misc_dir) = state()

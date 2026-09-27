@@ -92,6 +92,7 @@ so the three binaries share one implementation.
 cargo check --all-targets   # type-check incl. tests
 cargo test                  # 56+ unit tests (pure ports)
 cargo build --bins          # webdeck, console, update binaries
+(cd frontend && npm install && npm run build)  # build TS web UI into frontend/dist (required for GET /)
 ./target/debug/webdeck --no-tray -p 18080   # run server (dev: binds LAN IP)
 ./target/debug/webdeck --help               # clap flags (mirror args.py)
 cargo run --bin console     # debug REPL (console.py)

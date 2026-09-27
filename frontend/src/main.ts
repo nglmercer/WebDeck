@@ -1,0 +1,27 @@
+// Application entry: boot sequence mirrors the old render path — fetch
+// the full page context, then render views and wire up behavior.
+
+import { getJson } from './framework/api';
+import { initI18n } from './framework/i18n';
+import type { BootContext } from './framework/types';
+import { renderApp } from './views/app';
+
+async function boot(): Promise<void> {
+  const mount = document.getElementById('app');
+  if (!mount) throw new Error('missing #app mount');
+
+  // Loading screen first (same visual sequence as the Jinja page).
+  const { loadingScreen } = await import('./views/loading');
+  mount.innerHTML = loadingScreen([]).value;
+
+  try {
+    const ctx = await getJson<BootContext>('/api/boot');
+    initI18n(ctx.lang);
+    renderApp(mount, ctx);
+  } catch (error) {
+    mount.innerHTML = `<p style="color:white">Failed to load WebDeck: ${String(error)}</p>`;
+    throw error;
+  }
+}
+
+void boot();
