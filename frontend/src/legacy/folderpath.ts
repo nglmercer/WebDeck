@@ -1,4 +1,5 @@
 // Port of static/js/folderpath.js. Runs after render.
+import { q } from '../query';
 
 function handleFolderpathButtonClick(): void {
   fetch('/upload_folderpath', {
@@ -11,11 +12,8 @@ function handleFolderpathButtonClick(): void {
     .then((response) => response.text())
     .then((folderPath) => {
       console.log('Dir path:', folderPath);
-      const folderpathText = document.querySelectorAll('input.folderpath');
       if (folderPath !== '') {
-        folderpathText.forEach((textElement) => {
-          (textElement as HTMLInputElement).value = folderPath;
-        });
+        q('input.folderpath').val(folderPath);
       }
     })
     .catch((error) => {
@@ -24,13 +22,13 @@ function handleFolderpathButtonClick(): void {
 }
 
 export function initFolderpath(): void {
-  const folderpathButtons = document.querySelectorAll('button.folderpath');
-
-  folderpathButtons.forEach((button) => {
-    button.addEventListener('click', () => {
-      handleFolderpathButtonClick();
+  q('button.folderpath')
+    .toArray()
+    .forEach((button) => {
+      q(button).on('click', () => {
+        handleFolderpathButtonClick();
+      });
     });
-  });
 
   console.log('folderpath.js loaded');
 }

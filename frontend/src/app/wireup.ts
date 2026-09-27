@@ -1,5 +1,6 @@
 import { text } from '../framework/i18n';
 import { asBool, asString, get, type BootContext } from '../framework/types';
+import { q, byId } from '../query';
 import {
   SaveExitEditor,
   isSwapMode,
@@ -27,32 +28,33 @@ import { loadConfig, send_data } from './send';
 /** Global helpers (top-level functions in the inline script). */
 export function installGlobals(): void {
   window.folder = function (folder_id: string): void {
-    const elements = document.querySelectorAll('.buttons-center');
-    elements.forEach(function (element) {
-      if (!element.classList.contains('invisible')) {
-        element.classList.add('invisible');
-      }
-    });
+    q('.buttons-center')
+      .toArray()
+      .forEach(function (element) {
+        if (!q(element).hasClass('invisible')) {
+          q(element).addClass('invisible');
+        }
+      });
 
-    const folderElement = document.getElementById('folder-' + folder_id);
+    const folderElement = byId('folder-' + folder_id).get(0) ?? null;
     if (!folderElement) return;
-    if (folderElement.classList.contains('invisible')) {
-      folderElement.classList.remove('invisible');
+    if (q(folderElement).hasClass('invisible')) {
+      q(folderElement).removeClass('invisible');
     } else {
-      folderElement.classList.add('invisible');
+      q(folderElement).addClass('invisible');
     }
   };
 
   window.togglePasswordVisibility = function (id: string, iconid: string): void {
-    const passwordInput = document.getElementById(id) as HTMLInputElement | null;
-    const showPasswordIcon = document.getElementById(iconid);
+    const passwordInput = byId<HTMLInputElement>(id).get(0) ?? null;
+    const showPasswordIcon = byId(iconid).get(0) ?? null;
     if (!passwordInput || !showPasswordIcon) return;
-    if (passwordInput.type === 'password') {
-      passwordInput.type = 'text';
-      showPasswordIcon.classList.add('active');
+    if (q(passwordInput).prop('type') === 'password') {
+      q(passwordInput).prop('type', 'text');
+      q(showPasswordIcon).addClass('active');
     } else {
-      passwordInput.type = 'password';
-      showPasswordIcon.classList.remove('active');
+      q(passwordInput).prop('type', 'password');
+      q(showPasswordIcon).removeClass('active');
     }
   };
 
@@ -60,12 +62,12 @@ export function installGlobals(): void {
 }
 
 function wireVideos(): void {
-  const videos = document.querySelectorAll('video');
-  videos.forEach((video) => {
-    video.addEventListener('loadedmetadata', () => {
-      videos.forEach((otherVideo) => {
+  const videos = q('video');
+  videos.toArray().forEach((video) => {
+    q(video).on('loadedmetadata', () => {
+      videos.toArray().forEach((otherVideo) => {
         if (otherVideo !== video) {
-          otherVideo.currentTime = 0;
+          q(otherVideo).prop('currentTime', 0);
         }
       });
     });
@@ -96,131 +98,142 @@ function wireSocket(transferMethod: string): void {
 }
 
 function wireSubmits(transferMethod: string): void {
-  const forms = document.querySelectorAll('form');
-  forms.forEach((form) => {
-    form.addEventListener('submit', function (event) {
-      event.preventDefault();
+  q('form')
+    .toArray()
+    .forEach((form) => {
+      q(form).on('submit', function (event) {
+        event.preventDefault();
 
-      if (pageState.editorMode === 1 && isSwapMode()) {
-        return;
-      }
+        if (pageState.editorMode === 1 && isSwapMode()) {
+          return;
+        }
 
-      const messageElement = form.querySelector('.message') as HTMLInputElement | null;
-      if (!messageElement) {
-        if (form.classList.contains('config-form')) {
-          console.log('sending config-form...');
+        const messageElement = q(form).find('.message').get(0) ?? null;
+        if (!messageElement) {
+          if (q(form).hasClass('config-form')) {
+            console.log('sending config-form...');
 
-          const config_dataTemp: Record<string, unknown> = {};
-          const inputs = document.querySelectorAll('#config-form input, #config-form select');
-          inputs.forEach(function (input) {
-            const el = input as HTMLInputElement | HTMLSelectElement;
-            const name = el.name;
-            let value: unknown;
-            if ((el as HTMLInputElement).type === 'checkbox') {
-              value = (el as HTMLInputElement).checked ? true : false;
-            } else {
-              value = (el as HTMLInputElement).value;
-              if (el.id === 'language') {
-                value = String(value).toLowerCase();
-              }
-            }
-            config_dataTemp[name] = value;
-          });
-
-          console.log(config_dataTemp);
-
-          const config_data: Record<string, unknown> = {};
-
-          for (const key in config_dataTemp) {
-            if (key === '') continue;
-
-            const keys = key.split('.');
-            let obj: Record<string, unknown> = config_data;
-
-            for (let i = 0; i < keys.length; i++) {
-              const k = keys[i];
-              if (k === undefined) continue;
-              if (!Object.prototype.hasOwnProperty.call(obj, k)) {
-                obj[k] = {};
-              }
-
-              if (i === keys.length - 1) {
-                obj[k] = config_dataTemp[key];
-              }
-
-              obj = obj[k] as Record<string, unknown>;
-            }
-          }
-
-          console.log(config_data);
-
-          fetch('/save_config', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(config_data),
-          })
-            .then(function (response) {
-              if (response.ok) {
-                return response.json();
-              } else {
-                throw new Error(text('settings_save_error'));
-              }
-            })
-            .then(function (response: { success?: boolean; message?: string }) {
-              if (response.success) {
-                alert(text('settings_save_success'));
-              } else {
-                if (response.message && response.message !== '') {
-                  showError(response.message);
-                  alert(response.message);
+            const config_dataTemp: Record<string, unknown> = {};
+            q('#config-form input, #config-form select')
+              .toArray()
+              .forEach(function (input) {
+                const el = input as HTMLInputElement | HTMLSelectElement;
+                const field = el as HTMLInputElement;
+                const name = q(el).prop('name') ?? '';
+                let value: unknown;
+                if (q(field).prop('type') === 'checkbox') {
+                  value = q(field).prop('checked') === true;
                 } else {
-                  showError('Error :/');
-                  alert(text('settings_save_error'));
+                  value = String(q(field).val() ?? '');
+                  if (q(el).prop('id') === 'language') {
+                    value = String(value).toLowerCase();
+                  }
                 }
+                config_dataTemp[name] = value;
+              });
+
+            console.log(config_dataTemp);
+
+            const config_data: Record<string, unknown> = {};
+
+            for (const key in config_dataTemp) {
+              if (key === '') continue;
+
+              const keys = key.split('.');
+              let obj: Record<string, unknown> = config_data;
+
+              for (let i = 0; i < keys.length; i++) {
+                const k = keys[i];
+                if (k === undefined) continue;
+                if (!Object.prototype.hasOwnProperty.call(obj, k)) {
+                  obj[k] = {};
+                }
+
+                if (i === keys.length - 1) {
+                  obj[k] = config_dataTemp[key];
+                }
+
+                obj = obj[k] as Record<string, unknown>;
               }
+            }
+
+            console.log(config_data);
+
+            fetch('/save_config', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(config_data),
             })
-            .catch(function (error: Error) {
-              showError(error.message);
-            });
-        }
-      } else {
-        const message = messageElement.value;
-        if (!message.startsWith('/usage') && !message.startsWith('/reload') && !message.startsWith('/folder')) {
-          if (transferMethod === 'socket') {
-            socketHolder.socket?.emit('message_from_socket', message);
-          } else {
-            send_data(message);
+              .then(function (response) {
+                if (response.ok) {
+                  return response.json();
+                } else {
+                  throw new Error(text('settings_save_error'));
+                }
+              })
+              .then(function (response: { success?: boolean; message?: string }) {
+                if (response.success) {
+                  alert(text('settings_save_success'));
+                } else {
+                  if (response.message && response.message !== '') {
+                    showError(response.message);
+                    alert(response.message);
+                  } else {
+                    showError('Error :/');
+                    alert(text('settings_save_error'));
+                  }
+                }
+              })
+              .catch(function (error: Error) {
+                showError(error.message);
+              });
           }
-        } else if (message.startsWith('/reload') && !isSwapMode()) {
-          console.log('reloading...');
-          location.reload();
         } else {
-          fetch('/usage', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ message }),
-          })
-            .then((response) => response.json())
-            .then((usage_dict) => {
-              updateUsageTiles(usage_dict);
+          const message = String(q(messageElement).val() ?? '');
+          if (
+            !message.startsWith('/usage') &&
+            !message.startsWith('/reload') &&
+            !message.startsWith('/folder')
+          ) {
+            if (transferMethod === 'socket') {
+              socketHolder.socket?.emit('message_from_socket', message);
+            } else {
+              send_data(message);
+            }
+          } else if (message.startsWith('/reload') && !isSwapMode()) {
+            console.log('reloading...');
+            location.reload();
+          } else {
+            fetch('/usage', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ message }),
             })
-            .catch((error) => console.error(error));
+              .then((response) => response.json())
+              .then((usage_dict) => {
+                updateUsageTiles(usage_dict);
+              })
+              .catch((error) => console.error(error));
+          }
         }
-      }
+      });
     });
-  });
 }
 
 function wireKeydown(): void {
-  document.addEventListener('keydown', function (event) {
+  // Keydowns bubble through <html>, like the document listener did.
+  q('html').on('keydown', function (event) {
+    // NOTE: opacity probes read the *inline* style; qdom's `.css()` getter
+    // is computed-only, so these reads stay native.
+    const modalOpacity = byId<HTMLElement>('modal-container').get(0)?.style.opacity;
     if (
       isEditbuttonModalOpened() === 0 &&
       isAddbuttonModalOpened() === 0 &&
-      (document.getElementById('modal-container') as HTMLElement | null)?.style.opacity !== '1'
+      modalOpacity !== '1'
     ) {
       if (event.key.toLowerCase() === 'e') {
         SaveExitEditor(pageState.tempEditorConfig);
@@ -249,7 +262,7 @@ function wireKeydown(): void {
     if (event.key === 'Escape') {
       hide_last_modal();
     }
-    const modal = document.querySelector('.modal-container') as HTMLElement | null;
+    const modal = q<HTMLElement>('.modal-container').get(0) ?? null;
 
     const focusedElement = document.activeElement as HTMLElement | null;
     if (!(focusedElement?.tagName === 'INPUT' || focusedElement?.tagName === 'TEXTAREA')) {

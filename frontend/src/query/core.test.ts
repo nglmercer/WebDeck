@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { Q, q, ready } from './index';
+import { Q, byId, q, ready } from './index';
 
 beforeEach(() => {
   document.body.innerHTML = `
@@ -57,6 +57,24 @@ describe('factory', () => {
   it('does not execute scripts in created HTML', () => {
     q('<img src=x onerror="window.__evil = 1">');
     expect((window as unknown as Record<string, unknown>)['__evil']).toBeUndefined();
+  });
+});
+
+describe('byId', () => {
+  it('finds elements by id with explicit typing', () => {
+    const name = byId<HTMLInputElement>('name');
+    expect(name.length).toBe(1);
+    expect(name.get(0)?.value).toBe('ada');
+  });
+
+  it('returns an empty set for missing ids', () => {
+    expect(byId('nope').length).toBe(0);
+  });
+
+  it('handles ids that are invalid CSS selectors', () => {
+    document.body.insertAdjacentHTML('beforeend', '<div id="0X0_submit">digit</div>');
+    expect(byId('0X0_submit').text()).toBe('digit');
+    expect(() => document.querySelector('#0X0_submit')).toThrow();
   });
 });
 

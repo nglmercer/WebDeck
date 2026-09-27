@@ -1,4 +1,5 @@
 // Port of static/js/filepath.js. Runs after render.
+import { q } from '../query';
 
 function handleFilepathButtonClick(filetypes: string | null): void {
   let filetypesString = '';
@@ -15,11 +16,8 @@ function handleFilepathButtonClick(filetypes: string | null): void {
     .then((response) => response.text())
     .then((filePath) => {
       console.log('File path:', filePath);
-      const filepathText = document.querySelectorAll('input.filepath');
       if (filePath !== '') {
-        filepathText.forEach((textElement) => {
-          (textElement as HTMLInputElement).value = filePath;
-        });
+        q('input.filepath').val(filePath);
       }
     })
     .catch((error) => {
@@ -28,14 +26,14 @@ function handleFilepathButtonClick(filetypes: string | null): void {
 }
 
 export function initFilepath(): void {
-  const filepathButtons = document.querySelectorAll('button.filepath');
-
-  filepathButtons.forEach((button) => {
-    const filetypes = button.getAttribute('filetypes');
-    button.addEventListener('click', () => {
-      handleFilepathButtonClick(filetypes);
+  q('button.filepath')
+    .toArray()
+    .forEach((button) => {
+      const filetypes = q(button).attr('filetypes') ?? null;
+      q(button).on('click', () => {
+        handleFilepathButtonClick(filetypes);
+      });
     });
-  });
 
   console.log('filepath.js loaded');
 }

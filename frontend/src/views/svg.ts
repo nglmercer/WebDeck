@@ -1,4 +1,5 @@
 import { html, raw, type Html } from '../framework/html';
+import { q } from '../query';
 
 // Replaces `open(path).read()` SVG inlining: the markup renders a
 // placeholder span, then `hydrateSvgs` fetches each file and applies the
@@ -22,10 +23,10 @@ export function svgSlot(path: string, attrs: string, needle: '<svg ' | '<svg' = 
 
 /** Fetch all Solo placeholders and inline them (same surgery as Jinja). */
 export async function hydrateSvgs(root: ParentNode = document): Promise<void> {
-  const spans = Array.from(root.querySelectorAll('span[data-svg-slot]'));
+  const spans = q('span[data-svg-slot]', root).toArray();
   await Promise.all(
     spans.map(async (span) => {
-      const id = Number(span.getAttribute('data-svg-slot'));
+      const id = Number(q(span).attr('data-svg-slot'));
       const slot = slots[id];
       if (!slot) return;
       try {
@@ -37,9 +38,7 @@ export async function hydrateSvgs(root: ParentNode = document): Promise<void> {
           slot.replaceNeedle === '<svg '
             ? svg.replace('<svg ', `<svg ${slot.attrs} `)
             : svg.replace('<svg', `<svg${slot.attrs} `);
-        const template = document.createElement('template');
-        template.innerHTML = inlined.trim();
-        span.replaceWith(template.content.cloneNode(true));
+        q(span).replaceWith(inlined.trim());
       } catch {
         // Missing file renders nothing, like the isfile guards.
       }

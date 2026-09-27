@@ -1,3 +1,4 @@
+import { q, byId } from '../query';
 import { showError } from './toast';
 
 // Fullscreen / zoom / grid sizing (index.jinja tail block).
@@ -56,30 +57,25 @@ let fitState: { s: number; tx: number; ty: number } = { s: 1, tx: 0, ty: 0 };
 
 function applyFit(scaler: HTMLElement, s: number, tx: number, ty: number): void {
   fitState = { s, tx, ty };
-  scaler.style.transformOrigin = '0 0';
-  scaler.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+  q(scaler).css({ transformOrigin: '0 0', transform: `translate(${tx}px, ${ty}px) scale(${s})` });
 }
 
 export function auto_resize(): void {
-  const scaler = document.getElementById('deck-scale');
+  const scaler = byId<HTMLElement>('deck-scale').get(0) ?? null;
   if (!scaler) return;
-  const divs = document.querySelectorAll('.buttons-center');
-  let div: Element | null = null;
-  for (const candidate of divs) {
-    if (!candidate.classList.contains('invisible')) {
-      div = candidate;
-      break;
-    }
-  }
+  const div =
+    q('.buttons-center')
+      .toArray()
+      .find((candidate) => !q(candidate).hasClass('invisible')) ?? null;
   // Measure the content box (.all-buttons), not the viewport-wide
   // container: in narrow windows the content overflows the container and
   // the container rect would under-measure it.
-  const content = div?.querySelector('.all-buttons') ?? null;
+  const content = q(div).find('.all-buttons').get(0) ?? null;
   if (!content) return;
   // Reset so the measurement is unscaled. getBoundingClientRect is the
   // transformed bbox, so a portrait-rotated grid measures rotated
   // (possibly with negative offsets) and the fit below compensates.
-  scaler.style.transform = 'none';
+  q(scaler).css('transform', 'none');
   const rect = content.getBoundingClientRect();
   const w = rect.width;
   const h = rect.height;
@@ -97,35 +93,33 @@ export function auto_resize(): void {
 }
 
 export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string, frontHeight: string): void {
-  const fullscreenBtn = document.querySelector('.fullscreen-btn');
-  const zoomInBtn = document.querySelector('.zoom-in-btn');
-  const zoomOutBtn = document.querySelector('.zoom-out-btn');
-  const buttonsCenter = document.querySelector('.buttons-center');
-  const shrinkBtn = document.querySelector('.shrink-btn');
-  const expandBtn = document.querySelector('.expand-btn');
-  const dezoomBtn = document.querySelector('.dezoom-btn');
-  const zoomBtn = document.querySelector('.zoom-btn');
+  const fullscreenBtn = q('.fullscreen-btn').get(0) ?? null;
+  const zoomInBtn = q('.zoom-in-btn').get(0) ?? null;
+  const zoomOutBtn = q('.zoom-out-btn').get(0) ?? null;
+  const buttonsCenter = q('.buttons-center').get(0) ?? null;
+  const shrinkBtn = q('.shrink-btn').get(0) ?? null;
+  const expandBtn = q('.expand-btn').get(0) ?? null;
+  const dezoomBtn = q('.dezoom-btn').get(0) ?? null;
+  const zoomBtn = q('.zoom-btn').get(0) ?? null;
 
-  if (fullscreenBtn) {
-    fullscreenBtn.addEventListener('click', () => {
-      if (document.fullscreenEnabled && !isSwapMode()) {
-        if (document.fullscreenElement) {
-          document.exitFullscreen();
-        } else {
-          goFullscreen();
-        }
-        auto_resize();
+  q(fullscreenBtn).on('click', () => {
+    if (document.fullscreenEnabled && !isSwapMode()) {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
       } else {
-        showError('Fullscreen is not supported on your device.');
+        goFullscreen();
       }
-    });
-  }
+      auto_resize();
+    } else {
+      showError('Fullscreen is not supported on your device.');
+    }
+  });
 
   try {
-    zoomInBtn?.addEventListener('click', () => {
+    q(zoomInBtn).on('click', () => {
       if (!isSwapMode()) {
         scale += 0.1;
-        document.documentElement.style.transform = `scale(${scale})`;
+        q(document.documentElement).css('transform', `scale(${scale})`);
       }
     });
   } catch {
@@ -133,10 +127,10 @@ export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string, 
   }
 
   try {
-    zoomOutBtn?.addEventListener('click', () => {
+    q(zoomOutBtn).on('click', () => {
       if (!isSwapMode()) {
         scale -= 0.1;
-        document.documentElement.style.transform = `scale(${scale})`;
+        q(document.documentElement).css('transform', `scale(${scale})`);
       }
     });
   } catch {
@@ -144,11 +138,13 @@ export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string, 
   }
 
   try {
-    shrinkBtn?.addEventListener('click', () => {
+    q(shrinkBtn).on('click', () => {
       if (!isSwapMode() && buttonsCenter) {
-        const currentMargin = parseInt(getComputedStyle(buttonsCenter).marginLeft);
-        (buttonsCenter as HTMLElement).style.marginLeft = `${currentMargin + 1}px`;
-        (buttonsCenter as HTMLElement).style.marginRight = `${currentMargin + 1}px`;
+        const currentMargin = parseInt(q(buttonsCenter).css('marginLeft') ?? '');
+        q(buttonsCenter).css({
+          marginLeft: `${currentMargin + 1}px`,
+          marginRight: `${currentMargin + 1}px`,
+        });
       }
     });
   } catch {
@@ -156,11 +152,13 @@ export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string, 
   }
 
   try {
-    expandBtn?.addEventListener('click', () => {
+    q(expandBtn).on('click', () => {
       if (!isSwapMode() && buttonsCenter) {
-        const currentMargin = parseInt(getComputedStyle(buttonsCenter).marginLeft);
-        (buttonsCenter as HTMLElement).style.marginLeft = `${currentMargin - 1}px`;
-        (buttonsCenter as HTMLElement).style.marginRight = `${currentMargin - 1}px`;
+        const currentMargin = parseInt(q(buttonsCenter).css('marginLeft') ?? '');
+        q(buttonsCenter).css({
+          marginLeft: `${currentMargin - 1}px`,
+          marginRight: `${currentMargin - 1}px`,
+        });
       }
     });
   } catch {
@@ -170,39 +168,39 @@ export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string, 
   const maxRows = parseInt(frontHeight);
   const maxCols = parseInt(frontWidth);
 
-  const smallDiv = document.querySelector('.form-0');
+  const smallDiv = q('.form-0').get(0) ?? null;
   if (smallDiv) {
-    const smallDivStyles = getComputedStyle(smallDiv);
     const smallDivWidth =
-      parseInt(smallDivStyles.width) + parseInt(smallDivStyles.paddingLeft) + parseInt(smallDivStyles.paddingRight);
+      parseInt(q(smallDiv).css('width') ?? '') +
+      parseInt(q(smallDiv).css('paddingLeft') ?? '') +
+      parseInt(q(smallDiv).css('paddingRight') ?? '');
     const smallDivHeight =
-      parseInt(smallDivStyles.height) + parseInt(smallDivStyles.paddingTop) + parseInt(smallDivStyles.paddingBottom);
+      parseInt(q(smallDiv).css('height') ?? '') +
+      parseInt(q(smallDiv).css('paddingTop') ?? '') +
+      parseInt(q(smallDiv).css('paddingBottom') ?? '');
 
     const maxWidth = maxCols * smallDivWidth + 10;
     const maxHeight = maxCols * smallDivHeight + 10;
 
-    const bigDivs = document.querySelectorAll('[id^="folder-"].buttons-center');
-    bigDivs.forEach((bigDiv) => {
-      (bigDiv as HTMLElement).style.maxWidth = `${maxWidth}px`;
-      (bigDiv as HTMLElement).style.maxHeight = `${maxHeight}px`;
-    });
+    q('[id^="folder-"].buttons-center')
+      .toArray()
+      .forEach((bigDiv) => {
+        q(bigDiv).css({ maxWidth: `${maxWidth}px`, maxHeight: `${maxHeight}px` });
+      });
     // Pin the column count on the content box too: without this a narrow
     // window squeezes .all-buttons and rewraps the grid instead of
     // scaling it (upstream only constrained the outer container).
-    const innerDivs = document.querySelectorAll('[id^="folder-"].all-buttons');
-    innerDivs.forEach((innerDiv) => {
-      (innerDiv as HTMLElement).style.maxWidth = `${maxWidth}px`;
-    });
+    q('[id^="folder-"].all-buttons').css('maxWidth', `${maxWidth}px`);
   }
   void maxRows;
 
-  const scaler = document.getElementById('deck-scale');
+  const scaler = byId<HTMLElement>('deck-scale').get(0) ?? null;
 
   // Manual zoom steps relative to the current auto fit (upstream reset
   // to an absolute zoom of 1 here); translation is preserved so the
   // grid does not jump, and the scale stays positive.
   try {
-    dezoomBtn?.addEventListener('click', () => {
+    q(dezoomBtn).on('click', () => {
       if (!isSwapMode() && scaler) {
         applyFit(scaler, Math.max(0.05, fitState.s - 0.05), fitState.tx, fitState.ty);
       }
@@ -212,7 +210,7 @@ export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string, 
   }
 
   try {
-    zoomBtn?.addEventListener('click', () => {
+    q(zoomBtn).on('click', () => {
       if (!isSwapMode() && scaler) {
         applyFit(scaler, fitState.s + 0.05, fitState.tx, fitState.ty);
       }
@@ -221,6 +219,8 @@ export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string, 
     // empty
   }
 
+  // NOTE: window-level resize listeners have no qdom equivalent
+  // (Q wraps elements only), so these stay native.
   addEventListener('resize', () => {
     // empty
   });

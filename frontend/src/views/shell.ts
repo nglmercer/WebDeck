@@ -1,25 +1,21 @@
 import { html, join, raw, type Html } from '../framework/html';
 import { text } from '../framework/i18n';
 import { asArray, asBool, asObject, asString, get, rep, type BootContext } from '../framework/types';
+import { q } from '../query';
 
 /** <head> extras that depend on boot data: title + theme stylesheets. */
 export function applyHead(ctx: BootContext): void {
   document.title = ctx.is_exe ? 'WebDeck' : 'WebDeck DEV';
   const themes = asArray(get(ctx.config, 'front', 'themes'));
-  const head = document.head;
+  const head = q('head');
   for (const file of [...themes].reverse()) {
     const name = asString(file);
     if (name.startsWith('//')) continue;
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = `.config/themes/${name}`;
-    head.appendChild(link);
+    head.append(q('<link>').attr({ rel: 'stylesheet', href: `.config/themes/${name}` }));
   }
   if (asString(get(ctx.config, 'settings', 'data_transfer_method')) === 'socket') {
     // 1:1 with index.jinja (this file 404s upstream too).
-    const script = document.createElement('script');
-    script.src = 'static/js/socketio.js';
-    head.appendChild(script);
+    head.append(q('<script>').attr('src', 'static/js/socketio.js'));
   }
 }
 

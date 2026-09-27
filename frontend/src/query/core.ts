@@ -1163,6 +1163,16 @@ export function q(
   return new Q(unique(out));
 }
 
+/**
+ * Look up one element by id (exact `getElementById` semantics, wrapped
+ * as a set). Unlike `q('#' + id)` this is safe for ids that are not
+ * valid CSS selectors (leading digits, user-controlled folder names).
+ */
+export function byId<T extends Element = Element>(id: string): Q<T> {
+  const el = document.getElementById(id);
+  return new Q(el === null ? [] : [el as unknown as T]);
+}
+
 /** Run `fn` once the DOM is ready (async even when already loaded). */
 export function ready(fn: () => void): void {
   if (document.readyState === 'loading') {

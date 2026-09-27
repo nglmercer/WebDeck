@@ -1,3 +1,4 @@
+import { q, byId, post } from '../query';
 import { calculateBrightness, normalizeHexValue } from './colors';
 
 // Port of static/js/background-setting.js. Runs after render (replaces the
@@ -6,23 +7,26 @@ import { calculateBrightness, normalizeHexValue } from './colors';
 let backgroundsArray: string[] = [];
 
 function getEventListeners(element: Element): Record<string, unknown> {
+  // Custom expando protocol (upstream devtools-style check); qdom's
+  // registry-keyed .data() is different storage, so this stays native.
   const el = element as Element & { __events?: Record<string, unknown> };
   return el.__events ?? (el.__events = {});
 }
 
 function updateBackgroundsInputValue(backgrounds: string[]): void {
   const modifiedArray = backgrounds.toString().replace(/,/g, "','");
-  document
-    .getElementById('choose-background-handler')
-    ?.setAttribute('value', `['${modifiedArray}']`);
+  // NOTE: the *attribute* (default value), not the property — .attr(), not .val().
+  byId('choose-background-handler').attr('value', `['${modifiedArray}']`);
 }
 
 function removeBackgroundFromArray(): string[] {
-  const container = document.getElementById('choose-backgrounds-container');
-  const divs = container?.getElementsByTagName('div') ?? [];
+  const container = byId('choose-backgrounds-container').get(0) ?? null;
   const next: string[] = [];
-  for (const div of Array.from(divs)) {
-    const background = div.getAttribute('background');
+  // NOTE: scoped via .find(), not the context parameter (a null context
+  // would fall back to the whole document; a missing container yields no
+  // divs, like the original `?.` chain).
+  for (const div of q(container).find('div').toArray()) {
+    const background = q(div).attr('background');
     if (background) next.push(background);
   }
   console.log(next);
@@ -34,11 +38,11 @@ function deleteButtonEvent(event: Event): void {
   backgroundsArray = removeBackgroundFromArray();
   if (backgroundsArray.length !== 1) {
     const target = event.target as Element;
-    const divElement = target.closest('.choose-bg-element');
-    const backgroundAttribute = divElement?.getAttribute('background') ?? '';
+    const divElement = q(target).closest('.choose-bg-element').get(0) ?? null;
+    const backgroundAttribute = q(divElement).attr('background') ?? '';
     const filteredBackgrounds = backgroundsArray.filter((item) => !item.startsWith('//'));
     if ((divElement != null && filteredBackgrounds.length !== 1) || backgroundAttribute.startsWith('//')) {
-      divElement?.remove();
+      q(divElement).remove();
       backgroundsArray = removeBackgroundFromArray();
     }
   }
@@ -47,169 +51,165 @@ function deleteButtonEvent(event: Event): void {
 function activateButtonEvent(event: Event): void {
   backgroundsArray = removeBackgroundFromArray();
   const target = event.target as Element;
-  const divElement = target.closest('.choose-bg-element');
+  const divElement = q(target).closest('.choose-bg-element').get(0) ?? null;
   if (divElement != null) {
-    const backgroundAttribute = divElement.getAttribute('background') ?? '';
-    const activateButton = divElement
-      .querySelector('div.choose-bg-buttons')
-      ?.querySelector('.choose-bg-activate-button');
+    const backgroundAttribute = q(divElement).attr('background') ?? '';
+    const activateButton = q(divElement).find('div.choose-bg-buttons .choose-bg-activate-button').get(0) ?? null;
     const filteredBackgrounds = backgroundsArray.filter((item) => !item.startsWith('//'));
 
     if (backgroundAttribute.startsWith('//')) {
       // activate
-      divElement.setAttribute('background', backgroundAttribute.replace('//', ''));
-      activateButton?.classList.add('choose-bg-activate-button-checked');
+      q(divElement).attr('background', backgroundAttribute.replace('//', ''));
+      q(activateButton).addClass('choose-bg-activate-button-checked');
       backgroundsArray = removeBackgroundFromArray();
     } else if (filteredBackgrounds.length !== 1) {
       // desactivate
-      divElement.setAttribute('background', '//' + backgroundAttribute);
-      activateButton?.classList.remove('choose-bg-activate-button-checked');
+      q(divElement).attr('background', '//' + backgroundAttribute);
+      q(activateButton).removeClass('choose-bg-activate-button-checked');
       backgroundsArray = removeBackgroundFromArray();
     }
   }
 }
 
 function wireActivateButtons(): void {
-  const activateButtons = document.querySelectorAll('.choose-bg-activate-button');
-  activateButtons.forEach((activateButton) => {
-    let clickListenerExists = false;
-    const clickListeners = getEventListeners(activateButton) as {
-      click?: Array<{ listener: unknown }>;
-    };
-    if (clickListeners && clickListeners.click) {
-      for (const entry of clickListeners.click) {
-        if (String(entry.listener) === String(activateButtonEvent)) {
-          clickListenerExists = true;
-          break;
+  q('.choose-bg-activate-button')
+    .toArray()
+    .forEach((activateButton) => {
+      let clickListenerExists = false;
+      const clickListeners = getEventListeners(activateButton) as {
+        click?: Array<{ listener: unknown }>;
+      };
+      if (clickListeners && clickListeners.click) {
+        for (const entry of clickListeners.click) {
+          if (String(entry.listener) === String(activateButtonEvent)) {
+            clickListenerExists = true;
+            break;
+          }
         }
       }
-    }
-    if (!clickListenerExists) {
-      activateButton.addEventListener('click', activateButtonEvent);
-    }
-  });
+      if (!clickListenerExists) {
+        q(activateButton).on('click', activateButtonEvent);
+      }
+    });
 }
 
 function wireDeleteButtons(): void {
-  const deleteButtons = document.querySelectorAll('.choose-bg-delete-button');
-  deleteButtons.forEach((deleteButton) => {
-    let clickListenerExists = false;
-    const clickListeners = getEventListeners(deleteButton) as {
-      click?: Array<{ listener: unknown }>;
-    };
-    if (clickListeners && clickListeners.click) {
-      for (const entry of clickListeners.click) {
-        if (String(entry.listener) === String(deleteButtonEvent)) {
-          clickListenerExists = true;
-          break;
+  q('.choose-bg-delete-button')
+    .toArray()
+    .forEach((deleteButton) => {
+      let clickListenerExists = false;
+      const clickListeners = getEventListeners(deleteButton) as {
+        click?: Array<{ listener: unknown }>;
+      };
+      if (clickListeners && clickListeners.click) {
+        for (const entry of clickListeners.click) {
+          if (String(entry.listener) === String(deleteButtonEvent)) {
+            clickListenerExists = true;
+            break;
+          }
         }
       }
-    }
-    if (!clickListenerExists) {
-      deleteButton.addEventListener('click', deleteButtonEvent);
-    }
-  });
+      if (!clickListenerExists) {
+        q(deleteButton).on('click', deleteButtonEvent);
+      }
+    });
 }
 
 export function initBackgroundSetting(): void {
   function toggleDisplay(): void {
-    const chooseBackgroundElement = document.getElementById('choose-background');
-    const configContainer = document.getElementById('config-container');
+    const chooseBackgroundElement = byId<HTMLElement>('choose-background').get(0) ?? null;
+    const configContainer = byId<HTMLElement>('config-container').get(0) ?? null;
     if (!chooseBackgroundElement || !configContainer) return;
 
+    // NOTE: inline-style probe; qdom's `.css()` getter is computed-only.
     if (chooseBackgroundElement.style.display === 'none') {
-      chooseBackgroundElement.style.display = 'block';
-      configContainer.style.display = 'none';
+      q(chooseBackgroundElement).css('display', 'block');
+      q(configContainer).css('display', 'none');
     } else {
-      chooseBackgroundElement.style.display = 'none';
-      configContainer.style.display = 'block';
+      q(chooseBackgroundElement).css('display', 'none');
+      q(configContainer).css('display', 'block');
     }
   }
-  document.getElementById('setting-background')?.addEventListener('click', toggleDisplay);
-  document.getElementById('setting-background-back')?.addEventListener('click', toggleDisplay);
+  byId('setting-background').on('click', toggleDisplay);
+  byId('setting-background-back').on('click', toggleDisplay);
 
-  const pageloadElements = document.querySelectorAll('.choose-bg-element-pageload');
-  pageloadElements.forEach(function (element) {
-    const computedStyle = getComputedStyle(element);
-    const backgroundColor = computedStyle.backgroundColor;
-    const brightness = calculateBrightness(backgroundColor);
-    const htmlElement = element as HTMLElement;
-    if (brightness > 125) {
-      htmlElement.style.color = 'black';
-      element.classList.add('white-text');
-    } else {
-      htmlElement.style.color = 'white';
-    }
-  });
+  q('.choose-bg-element-pageload')
+    .toArray()
+    .forEach(function (element) {
+      const backgroundColor = q(element).css('backgroundColor') ?? '';
+      const brightness = calculateBrightness(backgroundColor);
+      if (brightness > 125) {
+        q(element).css('color', 'black');
+        q(element).addClass('white-text');
+      } else {
+        q(element).css('color', 'white');
+      }
+    });
 
-  const buttonBackgroundColorInput = document.getElementById(
-    'background-color-input'
-  ) as HTMLInputElement | null;
-  const buttonBackgroundColorHex = document.getElementById(
-    'background-color-hex'
-  ) as HTMLInputElement | null;
+  const buttonBackgroundColorInput = byId<HTMLInputElement>('background-color-input').get(0) ?? null;
+  const buttonBackgroundColorHex = byId<HTMLInputElement>('background-color-hex').get(0) ?? null;
 
-  buttonBackgroundColorInput?.addEventListener('input', function () {
+  q(buttonBackgroundColorInput).on('input', function () {
     if (!buttonBackgroundColorInput || !buttonBackgroundColorHex) return;
-    const hexValue = normalizeHexValue(buttonBackgroundColorInput.value);
-    buttonBackgroundColorInput.value = hexValue;
-    buttonBackgroundColorHex.value = hexValue;
+    const hexValue = normalizeHexValue(String(q(buttonBackgroundColorInput).val() ?? ''));
+    q(buttonBackgroundColorInput).val(hexValue);
+    q(buttonBackgroundColorHex).val(hexValue);
   });
 
-  buttonBackgroundColorHex?.addEventListener('input', function () {
+  q(buttonBackgroundColorHex).on('input', function () {
     if (!buttonBackgroundColorInput || !buttonBackgroundColorHex) return;
-    const normalizedHexValue = normalizeHexValue(buttonBackgroundColorHex.value);
-    buttonBackgroundColorInput.value = normalizedHexValue;
-    buttonBackgroundColorHex.value = normalizedHexValue;
+    const normalizedHexValue = normalizeHexValue(String(q(buttonBackgroundColorHex).val() ?? ''));
+    q(buttonBackgroundColorInput).val(normalizedHexValue);
+    q(buttonBackgroundColorHex).val(normalizedHexValue);
   });
 
-  const chooseBackground = document.getElementById('choose-background-handler') as HTMLInputElement | null;
+  const chooseBackground = byId<HTMLInputElement>('choose-background-handler').get(0) ?? null;
   if (chooseBackground) {
-    const backgroundsArrayString = chooseBackground.value
+    const backgroundsArrayString = String(q(chooseBackground).val() ?? '')
       .replace("['", '["')
       .replace("']", '"]')
       .replace("','", '","');
     backgroundsArray = JSON.parse(backgroundsArrayString) as string[];
   }
 
-  document.getElementById('create-color-bg')?.addEventListener('click', function () {
-    const colorHex = (document.getElementById('background-color-hex') as HTMLInputElement | null)?.value ?? '';
+  byId('create-color-bg').on('click', function () {
+    const colorHex = String(byId<HTMLInputElement>('background-color-hex').val() ?? '');
     if (colorHex !== '') {
-      const divElement = document.createElement('div');
-      divElement.classList.add('choose-bg-element');
-      divElement.classList.add('choose-bg-element-color');
-      divElement.style.backgroundColor = colorHex;
-      const createColorBgElement = document.getElementById('create-color-bg');
-      if (createColorBgElement?.classList.contains('dark-theme')) {
-        divElement.classList.add('dark-theme');
+      const divElement = q('<div>')
+        .addClass('choose-bg-element')
+        .addClass('choose-bg-element-color')
+        .css('backgroundColor', colorHex);
+      if (byId('create-color-bg').hasClass('dark-theme')) {
+        divElement.addClass('dark-theme');
       }
 
       const brightness = calculateBrightness(colorHex);
       if (brightness > 125) {
-        divElement.style.color = '#141414';
+        divElement.css('color', '#141414');
       } else {
-        divElement.style.color = '#fbfbfd';
+        divElement.css('color', '#fbfbfd');
       }
 
       backgroundsArray.push(colorHex);
 
-      const container = document.getElementById('choose-backgrounds-container');
-      const divs = container?.getElementsByTagName('div');
-      const background_color_text = divs?.[0]?.getAttribute('background_color_text') ?? '';
+      const container = byId('choose-backgrounds-container').get(0) ?? null;
+      const background_color_text = container
+        ? q('div', container).attr('background_color_text') ?? ''
+        : '';
 
-      divElement.textContent = background_color_text + ' : ' + colorHex;
-      divElement.setAttribute('background', colorHex);
+      divElement.text(background_color_text + ' : ' + colorHex);
+      divElement.attr('background', colorHex);
 
-      document.getElementById('choose-backgrounds-container')?.appendChild(divElement);
+      byId('choose-backgrounds-container').append(divElement);
 
       updateBackgroundsInputValue(backgroundsArray);
 
-      const chooseBgButtonsDiv = document.querySelector('.choose-bg-buttons');
-      const clonedChooseBgButtons = chooseBgButtonsDiv?.cloneNode(true) as Element | undefined;
+      const clonedChooseBgButtons = q('.choose-bg-buttons').clone().get(0);
       if (clonedChooseBgButtons) {
-        divElement.appendChild(clonedChooseBgButtons);
-        const activateButton = clonedChooseBgButtons.querySelector('.choose-bg-activate-button');
-        activateButton?.classList.add('choose-bg-activate-button-checked');
+        divElement.append(clonedChooseBgButtons);
+        q(clonedChooseBgButtons)
+          .find('.choose-bg-activate-button')
+          .addClass('choose-bg-activate-button-checked');
       }
 
       wireActivateButtons();
@@ -219,7 +219,7 @@ export function initBackgroundSetting(): void {
     }
   });
 
-  document.getElementById('create-image-bg')?.addEventListener('change', function () {
+  byId('create-image-bg').on('change', function () {
     const input = this as unknown as HTMLInputElement;
 
     if (input.files && input.files[0]) {
@@ -228,10 +228,8 @@ export function initBackgroundSetting(): void {
       formData.append('file', file);
       formData.append('info', 'background_image');
 
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/upload_file', true);
-      xhr.onload = function () {
-        if (xhr.status === 200) {
+      void post('/upload_file', formData).then(
+        () => {
           console.log('File downloaded successfully');
           const firstFile = input.files?.[0];
           const fileName = '**uploaded/' + (firstFile?.name ?? '');
@@ -239,80 +237,75 @@ export function initBackgroundSetting(): void {
 
           const imageFile = '.config/user_uploads/' + (firstFile?.name ?? '');
 
-          const divElement = document.createElement('div');
-          divElement.classList.add('choose-bg-element');
-          divElement.classList.add('choose-bg-element-image');
-          const createColorBgElement = document.getElementById('create-color-bg');
-          if (createColorBgElement?.classList.contains('dark-theme')) {
-            divElement.classList.add('dark-theme');
+          const divElement = q('<div>').addClass('choose-bg-element').addClass('choose-bg-element-image');
+          if (byId('create-color-bg').hasClass('dark-theme')) {
+            divElement.addClass('dark-theme');
           }
 
           if (!imageFile.endsWith('.mp4')) {
-            const pseudoElement = document.createElement('div');
-            pseudoElement.classList.add('choose-bg-pseudo-element');
-            pseudoElement.style.backgroundImage = 'url("' + imageFile + '")';
-            divElement.appendChild(pseudoElement);
+            divElement.append(
+              q('<div>').addClass('choose-bg-pseudo-element').css('backgroundImage', 'url("' + imageFile + '")')
+            );
           }
 
           backgroundsArray.push(fileName);
-          divElement.setAttribute('background', fileName);
+          divElement.attr('background', fileName);
 
-          document.getElementById('choose-backgrounds-container')?.appendChild(divElement);
+          byId('choose-backgrounds-container').append(divElement);
 
           let mediaElement: HTMLElement | undefined;
 
           if (imageFile.endsWith('.mp4')) {
-            const videoContainerBlurred = document.createElement('div');
-            videoContainerBlurred.className = 'video-container choose-bg-pseudo-element';
-            const videoElementBlurred = document.createElement('video');
-            videoElementBlurred.autoplay = true;
-            videoElementBlurred.muted = true;
-            videoElementBlurred.loop = true;
-            videoElementBlurred.className = 'blurred-video';
-            const sourceElementBlurred = document.createElement('source');
-            sourceElementBlurred.src = imageFile;
-            sourceElementBlurred.type = 'video/mp4';
-            videoElementBlurred.appendChild(sourceElementBlurred);
-            videoContainerBlurred.appendChild(videoElementBlurred);
+            const videoElementBlurred = q<HTMLVideoElement>('<video>')
+              .prop({ autoplay: true, muted: true, loop: true })
+              .attr('class', 'blurred-video');
+            videoElementBlurred.append(
+              q<HTMLSourceElement>('<source>').prop('src', imageFile).prop('type', 'video/mp4')
+            );
+            const videoContainerBlurred = q('<div>').attr(
+              'class',
+              'video-container choose-bg-pseudo-element'
+            );
+            videoContainerBlurred.append(videoElementBlurred);
 
-            const videoContainer = document.createElement('div');
-            videoContainer.className = 'video-container';
-            const videoElement = document.createElement('video');
-            videoElement.autoplay = true;
-            videoElement.muted = true;
-            videoElement.loop = true;
-            const sourceElement = document.createElement('source');
-            sourceElement.src = imageFile;
-            sourceElement.type = 'video/mp4';
-            videoElement.appendChild(sourceElement);
-            videoContainer.appendChild(videoElement);
+            const videoElement = q<HTMLVideoElement>('<video>').prop({
+              autoplay: true,
+              muted: true,
+              loop: true,
+            });
+            videoElement.append(
+              q<HTMLSourceElement>('<source>').prop('src', imageFile).prop('type', 'video/mp4')
+            );
+            const videoContainer = q('<div>').attr('class', 'video-container');
+            videoContainer.append(videoElement);
 
-            divElement.appendChild(videoContainerBlurred);
-            divElement.appendChild(videoContainer);
+            divElement.append(videoContainerBlurred);
+            divElement.append(videoContainer);
             console.log(mediaElement);
           } else {
-            const imgElement = document.createElement('img');
-            imgElement.setAttribute('src', imageFile);
-            mediaElement = imgElement;
+            // NOTE: 1:1 upstream quirk — the img is built but never
+            // appended (only the blurred pseudo-element shows it).
+            const imgElement = q<HTMLImageElement>('<img>').attr('src', imageFile);
+            mediaElement = imgElement.get(0);
           }
           void mediaElement;
 
-          const chooseBgButtonsDiv = document.querySelector('.choose-bg-buttons');
-          const clonedChooseBgButtons = chooseBgButtonsDiv?.cloneNode(true) as Element | undefined;
+          const clonedChooseBgButtons = q('.choose-bg-buttons').clone().get(0);
           if (clonedChooseBgButtons) {
-            divElement.appendChild(clonedChooseBgButtons);
-            const activateButton = clonedChooseBgButtons.querySelector('.choose-bg-activate-button');
-            activateButton?.classList.add('choose-bg-activate-button-checked');
+            divElement.append(clonedChooseBgButtons);
+            q(clonedChooseBgButtons)
+              .find('.choose-bg-activate-button')
+              .addClass('choose-bg-activate-button-checked');
           }
 
           wireActivateButtons();
           wireDeleteButtons();
           removeBackgroundFromArray();
-        } else {
+        },
+        () => {
           console.error('Failed to download file.');
         }
-      };
-      xhr.send(formData);
+      );
     }
   });
 

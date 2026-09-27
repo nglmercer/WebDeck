@@ -10,6 +10,7 @@ import {
   type BootContext,
   type JsonObject,
 } from '../framework/types';
+import { q, byId, post } from '../query';
 import { argField, type ArgsRenderContext } from './args';
 import { swapPreviewImage, updateButtonBackgroundColor, updateImageSize, type ButtonState } from './modalstyle';
 import { svgSlot } from './svg';
@@ -458,38 +459,41 @@ export function collectAddModals(ctx: BootContext): AddModalContext[] {
 }
 
 function getCommand(command: string, argModalId: string): string {
-  const form = document.querySelector(`form[arg_modal_ID="${argModalId}"] .args-container`);
-  const inputs = form?.querySelectorAll('input, select, textarea') ?? [];
-  const values = Array.from(inputs)
+  const inputs = q(`form[arg_modal_ID="${argModalId}"] .args-container`)
+    .find('input, select, textarea')
+    .toArray();
+  const values = inputs
     .filter((input) => {
-      const parent = input.parentElement;
-      if (parent && window.getComputedStyle(parent).display === 'none') {
+      if (q(input).parent().css('display') === 'none') {
         return false;
       }
-      if (input.classList.contains('choice')) {
+      if (q(input).hasClass('choice')) {
         return false;
       }
-      const ancestorDivs = input.closest('.editorStyle, .webdeck_foldername_div');
-      if (ancestorDivs) {
+      if (q(input).closest('.editorStyle, .webdeck_foldername_div').length > 0) {
         return false;
       }
       return true;
     })
     .map((input) => {
-      const el = input as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
-      if (el.tagName === 'SELECT') {
-        const select = el as HTMLSelectElement;
+      if (q(input).is('select')) {
+        const select = input as HTMLSelectElement;
         return select.options[select.selectedIndex]?.value ?? '';
-      } else if ((el as HTMLInputElement).type === 'radio' || (el as HTMLInputElement).type === 'checkbox') {
-        return (el as HTMLInputElement).checked ? (el as HTMLInputElement).value : '';
-      } else if ((el as HTMLInputElement).type === 'submit' || (el as HTMLInputElement).type === 'button') {
+      }
+      const field = input as HTMLInputElement;
+      const kind = q(field).prop('type');
+      if (kind === 'radio' || kind === 'checkbox') {
+        return q(field).prop('checked') === true ? String(q(field).val() ?? '') : '';
+      } else if (kind === 'submit' || kind === 'button') {
         return '';
       } else {
-        const field = el as HTMLInputElement;
-        if (field.value.startsWith('/folder')) {
-          field.value = field.value.replace(/"/g, '');
+        const current = String(q(field).val() ?? '');
+        if (current.startsWith('/folder')) {
+          const stripped = current.replace(/"/g, '');
+          q(field).val(stripped);
+          return stripped;
         }
-        return field.value;
+        return current;
       }
     })
     .filter((value) => value !== '');
@@ -511,72 +515,71 @@ export function wireAddModal(ctx: BootContext, mctx: AddModalContext): void {
   addModalStates.set(id, { button: buttonState, command: mctx.commandId });
 
   (window as unknown as Record<string, unknown>)[`showArg_${id}`] = (argId: string) => {
-    const elements = document.querySelectorAll(`div.arg_container[arg_modal_ID="${id}"]:not([arg_id="${argId}"])`);
-    elements.forEach(function (element) {
-      if (element.getAttribute('arg_id') === argId) {
-        (element as HTMLElement).style.display = 'block';
-      } else {
-        (element as HTMLElement).style.display = 'none';
-      }
-    });
+    q(`div.arg_container[arg_modal_ID="${id}"]:not([arg_id="${argId}"])`)
+      .toArray()
+      .forEach(function (element) {
+        if (q(element).attr('arg_id') === argId) {
+          q(element).css('display', 'block');
+        } else {
+          q(element).css('display', 'none');
+        }
+      });
   };
 
   wireFoldernameForm();
   wireUsagePreview(id);
 
-  document.getElementById(`image-input_${id}`)?.addEventListener('change', function () {
+  byId(`image-input_${id}`).on('change', function () {
     const input = this as unknown as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
     const formData = new FormData();
     formData.append('file', file);
 
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/upload_file', true);
-    xhr.onload = function () {
-      if (xhr.status === 200) {
+    void post('/upload_file', formData).then(
+      () => {
         console.log('File downloaded successfully!');
         const swapped = swapPreviewImage(id, input);
         if (!swapped) return;
         buttonState['image_size'] = '70';
         updateImageSize(swapped.slider, swapped.value, swapped.image, buttonState);
         buttonState['image'] = '**uploaded/' + (input.files?.[0]?.name ?? '');
-      } else {
+      },
+      () => {
         console.error('Failed to download file.');
       }
-    };
-    xhr.send(formData);
+    );
   });
 
-  const image = document.getElementById(`button-image_${id}`) as HTMLElement | null;
-  const imageSizeSlider = document.getElementById(`image-size-slider_${id}`) as HTMLInputElement | null;
-  const imageSizeValue = document.getElementById(`image-size-value_${id}`) as HTMLInputElement | null;
+  const image = byId<HTMLElement>(`button-image_${id}`).get(0) ?? null;
+  const imageSizeSlider = byId<HTMLInputElement>(`image-size-slider_${id}`).get(0) ?? null;
+  const imageSizeValue = byId<HTMLInputElement>(`image-size-value_${id}`).get(0) ?? null;
   if (image && imageSizeSlider && imageSizeValue) {
     updateImageSize(imageSizeSlider, imageSizeValue, image, buttonState);
   }
 
-  const buttonElement = document.getElementById(`button-element_${id}`) as HTMLElement | null;
-  const bgInput = document.getElementById(`background-color-input_${id}`) as HTMLInputElement | null;
-  const bgHex = document.getElementById(`background-color-hex_${id}`) as HTMLInputElement | null;
+  const buttonElement = byId<HTMLElement>(`button-element_${id}`).get(0) ?? null;
+  const bgInput = byId<HTMLInputElement>(`background-color-input_${id}`).get(0) ?? null;
+  const bgHex = byId<HTMLInputElement>(`background-color-hex_${id}`).get(0) ?? null;
   if (buttonElement && bgInput && bgHex) {
     updateButtonBackgroundColor(buttonElement, bgInput, bgHex, buttonState);
   }
 
   if (devMode) {
-    document.getElementById(`command_${id}`)?.addEventListener('input', function () {
-      buttonState['message'] = (this as unknown as HTMLInputElement).value;
+    byId(`command_${id}`).on('input', function () {
+      buttonState['message'] = String(q(this).val() ?? '');
     });
   }
 
-  const buttonText = document.getElementById(`button-text-input_${id}`) as HTMLInputElement | null;
-  const buttonPreview = document.getElementById(`button-text-preview_${id}`);
-  buttonText?.addEventListener('input', function () {
-    const textValue = buttonText.value;
-    if (buttonPreview) buttonPreview.textContent = textValue;
+  const buttonText = byId<HTMLInputElement>(`button-text-input_${id}`).get(0) ?? null;
+  const buttonPreview = byId(`button-text-preview_${id}`).get(0) ?? null;
+  q(buttonText).on('input', function () {
+    const textValue = String(q(buttonText).val() ?? '');
+    if (buttonPreview) q(buttonPreview).text(textValue);
     buttonState['name'] = textValue;
   });
 
-  document.getElementById(`${id}_submit`)?.addEventListener('click', function (event) {
+  byId(`${id}_submit`).on('click', function (event) {
     if (id !== 'NONE') {
       event.preventDefault();
     }
@@ -588,12 +591,12 @@ export function wireAddModal(ctx: BootContext, mctx: AddModalContext): void {
 
 /** Folder-creation form (document-first matching reproduces upstream). */
 function wireFoldernameForm(): void {
-  document.getElementById('submitButton')?.addEventListener('click', function (event) {
+  byId('submitButton').on('click', function (event) {
     event.preventDefault();
-    const folderName = (document.getElementById('folderName') as HTMLInputElement | null)?.value ?? '';
+    const folderName = String(byId<HTMLInputElement>('folderName').val() ?? '');
     if (folderName.trim() !== '') {
-      const parentFolderEl = document.querySelector('.buttons-center:not(.invisible)');
-      const parentFolder = (parentFolderEl?.id ?? '').replace(/^folder-/, '');
+      const parentFolderEl = q('.buttons-center:not(.invisible)').get(0) ?? null;
+      const parentFolder = (q(parentFolderEl).prop('id') ?? '').replace(/^folder-/, '');
       const data = {
         name: folderName.replace(/"/g, ''),
         parent_folder: parentFolder,
@@ -618,22 +621,20 @@ function wireFoldernameForm(): void {
           if (data && data.hasOwnProperty('success')) {
             if (data.success) {
               console.log(text('folder_created_successfully'));
-              const divs = document.querySelectorAll('.webdeck_foldername_ALL');
-              divs.forEach(function (div) {
-                const newDiv = document.createElement('div');
-                newDiv.setAttribute('class', 'webdeck_foldername');
-                const input = document.createElement('input');
-                input.setAttribute('type', 'radio');
-                input.setAttribute('name', 'file');
-                input.setAttribute('value', folderName);
-                input.setAttribute('required', '');
-                const label = document.createElement('label');
-                label.setAttribute('for', folderName);
-                label.textContent = folderName;
-                newDiv.appendChild(input);
-                newDiv.appendChild(label);
-                div.appendChild(newDiv);
-              });
+              q('.webdeck_foldername_ALL')
+                .toArray()
+                .forEach(function (div) {
+                  const newDiv = q('<div>').attr('class', 'webdeck_foldername');
+                  const input = q<HTMLInputElement>('<input>').attr({
+                    type: 'radio',
+                    name: 'file',
+                    value: folderName,
+                    required: '',
+                  });
+                  const label = q('<label>').attr('for', folderName).text(folderName);
+                  newDiv.append(input).append(label);
+                  q(div).append(newDiv);
+                });
             } else {
               console.log('Folder creation failed because the folder already exists.');
             }
@@ -646,32 +647,40 @@ function wireFoldernameForm(): void {
   });
 }
 
+/** Second class token (equivalent to `classList.item(1)`). */
+function secondClass(element: Element): string | undefined {
+  return q(element)
+    .attr('class')
+    ?.split(/\s+/)
+    .filter((token) => token !== '')[1];
+}
+
 function wireUsagePreview(id: string): void {
-  const usageInput = document.getElementById(`usage-title-input_${id}`) as HTMLInputElement | null;
+  const usageInput = byId<HTMLInputElement>(`usage-title-input_${id}`).get(0) ?? null;
   if (!usageInput) return;
-  const usageTitlePreview = document.getElementById(`usage-title_${id}`);
-  const usageValuePreview = document.getElementById(`usage-value_${id}`);
+  const usageTitlePreview = byId(`usage-title_${id}`).get(0) ?? null;
+  const usageValuePreview = byId(`usage-value_${id}`).get(0) ?? null;
   if (!usageTitlePreview || !usageValuePreview) return;
 
-  const initial = usageInput.value;
-  usageTitlePreview.textContent = initial;
-  usageValuePreview.textContent = '-';
+  const initial = String(q(usageInput).val() ?? '');
+  q(usageTitlePreview).text(initial);
+  q(usageValuePreview).text('-');
 
-  usageInput.addEventListener('input', function () {
+  q(usageInput).on('input', function () {
     const state = addModalStates.get(id);
-    usageTitlePreview.textContent = usageInput.value;
-    if (state) state.button['name'] = usageInput.value;
+    const current = String(q(usageInput).val() ?? '');
+    q(usageTitlePreview).text(current);
+    if (state) state.button['name'] = current;
   });
 
   reloadUsagePreview(id);
-  const diskLetter = document.getElementById(`disk-letter_${id}`);
-  diskLetter?.addEventListener('change', function () {
+  byId(`disk-letter_${id}`).on('change', function () {
     console.log('changed!');
-    usageValuePreview.textContent = '-';
-    const titleSecond = usageTitlePreview.classList.item(1);
-    const valueSecond = usageValuePreview.classList.item(1);
-    if (titleSecond) usageTitlePreview.classList.remove(titleSecond);
-    if (valueSecond) usageValuePreview.classList.remove(valueSecond);
+    q(usageValuePreview).text('-');
+    const titleSecond = secondClass(usageTitlePreview);
+    const valueSecond = secondClass(usageValuePreview);
+    if (titleSecond) q(usageTitlePreview).removeClass(titleSecond);
+    if (valueSecond) q(usageValuePreview).removeClass(valueSecond);
     reloadUsagePreview(id);
   });
 }
@@ -685,8 +694,10 @@ function reloadUsagePreview(id: string): void {
   const message = "/usage '" + commandString;
   let path = message.replace(/\]\['/g, '.').replace(/\['/g, '.').replace(/'\]/g, '');
   path = path.substring(path.lastIndexOf("'") + 1).replace(/ /g, '');
-  document.getElementById(`usage-title_${id}`)?.classList.add(`${path}`);
-  document.getElementById(`usage-value_${id}`)?.classList.add(`${path}`);
+  // NOTE: `.addClass('')` is a no-op where `classList.add('')` would throw;
+  // `path` is never empty in practice (it always contains the command).
+  byId(`usage-title_${id}`).addClass(`${path}`);
+  byId(`usage-value_${id}`).addClass(`${path}`);
 }
 
 function buttonCommandAdd(argModalId: string, command: string): void {
@@ -698,9 +709,9 @@ function buttonCommandAdd(argModalId: string, command: string): void {
   state.button['message'] = commandString;
   console.log(state.button);
   console.log('buttonCommand received, from: add');
-  const element = document.querySelector('#addbutton-modal-content');
-  const locationFolder = element?.getAttribute('add_FOLDER') ?? '';
-  const locationId = element?.getAttribute('add_ID') ?? '';
+  const element = byId('addbutton-modal-content').get(0) ?? null;
+  const locationFolder = q(element).attr('add_FOLDER') ?? '';
+  const locationId = q(element).attr('add_ID') ?? '';
 
   fetch('/get_config')
     .then(function (response) {
@@ -743,30 +754,31 @@ function buttonCommandAdd(argModalId: string, command: string): void {
       throw new Error(error.message);
     });
 
-  element?.removeAttribute('add_ID');
-  element?.removeAttribute('add_FOLDER');
+  q(element).removeAttr('add_ID');
+  q(element).removeAttr('add_FOLDER');
 }
 
 /** Add-modal dropdown toggles (index.jinja inline script after commands). */
 export function wireBrowserDropdowns(): void {
-  const dropdown = document.getElementsByClassName('dropdown-btn');
-  for (const btn of dropdown) {
-    btn.addEventListener('click', function (this: Element) {
-      if (!(btn.classList.contains('final-btn') || btn.classList.contains('no-dropdown'))) {
-        this.classList.toggle('active');
+  for (const btn of q('.dropdown-btn').toArray()) {
+    q(btn).on('click', function (this: Element) {
+      if (!(q(btn).hasClass('final-btn') || q(btn).hasClass('no-dropdown'))) {
+        q(this).toggleClass('active');
       }
-        const dropdownContent = this.nextElementSibling as HTMLElement | null;
-        try {
-          if (dropdownContent?.style.display === 'block') {
-            if (!dropdownContent.classList.contains('addbutton-description')) {
-              dropdownContent.style.display = 'none';
-            }
-          } else if (dropdownContent) {
-            dropdownContent.style.display = 'block';
+      // NOTE: the visibility probe reads the *inline* style; qdom's `.css()`
+      // getter is computed-only, so this one read stays native.
+      const dropdownContent = q(this).next().get(0) as HTMLElement | undefined;
+      try {
+        if (dropdownContent?.style.display === 'block') {
+          if (!q(dropdownContent).hasClass('addbutton-description')) {
+            q(dropdownContent).css('display', 'none');
           }
-        } catch {
-          // Ne rien faire (pass)
+        } else if (dropdownContent) {
+          q(dropdownContent).css('display', 'block');
         }
-      });
+      } catch {
+        // Ne rien faire (pass)
+      }
+    });
   }
 }

@@ -1,7 +1,7 @@
 import { html, type Html } from '../framework/html';
 import { text } from '../framework/i18n';
 import type { JsonObject } from '../framework/types';
-import { q } from '../query';
+import { q, byId } from '../query';
 import { show_addbutton_modal } from './modals';
 import { pageState } from './state';
 import { showError } from './toast';
@@ -40,17 +40,17 @@ export function isSwapMode(): boolean {
 }
 
 function formCoords(form: Element): { parentId: string; formNumber: string } {
-  const parentId = (form.parentNode as Element).id.replace(/^folder-/, '');
-  const formClassMatch = form.className.match(/form-(\d+)/);
+  const parentId = (q(form).parent().prop('id') ?? '').replace(/^folder-/, '');
+  const formClassMatch = (q(form).attr('class') ?? '').match(/form-(\d+)/);
   return { parentId, formNumber: formClassMatch?.[1] ?? '' };
 }
 
 function editorButtons(): HTMLElement | null {
-  return document.getElementById('EditorButtons');
+  return byId<HTMLElement>('EditorButtons').get(0) ?? null;
 }
 
 function editorButtonsFolders(): HTMLElement | null {
-  return document.getElementById('EditorButtons-Folders');
+  return byId<HTMLElement>('EditorButtons-Folders').get(0) ?? null;
 }
 
 export function createVoidButton(event: Event | null = null, form: Element | null = null): void {
@@ -58,9 +58,9 @@ export function createVoidButton(event: Event | null = null, form: Element | nul
 
   let closestForm: Element | null;
   if (form === null && event !== null) {
-    closestForm = (event.target as Element).closest('form.form');
+    closestForm = q(event.target as Element).closest('form.form').get(0) ?? null;
     if (closestForm === null) {
-      closestForm = (event.target as Element).closest('div.void');
+      closestForm = q(event.target as Element).closest('div.void').get(0) ?? null;
     }
   } else {
     closestForm = form;
@@ -69,38 +69,25 @@ export function createVoidButton(event: Event | null = null, form: Element | nul
 
   const { parentId, formNumber } = formCoords(closestForm);
 
-  const voidDiv = document.createElement('div');
-  voidDiv.classList.add('void');
-  voidDiv.classList.add(`form-${formNumber}`);
-  voidDiv.id = closestForm.id;
-  const addButtonDiv = document.createElement('div');
-  addButtonDiv.classList.add('add-button');
-  addButtonDiv.style.display = 'flex';
-  addButtonDiv.style.top = '40.3675';
-  const checkboxDiv = document.createElement('div');
-  checkboxDiv.classList.add('checkbox');
-  checkboxDiv.style.display = 'none';
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-  svg.setAttribute('width', '20');
-  svg.setAttribute('height', '20');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', 'M12 4v16m8-8H4');
-  path.setAttribute('stroke', 'currentColor');
-  path.setAttribute('stroke-width', '2');
-  path.setAttribute('stroke-linecap', 'round');
-  path.setAttribute('stroke-linejoin', 'round');
+  const voidDiv = q('<div>')
+    .addClass('void')
+    .addClass(`form-${formNumber}`)
+    .attr('id', q(closestForm).prop('id') ?? '');
+  const addButtonDiv = q('<div>').addClass('add-button').css({ display: 'flex', top: '40.3675' });
+  const checkboxDiv = q('<div>').addClass('checkbox').css('display', 'none');
+  // Parsed from markup: <svg>/<path> land in the SVG namespace, exactly
+  // like the createElementNS version (attribute order is irrelevant).
+  const svg = q(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  );
 
-  svg.appendChild(path);
-  addButtonDiv.appendChild(svg);
-  voidDiv.appendChild(checkboxDiv);
-  voidDiv.appendChild(addButtonDiv);
+  addButtonDiv.append(svg);
+  voidDiv.append(checkboxDiv).append(addButtonDiv);
 
   console.log(`${parentId} > ${formNumber}`);
 
-  addButtonDiv.setAttribute('add_FOLDER', parentId);
-  addButtonDiv.setAttribute('add_ID', formNumber);
+  addButtonDiv.attr('add_FOLDER', parentId);
+  addButtonDiv.attr('add_ID', formNumber);
 
   // Upstream also ORs `tempEditorConfig == {}`, which is always false in
   // JS (object identity), so the 1:1 condition is just the null check.
@@ -116,7 +103,7 @@ export function createVoidButton(event: Event | null = null, form: Element | nul
       | undefined
   )?.[parentId];
   if (buttons) buttons[Number(formNumber)] = { VOID: 'VOID' } as unknown as JsonObject;
-  closestForm.parentNode?.replaceChild(voidDiv, closestForm);
+  q(closestForm).replaceWith(voidDiv);
 
   console.log('The button has been removed.');
   console.log(pageState.tempEditorConfig);
@@ -144,17 +131,17 @@ function loadEditorConfigSync(config: JsonObject): JsonObject {
 
 export function deleteFolder(folderName: string): void {
   ifModif = 1;
-  const folderElement = document.getElementById('folder-' + folderName);
+  const folderElement = byId('folder-' + folderName).get(0) ?? null;
   if (folderElement) {
     if (confirm(text('delete_folder_confirm'))) {
-      folderElement.remove();
+      q(folderElement).remove();
 
-      const folderButtons = document.querySelectorAll(`button[onclick="folder(\`${folderName}\`)"]`);
-      for (const btn of folderButtons) {
-        if (btn.classList.contains('wd_button')) {
-          createVoidButton(null, btn.parentNode as Element | null);
+      const folderButtons = q(`button[onclick="folder(\`${folderName}\`)"]`);
+      for (const btn of folderButtons.toArray()) {
+        if (q(btn).hasClass('wd_button')) {
+          createVoidButton(null, q(btn).parent().get(0) ?? null);
         } else {
-          btn.remove();
+          q(btn).remove();
         }
       }
 
@@ -187,22 +174,21 @@ export function showEditWindow(_event: Event): void {
 }
 
 function swapForms(parentId1: string, formNumber1: string, parentId2: string, formNumber2: string): void {
-  const form1 = document.querySelector(`#folder-${parentId1} .form-${formNumber1}`);
-  const form2 = document.querySelector(`#folder-${parentId2} .form-${formNumber2}`);
+  // Exact-id root + descendant search: equivalent to `#folder-X .form-Y`
+  // without interpolating user-controlled folder names into a selector.
+  const form1 = byId(`folder-${parentId1}`).find(`.form-${formNumber1}`).get(0) ?? null;
+  const form2 = byId(`folder-${parentId2}`).find(`.form-${formNumber2}`).get(0) ?? null;
   if (!form1 || !form2) return;
 
-  const temp = document.createElement('div');
-  temp.innerHTML = form1.innerHTML;
-  form1.innerHTML = form2.innerHTML;
-  form2.innerHTML = temp.innerHTML;
+  const tempHtml = q(form1).html() ?? '';
+  q(form1).html(q(form2).html() ?? '');
+  q(form2).html(tempHtml);
 
-  const editButtonElements = document.querySelectorAll('.edit-button');
-  const deleteButtonElements = document.querySelectorAll('.delete-button');
-  for (const el of editButtonElements) {
-    el.addEventListener('click', showEditWindow);
+  for (const el of q('.edit-button').toArray()) {
+    q(el).on('click', showEditWindow);
   }
-  for (const el of deleteButtonElements) {
-    el.addEventListener('click', showDeleteConfirmation);
+  for (const el of q('.delete-button').toArray()) {
+    q(el).on('click', showDeleteConfirmation);
   }
 
   const folderButtons = (
@@ -219,37 +205,30 @@ function swapForms(parentId1: string, formNumber1: string, parentId2: string, fo
       folderButtons[parentId2][Number(formNumber2)] = tempValue as JsonObject;
     }
   }
-  const checkboxDivs = document.querySelectorAll('div.checkbox');
-  checkboxDivs.forEach((div) => div.classList.remove('checkbox-checked'));
+  q('div.checkbox').removeClass('checkbox-checked');
 }
 
 export function swapButton(event: Event): void {
   if (pageState.editorMode === 1 && swapMode === 1 && !isMouseOverOpenFolder) {
-    let closestForm = (event.target as Element).closest('form.form');
+    let closestForm = q(event.target as Element).closest('form.form').get(0) ?? null;
     if (closestForm === null) {
-      closestForm = (event.target as Element).closest('div.void');
+      closestForm = q(event.target as Element).closest('div.void').get(0) ?? null;
     }
     if (!closestForm) return;
     const { parentId, formNumber } = formCoords(closestForm);
 
-    const checkbox = closestForm.querySelector('div.checkbox');
+    const checkbox = q(closestForm).find('div.checkbox').get(0) ?? null;
     if (swapFirstBtn === 0) {
       swapFirstBtn = `${parentId};;;${formNumber}`;
       console.log(`1: ${swapFirstBtn}\n2: ${swapSecondBtn}`);
-      if (checkbox !== null) {
-        checkbox.classList.add('checkbox-checked');
-      }
+      q(checkbox).addClass('checkbox-checked');
     } else if (swapSecondBtn === 0) {
       if (swapFirstBtn === `${parentId};;;${formNumber}`) {
         swapFirstBtn = 0;
         console.log(`1: ${swapFirstBtn}\n2: ${swapSecondBtn}`);
-        if (checkbox !== null) {
-          checkbox.classList.remove('checkbox-checked');
-        }
+        q(checkbox).removeClass('checkbox-checked');
       } else {
-        if (checkbox !== null) {
-          checkbox.classList.add('checkbox-checked');
-        }
+        q(checkbox).addClass('checkbox-checked');
         swapSecondBtn = `${parentId};;;${formNumber}`;
         if ((swapFirstBtn as string | 0) !== 0) {
           console.log('both btns are selected');
@@ -283,10 +262,13 @@ export function toggleEditorButtonsMode(): void {
   setEditorButtonsDisplay('.add-button', display);
   setEditorButtonsDisplay('.edit-button', display);
   setEditorButtonsDisplay('.delete-button', display);
-  const bar = editorButtons();
-  if (bar) bar.style.display = display;
-  const folders = editorButtonsFolders();
-  if (folders) folders.style.display = pageState.editorMode === 0 ? 'none' : 'block';
+  q(editorButtons()).css('display', display);
+  q(editorButtonsFolders()).css('display', pageState.editorMode === 0 ? 'none' : 'block');
+}
+
+/** Swap-button label text node (qdom has no text-node API; stays native). */
+function swapButtonLabel(): ChildNode | null {
+  return byId('swapEditorButton').get(0)?.childNodes[1] ?? null;
 }
 
 export function hideEditorPartially(): void {
@@ -304,10 +286,11 @@ export function showEditorPartially(): void {
 export function toggleEditorMode(): void {
   pageState.editorMode = pageState.editorMode === 0 ? 1 : 0;
   toggleEditorButtonsMode();
-  const editorButton = document.getElementById('editorButton');
+  const editorButton = byId('editorButton').get(0) ?? null;
   if (editorButton) {
-    editorButton.textContent =
-      pageState.editorMode === 0 ? `[Q] ${text('enter_editor_mode')}` : `[Q] ${text('exit_editor_mode')}`;
+    q(editorButton).text(
+      pageState.editorMode === 0 ? `[Q] ${text('enter_editor_mode')}` : `[Q] ${text('exit_editor_mode')}`
+    );
   }
   console.log('La valeur de editorMode a été modifiée :', pageState.editorMode);
 
@@ -336,8 +319,9 @@ export function toggleEditorMode(): void {
     pageState.editorMode = 0;
     toggleEditorButtonsMode();
     if (editorButton) {
-      editorButton.textContent =
-        pageState.editorMode === 0 ? `[Q] ${text('enter_editor_mode')}` : `[Q] ${text('exit_editor_mode')}`;
+      q(editorButton).text(
+        pageState.editorMode === 0 ? `[Q] ${text('enter_editor_mode')}` : `[Q] ${text('exit_editor_mode')}`
+      );
     }
     console.log('La valeur de editorMode a été modifiée :', pageState.editorMode);
   }
@@ -348,9 +332,9 @@ export function SaveExitEditor(tempConfig: JsonObject): void {
   swapMode = 0;
   showEditorPartially();
   swapEditorButtonFunction();
-  const swapBtn = document.getElementById('swapEditorButton');
-  if (swapBtn && swapBtn.childNodes[1]) {
-    swapBtn.childNodes[1].nodeValue = `[S] ${text('swap_buttons')}`;
+  const swapLabel = swapButtonLabel();
+  if (swapLabel) {
+    swapLabel.nodeValue = `[S] ${text('swap_buttons')}`;
   }
   swapFirstBtn = 0;
   swapSecondBtn = 0;
@@ -390,9 +374,9 @@ export function SaveExitEditor(tempConfig: JsonObject): void {
 export function swapEditorButtonFunction(_event?: Event): void {
   void _event;
   swapMode = swapMode === 0 ? 1 : 0;
-  const swapEditorButton = document.getElementById('swapEditorButton');
-  if (swapEditorButton && swapEditorButton.childNodes[1]) {
-    swapEditorButton.childNodes[1].nodeValue =
+  const swapLabel = swapButtonLabel();
+  if (swapLabel) {
+    swapLabel.nodeValue =
       swapMode === 0 ? `[S] ${text('swap_buttons')}` : `[S] ${text('stop_swap_mode')}`;
   }
   swapFirstBtn = 0;
@@ -400,27 +384,30 @@ export function swapEditorButtonFunction(_event?: Event): void {
   console.log('La valeur de swapMode a été modifiée :', swapMode);
 
   if (pageState.editorMode === 1 && swapMode === 1) {
-    if (swapEditorButton && swapEditorButton.childNodes[1]) {
-      swapEditorButton.childNodes[1].nodeValue = `[S] ${text('stop_swap_mode')}`;
+    const swapLabelInner = swapButtonLabel();
+    if (swapLabelInner) {
+      swapLabelInner.nodeValue = `[S] ${text('stop_swap_mode')}`;
     }
     hideEditorPartially();
     setEditorButtonsDisplay('.swapMode-open-folder', 'inline-flex');
     setEditorButtonsDisplay('div.checkbox', 'block');
 
-    const buttons = document.getElementsByTagName('button');
-    for (const button of buttons) {
-      if (!button.classList.contains('EditorButtons-Folder')) {
-        const onclickAttr = button.getAttribute('onclick');
-        const onclickHandlerAttr = button.getAttribute('onclickhandler');
+    // Snapshot: the loop below only touches attributes, so the live
+    // collection's liveness is unobservable here.
+    for (const button of q('button').toArray()) {
+      if (!q(button).hasClass('EditorButtons-Folder')) {
+        const onclickAttr = q(button).attr('onclick');
+        const onclickHandlerAttr = q(button).attr('onclickhandler');
         if (onclickHandlerAttr) {
-          savedOnClicks[onclickHandlerAttr] = onclickAttr;
+          savedOnClicks[onclickHandlerAttr] = onclickAttr ?? null;
         }
-        button.removeAttribute('onclick');
+        q(button).removeAttr('onclick');
       }
     }
   } else {
-    if (swapEditorButton && swapEditorButton.childNodes[1]) {
-      swapEditorButton.childNodes[1].nodeValue = `[S] ${text('swap_buttons')}`;
+    const swapLabelElse = swapButtonLabel();
+    if (swapLabelElse) {
+      swapLabelElse.nodeValue = `[S] ${text('swap_buttons')}`;
     }
     swapMode = 0;
     showEditorPartially();
@@ -428,13 +415,12 @@ export function swapEditorButtonFunction(_event?: Event): void {
     setEditorButtonsDisplay('.swapMode-open-folder', 'none');
     setEditorButtonsDisplay('div.checkbox', 'none');
 
-    const buttons = document.getElementsByTagName('button');
-    for (const button of buttons) {
-      if (!button.classList.contains('EditorButtons-Folder')) {
-        const onclickHandlerAttr = button.getAttribute('onclickhandler');
+    for (const button of q('button').toArray()) {
+      if (!q(button).hasClass('EditorButtons-Folder')) {
+        const onclickHandlerAttr = q(button).attr('onclickhandler');
         const savedOnClick = onclickHandlerAttr ? savedOnClicks[onclickHandlerAttr] : undefined;
         if (savedOnClick) {
-          button.setAttribute('onclick', savedOnClick);
+          q(button).attr('onclick', savedOnClick);
         }
       }
     }
@@ -494,69 +480,62 @@ export function undoUNSwap(): void {
 
 export function reloadEditorEvents(): void {
   console.log('reloading editor events');
-  const addButtonElements = document.querySelectorAll('.add-button');
-  const editButtonElements = document.querySelectorAll('.edit-button');
-  const deleteButtonElements = document.querySelectorAll('.delete-button');
+  for (const el of q('.add-button').toArray()) {
+    q(el).on('click', showAddConfirmation);
+  }
+  for (const el of q('.edit-button').toArray()) {
+    q(el).on('click', showEditWindow);
+  }
+  for (const el of q('.delete-button').toArray()) {
+    q(el).on('click', showDeleteConfirmation);
+  }
 
-  const AllButtons1 = document.querySelectorAll('form.form');
-  const AllButtons2 = document.querySelectorAll('div.void');
-  const AllButtons = Array.from(AllButtons1).concat(Array.from(AllButtons2));
-
-  for (const el of addButtonElements) {
-    el.addEventListener('click', showAddConfirmation);
-  }
-  for (const el of editButtonElements) {
-    el.addEventListener('click', showEditWindow);
-  }
-  for (const el of deleteButtonElements) {
-    el.addEventListener('click', showDeleteConfirmation);
-  }
+  const AllButtons = q('form.form').toArray().concat(q('div.void').toArray());
   for (const el of AllButtons) {
-    el.addEventListener('click', swapButton);
+    q(el).on('click', swapButton);
   }
 
-  const open_modal_addbutton = document.querySelectorAll('div.add-button');
-  for (const button of open_modal_addbutton) {
-    button.addEventListener('click', function () {
+  for (const button of q('div.add-button').toArray()) {
+    q(button).on('click', function () {
       if (swapMode !== 1) {
-        const addIdValue = button.getAttribute('add_ID');
-        const addFolderValue = button.getAttribute('add_FOLDER');
-        show_addbutton_modal(addFolderValue, addIdValue);
+        const addIdValue = q(button).attr('add_ID');
+        const addFolderValue = q(button).attr('add_FOLDER');
+        show_addbutton_modal(addFolderValue ?? null, addIdValue ?? null);
       }
     });
   }
 }
 
 export function wireEditorChrome(): void {
-  const openFolderDivs = document.querySelectorAll('.swapMode-open-folder');
-  for (const el of openFolderDivs) {
-    el.addEventListener('mouseover', function () {
+  for (const el of q('.swapMode-open-folder').toArray()) {
+    q(el).on('mouseover', function () {
       isMouseOverOpenFolder = true;
     });
-    el.addEventListener('mouseout', function () {
+    q(el).on('mouseout', function () {
       setTimeout(function () {
         isMouseOverOpenFolder = false;
       }, 150);
     });
   }
 
-  const forms = document.querySelectorAll('form');
-  forms.forEach((form) => {
-    form.addEventListener('submit', function (event) {
-      if (swapMode === 1) {
-        event.preventDefault();
-      }
+  q('form')
+    .toArray()
+    .forEach((form) => {
+      q(form).on('submit', function (event) {
+        if (swapMode === 1) {
+          event.preventDefault();
+        }
+      });
     });
-  });
 
-  document.getElementById('editorButton')?.addEventListener('click', toggleEditorMode);
-  document.getElementById('exitEditorButton')?.addEventListener('click', toggleEditorMode);
+  byId('editorButton').on('click', toggleEditorMode);
+  byId('exitEditorButton').on('click', toggleEditorMode);
 
-  document.getElementById('SaveExitEditorButton')?.addEventListener('click', function () {
+  byId('SaveExitEditorButton').on('click', function () {
     console.log('tempEditorConfig:');
     console.log(JSON.stringify(pageState.tempEditorConfig));
     SaveExitEditor(pageState.tempEditorConfig);
   });
 
-  document.getElementById('swapEditorButton')?.addEventListener('click', swapEditorButtonFunction);
+  byId('swapEditorButton').on('click', swapEditorButtonFunction);
 }

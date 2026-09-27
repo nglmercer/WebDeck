@@ -1,9 +1,17 @@
 import { normalizeHexValue } from '../legacy/colors';
+import { q, byId } from '../query';
 
 // Shared by add/edit button modals: the per-modal preview wiring
 // (updateImageSize / updateButtonBackgroundColor), parameterized by id.
 
 export type ButtonState = Record<string, unknown>;
+
+function svgSizeExpandos(imageElement: HTMLElement, calculatedSize: number): void {
+  // 1:1 upstream quirk: expando (not attribute) assignment on <svg>.
+  // qdom's typed .prop() cannot express expandos, so this stays native.
+  (imageElement as unknown as Record<string, unknown>)['height'] = calculatedSize + 'px';
+  (imageElement as unknown as Record<string, unknown>)['width'] = calculatedSize + 'px';
+}
 
 export function updateImageSize(
   imageSizeSlider: HTMLInputElement,
@@ -11,37 +19,35 @@ export function updateImageSize(
   imageElement: HTMLElement,
   button: ButtonState
 ): void {
-  imageSizeSlider.addEventListener('input', function () {
-    const imageSize = imageSizeSlider.value;
+  q(imageSizeSlider).on('input', function () {
+    const imageSize = String(q(imageSizeSlider).val() ?? '');
     const parsedValue = parseInt(imageSize);
 
     const calculatedSize = 112 * (parsedValue / 100) + 3;
-    imageElement.style.width = calculatedSize + 'px';
+    q(imageElement).css('width', calculatedSize + 'px');
 
-    if (imageElement.tagName === 'svg') {
-      imageElement.style.height = calculatedSize + 'px';
-      (imageElement as unknown as Record<string, unknown>)['height'] = calculatedSize + 'px';
-      (imageElement as unknown as Record<string, unknown>)['width'] = calculatedSize + 'px';
+    if (q(imageElement).is('svg')) {
+      q(imageElement).css('height', calculatedSize + 'px');
+      svgSizeExpandos(imageElement, calculatedSize);
     }
 
-    imageSizeValue.value = String(parsedValue);
+    q(imageSizeValue).val(String(parsedValue));
     button['image_size'] = `${parsedValue}%`;
   });
 
-  imageSizeValue.addEventListener('input', function (event) {
-    const newValue = imageSizeValue.value;
+  q(imageSizeValue).on('input', function (event) {
+    const newValue = String(q(imageSizeValue).val() ?? '');
     const parsedValue = parseInt(newValue);
 
     if (!isNaN(parsedValue)) {
-      imageSizeSlider.value = String(parsedValue);
+      q(imageSizeSlider).val(String(parsedValue));
 
       const calculatedSize = 112 * (parsedValue / 100) + 3;
-      imageElement.style.width = calculatedSize + 'px';
+      q(imageElement).css('width', calculatedSize + 'px');
 
-      if (imageElement.tagName === 'svg') {
-        imageElement.style.height = calculatedSize + 'px';
-        (imageElement as unknown as Record<string, unknown>)['height'] = calculatedSize + 'px';
-        (imageElement as unknown as Record<string, unknown>)['width'] = calculatedSize + 'px';
+      if (q(imageElement).is('svg')) {
+        q(imageElement).css('height', calculatedSize + 'px');
+        svgSizeExpandos(imageElement, calculatedSize);
       }
 
       button['image_size'] = `${parsedValue}%`;
@@ -50,7 +56,7 @@ export function updateImageSize(
     event.preventDefault();
   });
 
-  imageSizeValue.addEventListener('keypress', function (event) {
+  q(imageSizeValue).on('keypress', function (event) {
     const charCode = event.which ? event.which : event.keyCode;
 
     if (charCode < 48 || charCode > 57) {
@@ -65,28 +71,26 @@ export function updateButtonBackgroundColor(
   buttonBackgroundColorHex: HTMLInputElement,
   button: ButtonState
 ): void {
-  buttonBackgroundColorInput.addEventListener('input', function () {
-    const colorValue = buttonBackgroundColorInput.value;
+  q(buttonBackgroundColorInput).on('input', function () {
+    const colorValue = String(q(buttonBackgroundColorInput).val() ?? '');
     const hexValue = normalizeHexValue(colorValue);
 
-    buttonBackgroundColorInput.value = hexValue;
-    buttonBackgroundColorHex.value = hexValue;
+    q(buttonBackgroundColorInput).val(hexValue);
+    q(buttonBackgroundColorHex).val(hexValue);
     button['background_color'] = hexValue;
 
-    buttonElement.style.backgroundColor = hexValue;
-    buttonElement.style.boxShadow = '0 0 5px ' + hexValue;
+    q(buttonElement).css({ backgroundColor: hexValue, boxShadow: '0 0 5px ' + hexValue });
   });
 
-  buttonBackgroundColorHex.addEventListener('input', function () {
-    const hexValue = buttonBackgroundColorHex.value;
+  q(buttonBackgroundColorHex).on('input', function () {
+    const hexValue = String(q(buttonBackgroundColorHex).val() ?? '');
     const normalizedHexValue = normalizeHexValue(hexValue);
 
-    buttonBackgroundColorInput.value = normalizedHexValue;
-    buttonBackgroundColorHex.value = normalizedHexValue;
+    q(buttonBackgroundColorInput).val(normalizedHexValue);
+    q(buttonBackgroundColorHex).val(normalizedHexValue);
     button['background_color'] = normalizedHexValue;
 
-    buttonElement.style.backgroundColor = normalizedHexValue;
-    buttonElement.style.boxShadow = '0 0 5px ' + normalizedHexValue;
+    q(buttonElement).css({ backgroundColor: normalizedHexValue, boxShadow: '0 0 5px ' + normalizedHexValue });
   });
 }
 
@@ -95,31 +99,32 @@ export function swapPreviewImage(
   modalId: string,
   input: HTMLInputElement
 ): { image: HTMLElement; slider: HTMLInputElement; value: HTMLInputElement } | null {
-  const element = document.getElementById(`button-image_${modalId}`);
+  const element = byId<HTMLElement>(`button-image_${modalId}`).get(0);
   if (!element) return null;
   const fileName = input.files?.[0]?.name ?? '';
   const filePath = '.config/user_uploads/' + fileName;
 
   let image: HTMLElement | null;
-  if (element.tagName.toLowerCase() === 'svg') {
-    const imgElement = document.createElement('img');
-    imgElement.id = `button-image_${modalId}`;
-    imgElement.draggable = false;
-    imgElement.src = filePath;
-    imgElement.style.width = '87px';
-    element.parentNode?.replaceChild(imgElement, element);
-    image = document.getElementById(`button-image_${modalId}`);
+  if (q(element).is('svg')) {
+    q(element).replaceWith(
+      q<HTMLImageElement>('<img>')
+        .attr('id', `button-image_${modalId}`)
+        .prop('draggable', false)
+        .prop('src', filePath)
+        .css('width', '87px')
+    );
+    image = byId<HTMLElement>(`button-image_${modalId}`).get(0) ?? null;
   } else {
-    (element as HTMLImageElement).src = filePath;
-    image = document.getElementById(`button-image_${modalId}`);
+    q(element).attr('src', filePath);
+    image = byId<HTMLElement>(`button-image_${modalId}`).get(0) ?? null;
   }
 
-  const slider = document.getElementById(`image-size-slider_${modalId}`) as HTMLInputElement | null;
-  const value = document.getElementById(`image-size-value_${modalId}`) as HTMLInputElement | null;
+  const slider = byId<HTMLInputElement>(`image-size-slider_${modalId}`).get(0);
+  const value = byId<HTMLInputElement>(`image-size-value_${modalId}`).get(0);
   if (!image || !slider || !value) return null;
 
-  slider.value = '70';
-  value.value = '70';
-  image.style.width = '81.4';
+  q(slider).val('70');
+  q(value).val('70');
+  q(image).css('width', '81.4');
   return { image, slider, value };
 }

@@ -1,5 +1,6 @@
 import { html, join } from '../framework/html';
 import { asObject, asString, get, type BootContext } from '../framework/types';
+import { q } from '../query';
 import { initBackgroundSetting } from '../legacy/background-setting';
 import { initColorSetting } from '../legacy/color-setting';
 import { initFilepath } from '../legacy/filepath';
@@ -22,17 +23,19 @@ import { startUsageLoop } from '../app/usage';
 /** Full page: render all views, then wire behavior (DOMContentLoaded order). */
 export function renderApp(mount: HTMLElement, ctx: BootContext): void {
   applyHead(ctx);
-  mount.innerHTML = join([
-    loadingScreen(ctx.svgs),
-    shellView(ctx),
-    // Scale wrapper: auto_resize scales ONLY the grid, so fixed UI
-    // (folder bar, editor bar, modals) stays viewport-anchored instead
-    // of drifting/scaling with the body transform.
-    html`<div id="deck-scale">${gridView(ctx)}</div>`,
-    editorBarView(),
-    configView(ctx),
-    addModalChrome(ctx),
-  ]).value;
+  q(mount).html(
+    join([
+      loadingScreen(ctx.svgs),
+      shellView(ctx),
+      // Scale wrapper: auto_resize scales ONLY the grid, so fixed UI
+      // (folder bar, editor bar, modals) stays viewport-anchored instead
+      // of drifting/scaling with the body transform.
+      html`<div id="deck-scale">${gridView(ctx)}</div>`,
+      editorBarView(),
+      configView(ctx),
+      addModalChrome(ctx),
+    ]).value
+  );
 
   installGlobals();
 

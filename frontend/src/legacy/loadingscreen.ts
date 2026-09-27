@@ -1,15 +1,16 @@
 // Port of static/js/loadingscreen.js. Runs after first render (the SPA
 // boot replaces the window-load timing with identical sequencing).
+import { q, byId } from '../query';
 
 export function initLoadingScreen(): void {
-  const loadingScreen = document.getElementById('loading-screen');
-  const serverDisconnected = document.getElementById('server-disconnected');
+  const loadingScreen = byId('loading-screen').get(0) ?? null;
+  const serverDisconnected = byId('server-disconnected').get(0) ?? null;
   if (!loadingScreen || !serverDisconnected) return;
 
-  loadingScreen.classList.add('hidden');
+  q(loadingScreen).addClass('hidden');
   setTimeout(function () {
-    serverDisconnected.classList.remove('invisible');
-    loadingScreen.classList.add('transparent');
-    loadingScreen.style.pointerEvents = 'none';
+    q(serverDisconnected).removeClass('invisible');
+    q(loadingScreen).addClass('transparent');
+    q(loadingScreen).css('pointerEvents', 'none');
   }, 5000);
 }

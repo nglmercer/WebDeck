@@ -1,28 +1,33 @@
 // Port of static/js/themes-setting.js. Runs after render.
+import { contains, q, byId } from '../query';
 
 function toggleDisplay(): void {
-  const chooseBackgroundElement = document.getElementById('choose-themes');
-  const configContainer = document.getElementById('config-container');
+  const chooseBackgroundElement = byId<HTMLElement>('choose-themes').get(0) ?? null;
+  const configContainer = byId<HTMLElement>('config-container').get(0) ?? null;
   if (!chooseBackgroundElement || !configContainer) return;
 
+  // NOTE: inline-style probe; qdom's `.css()` getter is computed-only.
   if (chooseBackgroundElement.style.display === 'none') {
-    chooseBackgroundElement.style.display = 'block';
-    configContainer.style.display = 'none';
+    q(chooseBackgroundElement).css('display', 'block');
+    q(configContainer).css('display', 'none');
   } else {
-    chooseBackgroundElement.style.display = 'none';
-    configContainer.style.display = 'block';
+    q(chooseBackgroundElement).css('display', 'none');
+    q(configContainer).css('display', 'block');
   }
 }
 
 function getThemesArray(): string[] {
-  const themesArrayEl = document.getElementById('choose-themes-handler') as HTMLInputElement | null;
-  const themesArrayString = (themesArrayEl?.value ?? '[]').replace(/'/g, '"');
+  const themesArrayString = String(byId<HTMLInputElement>('choose-themes-handler').val() ?? '[]').replace(
+    /'/g,
+    '"'
+  );
   return JSON.parse(themesArrayString) as string[];
 }
 
 function updateThemesInputValue(themesArray: string[]): void {
   const modifiedArray = themesArray.toString().replace(/,/g, "','");
-  document.getElementById('choose-themes-handler')?.setAttribute('value', `['${modifiedArray}']`);
+  // NOTE: the *attribute* (default value), not the property — .attr(), not .val().
+  byId('choose-themes-handler').attr('value', `['${modifiedArray}']`);
 }
 
 function swapElements(list: string[], firstElement: string, secondElement: string): string[] | null {
@@ -41,163 +46,179 @@ function swapElements(list: string[], firstElement: string, secondElement: strin
 }
 
 function swapDomElements(element1: Element, element2: Element): void {
-  const parent = element1.parentNode;
+  const parent = q(element1).parent().get(0) ?? null;
   if (!parent) return;
-  const index1 = Array.prototype.indexOf.call(parent.children, element1) as number;
-  const index2 = Array.prototype.indexOf.call(parent.children, element2) as number;
-  parent.insertBefore(element1, parent.children[index2] ?? null);
-  parent.insertBefore(element2, parent.children[index1] ?? null);
+  // Same live-index dance as the original: indices are captured first,
+  // the sibling list is re-read between the two moves, and a missing
+  // index appends (like insertBefore with null).
+  const kids = (): Element[] => q(parent).children().toArray();
+  const first = kids();
+  const index1 = first.indexOf(element1);
+  const index2 = first.indexOf(element2);
+  const target1 = kids()[index2];
+  if (target1) q(element1).insertBefore(target1);
+  else q(element1).appendTo(parent);
+  const target2 = kids()[index1];
+  if (target2) q(element2).insertBefore(target2);
+  else q(element2).appendTo(parent);
 
   const themesArray = getThemesArray();
-  swapElements(themesArray, element1.getAttribute('filename') ?? '', element2.getAttribute('filename') ?? '');
+  swapElements(themesArray, q(element1).attr('filename') ?? '', q(element2).attr('filename') ?? '');
   updateThemesInputValue(themesArray);
 }
 
 function handleArrowClick(this: Element, event: Event): void {
   const target = event.target as Element;
-  const themeContainer = this.closest('.theme-container');
-  const parentContainer = themeContainer?.parentNode as Element | null;
+  const themeContainer = q(this).closest('.theme-container').get(0) ?? null;
+  const parentContainer = themeContainer ? q(themeContainer).parent().get(0) ?? null : null;
   if (!themeContainer || !parentContainer) return;
 
-  if (target.classList.contains('arrow-up-hitbox')) {
-    const prevSibling = themeContainer.previousElementSibling;
-    if (prevSibling !== null && !prevSibling.hasAttribute('defaulttheme')) {
+  if (q(target).hasClass('arrow-up-hitbox')) {
+    const prevSibling = q(themeContainer).prev().get(0) ?? null;
+    if (prevSibling !== null && q(prevSibling).attr('defaulttheme') === undefined) {
       swapDomElements(themeContainer, prevSibling);
     }
-  } else if (target.classList.contains('arrow-down-hitbox')) {
-    const nextSibling = themeContainer.nextElementSibling;
-    if (nextSibling !== null && !nextSibling.hasAttribute('defaulttheme')) {
+  } else if (q(target).hasClass('arrow-down-hitbox')) {
+    const nextSibling = q(themeContainer).next().get(0) ?? null;
+    if (nextSibling !== null && q(nextSibling).attr('defaulttheme') === undefined) {
       swapDomElements(nextSibling, themeContainer);
     }
   }
 
-  const firstTheme = parentContainer.firstElementChild;
-  const lastTheme = parentContainer.lastElementChild;
-  const arrows = themeContainer.querySelectorAll('.arrow-up-hitbox, .arrow-down-hitbox');
-  arrows.forEach((arrow) => {
-    if (
-      (themeContainer === firstTheme || firstTheme?.hasAttribute('defaulttheme')) &&
-      arrow.classList.contains('arrow-up-hitbox')
-    ) {
-      arrow.classList.add('disabled');
-    } else {
-      arrow.classList.remove('disabled');
-    }
-    if (
-      (themeContainer === lastTheme || lastTheme?.hasAttribute('defaulttheme')) &&
-      arrow.classList.contains('arrow-down-hitbox')
-    ) {
-      arrow.classList.add('disabled');
-    } else {
-      arrow.classList.remove('disabled');
-    }
-  });
+  const firstTheme = q(parentContainer).children().first().get(0) ?? null;
+  const lastTheme = q(parentContainer).children().last().get(0) ?? null;
+  q(themeContainer)
+    .find('.arrow-up-hitbox, .arrow-down-hitbox')
+    .toArray()
+    .forEach((arrow) => {
+      if (
+        (themeContainer === firstTheme || q(firstTheme).attr('defaulttheme') !== undefined) &&
+        q(arrow).hasClass('arrow-up-hitbox')
+      ) {
+        q(arrow).addClass('disabled');
+      } else {
+        q(arrow).removeClass('disabled');
+      }
+      if (
+        (themeContainer === lastTheme || q(lastTheme).attr('defaulttheme') !== undefined) &&
+        q(arrow).hasClass('arrow-down-hitbox')
+      ) {
+        q(arrow).addClass('disabled');
+      } else {
+        q(arrow).removeClass('disabled');
+      }
+    });
 }
 
 export function initThemesSetting(): void {
-  document.getElementById('setting-themes')?.addEventListener('click', toggleDisplay);
-  document.getElementById('setting-themes-back')?.addEventListener('click', toggleDisplay);
+  byId('setting-themes').on('click', toggleDisplay);
+  byId('setting-themes-back').on('click', toggleDisplay);
 
-  const containers = document.querySelectorAll('.theme-container');
+  q('.theme-container')
+    .toArray()
+    .forEach((container) => {
+      const disableArrow = q(container).find('.disable-theme').get(0) ?? null;
+      const moveArrow = disableArrow ?? q(container).find('.enable-theme').get(0) ?? null;
+      const upDownArrows = q(container).find('.arrows-container').get(0) ?? null;
 
-  containers.forEach((container) => {
-    let moveArrow: Element | null = container.querySelector('.disable-theme');
-    const upDownArrows = container.querySelector('.arrows-container');
-    if (moveArrow === null) {
-      moveArrow = container.querySelector('.enable-theme');
-    }
-
-    if (moveArrow !== null) {
-      const arrow = moveArrow;
-      container.addEventListener('mouseenter', function () {
-        arrow.classList.remove('invisible');
-      });
-
-      container.addEventListener('mouseleave', function () {
-        arrow.classList.add('invisible');
-      });
-    }
-
-    if (upDownArrows !== null) {
-      const arrows = upDownArrows;
-      container.addEventListener('mouseenter', function () {
-        const parentDiv = document.getElementById('disabled-themes');
-        const isChild = parentDiv?.contains(arrows) ?? false;
-        if (!isChild) {
-          arrows.classList.remove('invisible');
-        }
-      });
-
-      container.addEventListener('mouseleave', function () {
-        arrows.classList.add('invisible');
-      });
-    }
-  });
-
-  document.querySelectorAll('.disable-theme-hitbox, .enable-theme-hitbox').forEach((hitbox) => {
-    hitbox.addEventListener('click', function (this: Element) {
-      const themeContainer = this.closest('.theme-container');
-      let arrow = themeContainer?.querySelector('.disable-theme') ?? null;
-      const upDownArrows = themeContainer?.querySelector('.arrows-container');
-      if (arrow === null) {
-        arrow = themeContainer?.querySelector('.enable-theme') ?? null;
+      if (moveArrow !== null) {
+        q(container).hover(
+          function () {
+            q(moveArrow).removeClass('invisible');
+          },
+          function () {
+            q(moveArrow).addClass('invisible');
+          }
+        );
       }
 
-      console.log(arrow);
-      console.log('Clicked:', this.classList.contains('disable-theme-hitbox') ? 'Disable Theme' : 'Enable Theme');
-      console.log('Parent .theme-container:', themeContainer);
+      if (upDownArrows !== null) {
+        q(container).hover(
+          function () {
+            const parentDiv = byId('disabled-themes').get(0) ?? null;
+            // `.arrows-container` is never `#disabled-themes` itself, so
+            // qdom's contains() matches the native call here.
+            const isChild = parentDiv ? contains(parentDiv, upDownArrows) : false;
+            if (!isChild) {
+              q(upDownArrows).removeClass('invisible');
+            }
+          },
+          function () {
+            q(upDownArrows).addClass('invisible');
+          }
+        );
+      }
+    });
 
-      const themePath = themeContainer?.getAttribute('filename') ?? '';
-      const themesArray = getThemesArray();
-      let newElement: string | undefined;
+  q('.disable-theme-hitbox, .enable-theme-hitbox')
+    .toArray()
+    .forEach((hitbox) => {
+      q(hitbox).on('click', function (this: Element) {
+        const themeContainer = q(this).closest('.theme-container').get(0) ?? null;
+        const disableArrow = themeContainer
+          ? q(themeContainer).find('.disable-theme').get(0) ?? null
+          : null;
+        const arrow = disableArrow ?? (themeContainer ? q(themeContainer).find('.enable-theme').get(0) ?? null : null);
+        const upDownArrows = themeContainer
+          ? q(themeContainer).find('.arrows-container').get(0) ?? null
+          : null;
 
-      console.log(themesArray);
+        console.log(arrow);
+        console.log('Clicked:', q(this).hasClass('disable-theme-hitbox') ? 'Disable Theme' : 'Enable Theme');
+        console.log('Parent .theme-container:', themeContainer);
 
-      for (let i = 0; i < themesArray.length; i++) {
-        if ((themesArray[i] ?? '').replace('//', '') === themePath.replace('//', '')) {
-          if (!(themesArray[i] ?? '').startsWith('//')) {
-            newElement = '//' + (themesArray[i] ?? '');
-            themesArray.splice(i, 1);
-            themesArray.unshift(newElement);
-            const disabled = document.getElementById('disabled-themes');
-            if (disabled && themeContainer) disabled.prepend(themeContainer);
+        const themePath = themeContainer ? q(themeContainer).attr('filename') ?? '' : '';
+        const themesArray = getThemesArray();
+        let newElement: string | undefined;
 
-            this.classList.remove('disable-theme-hitbox');
-            this.classList.add('enable-theme-hitbox');
+        console.log(themesArray);
 
-            arrow?.classList.remove('disable-theme');
-            arrow?.classList.add('enable-theme');
+        for (let i = 0; i < themesArray.length; i++) {
+          if ((themesArray[i] ?? '').replace('//', '') === themePath.replace('//', '')) {
+            if (!(themesArray[i] ?? '').startsWith('//')) {
+              newElement = '//' + (themesArray[i] ?? '');
+              themesArray.splice(i, 1);
+              themesArray.unshift(newElement);
+              const disabled = byId('disabled-themes').get(0) ?? null;
+              if (disabled && themeContainer) q(disabled).prepend(themeContainer);
 
-            upDownArrows?.classList.add('invisible');
-          } else {
-            newElement = (themesArray[i] ?? '').replace('//', '');
-            themesArray.splice(i, 1);
-            themesArray.unshift(newElement);
-            const enabled = document.getElementById('enabled-themes');
-            if (enabled && themeContainer) enabled.prepend(themeContainer);
+              q(this).removeClass('disable-theme-hitbox');
+              q(this).addClass('enable-theme-hitbox');
 
-            this.classList.remove('enable-theme-hitbox');
-            this.classList.add('disable-theme-hitbox');
+              q(arrow).removeClass('disable-theme');
+              q(arrow).addClass('enable-theme');
 
-            arrow?.classList.remove('enable-theme');
-            arrow?.classList.add('disable-theme');
+              q(upDownArrows).addClass('invisible');
+            } else {
+              newElement = (themesArray[i] ?? '').replace('//', '');
+              themesArray.splice(i, 1);
+              themesArray.unshift(newElement);
+              const enabled = byId('enabled-themes').get(0) ?? null;
+              if (enabled && themeContainer) q(enabled).prepend(themeContainer);
 
-            upDownArrows?.classList.remove('invisible');
+              q(this).removeClass('enable-theme-hitbox');
+              q(this).addClass('disable-theme-hitbox');
+
+              q(arrow).removeClass('enable-theme');
+              q(arrow).addClass('disable-theme');
+
+              q(upDownArrows).removeClass('invisible');
+            }
           }
         }
-      }
-      void newElement;
+        void newElement;
 
-      console.log(themesArray);
+        console.log(themesArray);
 
-      updateThemesInputValue(themesArray);
+        updateThemesInputValue(themesArray);
+      });
     });
-  });
 
-  const upDownArrows = document.querySelectorAll('.arrow-up-hitbox, .arrow-down-hitbox');
-  upDownArrows.forEach((arrow) => {
-    arrow.addEventListener('click', handleArrowClick);
-  });
+  q('.arrow-up-hitbox, .arrow-down-hitbox')
+    .toArray()
+    .forEach((arrow) => {
+      q(arrow).on('click', handleArrowClick);
+    });
 }
 
 console.log('themes-setting.js loaded');

@@ -1,4 +1,5 @@
 import type { JsonObject } from '../framework/types';
+import { q, byId } from '../query';
 import { pageState } from './state';
 
 // Usage polling (index.jinja window-load block). Shared tile updater is used
@@ -19,46 +20,52 @@ function evalUsagePath(usage_dict: JsonObject, path: string): string {
 }
 
 export function updateUsageTiles(usage_dict: JsonObject): void {
-  const divElements = document.querySelectorAll('.usage-value');
-  divElements.forEach((divElement) => {
-    const otherClass = divElement.classList[1] as string | undefined;
-    if (otherClass !== undefined && otherClass.includes('.')) {
-      // One bad tile path must not abort the whole update loop.
-      try {
-        const evaluated = evalUsagePath(usage_dict, otherClass);
-        if (evaluated !== '-') {
-          let newValue: string;
-          if (otherClass.includes('percent')) {
-            newValue = evaluated + '%';
-          } else if (otherClass.includes('_gb')) {
-            newValue = evaluated + ' gb';
-          } else if (otherClass.includes('_mb')) {
-            newValue = evaluated + ' mb';
-          } else if (otherClass.includes('bytes')) {
-            newValue = evaluated + ' bytes';
-          } else {
-            newValue = evaluated;
+  q('.usage-value')
+    .toArray()
+    .forEach((divElement) => {
+      // Equivalent to `classList[1]` (second class token or undefined).
+      const otherClass = q(divElement)
+        .attr('class')
+        ?.split(/\s+/)
+        .filter((token) => token !== '')[1];
+      if (otherClass !== undefined && otherClass.includes('.')) {
+        // One bad tile path must not abort the whole update loop.
+        try {
+          const evaluated = evalUsagePath(usage_dict, otherClass);
+          if (evaluated !== '-') {
+            let newValue: string;
+            if (otherClass.includes('percent')) {
+              newValue = evaluated + '%';
+            } else if (otherClass.includes('_gb')) {
+              newValue = evaluated + ' gb';
+            } else if (otherClass.includes('_mb')) {
+              newValue = evaluated + ' mb';
+            } else if (otherClass.includes('bytes')) {
+              newValue = evaluated + ' bytes';
+            } else {
+              newValue = evaluated;
+            }
+            if (!newValue.includes('undefined')) {
+              q(divElement).text(newValue);
+            }
           }
-          if (!newValue.includes('undefined')) {
-            divElement.textContent = newValue;
-          }
+        } catch {
+          return;
         }
-      } catch {
-        return;
       }
-    }
-  });
+    });
 }
 
 export function pollUsageOnce(): void {
-  const forms = document.querySelectorAll('form');
   const messages: Array<{ form: HTMLFormElement; message: string }> = [];
-  forms.forEach((form) => {
-    const messageElement = form.querySelector('.message') as HTMLInputElement | null;
-    if (messageElement) {
-      messages.push({ form, message: messageElement.value });
-    }
-  });
+  q('form')
+    .toArray()
+    .forEach((form) => {
+      const messageElement = q(form).find('.message').get(0) ?? null;
+      if (messageElement) {
+        messages.push({ form, message: String(q(messageElement).val() ?? '') });
+      }
+    });
 
   try {
     fetch('/usage', {
@@ -71,8 +78,7 @@ export function pollUsageOnce(): void {
       .then((response) => response.json())
       .then((usage_dict: JsonObject) => {
         if (pageState.disconnectCount > 0) {
-          const loadingScreen = document.getElementById('loading-screen');
-          loadingScreen?.classList.add('hidden');
+          byId('loading-screen').addClass('hidden');
           pageState.disconnectCount = 0;
         }
         // NOTE: upstream repeats this update once per form (identical
@@ -82,8 +88,7 @@ export function pollUsageOnce(): void {
       .catch(function () {
         pageState.disconnectCount++;
         if (pageState.disconnectCount > 3) {
-          const loadingScreen = document.getElementById('loading-screen');
-          loadingScreen?.classList.remove('hidden');
+          byId('loading-screen').removeClass('hidden');
         }
       });
   } catch (e) {

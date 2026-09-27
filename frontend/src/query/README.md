@@ -40,7 +40,9 @@ ready(() => {
 ## API
 
 **Select:** `q('input')` (typed!), `q('.cls')`, `q(el)`, `q(list)`,
-`q('<div>…')` (create), `q(sel, context)`, `q.ready(fn)`, `$q` alias.
+`q('<div>…')` (create), `q(sel, context)`, `byId(id)` (exact
+`getElementById` semantics — safe for ids that are not valid CSS
+selectors, e.g. leading digits), `q.ready(fn)`, `$q` alias.
 
 **Sets:** `length`, `[i]`, iteration, `get(i?)`, `toArray`, `each`
 (`false` breaks), `map` (no flattening), `eq/first/last/slice`,

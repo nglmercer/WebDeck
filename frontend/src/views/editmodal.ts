@@ -11,6 +11,7 @@ import {
   type JsonObject,
   type JsonValue,
 } from '../framework/types';
+import { q, byId, post } from '../query';
 import { swapPreviewImage, updateButtonBackgroundColor, updateImageSize, type ButtonState } from './modalstyle';
 import { svgSlot } from './svg';
 
@@ -270,29 +271,24 @@ export function wireEditModal(
 ): void {
   const devMode = asBool(get(ctx.config, 'settings', 'dev_mode'));
   const button: ButtonState = { ...buttonSettings };
-  const nameEl = document.getElementById(`button-text-preview_${editModalId}`);
-  button['name'] = nameEl?.textContent?.trim() ?? '';
+  button['name'] = byId(`button-text-preview_${editModalId}`).text()?.trim() ?? '';
   modalStates.set(editModalId, { button });
 
-  const image = document.getElementById(`button-image_${editModalId}`) as HTMLElement | null;
-  const imageSizeSlider = document.getElementById(
-    `image-size-slider_${editModalId}`
-  ) as HTMLInputElement | null;
-  const imageSizeValue = document.getElementById(`image-size-value_${editModalId}`) as HTMLInputElement | null;
+  const image = byId<HTMLElement>(`button-image_${editModalId}`).get(0) ?? null;
+  const imageSizeSlider = byId<HTMLInputElement>(`image-size-slider_${editModalId}`).get(0) ?? null;
+  const imageSizeValue = byId<HTMLInputElement>(`image-size-value_${editModalId}`).get(0) ?? null;
   if (image && imageSizeSlider && imageSizeValue) {
     updateImageSize(imageSizeSlider, imageSizeValue, image, button);
   }
 
-  const buttonElement = document.getElementById(`button-element_${editModalId}`) as HTMLElement | null;
-  const bgInput = document.getElementById(
-    `background-color-input_${editModalId}`
-  ) as HTMLInputElement | null;
-  const bgHex = document.getElementById(`background-color-hex_${editModalId}`) as HTMLInputElement | null;
+  const buttonElement = byId<HTMLElement>(`button-element_${editModalId}`).get(0) ?? null;
+  const bgInput = byId<HTMLInputElement>(`background-color-input_${editModalId}`).get(0) ?? null;
+  const bgHex = byId<HTMLInputElement>(`background-color-hex_${editModalId}`).get(0) ?? null;
   if (buttonElement && bgInput && bgHex) {
     updateButtonBackgroundColor(buttonElement, bgInput, bgHex, button);
   }
 
-  document.getElementById(`image-input_${editModalId}`)?.addEventListener('change', function () {
+  byId(`image-input_${editModalId}`).on('change', function () {
     console.log(`image-input_${editModalId} just got changed!`);
     const input = this as unknown as HTMLInputElement;
     const file = input.files?.[0];
@@ -300,38 +296,36 @@ export function wireEditModal(
     const formData = new FormData();
     formData.append('file', file);
 
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/upload_file', true);
-    xhr.onload = function () {
-      if (xhr.status === 200) {
+    void post('/upload_file', formData).then(
+      () => {
         console.log('File downloaded successfully!');
         const swapped = swapPreviewImage(editModalId, input);
         if (!swapped) return;
         button['image_size'] = '70';
         updateImageSize(swapped.slider, swapped.value, swapped.image, button);
         button['image'] = '**uploaded/' + (input.files?.[0]?.name ?? '');
-      } else {
+      },
+      () => {
         console.error('Failed to download file.');
       }
-    };
-    xhr.send(formData);
+    );
   });
 
   if (devMode) {
-    document.getElementById(`command_${editModalId}`)?.addEventListener('input', function () {
-      button['message'] = (this as unknown as HTMLInputElement).value;
+    byId(`command_${editModalId}`).on('input', function () {
+      button['message'] = String(q(this).val() ?? '');
     });
   }
 
-  const buttonText = document.getElementById(`button-text-input_${editModalId}`) as HTMLInputElement | null;
-  const buttonPreview = document.getElementById(`button-text-preview_${editModalId}`);
-  buttonText?.addEventListener('input', function () {
-    const textValue = buttonText.value;
-    if (buttonPreview) buttonPreview.textContent = textValue;
+  const buttonText = byId<HTMLInputElement>(`button-text-input_${editModalId}`).get(0) ?? null;
+  const buttonPreview = byId(`button-text-preview_${editModalId}`).get(0) ?? null;
+  q(buttonText).on('input', function () {
+    const textValue = String(q(buttonText).val() ?? '');
+    if (buttonPreview) q(buttonPreview).text(textValue);
     button['name'] = textValue;
   });
 
-  document.getElementById(`${editModalId}_submit`)?.addEventListener('click', function (event) {
+  byId(`${editModalId}_submit`).on('click', function (event) {
     setTimeout(function () {
       buttonCommand(editModalId, commandId, event);
     }, 1000);
@@ -344,34 +338,33 @@ function buttonCommand(editModalID: string, command: string, event: Event): void
   } else {
     event.preventDefault();
     try {
-      const form = document.querySelector(`form[edit_modal_ID="${editModalID}"]`);
-      const inputs = form?.querySelectorAll('input, select, textarea') ?? [];
-      const values = Array.from(inputs)
+      const inputs = q(`form[edit_modal_ID="${editModalID}"]`).find('input, select, textarea').toArray();
+      const values = inputs
         .filter((input) => {
-          const parent = input.parentElement;
-          if (parent && window.getComputedStyle(parent).display === 'none') {
+          if (q(input).parent().css('display') === 'none') {
             return false;
           }
-          if (input.classList.contains('choice')) {
+          if (q(input).hasClass('choice')) {
             return false;
           }
-          const ancestorDivs = input.closest('.editorStyle, .webdeck_foldername_div');
-          if (ancestorDivs) {
+          if (q(input).closest('.editorStyle, .webdeck_foldername_div').length > 0) {
             return false;
           }
           return true;
         })
         .map((input) => {
-          const el = input as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
-          if (el.tagName === 'SELECT') {
-            const select = el as HTMLSelectElement;
+          if (q(input).is('select')) {
+            const select = input as HTMLSelectElement;
             return select.options[select.selectedIndex]?.value ?? '';
-          } else if ((el as HTMLInputElement).type === 'radio' || (el as HTMLInputElement).type === 'checkbox') {
-            return (el as HTMLInputElement).checked ? (el as HTMLInputElement).value : '';
-          } else if ((el as HTMLInputElement).type === 'submit' || (el as HTMLInputElement).type === 'button') {
+          }
+          const field = input as HTMLInputElement;
+          const kind = q(field).prop('type');
+          if (kind === 'radio' || kind === 'checkbox') {
+            return q(field).prop('checked') === true ? String(q(field).val() ?? '') : '';
+          } else if (kind === 'submit' || kind === 'button') {
             return '';
           } else {
-            return (el as HTMLInputElement).value;
+            return String(q(field).val() ?? '');
           }
         })
         .filter((value) => value !== '');

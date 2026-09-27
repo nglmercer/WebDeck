@@ -1,6 +1,6 @@
 // qdom public API: the chainable wrapper, statics, and shared types.
 
-export { Q, q, ready, type Content, type ElementPredicate, type QueryContext } from './core';
+export { Q, q, byId, ready, type Content, type ElementPredicate, type QueryContext } from './core';
 export { ajax, get, getJSON, post, HttpError, type AjaxOptions } from './ajax';
 export { each, map, extend, contains } from './utils';
 export type { EffectOptions } from './effects';
