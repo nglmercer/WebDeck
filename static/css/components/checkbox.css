@@ -5,7 +5,8 @@
   background-color: white;
   border-radius: 50%;
   vertical-align: middle;
-  border: 1px solid #ddd;
+  border: 2px solid #17233d;
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.9), 0 1px 4px rgba(0, 0, 0, 0.45);
   appearance: none;
   -webkit-appearance: none;
   outline: none;
@@ -22,17 +23,20 @@
 }
 
 .checkbox-checked {
-  background-color: #66bb6a;
+  background-color: #1f7a38;
+  border-color: #1f7a38;
 }
 
 .checkbox-checked::before {
-  content: url(/static/img//checked.svg);
+  content: "✓";
   display: inline-block;
-  color: rgb(0, 0, 0);
+  color: #ffffff;
   font-weight: bold;
+  font-size: 1em;
+  line-height: 1;
   text-align: center;
-  margin-top: 3px;
-  margin-left: 2px;
+  margin-top: 1px;
+  margin-left: 3px;
 }
 
 

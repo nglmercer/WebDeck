@@ -253,7 +253,15 @@ function wireKeydown(): void {
       }
     }
     if (event.key === 'Escape') {
-      hide_last_modal();
+      const noModalOpen =
+        isEditbuttonModalOpened() === 0 &&
+        isAddbuttonModalOpened() === 0 &&
+        modalOpacity !== '1';
+      if (noModalOpen && pageState.editorMode === 1 && isSwapMode()) {
+        swapEditorButtonFunction();
+      } else {
+        hide_last_modal();
+      }
     }
     const modal = q<HTMLElement>('.modal-container').get(0) ?? null;
 

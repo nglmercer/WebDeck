@@ -121,12 +121,14 @@ mod tests {
         // `style.css` is a manifest: the references live in the `@import`ed
         // modules and must surface in cascade order, exactly as the old
         // monolithic file produced them.
+        // NOTE: `checked.svg` is gone on purpose — the swap checkbox now
+        // renders a text check (contrast fix), so no stylesheet references
+        // it and the inventory must not list it.
         assert_eq!(
             get_svgs(),
             vec![
                 "/static/img//eye.svg",
                 "/static/img//eye-slash.svg",
-                "/static/img//checked.svg",
                 "/static/img//chevron_down.svg",
                 "/static/img//plus-circle2.svg",
                 "/static/img//plus-circle.svg",

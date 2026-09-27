@@ -146,6 +146,7 @@ quit_without_saving=저장하지 않고 종료
 save_and_exit=저장 후 종료
 swap_buttons=버튼간 스왑
 stop_swap_mode=스왑 모드 종료
+swap_hint=바꾸기 모드: 버튼을 클릭한 뒤 대상을 클릭하세요. 빈 칸으로 이동합니다. S 또는 Esc로 종료합니다.
 no_changes_to_undo=실행 취소할 변경 사항이 없습니다.
 
 

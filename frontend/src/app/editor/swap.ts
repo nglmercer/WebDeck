@@ -44,6 +44,7 @@ function swapForms(parentId1: string, formNumber1: string, parentId2: string, fo
     }
   }
   q('div.checkbox').removeClass('checkbox-checked');
+  q('.swap-picked').removeClass('swap-picked');
 }
 
 export function swapButton(event: Event): void {
@@ -60,11 +61,13 @@ export function swapButton(event: Event): void {
       editorUiState.swapFirstBtn = `${parentId};;;${formNumber}`;
       console.log(`1: ${editorUiState.swapFirstBtn}\n2: ${editorUiState.swapSecondBtn}`);
       q(checkbox).addClass('checkbox-checked');
+      q(closestForm).addClass('swap-picked');
     } else if (editorUiState.swapSecondBtn === 0) {
       if (editorUiState.swapFirstBtn === `${parentId};;;${formNumber}`) {
         editorUiState.swapFirstBtn = 0;
         console.log(`1: ${editorUiState.swapFirstBtn}\n2: ${editorUiState.swapSecondBtn}`);
         q(checkbox).removeClass('checkbox-checked');
+        q(closestForm).removeClass('swap-picked');
       } else {
         q(checkbox).addClass('checkbox-checked');
         editorUiState.swapSecondBtn = `${parentId};;;${formNumber}`;
@@ -111,6 +114,8 @@ export function swapEditorButtonFunction(_event?: Event): void {
     hideEditorPartially();
     setEditorButtonsDisplay('.swapMode-open-folder', 'inline-flex');
     setEditorButtonsDisplay('div.checkbox', 'block');
+    setEditorButtonsDisplay('#swapHint', 'inline');
+    document.body.classList.add('swap-active');
 
     // Snapshot: the loop below only touches attributes, so the live
     // collection's liveness is unobservable here.
@@ -134,6 +139,12 @@ export function swapEditorButtonFunction(_event?: Event): void {
 
     setEditorButtonsDisplay('.swapMode-open-folder', 'none');
     setEditorButtonsDisplay('div.checkbox', 'none');
+    setEditorButtonsDisplay('#swapHint', 'none');
+    document.body.classList.remove('swap-active');
+    // Picks reset at toggle time; also clear their markers (previously a
+    // picked checkbox stayed green after leaving swap mode).
+    q('div.checkbox').removeClass('checkbox-checked');
+    q('.swap-picked').removeClass('swap-picked');
 
     for (const button of q('button').toArray()) {
       if (!q(button).hasClass('EditorButtons-Folder')) {

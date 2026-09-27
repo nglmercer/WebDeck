@@ -64,3 +64,17 @@ describe('gridView key labels', () => {
     expect(gridLabels(out)).toHaveLength(0);
   });
 });
+
+describe('gridView editor chrome', () => {
+  it('renders badge glyphs in currentColor so badges control contrast', () => {
+    const out = gridView(testCtx({ index: [volumeButton] })).value;
+    expect(out).toContain('stroke="currentColor"');
+    expect(out).toContain('<svg fill="currentColor"');
+  });
+
+  it('renders void add-buttons without unitless offsets', () => {
+    const out = gridView(testCtx({ index: [{ VOID: 'VOID' }] })).value;
+    expect(out).toContain('class="add-button"');
+    expect(out).not.toContain('40.3675');
+  });
+});

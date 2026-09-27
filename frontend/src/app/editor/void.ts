@@ -38,7 +38,7 @@ export function createVoidButton(event: Event | null = null, form: Element | nul
     .addClass('void')
     .addClass(`form-${formNumber}`)
     .attr('id', q(closestForm).prop('id') ?? '');
-  const addButtonDiv = q('<div>').addClass('add-button').css({ display: 'flex', top: '40.3675' });
+  const addButtonDiv = q('<div>').addClass('add-button').css('display', 'flex');
   const checkboxDiv = q('<div>').addClass('checkbox').css('display', 'none');
   // Parsed from markup: <svg>/<path> land in the SVG namespace, exactly
   // like the createElementNS version (attribute order is irrelevant).

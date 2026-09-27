@@ -139,6 +139,7 @@ quit_without_saving=ᑑ⚍╎ℸ ̣   ∴╎ℸ ̣ ⍑𝙹⚍ℸ ̣   ᓭᔑ⍊�
 save_and_exit=ᓭᔑ⍊ᒷ  ᔑリ↸  ᒷ ̇/╎ℸ ̣
 swap_buttons=ᓭ∴ᔑ!¡  2  ʖ⚍ℸ ̣ ℸ ̣ 𝙹リᓭ
 stop_swap_mode=ᓭℸ ̣ 𝙹!¡  ᓭ∴ᔑ!¡  ᒲ𝙹↸ᒷ
+swap_hint=Swap mode: click a button, then its target. Empty slots move it. S or Esc exits.
 no_changes_to_undo=ℸ ̣ ⍑ᒷ∷ᒷ  ᔑ∷ᒷ  リ𝙹  ᓵ⍑ᔑリ⊣ᒷᓭ  ℸ ̣ 𝙹  ⚍リ↸𝙹.
 
 

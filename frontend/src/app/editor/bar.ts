@@ -6,6 +6,7 @@ import { text } from '../../framework/i18n';
 export function editorBarView(): Html {
   return html`
     <div id="EditorButtons" style="display: none;">
+      <span id="swapHint" style="display: none;">${text('swap_hint')}</span>
       <button class="button" id="SaveExitEditorButton">
         <img src="static/img/save.svg" width="20" height="20" id="EditorButtonLogo" />
         [E] ${text('save_and_exit')}

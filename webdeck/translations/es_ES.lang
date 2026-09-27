@@ -146,6 +146,7 @@ quit_without_saving=Salir sin guardar
 save_and_exit=Guardar y salir
 swap_buttons=Intercambiar botones
 stop_swap_mode=Detener el Modo de Intercambio
+swap_hint=Modo intercambio: pulsa un botón y luego su destino. Los huecos vacíos lo mueven. S o Esc para salir.
 no_changes_to_undo=No hay cambios que deshacer.
 
 
