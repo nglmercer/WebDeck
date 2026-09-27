@@ -455,6 +455,14 @@ fn python_method(
             "replace" => {
                 let from = arg_str(0)?;
                 let to = arg_str(1)?;
+                // Python's third arg caps the replacement count
+                // (`str.replace(old, new, count)`); the usage tiles rely on
+                // `.replace("'", '"', 2)` to split name from path.
+                if let Some(count) = args.get(2).and_then(|v| v.as_i64()) {
+                    if count >= 0 {
+                        return Ok(Value::from(owned.replacen(from, to, count as usize)));
+                    }
+                }
                 Ok(Value::from(owned.replace(from, to)))
             }
             // Python accepts a single prefix or a tuple of prefixes.
@@ -1535,6 +1543,34 @@ mod tests {
             )
             .expect("renders");
         assert_eq!(out, "index");
+    }
+
+    #[test]
+    fn usage_path_chain_matches_python() {
+        // index.jinja usage tiles: name/path split on the first TWO quotes,
+        // then the class derivation must keep a dotted eval path.
+        let env = minijinja_env();
+        let ctx = serde_json::json!({
+            "message": "/usage 'RAM' usage_dict['memory']['usage_percent']",
+        });
+        let name = env
+            .render_str(
+                r#"{{ message.replace("'", '"', 2).split('"')[1].strip() }}"#,
+                &ctx,
+            )
+            .expect("renders");
+        assert_eq!(name, "RAM");
+        let path = env
+            .render_str(r#"{{ message.replace("'", '"', 2).split('"')[2] }}"#, &ctx)
+            .expect("renders");
+        assert_eq!(path, " usage_dict['memory']['usage_percent']");
+        let class = env
+            .render_str(
+                r#"{{ message.replace("'", '"', 2).split('"')[2].replace("'", '"').replace('"]["', '.').replace('"]', '').replace('["', '.') }}"#,
+                &ctx,
+            )
+            .expect("renders");
+        assert_eq!(class, " usage_dict.memory.usage_percent");
     }
 
     #[test]

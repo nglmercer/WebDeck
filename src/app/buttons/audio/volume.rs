@@ -10,6 +10,7 @@
 //! On Linux the same shapes run against `pactl` (PulseAudio/PipeWire);
 //! other platforms return errors.
 
+#[cfg(not(any(windows, target_os = "linux")))]
 use crate::app::utils::logger::log;
 
 #[cfg(windows)]
@@ -291,20 +292,25 @@ pub fn decrease_volume(delta: &str) -> Result<f32, String> {
 }
 
 /// Port of `handle_command` (re-exported as `audio::change_volume`).
-pub fn handle_command(message: &str) {
+///
+/// Failures propagate as `Err` (bad deltas, unreachable audio backend):
+/// Python lets them raise to `send_data_route`, which answers
+/// `{"success": false, ...}` — swallowing them here would report fake
+/// success while the volume never moves.
+pub fn handle_command(message: &str) -> Result<(), String> {
     if message.starts_with("/volume +") {
         let delta = message.replacen("/volume +", "", 1);
         if delta.replace(' ', "").is_empty() {
-            let _ = increase_volume("1");
+            increase_volume("1")?;
         } else {
-            let _ = increase_volume(&delta);
+            increase_volume(&delta)?;
         }
     } else if message.starts_with("/volume -") {
         let delta = message.replacen("/volume -", "", 1);
         if delta.replace(' ', "").is_empty() {
-            let _ = decrease_volume("1");
+            decrease_volume("1")?;
         } else {
-            let _ = decrease_volume(&delta);
+            decrease_volume(&delta)?;
         }
     } else if message.starts_with("/volume set") {
         match message
@@ -313,11 +319,12 @@ pub fn handle_command(message: &str) {
             .parse::<i32>()
         {
             Ok(target) => {
-                let _ = set_volume(target as f32 / 100.0);
+                set_volume(target as f32 / 100.0)?;
             }
-            Err(e) => log().error(&format!("Invalid /volume set target: {e}")),
+            Err(e) => return Err(format!("Invalid /volume set target: {e}")),
         }
     }
+    Ok(())
 }
 
 #[cfg(all(test, target_os = "linux"))]
@@ -351,5 +358,14 @@ mod tests {
         // Wrong header matches nothing; incomplete blocks are skipped.
         assert!(parse_endpoint_names(sample, "Source #").is_empty());
         assert!(parse_endpoint_names("Source #1\n\tName: x\n", "Source #").is_empty());
+    }
+
+    #[test]
+    fn bad_set_target_returns_err_without_touching_audio() {
+        // Pure: the parse fails before any pactl call, so this never
+        // changes the system volume (Python raises ValueError here too).
+        assert!(handle_command("/volume set abc").is_err());
+        assert!(handle_command("/volume set").is_err());
+        assert!(handle_command("/volume").is_ok());
     }
 }

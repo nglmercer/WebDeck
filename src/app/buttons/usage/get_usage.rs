@@ -153,8 +153,10 @@ pub fn get_usage(get_all: Option<bool>, asked_devices: &[Vec<String>]) -> Value 
         let mut bytes_sent: u64 = 0;
         let mut bytes_recv: u64 = 0;
         for (_, data) in Networks::new_with_refreshed_list().iter() {
-            bytes_sent += data.transmitted();
-            bytes_recv += data.received();
+            // NOTE: psutil reports lifetime totals; sysinfo's
+            // transmitted()/received() are since-last-refresh (0 here).
+            bytes_sent += data.total_transmitted();
+            bytes_recv += data.total_received();
         }
         computer_info["network"] = json!({
             "bytes_sent": bytes_sent,
@@ -289,6 +291,38 @@ mod tests {
         let total_gb = info["memory"]["total_gb"].as_f64().unwrap_or(0.0);
         assert!((0.5..=4096.0).contains(&total_gb), "total_gb={total_gb}");
         assert!(info["gpus"].get("defaultGPU").is_some());
+    }
+
+    /// Linux oracle: `/proc/net/dev` lifetime totals must match the
+    /// reported network counters (guards against since-refresh mixups).
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn network_reports_lifetime_totals() {
+        let _guard = test_env();
+        let proc = std::fs::read_to_string("/proc/net/dev").expect("/proc/net/dev");
+        let mut proc_recv: u64 = 0;
+        let mut proc_sent: u64 = 0;
+        for line in proc.lines().skip(2) {
+            let fields: Vec<&str> = line.split_whitespace().collect();
+            if fields.len() >= 10 {
+                proc_recv += fields[1].parse::<u64>().unwrap_or(0);
+                proc_sent += fields[9].parse::<u64>().unwrap_or(0);
+            }
+        }
+        let info = get_usage(Some(true), &[]);
+        let recv = info["network"]["bytes_recv"].as_u64().unwrap_or(0);
+        let sent = info["network"]["bytes_sent"].as_u64().unwrap_or(0);
+        // Background traffic moves between the two reads; tolerate it.
+        let tolerance = (proc_recv / 100).max(10_000_000);
+        assert!(
+            recv.abs_diff(proc_recv) <= tolerance,
+            "recv={recv} proc={proc_recv}"
+        );
+        let tolerance = (proc_sent / 100).max(10_000_000);
+        assert!(
+            sent.abs_diff(proc_sent) <= tolerance,
+            "sent={sent} proc={proc_sent}"
+        );
     }
 
     #[test]

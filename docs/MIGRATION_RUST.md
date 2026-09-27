@@ -183,8 +183,10 @@ Every Windows-only API has a Linux equivalent behind `cfg(target_os =
   `screenshots` future-incompat note from the crate itself).
 - `cargo check --target x86_64-pc-windows-gnu --all-targets`: clean, zero
   warnings — full Windows backend coverage including tray/rodio/cpal.
-- `cargo test`: 66 passed, 0 failed, 1 ignored (incl. Linux pactl/wmctrl/
-  grim-parser/backend unit tests; tray menu test inits real lang files).
+- `cargo test`: 70 passed, 0 failed, 1 ignored (incl. Linux pactl/wmctrl/
+  grim-parser/backend unit tests; tray menu test inits real lang files;
+  volume failures surface as `{"success": false}` like Python; usage-tile
+  template chain + `/proc/net/dev` network-totals oracle).
 - Live smoke test (`--no-tray -p 18080`, isolated copy of
   `webdeck/`+`templates/`+`static/`): `POST /usage` → 200,
   `POST /send-data` (`/debug-send`, `/volume +`, `/exec type:single_line …`)

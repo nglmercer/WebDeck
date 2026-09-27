@@ -923,7 +923,9 @@ pub fn handle_command(message: &str) -> Value {
     } else if message.starts_with("/clipboard") {
         hotkey(&["win", "v"]);
     } else if message.starts_with("/volume") {
-        audio::change_volume(&message);
+        if let Err(message) = audio::change_volume(&message) {
+            return failure(&message);
+        }
     } else if message.starts_with("/spotify") {
         return spotify::handle_command(&message);
     } else if message.starts_with("/obs") {
@@ -1004,6 +1006,17 @@ mod tests {
         assert_eq!(app_volume_target("set", 20), None);
         assert_eq!(app_volume_target("+x", 20), None);
         assert_eq!(app_volume_target("mute", 20), None);
+    }
+
+    #[test]
+    fn volume_errors_surface_as_failure() {
+        // Pure: bad targets fail before any audio call; the route must
+        // report {"success": false} like Python, never fake success.
+        let failed = handle_command("/volume set abc");
+        assert_eq!(failed.get("success"), Some(&json!(false)));
+        assert!(failed.get("message").is_some());
+        let ok = handle_command("/volume");
+        assert_eq!(ok.get("success"), Some(&json!(true)));
     }
 
     #[cfg(target_os = "linux")]
