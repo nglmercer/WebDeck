@@ -149,6 +149,11 @@ cargo check --target x86_64-pc-windows-gnu --all-targets  # Windows coverage
 - `cpal` 0.18 renamed `Device::name()` → `description().name()` and
   `SampleRate(u32)` → `u32`; error kinds via `Error::kind()`. `rodio`
   0.22 renamed `Sink` → `Player`, `OutputStream` → `MixerDeviceSink`.
+- `/usage` percents are rounded to 1 decimal (psutil reports
+  `round(x, 1)`); sysinfo math yields full precision.
+- The tile-update loop in `index.jinja` contains per-tile `eval`
+  failures (a missing path used to abort every later tile); shared
+  with — and equally fixed for — the Python app.
 
 ## Linux backends (no Python required)
 
@@ -167,6 +172,13 @@ Every Windows-only API has a Linux equivalent behind `cfg(target_os =
 - ffmpeg: system `PATH` lookup (`apt install ffmpeg`); no download.
 - Color picker: `screenshots` crate, with a `grim` 1x1 fallback on Wayland.
 - Toasts: `notify-rust`; dialogs stay `rfd`.
+- Disks: basename aliases alongside the 1:1 device-path keys
+  (`/dev/nvme0n1p4` → `nvme0n1p4`), since paths are not valid JS eval
+  paths for the usage tiles.
+- AMD GPU (`gpu_method == "AMD"`): `gpu_busy_percent` /
+  `gpu_metrics` / `mem_info_vram_*` sysfs reads (offsets per
+  `kgd_pp_interface.h`, range-gated; missing counters are omitted,
+  never zero-filled).
 
 ## Known gaps / next steps
 
@@ -183,10 +195,11 @@ Every Windows-only API has a Linux equivalent behind `cfg(target_os =
   `screenshots` future-incompat note from the crate itself).
 - `cargo check --target x86_64-pc-windows-gnu --all-targets`: clean, zero
   warnings — full Windows backend coverage including tray/rodio/cpal.
-- `cargo test`: 70 passed, 0 failed, 1 ignored (incl. Linux pactl/wmctrl/
+- `cargo test`: 76 passed, 0 failed, 1 ignored (incl. Linux pactl/wmctrl/
   grim-parser/backend unit tests; tray menu test inits real lang files;
   volume failures surface as `{"success": false}` like Python; usage-tile
-  template chain + `/proc/net/dev` network-totals oracle).
+  template chain + `/proc/net/dev` network-totals oracle; gpu_metrics
+  fixture parse + live amdgpu shape + disk-alias/rounding checks).
 - Live smoke test (`--no-tray -p 18080`, isolated copy of
   `webdeck/`+`templates/`+`static/`): `POST /usage` → 200,
   `POST /send-data` (`/debug-send`, `/volume +`, `/exec type:single_line …`)

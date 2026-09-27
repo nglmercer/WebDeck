@@ -1529,8 +1529,10 @@
                     divElements.forEach(divElement => {
                       const otherClass = divElement.classList[1];
                       if (otherClass !== undefined && otherClass.includes('.')) {
-                        if (eval(otherClass) !== '-') {
-                          try {
+                        // One bad tile path (e.g. a disk that doesn't exist on
+                        // this OS) must not abort the whole update loop.
+                        try {
+                          if (eval(otherClass) !== '-') {
                             let newValue;
                             if (otherClass.includes('percent')) {
                               newValue = eval(otherClass) + '%';
@@ -1546,9 +1548,9 @@
                             if (!newValue.includes('undefined')) {
                               divElement.textContent = newValue;
                             }
-                          } catch (error) {
-                            return;
                           }
+                        } catch (error) {
+                          return;
                         }
                       }
                     });
