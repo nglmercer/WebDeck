@@ -687,3 +687,7 @@ settings_group_theme_background=Motyw i tło
 settings_group_appearance=Wygląd
 settings_group_usage=Monitor użycia
 settings_group_advanced=Zaawansowane
+// Key field
+key_capture=Przechwyć
+key_capture_prompt=Naciśnij klawisz… (Esc anuluje)
+key_search_keys=Szukaj klawiszy…

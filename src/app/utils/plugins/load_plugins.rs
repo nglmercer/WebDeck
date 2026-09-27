@@ -10,7 +10,26 @@
 //! Each script must define:
 //! - `addon_name()` → plugin name (port of `_addon_name`)
 //! - `addon_doc()` → map of `{command: doc}` (port of `_dict_doc`, merged
-//!   into `commands[plugin_name]` like Python)
+//!   into `commands[plugin_name]` like Python). Each value is either a doc
+//!   string (legacy form) or a map (extended form):
+//!   ```rhai
+//!   #{
+//!     greet: "says hi",
+//!     add: #{
+//!       description: "adds two numbers",
+//!       command: "/add",
+//!       args: [
+//!         #{ TYPE: "input number['1','100']", label: "First" },
+//!         #{ TYPE: "input text", label: "Note" },
+//!       ],
+//!     },
+//!   }
+//!   ```
+//!   The map form declares the add-button form for the command: `args`
+//!   entries use the same `TYPE` strings as `webdeck/commands.json`
+//!   (`input text`, `input key`, `choice`, `input dropdown`, ...), plus an
+//!   inline `label` shown verbatim (plugin labels have no `.lang` entries).
+//!   `command` defaults to `/{name}` (the dispatch key) and `args` to `[]`.
 //! - `addon_call(command, args)` → handles one command invocation with the
 //!   `<|§|>`-split argument array (port of `_dict_func`, whose return values
 //!   Python discards — rhai return values are likewise ignored)
@@ -251,6 +270,44 @@ fn dynamic_to_json(value: Dynamic) -> Value {
     }
 }
 
+/// Normalize one `addon_doc()` entry into a frontend command object.
+///
+/// - string → `{command: "/{key}", args: [], description}` (legacy form)
+/// - map → passed through with `command` defaulting to `/{key}` and `args`
+///   defaulting to `[]` (a non-array `args` is replaced with `[]`)
+/// - anything else → `{command: "/{key}", args: []}` plus a warning
+fn normalize_plugin_doc_entry(key: &str, value: Dynamic) -> Value {
+    let default_command = Value::from(format!("/{key}"));
+    if value.is_string() {
+        return serde_json::json!({
+            "command": default_command,
+            "args": [],
+            "description": value.into_string().unwrap_or_default(),
+        });
+    }
+    if value.is_map() {
+        let mut obj = match dynamic_to_json(value) {
+            Value::Object(map) => map,
+            _ => serde_json::Map::new(),
+        };
+        let needs_command = obj
+            .get("command")
+            .and_then(Value::as_str)
+            .is_none_or(|s| s.is_empty());
+        if needs_command {
+            obj.insert("command".to_string(), default_command);
+        }
+        if !obj.get("args").is_some_and(Value::is_array) {
+            obj.insert("args".to_string(), Value::Array(vec![]));
+        }
+        return Value::Object(obj);
+    }
+    log().warning(&format!(
+        "addon_doc entry '{key}': expected a string or map, ignoring value"
+    ));
+    serde_json::json!({"command": default_command, "args": []})
+}
+
 /// Compile one `.rhai` plugin: returns (addon name, doc JSON, commands).
 fn load_rhai_plugin(
     path: &std::path::Path,
@@ -299,7 +356,15 @@ fn load_rhai_plugin(
         funcs.insert(key, handler);
     }
 
-    let doc_json = dynamic_to_json(Dynamic::from(doc));
+    let doc_json = Value::from(
+        doc.into_iter()
+            .map(|(k, v)| {
+                let key = k.to_string();
+                let entry = normalize_plugin_doc_entry(&key, v);
+                (key, entry)
+            })
+            .collect::<serde_json::Map<String, Value>>(),
+    );
     Ok((name, doc_json, funcs))
 }
 
@@ -308,9 +373,12 @@ mod tests {
     use super::*;
 
     fn write_plugin(source: &str) -> std::path::PathBuf {
+        // Unique file per test: parallel tests must not share one path.
+        static NEXT_ID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let id = NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let dir = std::env::temp_dir().join("webdeck_rhai_test");
         let _ = std::fs::create_dir_all(&dir);
-        let path = dir.join("demo.rhai");
+        let path = dir.join(format!("demo_{}_{id}.rhai", std::process::id()));
         std::fs::write(&path, source).unwrap();
         path
     }
@@ -329,10 +397,64 @@ mod tests {
         );
         let (name, doc, funcs) = load_rhai_plugin(&path).expect("plugin loads");
         assert_eq!(name, "demo");
-        assert_eq!(doc["greet"], Value::from("says hi"));
+        // Legacy string docs normalize to arg-less command objects.
+        assert_eq!(doc["greet"]["command"], Value::from("/greet"));
+        assert_eq!(doc["greet"]["args"], Value::Array(vec![]));
+        assert_eq!(doc["greet"]["description"], Value::from("says hi"));
         assert!(funcs.contains_key("greet") && funcs.contains_key("add"));
         // Dispatch works and discards the return value.
         funcs["add"](&["1".to_string(), "2".to_string()]);
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn plugin_doc_map_form_declares_args() {
+        let path = write_plugin(
+            r#"
+            fn addon_name() { "calc" }
+            fn addon_doc() { #{
+                add: #{
+                    description: "adds two numbers",
+                    args: [
+                        #{ TYPE: "input number['1','100']", label: "First" },
+                        #{ TYPE: "input text", label: "Note", placeholder: "hi" }
+                    ]
+                },
+                ping: #{ description: "no args here" },
+                broken: #{ args: "not-an-array" }
+            } }
+            fn addon_call(cmd, args) {}
+        "#,
+        );
+        let (_, doc, funcs) = load_rhai_plugin(&path).expect("plugin loads");
+        assert_eq!(doc["add"]["command"], Value::from("/add"));
+        assert_eq!(
+            doc["add"]["args"][0]["TYPE"],
+            Value::from("input number['1','100']")
+        );
+        assert_eq!(doc["add"]["args"][0]["label"], Value::from("First"));
+        assert_eq!(doc["add"]["args"][1]["placeholder"], Value::from("hi"));
+        assert_eq!(doc["add"]["description"], Value::from("adds two numbers"));
+        assert_eq!(doc["ping"]["command"], Value::from("/ping"));
+        assert_eq!(doc["ping"]["args"], Value::Array(vec![]));
+        assert_eq!(doc["broken"]["args"], Value::Array(vec![]));
+        assert!(funcs.contains_key("add"));
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn plugin_doc_wrong_type_falls_back_to_empty_command() {
+        let path = write_plugin(
+            r#"
+            fn addon_name() { "weird" }
+            fn addon_doc() { #{ num: 42 } }
+            fn addon_call(cmd, args) {}
+        "#,
+        );
+        let (_, doc, funcs) = load_rhai_plugin(&path).expect("plugin loads");
+        assert_eq!(doc["num"]["command"], Value::from("/num"));
+        assert_eq!(doc["num"]["args"], Value::Array(vec![]));
+        assert!(funcs.contains_key("num"));
         let _ = std::fs::remove_file(&path);
     }
 

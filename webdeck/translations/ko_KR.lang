@@ -687,3 +687,7 @@ settings_group_theme_background=테마 및 배경
 settings_group_appearance=모양
 settings_group_usage=사용량 모니터
 settings_group_advanced=고급
+// Key field
+key_capture=캡처
+key_capture_prompt=키를 누르세요… (Esc 취소)
+key_search_keys=키 검색…

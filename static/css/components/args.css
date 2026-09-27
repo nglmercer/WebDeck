@@ -40,4 +40,28 @@ input.filepath, input.folderpath {
   margin-left: 4px;
 }
 
+/* Key-selector field (input key): value row + searchable named-key list. */
+.key-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: -webkit-fill-available;
+}
+.key-field-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+.key-field-row input {
+  width: -webkit-fill-available;
+}
+.key-capture.arming {
+  outline: 2px solid #4da3ff;
+  outline-offset: 1px;
+}
+select.key-aux {
+  width: -webkit-fill-available;
+}
+
 

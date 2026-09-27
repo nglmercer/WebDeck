@@ -687,3 +687,7 @@ settings_group_theme_background=Тема и фон
 settings_group_appearance=Внешний вид
 settings_group_usage=Монитор нагрузки
 settings_group_advanced=Дополнительно
+// Key field
+key_capture=Захватить
+key_capture_prompt=Нажмите клавишу… (Esc — отмена)
+key_search_keys=Поиск клавиш…

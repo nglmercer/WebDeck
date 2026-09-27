@@ -596,7 +596,7 @@
       "command": "/key",
       "args": [
         {
-          "TYPE": "input text"
+          "TYPE": "input key"
         }
       ],
       "style": {

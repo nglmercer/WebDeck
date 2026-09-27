@@ -1,28 +1,16 @@
 import { html, join, raw, type Html } from '../framework/html';
 import { text } from '../framework/i18n';
 import {
-  asArray,
   asObject,
   asString,
   get,
   type BootContext,
   type JsonObject,
 } from '../framework/types';
+import { keyField } from '../components/keyfield';
+import { parseField, type ArgSchema } from './argschema';
 
-/**
- * Port of the `eval(...)` literal parser used by args.jinja
- * (`['0','100']` → string list).
- */
-export function evalList(source: string): string[] {
-  const quoted = [...source.matchAll(/'([^']*)'|"([^"]*)"/g)].map((m) => m[1] ?? m[2] ?? '');
-  if (quoted.length > 0) return quoted;
-  return source
-    .replace('[', '')
-    .replace(']', '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter((s) => s !== '');
-}
+export { evalList } from './argschema';
 
 export interface ArgsRenderContext {
   ctx: BootContext;
@@ -40,19 +28,28 @@ function queryBase(rctx: ArgsRenderContext): string {
   if (rctx.subId !== 0) {
     cmd = rctx.parentCommand.replace(/ /g, '_').replace(/'/g, '').toLowerCase() + '_sub' + rctx.subId;
   }
-  return `${cat}_${cmd}_`;
+  return `${cat}_${cmd}`;
 }
 
-/** Single arg field (one args.jinja include). `argId` is the loop counter. */
-export function argField(rctx: ArgsRenderContext, arg: JsonObject, argId: string | number): Html {
+/**
+ * Render one parsed field. `fieldId` is the 1-based arg number and only
+ * feeds dropdown option labels; every other kind ignores it.
+ */
+export function renderField(
+  rctx: ArgsRenderContext,
+  schema: ArgSchema,
+  fieldId: string | number
+): Html {
   const { ctx, argModalId } = rctx;
   const dark = ctx.dark_theme;
-  const type = asString(arg['TYPE']);
   const file = ''; // `{{file}}` is undefined upstream → renders ""
 
-  if (type.includes('webdeck_foldername')) {
-    const folders = Object.keys(asObject(get(ctx.config, 'front', 'buttons')));
-    return html`<div class="webdeck_foldername_ALL">
+  switch (schema.kind) {
+    case 'none':
+      return raw('');
+    case 'foldername': {
+      const folders = Object.keys(asObject(get(ctx.config, 'front', 'buttons')));
+      return html`<div class="webdeck_foldername_ALL">
         ${join(
           folders.map(
             (key) => html`<div class="webdeck_foldername">
@@ -62,121 +59,98 @@ export function argField(rctx: ArgsRenderContext, arg: JsonObject, argId: string
           )
         )}
     </div>`;
-  }
-  if (type.includes('path-soundboard-audio')) {
-    return html`<input class="${raw(dark)} audio-input" id="audio-input_${argModalId}" type="file" name="file" accept=".mp3" />`;
-  }
-  if (type.includes('filetype')) {
-    const outputs: Html[] = [];
-    for (const item of type.split(' ')) {
-      if (item.startsWith('filetype')) {
-        const filetypes = evalList(item.replace('filetype', ''));
-        outputs.push(
-          html`<input class="${raw(dark)} audio-input" id="audio-input_${argModalId}" type="file" name="file" accept="${filetypes.join(', ')}" />`
-        );
-      }
     }
-    return join(outputs);
-  }
-  if (type.includes('filepath')) {
-    const outputs: Html[] = [];
-    for (const item of type.split(' ')) {
-      if (item.startsWith('filepath')) {
-        const filetypes = evalList(item.replace('filepath', ''));
-        outputs.push(html`<div class="filepath">
+    case 'audioUpload':
+      return html`<input class="${raw(dark)} audio-input" id="audio-input_${argModalId}" type="file" name="file" accept=".mp3" />`;
+    case 'filetype':
+      return join(
+        schema.accepts.map(
+          (filetypes) =>
+            html`<input class="${raw(dark)} audio-input" id="audio-input_${argModalId}" type="file" name="file" accept="${filetypes.join(', ')}" />`
+        )
+      );
+    case 'filepath':
+      return join(
+        schema.acceptLists.map(
+          (filetypes) => html`<div class="filepath">
                 <button class="filepath" filetypes="${filetypes.join('_')}"> ${text('select_your_file')} </button>
                 <input type="text" class="filepath ${raw(dark)}" placeholder="${text('no_file_chosen')}" />
-            </div>`);
-      }
-    }
-    return join(outputs);
-  }
-  if (type.includes('file')) {
-    return html`<div class="filepath">
+            </div>`
+        )
+      );
+    case 'filePicker':
+      return html`<div class="filepath">
         <button class="filepath"> ${text('select_your_file')} </button>
         <input type="text" class="filepath ${raw(dark)}" placeholder="${text('no_file_chosen')}" />
     </div>`;
-  }
-  if (type.includes('folderpath')) {
-    return html`<div class="folderpath">
+    case 'folderPicker':
+      return html`<div class="folderpath">
         <button class="folderpath"> ${text('select_your_file')} </button>
         <input type="text" class="folderpath ${raw(dark)}" placeholder="${text('no_file_chosen')}" />
     </div>`;
-  }
-  if (type.includes('url')) {
-    return html`<input class="${raw(dark)}" type="url" name="${file}" id="url_${argModalId}" placeholder="https://example.com" />`;
-  }
-  if (type.includes('number')) {
-    const outputs: Html[] = [];
-    for (const item of type.split(' ')) {
-      if (item.startsWith('number')) {
-        const placeholder = asString(arg['placeholder']);
-        const numberList = evalList(item.replace('number', ''));
-        const min = numberList[0] ?? '';
-        const max = numberList[1] ?? '';
-        if (min.startsWith('-') || max.startsWith('-')) {
-          outputs.push(
-            html`<input class="${raw(dark)}" type="number" name="${file}" min="${min}" max="${max}" placeholder="${placeholder}" />`
-          );
-        } else {
-          outputs.push(
-            html`<input class="${raw(dark)}" type="number" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '');" name="${file}" min="${min}" max="${max}" placeholder="${placeholder}" />`
-          );
-        }
-      }
+    case 'url':
+      return html`<input class="${raw(dark)}" type="url" name="${file}" id="url_${argModalId}" placeholder="https://example.com" />`;
+    case 'key':
+      return keyField({ dark, id: argModalId, value: schema.value });
+    case 'number':
+      return join(
+        schema.ranges.map(({ min, max }) => {
+          if (min.startsWith('-') || max.startsWith('-')) {
+            return html`<input class="${raw(dark)}" type="number" name="${file}" min="${min}" max="${max}" placeholder="${schema.placeholder}" />`;
+          }
+          return html`<input class="${raw(dark)}" type="number" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '');" name="${file}" min="${min}" max="${max}" placeholder="${schema.placeholder}" />`;
+        })
+      );
+    case 'longtext':
+      return html`<textarea class="${raw(dark)}" name="${file}" rows="5" cols="33"></textarea>`;
+    case 'usageTitle':
+      return html`<input id="usage-title-input_${argModalId}" class="${raw(dark)}" type="text" name="${file}" size="10"
+        ${schema.value !== '' ? html`value="${schema.value}"` : raw('')}
+    />`;
+    case 'text':
+      return html`<input class="${raw(dark)}" type="text" name="${file}" size="10"
+        ${schema.value !== '' ? html`value="${schema.value}"` : raw('')}
+    />`;
+    case 'hidden':
+      return html`<input class="invisible" type="text" size="10" value="${schema.value}" />`;
+    case 'dropdown': {
+      const base = queryBase(rctx);
+      const effectiveFieldId = String(fieldId) === '' ? 1 : fieldId;
+      const options = schema.options.map((option, index) => {
+        const optionId = index + 1;
+        const optionName =
+          option.label ?? text(`${base}__arg_${effectiveFieldId}_option_${optionId}_name`);
+        return html`<option value="${option.id}"> ${optionName} </option>`;
+      });
+      return html`<select name="${file}">
+        ${join(options)}
+    </select>`;
     }
-    return join(outputs);
-  }
-  if (type.includes('longtext') || type.includes('textarea')) {
-    return html`<textarea class="${raw(dark)}" name="${file}" rows="5" cols="33"></textarea>`;
-  }
-  if (type.includes('usage-title-text') && type.includes('input')) {
-    const value = asString(arg['value']);
-    return html`<input id="usage-title-input_${argModalId}" class="${raw(dark)}" type="text" name="${file}" size="10"
-        ${value !== '' ? html`value="${value}"` : raw('')}
-    />`;
-  }
-  if (type.includes('text') && type.includes('input')) {
-    const value = asString(arg['value']);
-    return html`<input class="${raw(dark)}" type="text" name="${file}" size="10"
-        ${value !== '' ? html`value="${value}"` : raw('')}
-    />`;
-  }
-  if (type.includes('text') && asString(arg['value']) !== '') {
-    return html`<input class="invisible" type="text" size="10" value="${asString(arg['value'])}" />`;
-  }
-  if (type.includes('dropdown')) {
-    const base = queryBase(rctx);
-    const effectiveArgId = String(argId) === '' ? 1 : argId;
-    const options = asArray(arg['options']).map((option, index) => {
-      const optionId = index + 1;
-      const optionName = text(`${base}arg_${effectiveArgId}_option_${optionId}_name`);
-      return html`<option value="${asString(asObject(option)['ID'])}"> ${optionName} </option>`;
-    });
-    return html`<select name="${file}">
+    case 'gpus': {
+      const gpus = asObject(get(ctx.usage_example, 'gpus'));
+      const options = Object.entries(gpus).map(([gpu, usage]) => {
+        const name = asString(asObject(usage)['name']);
+        const label = name !== '' ? name : gpu;
+        return html`<option value="${label}"> ${label} </option>`;
+      });
+      return html`<select name="${file}">
         ${join(options)}
     </select>`;
-  }
-  if (type.includes('available_gpus')) {
-    const gpus = asObject(get(ctx.usage_example, 'gpus'));
-    const options = Object.entries(gpus).map(([gpu, usage]) => {
-      const name = asString(asObject(usage)['name']);
-      const label = name !== '' ? name : gpu;
-      return html`<option value="${label}"> ${label} </option>`;
-    });
-    return html`<select name="${file}">
+    }
+    case 'diskLetter': {
+      const disks = asObject(get(ctx.usage_example, 'disks'));
+      const options = Object.entries(disks).map(
+        ([disk]) =>
+          html`<option value="${disk}"${disk === 'C' ? raw('\n                    selected') : raw('')}> ${disk} </option>`
+      );
+      return html`<select id="disk-letter_${argModalId}" name="${file}">
         ${join(options)}
     </select>`;
+    }
   }
-  if (type.includes('disk-letter')) {
-    const disks = asObject(get(ctx.usage_example, 'disks'));
-    const options = Object.entries(disks).map(
-      ([disk]) =>
-        html`<option value="${disk}"${disk === 'C' ? raw('\n                    selected') : raw('')}> ${disk} </option>`
-    );
-    return html`<select id="disk-letter_${argModalId}" name="${file}">
-        ${join(options)}
-    </select>`;
-  }
-  return raw('');
+}
+
+/** Single arg field (one args.jinja include): parse, then render. */
+export function argField(rctx: ArgsRenderContext, arg: JsonObject, argId: string | number): Html {
+  return renderField(rctx, parseField(arg), argId);
 }

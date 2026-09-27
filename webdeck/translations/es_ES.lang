@@ -463,12 +463,14 @@ SYSTEM_superaltf4__btn_description=Fuerza el cierre de la ventana en primer plan
 SYSTEM_kill_a_task__btn_name=Matar una tarea
 SYSTEM_kill_a_task__btn_default_display_name=Matar tarea
 SYSTEM_kill_a_task__btn_description=Mata la tarea especificada
+SYSTEM_kill_a_task__arg_1_name=Tarea (app.exe)
 SYSTEM_kill_a_task__arg_1_name__windows=Tarea (app.exe)
 SYSTEM_kill_a_task__arg_1_name__linux=Nombre del proceso (se muestra con 'ps -A')
 
 SYSTEM_restart_a_task__btn_name=Reiniciar una tarea
 SYSTEM_restart_a_task__btn_default_display_name=Reiniciar tarea
 SYSTEM_restart_a_task__btn_description=Reinicia la tarea especificada
+SYSTEM_restart_a_task__arg_1_name=Tarea (app.exe)
 SYSTEM_restart_a_task__arg_1_name__windows=Tarea (app.exe)
 SYSTEM_restart_a_task__arg_1_name__linux=Nombre del proceso a cerrar (se muestra con 'ps -A')
 SYSTEM_restart_a_task__arg_2_name__linux=Comando de reinicio
@@ -691,3 +693,7 @@ settings_group_theme_background=Tema y fondo
 settings_group_appearance=Apariencia
 settings_group_usage=Monitor de uso
 settings_group_advanced=Avanzado
+// Key field
+key_capture=Capturar
+key_capture_prompt=Pulsa una tecla… (Esc cancela)
+key_search_keys=Buscar teclas…

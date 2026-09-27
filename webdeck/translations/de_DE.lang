@@ -687,3 +687,7 @@ settings_group_theme_background=Theme & Hintergrund
 settings_group_appearance=Erscheinungsbild
 settings_group_usage=Auslastungsanzeige
 settings_group_advanced=Erweitert
+// Key field
+key_capture=Aufnehmen
+key_capture_prompt=Taste drücken… (Esc bricht ab)
+key_search_keys=Tasten suchen…

@@ -687,3 +687,7 @@ settings_group_theme_background=Thème et arrière-plan
 settings_group_appearance=Apparence
 settings_group_usage=Moniteur d’utilisation
 settings_group_advanced=Avancé
+// Key field
+key_capture=Capturer
+key_capture_prompt=Appuyez sur une touche… (Échap annule)
+key_search_keys=Rechercher des touches…

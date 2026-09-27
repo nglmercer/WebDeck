@@ -687,3 +687,7 @@ settings_group_theme_background=Theme & background
 settings_group_appearance=Appearance
 settings_group_usage=Usage monitor
 settings_group_advanced=Advanced
+// Key field
+key_capture=Capture
+key_capture_prompt=Press a key… (Esc cancels)
+key_search_keys=Search keys…

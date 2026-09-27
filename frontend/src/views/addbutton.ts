@@ -12,7 +12,9 @@ import {
 } from '../framework/types';
 import { q, byId, post } from '../query';
 import { editorSaveButton, editorStyleBlock } from '../components/editor';
-import { argField, type ArgsRenderContext } from './args';
+import { wireKeyField } from '../components/keyfield';
+import { renderField, type ArgsRenderContext } from './args';
+import { consumesArgNumber, parseArg } from './argschema';
 import { swapPreviewImage, updateButtonBackgroundColor, updateImageSize, type ButtonState } from './modalstyle';
 import { svgSlot } from './svg';
 
@@ -55,7 +57,8 @@ export function addBrowserView(ctx: BootContext): Html {
 
         const descQuery = `${catKey(category)}_${cmdKey(command)}__${type.includes('multiple') ? 'category' : 'btn'}_description`;
         let buttonDescription = text(descQuery);
-        if (buttonDescription === descQuery) buttonDescription = '';
+        // Plugin entries carry their doc text inline (no `.lang` entry).
+        if (buttonDescription === descQuery) buttonDescription = asString(cmdObj['description']);
         const descBlock =
           buttonDescription !== ''
             ? html`<div class="addbutton-description"><p>${buttonDescription}</p></div>`
@@ -179,7 +182,7 @@ export function addArgsModal(ctx: BootContext, mctx: AddModalContext): Html {
   let argCounter = 0;
   const argBlocks = args.map((argValue, argIndex) => {
     const arg = asObject(argValue);
-    if (asString(arg['TYPE']) !== 'text') argCounter++;
+    if (consumesArgNumber(arg)) argCounter++;
     const rctx: ArgsRenderContext = {
       ctx,
       category: mctx.category,
@@ -265,15 +268,15 @@ function argBranch(
   argCounter: number
 ): Html {
   const dark = ctx.dark_theme;
-  const type = asString(arg['TYPE']);
+  const parsed = parseArg(arg);
   const base =
     rctx.subId !== 0
-      ? `${catKey(rctx.category)}_${cmdKey(rctx.parentCommand)}_sub${rctx.subId}_`
-      : `${catKey(rctx.category)}_${cmdKey(rctx.command)}_`;
+      ? `${catKey(rctx.category)}_${cmdKey(rctx.parentCommand)}_sub${rctx.subId}`
+      : `${catKey(rctx.category)}_${cmdKey(rctx.command)}`;
 
-  if (type.includes('input')) {
-    const argName = text(`${base}arg_${argCounter}_name`);
-    const folderForm = type.includes('webdeck_foldername')
+  if (parsed.kind === 'input') {
+    const argName = parsed.label ?? text(`${base}__arg_${argCounter}_name`);
+    const folderForm = parsed.folderForm
       ? html`<div class="webdeck_foldername_div">
                       <form id="webdeck_foldername_form" novalidate>
                         <input class="${raw(dark)}" type="text" id="folderName" name="folderName" placeholder="New folder name" />
@@ -284,27 +287,25 @@ function argBranch(
     return join([
       html`<div class="arg_container" arg_modal_ID="${rctx.argModalId}" arg_id="${String(argIndex)}">
                   <label for="${argName}_${rctx.argModalId}">${argName}:</label>
-                  ${argField(rctx, arg, argIndex)}
+                  ${renderField(rctx, parsed.field, argCounter)}
                 </div>`,
       folderForm,
     ]);
   }
-  if (type.includes('choice')) {
-    const options = asArray(arg['options']);
-    const choices = options.map((choiceValue, choiceIndex) => {
-      const choice = asObject(choiceValue);
+  if (parsed.kind === 'choice') {
+    const choices = parsed.options.map((option, choiceIndex) => {
       const choiceId = choiceIndex + 1;
-      const choiceName = text(`${base}arg_${argCounter}_option_${choiceId}_name`);
-      const isChecked = asString(choice['TYPE']).includes('checked');
-      const items = asString(choice['TYPE']).includes('multiple')
-        ? join(asArray(choice['items']).map((item) => argField(rctx, asObject(item), choiceIndex)))
-        : argField(rctx, choice, choiceIndex);
+      const choiceName = option.label ?? text(`${base}__arg_${argCounter}_option_${choiceId}_name`);
+      // NOTE: nested fields keep the legacy 0-based choice index as their
+      // label id (only nested dropdowns consume it; none exist in
+      // commands.json, so this preserves behavior exactly).
+      const items = join(option.fields.map((field) => renderField(rctx, field, choiceIndex)));
       return join([
         html`<div class="choice">
-                      <input ${isChecked ? raw('checked') : raw('')} class="choice ${raw(dark)}" type="radio" name="choice" value="${String(choiceIndex)}" onchange="showArg_${rctx.argModalId}('${String(choiceIndex)}')" />
+                      <input ${option.checked ? raw('checked') : raw('')} class="choice ${raw(dark)}" type="radio" name="choice" value="${String(choiceIndex)}" onchange="showArg_${rctx.argModalId}('${String(choiceIndex)}')" />
                       <label for="${choiceName}">${choiceName}</label>
                     </div>`,
-        html`<div ${isChecked ? raw('') : raw('style="display: none;"')} class="arg_container" arg_modal_ID="${rctx.argModalId}" arg_id="${String(choiceIndex)}">
+        html`<div ${option.checked ? raw('') : raw('style="display: none;"')} class="arg_container" arg_modal_ID="${rctx.argModalId}" arg_id="${String(choiceIndex)}">
                       ${items}
                     </div>`,
       ]);
@@ -314,8 +315,8 @@ function argBranch(
                   ${join(choices)}
                 </div>`;
   }
-  if (type.includes('text') && asString(arg['value']) !== '') {
-    return html`<input class="invisible" type="text" size="10" value="${asString(arg['value'])}" />`;
+  if (parsed.kind === 'hidden') {
+    return html`<input class="invisible" type="text" size="10" value="${parsed.value}" />`;
   }
   return raw('');
 }
@@ -444,7 +445,8 @@ export function collectAddModals(ctx: BootContext): AddModalContext[] {
   return out;
 }
 
-function getCommand(command: string, argModalId: string): string {
+/** Collect arg values in DOM order (exported for tests; powers submit + usage preview). */
+export function getCommand(command: string, argModalId: string): string {
   const inputs = q(`form[arg_modal_ID="${argModalId}"] .args-container`)
     .find('input, select, textarea')
     .toArray();
@@ -454,6 +456,9 @@ function getCommand(command: string, argModalId: string): string {
         return false;
       }
       if (q(input).hasClass('choice')) {
+        return false;
+      }
+      if (q(input).hasClass('key-aux')) {
         return false;
       }
       if (q(input).closest('.editorStyle, .webdeck_foldername_div').length > 0) {
@@ -514,6 +519,7 @@ export function wireAddModal(ctx: BootContext, mctx: AddModalContext): void {
 
   wireFoldernameForm();
   wireUsagePreview(id);
+  wireKeyField(id);
 
   byId(`image-input_${id}`).on('change', function () {
     const input = this as unknown as HTMLInputElement;
