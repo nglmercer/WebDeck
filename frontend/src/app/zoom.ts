@@ -51,6 +51,15 @@ export function goFullscreen(): void {
   }
 }
 
+/** Last applied fit, reused by the manual zoom buttons. */
+let fitState: { s: number; tx: number; ty: number } = { s: 1, tx: 0, ty: 0 };
+
+function applyFit(scaler: HTMLElement, s: number, tx: number, ty: number): void {
+  fitState = { s, tx, ty };
+  scaler.style.transformOrigin = '0 0';
+  scaler.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+}
+
 export function auto_resize(): void {
   const scaler = document.getElementById('deck-scale');
   if (!scaler) return;
@@ -62,21 +71,29 @@ export function auto_resize(): void {
       break;
     }
   }
-  if (!div) return;
+  // Measure the content box (.all-buttons), not the viewport-wide
+  // container: in narrow windows the content overflows the container and
+  // the container rect would under-measure it.
+  const content = div?.querySelector('.all-buttons') ?? null;
+  if (!content) return;
   // Reset so the measurement is unscaled. getBoundingClientRect is the
-  // transformed bbox, so a portrait-rotated grid measures rotated and
-  // the fit below keeps it on-screen too.
+  // transformed bbox, so a portrait-rotated grid measures rotated
+  // (possibly with negative offsets) and the fit below compensates.
   scaler.style.transform = 'none';
-  const rect = div.getBoundingClientRect();
+  const rect = content.getBoundingClientRect();
   const w = rect.width;
   const h = rect.height;
   if (!(w > 0) || !(h > 0)) return;
   // Same intent as the upstream grow/shrink loop (fill as much as fits)
   // computed directly: exact, instant, and unable to miss convergence.
-  const s = Math.min(window.innerWidth / w, window.innerHeight / h);
+  // translate() then centers the scaled box horizontally and pins it to
+  // the top, which also pulls rotated overflow back on-screen.
+  const vw = window.innerWidth;
+  const s = Math.min(vw / w, window.innerHeight / h);
   if (!isFinite(s) || s <= 0) return;
-  scaler.style.transformOrigin = 'top center';
-  scaler.style.transform = `scale(${s})`;
+  const tx = (vw - s * w) / 2 - s * rect.x;
+  const ty = 0 - s * rect.y;
+  applyFit(scaler, s, tx, ty);
 }
 
 export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string, frontHeight: string): void {
@@ -169,19 +186,25 @@ export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string, 
       (bigDiv as HTMLElement).style.maxWidth = `${maxWidth}px`;
       (bigDiv as HTMLElement).style.maxHeight = `${maxHeight}px`;
     });
+    // Pin the column count on the content box too: without this a narrow
+    // window squeezes .all-buttons and rewraps the grid instead of
+    // scaling it (upstream only constrained the outer container).
+    const innerDivs = document.querySelectorAll('[id^="folder-"].all-buttons');
+    innerDivs.forEach((innerDiv) => {
+      (innerDiv as HTMLElement).style.maxWidth = `${maxWidth}px`;
+    });
   }
   void maxRows;
 
-  let currentZoom = 1;
-
   const scaler = document.getElementById('deck-scale');
 
+  // Manual zoom steps relative to the current auto fit (upstream reset
+  // to an absolute zoom of 1 here); translation is preserved so the
+  // grid does not jump, and the scale stays positive.
   try {
     dezoomBtn?.addEventListener('click', () => {
       if (!isSwapMode() && scaler) {
-        currentZoom = currentZoom - 0.05;
-        scaler.style.transformOrigin = 'top center';
-        scaler.style.transform = 'scale(' + currentZoom + ')';
+        applyFit(scaler, Math.max(0.05, fitState.s - 0.05), fitState.tx, fitState.ty);
       }
     });
   } catch {
@@ -191,9 +214,7 @@ export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string, 
   try {
     zoomBtn?.addEventListener('click', () => {
       if (!isSwapMode() && scaler) {
-        currentZoom = currentZoom + 0.05;
-        scaler.style.transformOrigin = 'top center';
-        scaler.style.transform = 'scale(' + currentZoom + ')';
+        applyFit(scaler, fitState.s + 0.05, fitState.tx, fitState.ty);
       }
     });
   } catch {

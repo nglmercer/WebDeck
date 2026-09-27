@@ -35,6 +35,7 @@ body {
   font-family: system-ui,-apple-system,"Helvetica Neue",Helvetica,Arial,sans-serif;
   display: flex;
   justify-content: center;
+  height: 100dvh;
 }
 
 #app {
@@ -115,6 +116,9 @@ div.all-buttons {
   align-items: flex-start;
   width: max-content;
   max-width: 100%;
+  /* Never squeeze below the configured column count: narrowing must
+     scale the whole grid (auto_resize), not rewrap it into a column. */
+  flex-shrink: 0;
 }
 
 
@@ -488,12 +492,12 @@ input[type="range"]:disabled::-moz-range-thumb {
 }
 
 .modal-content.dark-theme,
-.addbutton-modal-content.dark-theme, 
+.addbutton-modal-content.dark-theme,
 .addbutton-modal-content-args.dark-theme,
 .editbutton-modal-content.dark-theme {
   background-color: #232323!important;
 }
-  
+
 .modal-header, .addbutton-modal-header, .addbutton-modal-header-args, .editbutton-modal-header {
   /* border: 1px solid rgb(0, 0, 0); */
   border-radius: 20px;
@@ -782,7 +786,7 @@ input[type="submit"]:active {
   align-items: center;
   gap: 5px;
 }
-  
+
 /* cible l'élément input et le placeholder */
 input::placeholder {
   color: rgba(0,0,0,0.3); /* couleur du texte */
