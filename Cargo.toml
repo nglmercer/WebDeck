@@ -32,8 +32,53 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 clap = { version = "4", features = ["derive"] }
 minijinja = "2"
-reqwest = { version = "0.13", default-features = false, features = ["json", "rustls", "webpki-roots"] }
+reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "query", "rustls", "webpki-roots"] }
 zip = "2"
+sysinfo = "0.39.6"
+image = "0.25.10"
+qrcode = "0.14.1"
+arboard = "3.6.1"
+enigo = "0.6.1"
+screenshots = "0.8.10"
+notify-rust = "4.18.0"
+rhai = { version = "1.26.1", features = ["sync"] }
+libloading = "0.9.0"
+symphonia = "0.6.1"
+hound = "3.5.1"
+ffmpeg-sidecar = "2.5.2"
+nvml-wrapper = "0.13.0"
+cpal = "0.18.2"
+rodio = "0.22.2"
+socketioxide = "0.18.7"
+rspotify = { version = "0.16.1", features = ["cli"] }
+obws = "0.15.0"
+rfd = { version = "0.17.2", default-features = false, features = ["common-controls-v6", "xdg-portal"] }
+base64 = "0.23.1"
+
+[target.'cfg(windows)'.dependencies]
+# GUI stack (tray + config/QR/port windows); Windows-only so Linux/macOS
+# builds never need webkit system libraries.
+tray-icon = "0.25.1"
+wry = "0.57.0"
+tao = "0.37.1"
+windows = { version = "0", features = [
+    "Win32_Devices_FunctionDiscovery",
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_Media_Audio",
+    "Win32_Media_Audio_Endpoints",
+    "Win32_NetworkManagement_WindowsFirewall",
+    "Win32_Security",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Com",
+    "Win32_System_Registry",
+    "Win32_System_SystemServices",
+    "Win32_System_Threading",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }
+winrt-notification = "0"
 
 [profile.release]
 # Single-file packaging parity with cx_Freeze is handled by packaging scripts

@@ -41,16 +41,19 @@ pub async fn check_for_updates() {
             true,
             true,
         );
-        show_error(
-            Some(&format!(
-                "{} \n\n{}: {message}",
-                text(Some("auto_update_error"), None),
-                text(Some("error"), None)
-            )),
-            "WebDeck Updater Error",
-            true,
-            Some(&message as &dyn std::fmt::Debug),
-        );
+        // Native error dialogs block: run off the async worker.
+        tokio::task::block_in_place(|| {
+            show_error(
+                Some(&format!(
+                    "{} \n\n{}: {message}",
+                    text(Some("auto_update_error"), None),
+                    text(Some("error"), None)
+                )),
+                "WebDeck Updater Error",
+                true,
+                Some(&message as &dyn std::fmt::Debug),
+            );
+        });
     }
 }
 

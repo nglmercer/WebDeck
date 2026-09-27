@@ -21,22 +21,22 @@ so the three binaries share one implementation.
 
 | Python | Rust | Status | Notes |
 |---|---|---|---|
-| `run.py` | `src/main.rs` | ported | UAC elevation TODO (`windows` crate) |
+| `run.py` | `src/main.rs` | ported | server + tray spawn; UAC via `windows` crate |
 | `console.py` | `src/bin/console.rs` | ported | REPL via `reqwest` |
-| `app/server.py` | `src/app/server.rs` | routed | all 13 routes + middleware; SocketIO TODO (`socketioxide`); `/` renders via minijinja, see gaps |
-| `app/tray.py` | `src/app/tray.rs` | stub | config logic ported; icon/menu/windows TODO (`tray-icon` + `wry` + `rfd`) |
-| `app/buttons/commands.py` | `…/buttons/commands.rs` | routed | full dispatch incl. plugins; input/clipboard TODO (`enigo`/`arboard`) |
-| `app/buttons/audio/*` (4) | `…/audio/*` | routed | parsing ported; CoreAudio/keys TODO (`windows` crate) |
-| `app/buttons/color_picker/*` (6) | `…/color_picker/*` | routed | `getarg`, `get_color_name`, handler logic ported; capture/clipboard/toast TODO |
-| `app/buttons/exec/*` (4) | `…/exec/*` | routed | dispatch incl. threads ported; script exec TODO (`rhai`) |
-| `app/buttons/obs/*` (7) | `…/obs/*` | routed | subcommand routing ported; wire TODO (`obws`) |
-| `app/buttons/soundboard/*` (5) | `…/soundboard/*` | routed | `get_params`, vlc/nava dispatch, `replace_last_element` ported; audio TODO (`cpal`/`rodio`/`vlc`/`ffmpeg-sidecar`/`symphonia`) |
-| `app/buttons/spotify/*` (7) | `…/spotify/*` | routed | token flow + routing ported; API TODO (`rspotify`) |
+| `app/server.py` | `src/app/server.rs` | ported | all routes + middleware; `socketioxide` layer; `/` renders via minijinja compat shims |
+| `app/tray.py` | `src/app/tray.rs` | ported | `tray-icon` menu + `tao`/`wry` QR/config/port windows (Windows-only, like Python) |
+| `app/buttons/commands.py` | `…/buttons/commands.rs` | ported | full dispatch incl. plugins; input/clipboard via `enigo`/`arboard` |
+| `app/buttons/audio/*` (4) | `…/audio/*` | ported | CoreAudio via `windows` crate; media keys via `keybd_event` |
+| `app/buttons/color_picker/*` (6) | `…/color_picker/*` | ported | capture via `screenshots`, clipboard via `arboard`, toast via `winrt-notification` |
+| `app/buttons/exec/*` (4) | `…/exec/*` | ported | `/exec` scripts run as **rhai** (see deviations); `/batch` shells out; file-`/batch` mirrors upstream's no-op |
+| `app/buttons/obs/*` (7) | `…/obs/*` | ported | wire protocol via `obws` (connect-per-command, same error mapping) |
+| `app/buttons/soundboard/*` (5) | `…/soundboard/*` | ported | playback via `rodio`, mic loop via `cpal`, ffmpeg install/discovery + `apad`/`volume` filters |
+| `app/buttons/spotify/*` (7) | `…/spotify/*` | ported | auth + API via `rspotify` (same redirect/scopes, `.cache-<user>` token file) |
 | `app/buttons/system/*` (4) | `…/system/*` | ported | `openfile`/`opendir` real (explorer/xdg-open/open) |
-| `app/buttons/usage/*` (3) | `…/usage/*` | routed | gating + `asked_devices` ported; readings TODO (`sysinfo`/`nvml-wrapper`) |
-| `app/buttons/window/*` (5) | `…/window/*` | stub | predicate ported; handles TODO (`windows` crate) |
-| `app/on_start/*` (2) | `…/on_start/*` | routed | flow + `color_distance` + colors sort ported; shortcut/nvml/VLC TODO |
-| `app/updater/*` (3) | `…/updater/*` | ported | `compare_versions`, `check_files`, download/extract (via `zip`), relaunch ported; UAC TODO |
+| `app/buttons/usage/*` (3) | `…/usage/*` | ported | readings via `sysinfo`/`nvml-wrapper` |
+| `app/buttons/window/*` (5) | `…/window/*` | ported | handles via `windows` crate |
+| `app/on_start/*` (2) | `…/on_start/*` | ported | shortcuts via `windows` ShellLink, GPU probe via `nvml-wrapper`, VLC cache fix |
+| `app/updater/*` (3) | `…/updater/*` | ported | `compare_versions`, `check_files`, download/extract (via `zip`), relaunch; UAC elevation |
 | `app/utils/args.py` | `…/utils/args.rs` | ported | same flags via `clap`; `get_arg('x')` → `get_args().x` |
 | `app/utils/debug/timers.py` | `…/utils/debug/timers.rs` | ported | `Instant`-based |
 | `app/utils/exit.py` | `…/utils/exit.rs` | ported | `taskkill` approximation of WMI kill |
@@ -48,13 +48,13 @@ so the three binaries share one implementation.
 | `app/utils/languages.py` | `…/utils/languages.rs` | ported | same `.lang` format/rules |
 | `app/utils/logger.py` | `…/utils/logger.rs` | ported | same files/levels/colors |
 | `app/utils/merge_dicts.py` | `…/utils/merge_dicts.rs` | ported | |
-| `app/utils/plugins/*` (2) | `…/utils/plugins/*` | routed | discovery ported; dynamic import → static registry + planned `libloading`/`rhai` |
+| `app/utils/plugins/*` (2) | `…/utils/plugins/*` | ported | `.rhai` script plugins (see deviations); `.py` discovered-but-deferred |
 | `app/utils/restart.py` | `…/utils/restart.rs` | ported | re-exec / respawn |
-| `app/utils/settings/*` (6) | `…/utils/settings/*` | ported | except `audio_devices` (TODO `cpal`) |
-| `app/utils/show_error.py` | `…/utils/show_error.rs` | routed | logging ported; dialogs TODO (`rfd`) |
+| `app/utils/settings/*` (6) | `…/utils/settings/*` | ported | incl. `audio_devices` via `cpal` |
+| `app/utils/show_error.py` | `…/utils/show_error.rs` | ported | dialogs via `rfd` |
 | `app/utils/themes/*` (2) | `…/utils/themes/*` | ported | |
-| `app/utils/translate.py` | `…/utils/translate.rs` | routed | EN path ported; online TODO (`reqwest`) |
-| `app/utils/welcome_popup.py` | `…/utils/welcome_popup.rs` | stub | gate ported; window TODO |
+| `app/utils/translate.py` | `…/utils/translate.rs` | ported | online endpoint via `reqwest` |
+| `app/utils/welcome_popup.py` | `…/utils/welcome_popup.rs` | ported | `rfd` native dialog |
 | `app/utils/working_dir.py` | `…/utils/working_dir.rs` | ported | `debug_assertions` ⇔ unfrozen |
 
 ## Crate equivalences
@@ -62,38 +62,40 @@ so the three binaries share one implementation.
 | Python | Rust | State |
 |---|---|---|
 | Flask | `axum` + `tower-http` | in use |
-| Flask-SocketIO | `socketioxide` | planned |
-| Jinja2 | `minijinja` | in use (see gaps) |
+| Flask-SocketIO | `socketioxide` | in use |
+| Jinja2 | `minijinja` | in use (compat shims at call site) |
 | argparse | `clap` | in use |
 | requests | `reqwest` (rustls) | in use |
 | zipfile/tqdm | `zip` + logs | in use |
 | colorama | inline ANSI | in use |
-| pywin32/pycaw/comtypes | `windows` crate | planned |
-| pyautogui/keyboard | `enigo` | planned |
-| pyperclip | `arboard` | planned |
-| pystray/tkinter/customtkinter | `tray-icon`/`wry`/`rfd` | planned |
-| easygui | `rfd` | planned |
-| qrcode/Pillow | `qrcode`/`image` | planned |
-| mss | `screenshots`/`xcap` | planned |
-| win10toast | `winrt-notification`/`notify-rust` | planned |
-| psutil/GPUtil/pynvml | `sysinfo`/`nvml-wrapper` | planned |
-| spotipy | `rspotify` | planned |
-| obs-websocket-py | `obws` | planned |
-| python-vlc/nava/pyaudio/pydub | `vlc`/`rodio`/`cpal`/`symphonia`/`ffmpeg-sidecar` | planned |
-| deep_translator | `reqwest` web endpoint | planned |
-| plugins (`importlib`) | static registry → `libloading`/`rhai` | planned |
-| `exec()` (buttons) | `rhai` sandbox | planned |
+| pywin32/pycaw/comtypes | `windows` crate | in use |
+| pyautogui/keyboard | `enigo` | in use |
+| pyperclip | `arboard` | in use |
+| pystray/tkinter/pywebview | `tray-icon`/`tao`/`wry` | in use (Windows) |
+| easygui/tkinter dialogs | `rfd` | in use |
+| qrcode/Pillow | `qrcode`/`image` | in use |
+| mss | `screenshots` | in use |
+| win10toast | `winrt-notification` | in use |
+| psutil/GPUtil/pynvml | `sysinfo`/`nvml-wrapper` | in use |
+| spotipy | `rspotify` (+`cli`) | in use |
+| obs-websocket-py | `obws` | in use |
+| python-vlc/nava/pyaudio/pydub | `rodio`/`cpal`/ffmpeg CLI | in use |
+| deep_translator | `reqwest` web endpoint | in use |
+| plugins (`importlib`) | `rhai` scripts + static registry | in use |
+| `exec()` (buttons) | `rhai` sandbox | in use |
 | cx_Freeze/setup.py | `cargo build --release` + packaging script | planned |
+| VLC install (`fix_vlc_cache`) | registry check only | in use (no libvlc binding needed) |
 
 ## Build / run / test
 
 ```sh
 cargo check --all-targets   # type-check incl. tests
-cargo test                  # 27 unit tests (pure ports)
+cargo test                  # 56+ unit tests (pure ports)
 cargo build --bins          # webdeck, console, update binaries
 ./target/debug/webdeck --no-tray -p 18080   # run server (dev: binds LAN IP)
 ./target/debug/webdeck --help               # clap flags (mirror args.py)
 cargo run --bin console     # debug REPL (console.py)
+cargo check --target x86_64-pc-windows-gnu --all-targets  # Windows coverage
 ```
 
 ## Intentional deviations (all documented at the call site)
@@ -115,38 +117,61 @@ cargo run --bin console     # debug REPL (console.py)
 - `fix_firewall_permission`/`check_firewall_permission` use
   powershell/`netsh` instead of COM; `exit_program` uses `taskkill` instead
   of WMI (same observable effects).
+- `/exec` scripts and `.rhai` plugins run **rhai**, not Python: embedding a
+  Python interpreter would defeat the migration. Host API (`log_*`,
+  `webdeck_command`, `run_shell`) is documented in `load_plugins.rs`.
+  `.py` plugins are discovered but cannot be imported.
+- Python raises inside button handlers map to `{"success": false,
+  "message": …}` (exactly what `send_data_route` produces for raises);
+  Python `None` returns map to `{"success": true}` (same route rule).
+- Async service clients (`rspotify`, `obws`) are awaited through a
+  throwaway current-thread runtime per call (button handling is sync).
+- Soundboard: VLC/nava/pyaudio/pydub → `rodio` + `cpal` + ffmpeg CLI.
+  Slot allocation, VB-Cable pairing, `fix_stop_soundboard` padding, and the
+  `to_wav` cache behave as in Python; end-of-playback cleanup is a 500ms
+  reaper instead of VLC events.
+- Tray: pystray/tkinter/pywebview → `tray-icon` + `tao`/`wry`. Menu-item ids
+  are stable dispatch keys; the integrated config window is maximized at
+  creation; QR re-entry is guarded instead of lifting the old window.
+- OBS: missing connection globals heal via `reload_obs()` instead of failing
+  (fresh boot before any config save); the refused/password error predicates
+  also match obws/tungstenite text. `/obs_start_virtualcam` is fixed: Python
+  passes two args to one-arg `log.debug` and always crashes there.
+- Spotify keeps the authenticated client instead of rebuilding from the
+  token string per command (same observable behavior + free refresh).
+- OBS `/obs_toggle_rec_pause` stays shadowed by `/obs_toggle_rec` (same
+  branch order as Python).
+- `TrayIcon` is `!Send`, so cross-thread menu updates go through polled
+  desired-state instead of a shared icon handle.
+- `rspotify` deprecated per-type library endpoints are called through the
+  consolidated Library API (`library_add`/`remove`/`contains`) — same
+  Spotify requests, no deprecated warnings.
+- `cpal` 0.18 renamed `Device::name()` → `description().name()` and
+  `SampleRate(u32)` → `u32`; error kinds via `Error::kind()`. `rodio`
+  0.22 renamed `Sink` → `Player`, `OutputStream` → `MixerDeviceSink`.
 
 ## Known gaps / next steps
 
-1. **Template sandbox adaptation** (`templates/*.jinja`, esp. `index.jinja`).
-   The templates use Python builtins (`eval`, `open`, `int/str/dict/type`)
-   that minijinja intentionally withholds, plus Jinja2-only tolerance the
-   engine lacks: `index.jinja:12` slices `config['front']['themes'][::-1]`,
-   which **panics minijinja 2.24 on an empty list** (index OOB in
-   `value/ops.rs`) instead of returning empty. `GET /` therefore returns a
-   graceful 500 (render is `catch_unwind`-contained; the server stays up)
-   until templates are adapted to pre-computed context. The Python app is
-   unaffected (templates untouched).
-2. **SocketIO** (`socketioxide` layer: `connect` log, `send` relay,
-   `message_from_socket` → `handle_command` → emit `json_data`).
-3. **Platform backends** in dependency order: `windows` (tray-adjacent first:
-   firewall-COM parity, elevation, window/audio APIs), `enigo`+`arboard`
-   (unlocks most `commands.rs` actions), `sysinfo`, `rspotify`, `obws`,
-   soundboard audio stack, `rfd` dialogs, `tray-icon`+`wry`, `qrcode`+`image`,
-   screen capture, `rhai` scriptexec/plugins, translator endpoint.
-4. **Packaging**: release profile + installer/portable-zip script replacing
-   `setup.py`/`build.bat`; Windows CI for `cfg(windows)` coverage.
+1. **Packaging**: release profile + installer/portable-zip script replacing
+   `setup.py`/`build.bat`; Windows CI for `cfg(windows)` runtime coverage
+   (compile coverage exists via the `x86_64-pc-windows-gnu` check).
+2. **Native testing**: the Windows-only paths (tray, CoreAudio, `wry`
+   windows, VB-Cable/rodio device selection) compile but need runs on a
+   Windows host with OBS/Spotify/VLC-adjacent setups for end-to-end proof.
 
 ## Verification evidence (2026-09-26)
 
-- `cargo check --all-targets`: clean, zero warnings.
-- `cargo test`: 27 passed, 0 failed.
+- `cargo check --all-targets`: clean, zero warnings (one pre-existing
+  `screenshots` future-incompat note from the crate itself).
+- `cargo check --target x86_64-pc-windows-gnu --all-targets`: clean, zero
+  warnings — full Windows backend coverage including tray/rodio/cpal.
+- `cargo test`: 56 passed, 0 failed, 1 ignored.
 - Live smoke test (`--no-tray -p 18080`, isolated copy of
   `webdeck/`+`templates/`+`static/`): `POST /usage` → 200,
-  `POST /send-data` (`/debug-send`, `/volume +`) → `{"success":true}`,
-  `GET /get_config` → 200 real config, `/static/*` → 200,
-  `POST /save_config` → `{"success":true}`, `GET /` → graceful 500 with
-  JSON error (minijinja gap above), server stays up for later requests.
+  `POST /send-data` (`/debug-send`, `/volume +`, `/exec type:single_line …`)
+  → `{"success":true}`, `GET /get_config` → 200 real config,
+  `/static/*` → 200, `POST /save_config` → `{"success":true}`,
+  `GET /` → 200 rendered (minijinja compat shims).
 - Repo tree untouched except additive `Cargo.toml`, `Cargo.lock`, `src/`,
   `docs/MIGRATION_RUST.md`, and a `target/` `.gitignore` entry; the Python
   app runs exactly as before.

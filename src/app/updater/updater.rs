@@ -544,15 +544,45 @@ pub fn needs_admin_permissions() -> bool {
 
 /// Port of `request_admin_permissions`.
 ///
-/// Honors `--no-admin`. The UAC `runas` relaunch is TODO via the `windows`
-/// crate; until then this logs and the update proceeds without elevation.
+/// Honors `--no-admin`. Otherwise relaunches elevated via `runas` and exits
+/// (Windows); non-Windows logs and continues without elevation.
 pub fn request_admin_permissions() {
     if get_args().no_admin {
         updater_log().info("Skipping admin permissions request due to '--no-admin' argument.");
         return;
     }
-    // TODO(port): UAC elevation via ShellExecuteW("runas") + exit.
-    updater_log().warning("Admin permissions needed, but UAC relaunch is not ported yet; continuing without elevation");
+
+    #[cfg(windows)]
+    {
+        use windows::Win32::UI::Shell::{IsUserAnAdmin, ShellExecuteW};
+        use windows::Win32::UI::WindowsAndMessaging::SW_NORMAL;
+        use windows::core::{w, HSTRING};
+
+        let is_admin = unsafe { IsUserAnAdmin().as_bool() };
+        if !is_admin {
+            let exe = std::env::current_exe()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_default();
+            let params = raw_args().join(" ");
+            unsafe {
+                let _ = ShellExecuteW(
+                    None,
+                    w!("runas"),
+                    &HSTRING::from(exe.as_str()),
+                    &HSTRING::from(params.as_str()),
+                    None,
+                    SW_NORMAL,
+                );
+            }
+            std::process::exit(0);
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        updater_log().warning(
+            "Admin permissions needed, but UAC relaunch is Windows-only; continuing without elevation",
+        );
+    }
 }
 
 #[cfg(test)]

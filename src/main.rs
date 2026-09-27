@@ -30,17 +30,34 @@ async fn main() {
 
     #[cfg(windows)]
     {
+        use windows::Win32::UI::Shell::{IsUserAnAdmin, ShellExecuteW};
+        use windows::Win32::UI::WindowsAndMessaging::SW_NORMAL;
+        use windows::core::{w, HSTRING};
+
         let wants_admin = config
             .get("settings")
             .and_then(|s| s.get("app_admin"))
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
-        // Python: ShellExecuteW(..., "runas", ...) + exit when not admin.
-        // TODO(port): implement via the `windows` crate (ShellExecuteW/is admin check).
-        if wants_admin && !args::get_args().no_admin {
-            log().warning(
-                "settings.app_admin is set but UAC self-elevation is not ported yet; continuing without elevation",
-            );
+        // Port of the `ctypes.windll.shell32.IsUserAnAdmin` / `ShellExecuteW`
+        // runas dance in `run.py`.
+        let is_admin = unsafe { IsUserAnAdmin().as_bool() };
+        if wants_admin && !is_admin && !args::get_args().no_admin {
+            let exe = std::env::current_exe()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_default();
+            let params = std::env::args().skip(1).collect::<Vec<_>>().join(" ");
+            unsafe {
+                let _ = ShellExecuteW(
+                    None,
+                    w!("runas"),
+                    &HSTRING::from(exe.as_str()),
+                    &HSTRING::from(params.as_str()),
+                    None,
+                    SW_NORMAL,
+                );
+            }
+            std::process::exit(0);
         }
     }
     #[cfg(not(windows))]
@@ -61,12 +78,15 @@ async fn main() {
         log().info("Starting server task");
         let server_handle = tokio::spawn(async {
             if let Err(e) = webdeck::app::server::run_server().await {
-                show_error::show_error(
-                    Some("Server task failed"),
-                    "WebDeck Error",
-                    true,
-                    Some(&e as &dyn std::fmt::Debug),
-                );
+                // Native error dialogs block: run off the async worker.
+                tokio::task::block_in_place(|| {
+                    show_error::show_error(
+                        Some("Server task failed"),
+                        "WebDeck Error",
+                        true,
+                        Some(&e as &dyn std::fmt::Debug),
+                    );
+                });
             }
         });
 

@@ -9,7 +9,7 @@
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <link rel="stylesheet" href="static/css/loading-squares.css">
     <link rel="stylesheet" href="static/css/style.css">
-    {% for file in config['front']['themes'][::-1] %}
+    {% for file in config['front']['themes']|reverse %}
       {% if not file.startswith('//') %}
         <link rel="stylesheet" href=".config/themes/{{ file }}">
       {% endif %}

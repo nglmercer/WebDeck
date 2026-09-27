@@ -106,10 +106,72 @@ async fn fetch_colors_fallback() -> Option<Value> {
     Some(data)
 }
 
+/// Create a `WebDeck.lnk` shortcut in a known folder (port of the
+/// `WScript.Shell` blocks, via `IShellLinkW` + `IPersistFile` — same
+/// shortcut, no scripting host involved).
+#[cfg(windows)]
+fn create_shortcut_in_known_folder(folder_id: &windows::core::GUID) {
+    use windows::Win32::System::Com::{CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_ALL, COINIT_APARTMENTTHREADED};
+    use windows::Win32::UI::Shell::{
+        IShellLinkW, SHGetKnownFolderPath, ShellLink, KF_FLAG_DEFAULT,
+    };
+    use windows::core::{Interface as _, HSTRING};
+
+    unsafe {
+        let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
+    }
+    let result = (|| -> windows::core::Result<()> {
+        unsafe {
+            let link: IShellLinkW = CoCreateInstance(&ShellLink, None, CLSCTX_ALL)?;
+            let exe = std::env::current_exe().map_err(|e| {
+                windows::core::Error::new(windows::core::HRESULT(-1), e.to_string())
+            })?;
+            link.SetPath(&HSTRING::from(exe.to_string_lossy().as_ref()))?;
+            if let Some(dir) = exe.parent() {
+                link.SetWorkingDirectory(&HSTRING::from(dir.to_string_lossy().as_ref()))?;
+            }
+            let folder =
+                SHGetKnownFolderPath(folder_id, KF_FLAG_DEFAULT, None)?;
+            let raw = folder.0;
+            let mut length = 0;
+            while *raw.add(length) != 0 {
+                length += 1;
+            }
+            let folder = String::from_utf16_lossy(std::slice::from_raw_parts(raw, length));
+            windows::Win32::System::Com::CoTaskMemFree(Some(raw as *const _));
+            let persist: windows::Win32::System::Com::IPersistFile = link.cast()?;
+            persist.Save(&HSTRING::from(format!("{folder}\\WebDeck.lnk")), true)?;
+            Ok(())
+        }
+    })();
+    unsafe {
+        CoUninitialize();
+    }
+    if let Err(e) = result {
+        log().exception(&e, Some("Failed to create shortcut"), true, true, true);
+    }
+}
+
+/// Create `%APPDATA%\Microsoft\Windows\Start Menu\Programs\WebDeck.lnk`
+/// (port of the `windows_start_menu_shortcut` block in `on_start`).
+#[cfg(windows)]
+fn create_start_menu_shortcut() {
+    use windows::Win32::UI::Shell::FOLDERID_Programs;
+    create_shortcut_in_known_folder(&FOLDERID_Programs);
+}
+
+/// Create the Startup-folder shortcut (port of the `windows_startup` block
+/// in `saveconfig`).
+#[cfg(windows)]
+pub fn create_startup_shortcut() {
+    use windows::Win32::UI::Shell::FOLDERID_Startup;
+    create_shortcut_in_known_folder(&FOLDERID_Startup);
+}
+
 /// Port of `get_gpu_method`.
 ///
-/// Keeps the config default + save flow 1:1; the `pynvml` probe is TODO
-/// (`nvml-wrapper`), so non-NVIDIA fallback detection is deferred.
+/// Keeps the config default + save flow 1:1; the `pynvml.nvmlInit()` probe
+/// maps to `nvml_wrapper::Nvml::init()` (failure → `"AMD"` fallback).
 pub fn get_gpu_method() -> Value {
     let mut config = get_config(false, false);
     if config
@@ -124,22 +186,92 @@ pub fn get_gpu_method() -> Value {
             );
         }
     }
-    // TODO(port): nvml prelude probe → fall back to "AMD" on NVMLError.
+    if config["settings"]["gpu_method"] == "nvidia (pynvml)"
+        && nvml_wrapper::Nvml::init().is_err()
+    {
+        if let Some(settings) = config.get_mut("settings").and_then(|s| s.as_object_mut()) {
+            settings.insert("gpu_method".to_string(), Value::String("AMD".to_string()));
+        }
+    }
     save_config(config.clone());
     config
 }
 
 /// Port of `fix_vlc_cache`.
 ///
-/// Non-Windows returns immediately like Python; the registry lookup +
-/// `vlc-cache-gen` run is TODO via the `windows` crate (registry).
+/// Non-Windows returns immediately like Python. On Windows reads
+/// `HKLM\SOFTWARE\VideoLAN\VLC\InstallDir` and runs `vlc-cache-gen.exe`
+/// over the plugins dir (missing key = no VLC = silent return, like the
+/// `FileNotFoundError` path in Python).
 pub fn fix_vlc_cache() {
-    if !cfg!(windows) {
-        return;
+    #[cfg(windows)]
+    {
+        use windows::Win32::System::Registry::{
+            RegCloseKey, RegOpenKeyExW, RegQueryValueExW, HKEY, HKEY_LOCAL_MACHINE, KEY_READ,
+            REG_VALUE_TYPE,
+        };
+        use windows::core::w;
+
+        let install_dir: Option<String> = unsafe {
+            let mut key = HKEY::default();
+            if RegOpenKeyExW(
+                HKEY_LOCAL_MACHINE,
+                w!(r"SOFTWARE\VideoLAN\VLC"),
+                None,
+                KEY_READ,
+                &mut key,
+            )
+            .is_err()
+            {
+                None
+            } else {
+                let mut value_type = REG_VALUE_TYPE::default();
+                let mut buffer = [0u16; 512];
+                let mut length = (buffer.len() * 2) as u32;
+                let result = RegQueryValueExW(
+                    key,
+                    w!("InstallDir"),
+                    None,
+                    Some(&mut value_type),
+                    Some(buffer.as_mut_ptr() as *mut u8),
+                    Some(&mut length),
+                );
+                let _ = RegCloseKey(key);
+                if result.is_err() {
+                    None
+                } else {
+                    let chars = (length as usize / 2).saturating_sub(1);
+                    Some(String::from_utf16_lossy(&buffer[..chars.min(buffer.len())]))
+                }
+            }
+        };
+
+        let Some(vlc_path) = install_dir else {
+            return;
+        };
+        let command = format!("\"{vlc_path}\\vlc-cache-gen.exe\" \"{vlc_path}\\plugins\"");
+        match std::process::Command::new("cmd").args(["/C", &command]).status() {
+            Ok(status) if status.success() => {}
+            Ok(status) => log().exception(
+                &format!("exit status {status}"),
+                Some("Failed to execute VLC cache generation command"),
+                true,
+                true,
+                true,
+            ),
+            Err(e) => log().exception(
+                &e,
+                Some("Failed to execute VLC cache generation command"),
+                true,
+                true,
+                true,
+            ),
+        }
     }
-    // TODO(port): read HKLM\SOFTWARE\VideoLAN\VLC InstallDir and run
-    // vlc-cache-gen.exe over the plugins dir.
-    log().debug("fix_vlc_cache: registry backend not ported yet");
+    #[cfg(not(windows))]
+    {
+        // No-op off Windows, like Python's `os.name != 'nt'` early return.
+    }
 }
 
 /// Port of `on_start` — returns `(config, commands, local_ip)`.
@@ -156,8 +288,7 @@ pub async fn on_start() -> (Value, Value, String) {
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
         if wants_shortcut {
-            // TODO(port): Start Menu shortcut via windows crate (WScript.Shell).
-            log().debug("windows_start_menu_shortcut: shortcut creation not ported yet");
+            create_start_menu_shortcut();
         } else {
             // NOTE (upstream): reserved for future portable-version use.
         }

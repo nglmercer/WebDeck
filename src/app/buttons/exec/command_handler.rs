@@ -2,8 +2,8 @@
 //!
 //! Dispatch (`type:uploaded_file` / `type:file_path` / single-line) is ported
 //! 1:1, with `threading.Thread(…, daemon=True)` mapped to detached
-//! `std::thread::spawn`. Single-line `/exec` Python has no Rust equivalent
-//! yet (embedded `rhai` planned); single-line `/batch` already shells out.
+//! `std::thread::spawn`. Script bodies run as rhai (see `python_code`);
+//! single-line `/batch` shells out like `Popen(…, shell=True)`.
 
 use crate::app::buttons::exec::{batch_code, python_code};
 use crate::app::utils::logger::log;
@@ -15,7 +15,11 @@ fn is_bare_filename(message: &str) -> bool {
 }
 
 /// Port of `python`.
-pub fn python(message: &str) {
+///
+/// Returns `Err(message)` where Python raises (the route maps raises to
+/// failure JSON). Detached file threads report through the log only, like
+/// Python threads dying with a traceback.
+pub fn python(message: &str) -> Result<(), String> {
     if message.contains("type:uploaded_file") {
         let message = message
             .replace("C:\\fakepath\\", "")
@@ -26,30 +30,31 @@ pub fn python(message: &str) {
             // Stored directly in .config/user_uploads, not an absolute path.
             let python_file = format!(".config/user_uploads/{message}");
             log().debug(&format!("Message: {message}, Python file: {python_file}"));
-            std::thread::spawn(move || python_code::execute(&python_file));
+            std::thread::spawn(move || {
+                let _ = python_code::execute(&python_file);
+            });
         }
     } else if message.contains("type:file_path") {
         let python_file = message
             .replace("/exec ", "")
             .replace("type:file_path", "");
         let python_file = python_file.trim().to_string();
-        std::thread::spawn(move || python_code::execute(&python_file));
+        std::thread::spawn(move || {
+            let _ = python_code::execute(&python_file);
+        });
     } else {
         let code = message
             .replace("/exec", "")
             .replace("type:single_line", "");
-        // TODO(port): single-line exec via embedded rhai (Python exec()).
-        log().warning(&format!(
-            "Single-line /exec deferred (rhai planned): {}",
-            code.trim()
-        ));
+        python_code::run_script(code.trim()).map_err(|e| e.to_string())?;
     }
+    Ok(())
 }
 
 /// Port of `batch`.
-pub fn batch(message: &str) {
+pub fn batch(message: &str) -> Result<(), String> {
     if !cfg!(windows) {
-        return;
+        return Ok(());
     }
 
     if message.contains("type:uploaded_file") {
@@ -72,9 +77,13 @@ pub fn batch(message: &str) {
     } else {
         let command = message.replacen("/batch", "", 1);
         let command = command.trim();
-        match std::process::Command::new("cmd").args(["/C", command]).spawn() {
-            Ok(_) => {}
-            Err(e) => log().debug(&format!("Single-line /batch spawn failed: {e}")),
+        // Port of `Popen(..., shell=True)` (detached, like Python).
+        if let Err(e) = std::process::Command::new("cmd")
+            .args(["/C", command])
+            .spawn()
+        {
+            return Err(e.to_string());
         }
     }
+    Ok(())
 }

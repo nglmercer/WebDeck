@@ -2,21 +2,39 @@
 //!
 //! Python dynamically imports `.config/plugins/*.py` and reads each
 //! `WebDeckAddon.instance` (`_dict_doc` / `_dict_func` / `_addon_name`).
-//! Dynamic Python loading has no direct Rust equivalent, so the port splits
-//! the job:
-//! - [`load_plugins`] keeps the discovery side: it refreshes `temp/plugins`
-//!   from `.config/plugins` (same copy step) and reports found plugin files.
-//! - [`register_plugin_commands`] / [`plugin_commands`] form the static
-//!   command registry that [`crate::app::buttons::commands::handle_command`]
-//!   dispatches through (replacing the `all_func` global).
+//! Dynamic Python loading has no Rust equivalent, so script plugins are
+//! [`rhai`] scripts instead (`.config/plugins/*.rhai`, synced to
+//! `temp/plugins` by the same copy step as Python).
 //!
-//! Planned follow-up: load compiled plugins via `libloading` (cdylib
-//! `WebDeckAddon` ABI) and/or script plugins via `rhai`, both registering
-//! through [`register_plugin_commands`].
+//! ## rhai plugin contract
+//! Each script must define:
+//! - `addon_name()` → plugin name (port of `_addon_name`)
+//! - `addon_doc()` → map of `{command: doc}` (port of `_dict_doc`, merged
+//!   into `commands[plugin_name]` like Python)
+//! - `addon_call(command, args)` → handles one command invocation with the
+//!   `<|§|>`-split argument array (port of `_dict_func`, whose return values
+//!   Python discards — rhai return values are likewise ignored)
+//!
+//! Host API available to scripts: `log_debug`, `log_info`, `log_notice`,
+//! `log_warning`, `log_error`, `log_success`, `webdeck_command(cmd)`
+//! (runs a button command, returns its response JSON; recursion past 8
+//! nested plugin entries is refused), and `run_shell(cmd)` (runs a shell
+//! command, returns its exit code). One persistent [`rhai::Scope`] per
+//! plugin plays the role of Python module globals; reloading a plugin
+//! recompiles it fresh (like `importlib.reload`).
+//!
+//! The same engine (built by [`script_engine`]) backs `/exec` script
+//! execution in `buttons::exec`.
+//!
+//! `.py` plugins are still discovered but cannot be imported (logged, as
+//! before); [`register_plugin_commands`] / [`plugin_commands`] form the
+//! command registry that [`crate::app::buttons::commands::handle_command`]
+//! dispatches through (replacing the `all_func` global).
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
 
+use rhai::{Dynamic, Engine, Scope, AST};
 use serde_json::Value;
 
 use crate::app::utils::logger::log;
@@ -80,35 +98,262 @@ pub fn load_plugins(mut commands: Value) -> (Value, Vec<String>) {
     let mut found: Vec<String> = Vec::new();
     if let Ok(entries) = walk_files(temp_dir) {
         for path in entries {
-            let is_py = path.extension().and_then(|e| e.to_str()) == Some("py");
-            if !is_py {
-                continue;
-            }
+            let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
             let module_name = path
                 .file_stem()
                 .and_then(|s| s.to_str())
                 .unwrap_or("?")
                 .to_string();
-            // TODO(port): dynamic plugin loading (libloading/rhai). Until
-            // then, .py plugins are discovered but not imported.
-            log().info(&format!(
-                "Found plugin file (dynamic import deferred): {module_name}"
-            ));
-            found.push(module_name);
+            if ext == "py" {
+                // Dynamic `.py` import has no Rust equivalent; discovered
+                // but not imported (use `.rhai` scripts instead).
+                log().info(&format!(
+                    "Found plugin file (dynamic import deferred): {module_name}"
+                ));
+                found.push(module_name);
+                continue;
+            }
+            if ext != "rhai" {
+                continue;
+            }
+            match load_rhai_plugin(&path) {
+                Ok((plugin_name, doc, funcs)) => {
+                    log().info(&format!("Loaded plugin: {plugin_name}"));
+                    register_plugin_commands(&plugin_name, funcs);
+                    if let Some(map) = commands.as_object_mut() {
+                        map.insert(plugin_name, doc);
+                    }
+                    found.push(module_name);
+                }
+                Err(e) => {
+                    log().exception(
+                        &e,
+                        Some(&format!("Error importing module '{module_name}'")),
+                        true,
+                        true,
+                        true,
+                    );
+                    continue;
+                }
+            }
         }
     }
 
     // Merge statically-registered plugins' docs into `commands`, mirroring
-    // `commands[plugin_name] = dict_doc`.
+    // `commands[plugin_name] = dict_doc` (rhai plugins already inserted
+    // theirs above, so only fill in the gaps).
     if let Some(map) = commands.as_object_mut() {
         for plugin_name in plugin_commands().keys() {
-            map.entry(plugin_name.clone())
-                .or_insert(Value::Object(serde_json::Map::new()));
-            log().info(&format!("Loaded plugin: {plugin_name}"));
+            if !map.contains_key(plugin_name) {
+                map.insert(
+                    plugin_name.clone(),
+                    Value::Object(serde_json::Map::new()),
+                );
+                log().info(&format!("Loaded plugin: {plugin_name}"));
+            }
         }
     }
 
     (commands, found)
+}
+
+/// One loaded rhai plugin: engine + compiled script + persistent scope
+/// (the scope is the script's module-global state across calls).
+struct RhaiPlugin {
+    engine: Engine,
+    ast: AST,
+    scope: Scope<'static>,
+}
+
+// Thread-local plugin-entry depth (guards `webdeck_command` recursion).
+thread_local! {
+    static PLUGIN_DEPTH: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+/// Build a script engine with the WebDeck host API registered.
+/// Shared by `.rhai` plugins and `/exec` script execution.
+pub(crate) fn script_engine() -> Engine {
+    let mut engine = Engine::new();
+    engine.register_fn("log_debug", |msg: &str| log().debug(msg));
+    engine.register_fn("log_info", |msg: &str| log().info(msg));
+    engine.register_fn("log_notice", |msg: &str| log().notice(msg));
+    engine.register_fn("log_warning", |msg: &str| log().warning(msg));
+    engine.register_fn("log_error", |msg: &str| log().error(msg));
+    engine.register_fn("log_success", |msg: &str| log().success(msg));
+    engine.register_fn("webdeck_command", |cmd: &str| -> String {
+        let depth = PLUGIN_DEPTH.with(|d| {
+            let depth = d.get() + 1;
+            d.set(depth);
+            depth
+        });
+        if depth > 8 {
+            PLUGIN_DEPTH.with(|d| d.set(d.get() - 1));
+            log().error("webdeck_command: plugin recursion limit reached");
+            return r#"{"success": false, "message": "plugin recursion limit reached"}"#
+                .to_string();
+        }
+        let response =
+            serde_json::to_string(&crate::app::buttons::commands::handle_command(cmd))
+                .unwrap_or_else(|_| r#"{"success": false}"#.to_string());
+        PLUGIN_DEPTH.with(|d| d.set(d.get() - 1));
+        response
+    });
+    engine.register_fn("run_shell", |cmd: &str| -> i64 {
+        #[cfg(windows)]
+        let result = std::process::Command::new("cmd")
+            .args(["/C", cmd])
+            .status();
+        #[cfg(not(windows))]
+        let result = std::process::Command::new("sh").args(["-c", cmd]).status();
+        match result {
+            Ok(status) => status.code().unwrap_or(-1) as i64,
+            Err(_) => -1,
+        }
+    });
+    engine
+}
+
+/// Convert a rhai value to JSON (port of the `dict_doc` `_to_dict` mapping).
+fn dynamic_to_json(value: Dynamic) -> Value {
+    if value.is_string() {
+        Value::from(value.into_string().unwrap_or_default())
+    } else if value.is_int() {
+        Value::from(value.as_int().unwrap_or(0))
+    } else if value.is_float() {
+        serde_json::Number::from_f64(value.as_float().unwrap_or(0.0))
+            .map(Value::from)
+            .unwrap_or(Value::Null)
+    } else if value.is_bool() {
+        Value::from(value.as_bool().unwrap_or(false))
+    } else if value.is_array() {
+        Value::from(
+            value
+                .into_array()
+                .unwrap_or_default()
+                .into_iter()
+                .map(dynamic_to_json)
+                .collect::<Vec<_>>(),
+        )
+    } else if value.is_map() {
+        Value::from(
+            value
+                .cast::<rhai::Map>()
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), dynamic_to_json(v)))
+                .collect::<serde_json::Map<String, Value>>(),
+        )
+    } else if value.is_unit() {
+        Value::Null
+    } else {
+        Value::from(value.to_string())
+    }
+}
+
+/// Compile one `.rhai` plugin: returns (addon name, doc JSON, commands).
+fn load_rhai_plugin(path: &std::path::Path) -> Result<(String, Value, HashMap<String, PluginFn>), String> {
+    let source =
+        std::fs::read_to_string(path).map_err(|e| format!("cannot read plugin: {e}"))?;
+    let engine = script_engine();
+    let ast = engine
+        .compile(source)
+        .map_err(|e| format!("cannot compile plugin: {e}"))?;
+    let mut scope = Scope::new();
+
+    let name: String = engine
+        .call_fn(&mut scope, &ast, "addon_name", ())
+        .map_err(|e| format!("addon_name() failed: {e}"))?;
+    let doc: rhai::Map = engine
+        .call_fn(&mut scope, &ast, "addon_doc", ())
+        .map_err(|e| format!("addon_doc() failed: {e}"))?;
+
+    let vm = Arc::new(Mutex::new(RhaiPlugin { engine, ast, scope }));
+    let mut funcs: HashMap<String, PluginFn> = HashMap::new();
+    for command in doc.keys() {
+        let vm = Arc::clone(&vm);
+        let command = command.to_string();
+        let plugin = name.clone();
+        let key = command.clone();
+        let handler: PluginFn = Arc::new(move |args: &[String]| {
+            let args: Vec<Dynamic> =
+                args.iter().map(|s| Dynamic::from(s.clone())).collect();
+            let mut vm = match vm.lock() {
+                Ok(vm) => vm,
+                Err(_) => return,
+            };
+            let RhaiPlugin { engine, ast, scope } = &mut *vm;
+            // Return values are discarded, like Python's `func(*args)`.
+            if let Err(e) = engine.call_fn::<Dynamic>(
+                scope,
+                ast,
+                "addon_call",
+                (command.clone(), args),
+            ) {
+                log().exception(
+                    &e,
+                    Some(&format!(
+                        "Error in plugin '{plugin}' command '{command}'"
+                    )),
+                    true,
+                    true,
+                    true,
+                );
+            }
+        });
+        funcs.insert(key, handler);
+    }
+
+    let doc_json = dynamic_to_json(Dynamic::from(doc));
+    Ok((name, doc_json, funcs))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn write_plugin(source: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join("webdeck_rhai_test");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("demo.rhai");
+        std::fs::write(&path, source).unwrap();
+        path
+    }
+
+    #[test]
+    fn rhai_plugin_contract_end_to_end() {
+        let path = write_plugin(
+            r#"
+            fn addon_name() { "demo" }
+            fn addon_doc() { #{ greet: "says hi", add: "adds" } }
+            fn addon_call(cmd, args) {
+                log_info("called " + cmd);
+                if cmd == "add" { return args.len(); }
+            }
+        "#,
+        );
+        let (name, doc, funcs) = load_rhai_plugin(&path).expect("plugin loads");
+        assert_eq!(name, "demo");
+        assert_eq!(doc["greet"], Value::from("says hi"));
+        assert!(funcs.contains_key("greet") && funcs.contains_key("add"));
+        // Dispatch works and discards the return value.
+        funcs["add"](&["1".to_string(), "2".to_string()]);
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn broken_plugin_reports_import_error() {
+        let path = write_plugin("fn addon_name() { 1 + }");
+        assert!(load_rhai_plugin(&path).is_err());
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn dynamic_to_json_converts_nesting() {
+        let mut map = rhai::Map::new();
+        map.insert("n".into(), Dynamic::from(3_i64));
+        map.insert("s".into(), Dynamic::from("x"));
+        let value = dynamic_to_json(Dynamic::from(map));
+        assert_eq!(value, serde_json::json!({"n": 3, "s": "x"}));
+    }
 }
 
 fn walk_files(root: &str) -> std::io::Result<Vec<std::path::PathBuf>> {

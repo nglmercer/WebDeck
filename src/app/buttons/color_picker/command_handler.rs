@@ -125,8 +125,10 @@ pub fn handle_command(message: &str) {
                 .collect::<Vec<_>>()
                 .join(", ")
         };
-        // TODO(port): clipboard write via `arboard` (pyperclip equivalent).
-        log().info(&format!("colorpicker would copy: {text}"));
+        match arboard::Clipboard::new().and_then(|mut clipboard| clipboard.set_text(text.clone())) {
+            Ok(()) => log().debug(&format!("colorpicker copied: {text}")),
+            Err(e) => log().error(&format!("colorpicker clipboard copy failed: {e}")),
+        }
     }
 
     toast(

@@ -39,14 +39,14 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use minijinja::value::Rest;
+use minijinja::value::{ObjectRepr, Rest};
 use serde_json::{json, Value};
 use tokio::sync::Mutex;
 use tower_http::services::ServeDir;
 
 use crate::app::buttons::{self, soundboard, usage::get_usage};
 use crate::app::on_start::on_start;
-use crate::app::tray::{change_server_state, change_tray_language};
+use crate::app::tray::{change_server_state, change_tray_language, ServerState};
 use crate::app::utils::{
     args::get_args,
     firewall::{check_firewall_permission, fix_firewall_permission},
@@ -234,6 +234,38 @@ fn pseudo_random_below(len: usize) -> usize {
     nanos % len
 }
 
+/// Port of the `img.rotate(-90, expand=True)` blocks: saves a `-90` portrait
+/// copy next to the original unless it already exists.
+fn save_rotated_copy(original: &str) {
+    let path = std::path::Path::new(original);
+    let (Some(stem), ext) = (
+        path.file_stem().and_then(|s| s.to_str()),
+        path.extension().and_then(|s| s.to_str()).unwrap_or(""),
+    ) else {
+        return;
+    };
+    let parent = path.parent().map(|p| p.to_string_lossy().to_string()).unwrap_or_default();
+    let rotated_path = if parent.is_empty() {
+        format!("{stem}-90.{ext}")
+    } else {
+        format!("{parent}/{stem}-90.{ext}")
+    };
+    if std::path::Path::new(&rotated_path).exists() {
+        return;
+    }
+    match image::open(original) {
+        Ok(img) => {
+            // PIL rotate(-90) = 90° clockwise = rotate270.
+            if let Err(e) = img.rotate270().save(&rotated_path) {
+                log().exception(&e, Some(&format!("Failed to rotate image {original}")), true, true, true);
+            }
+        }
+        Err(e) => {
+            log().exception(&e, Some(&format!("Failed to rotate image {original}")), true, true, true);
+        }
+    }
+}
+
 fn minijinja_env() -> minijinja::Environment<'static> {
     let mut env = minijinja::Environment::new();
     env.set_loader(minijinja::path_loader("templates"));
@@ -256,7 +288,443 @@ fn minijinja_env() -> minijinja::Environment<'static> {
     env.add_function("isfile", |path: String| {
         std::path::Path::new(&path).is_file()
     });
+    // Python builtins the templates use as globals.
+    env.add_function("int", |value: minijinja::Value| -> Result<i64, minijinja::Error> {
+        py_int(&value).ok_or_else(|| {
+            minijinja::Error::new(
+                minijinja::ErrorKind::InvalidOperation,
+                "int() argument must be a number or numeric string",
+            )
+        })
+    });
+    env.add_function("str", |value: minijinja::Value| py_str(&value));
+    // `open(path)` reads a text file for inlining (SVG contents); `.read()`
+    // on the result is emulated in `python_method` so `open(p).read()`
+    // renders the file exactly like Flask.
+    env.add_function("open", |path: String| -> Result<String, minijinja::Error> {
+        std::fs::read_to_string(&path).map_err(|e| {
+            minijinja::Error::new(
+                minijinja::ErrorKind::InvalidOperation,
+                format!("open({path:?}) failed: {e}"),
+            )
+        })
+    });
+    env.add_function("eval", |source: String| -> Result<minijinja::Value, minijinja::Error> {
+        eval_literal(&source).ok_or_else(|| {
+            minijinja::Error::new(
+                minijinja::ErrorKind::InvalidOperation,
+                format!("eval() cannot parse {source:?}"),
+            )
+        })
+    });
+    // Python-style `value.method(...)` calls minijinja doesn't implement.
+    env.set_unknown_method_callback(python_method);
+    // Jinja2's `length` returns 0 for Undefined (its `__len__`); minijinja
+    // errors instead, so override with Undefined-tolerant behavior.
+    env.add_filter("length", jinja_length);
     env
+}
+
+/// Port of Jinja2's `length` filter (`Undefined` → 0, like `Undefined.__len__`).
+fn jinja_length(value: minijinja::Value) -> Result<usize, minijinja::Error> {
+    if value.is_undefined() {
+        return Ok(0);
+    }
+    if let Some(s) = value.as_str() {
+        return Ok(s.chars().count());
+    }
+    if is_map_value(&value) {
+        return value
+            .as_object()
+            .and_then(|object| object.try_iter_pairs())
+            .map(|pairs| pairs.count())
+            .ok_or_else(|| {
+                minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "cannot calculate length of value",
+                )
+            });
+    }
+    value
+        .try_iter()
+        .map(|iter| iter.count())
+        .map_err(|_| {
+            minijinja::Error::new(
+                minijinja::ErrorKind::InvalidOperation,
+                "cannot calculate length of value",
+            )
+        })
+}
+
+/// Emulate the Python str/list/dict methods the templates call
+/// (`split`, `startswith`, `join`, `get`, `items`, …).
+fn python_method(
+    _state: &minijinja::State,
+    value: &minijinja::Value,
+    method: &str,
+    args: &[minijinja::Value],
+) -> Result<minijinja::Value, minijinja::Error> {
+    use minijinja::{Error, ErrorKind, Value};
+    let unsupported = || Error::new(ErrorKind::InvalidOperation, format!("unsupported method {method}"));
+    let arg_str = |i: usize| -> Result<&str, Error> {
+        args.get(i).and_then(|v| v.as_str()).ok_or_else(unsupported)
+    };
+
+    // Lenient-Undefined chaining (Jinja2 default): any method on Undefined
+    // yields Undefined instead of erroring.
+    if value.is_undefined() {
+        return Ok(Value::UNDEFINED);
+    }
+
+    if let Some(s) = value.as_str() {
+        let owned = s.to_string();
+        return match method {
+            "lower" => Ok(Value::from(owned.to_lowercase())),
+            "upper" => Ok(Value::from(owned.to_uppercase())),
+            "capitalize" => {
+                let mut chars = owned.chars();
+                let out = match chars.next() {
+                    Some(first) => {
+                        let mut out: String = first.to_uppercase().collect();
+                        out.push_str(&chars.as_str().to_lowercase());
+                        out
+                    }
+                    None => String::new(),
+                };
+                Ok(Value::from(out))
+            }
+            "title" => Ok(Value::from(
+                owned
+                    .split_whitespace()
+                    .map(|word| {
+                        let mut chars = word.chars();
+                        match chars.next() {
+                            Some(first) => {
+                                first.to_uppercase().collect::<String>() + chars.as_str()
+                            }
+                            None => String::new(),
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" "),
+            )),
+            "strip" => Ok(Value::from(owned.trim().to_string())),
+            "lstrip" => Ok(Value::from(owned.trim_start().to_string())),
+            "rstrip" => Ok(Value::from(owned.trim_end().to_string())),
+            "split" => {
+                let parts: Vec<Value> = match args.first().and_then(|v| v.as_str()) {
+                    Some(sep) => owned.split(sep).map(Value::from).collect(),
+                    None => owned.split_whitespace().map(Value::from).collect(),
+                };
+                Ok(Value::from(parts))
+            }
+            "rsplit" => {
+                let parts: Vec<Value> = match args.first().and_then(|v| v.as_str()) {
+                    Some(sep) => owned.rsplit(sep).map(Value::from).collect(),
+                    None => owned.split_whitespace().map(Value::from).collect(),
+                };
+                Ok(Value::from(parts))
+            }
+            "splitlines" => Ok(Value::from(
+                owned.lines().map(Value::from).collect::<Vec<_>>(),
+            )),
+            "replace" => {
+                let from = arg_str(0)?;
+                let to = arg_str(1)?;
+                Ok(Value::from(owned.replace(from, to)))
+            }
+            // Python accepts a single prefix or a tuple of prefixes.
+            "startswith" => {
+                let prefixes = str_or_seq(args.first().ok_or_else(unsupported)?)?;
+                Ok(Value::from(prefixes.iter().any(|prefix| owned.starts_with(prefix))))
+            }
+            "endswith" => {
+                let suffixes = str_or_seq(args.first().ok_or_else(unsupported)?)?;
+                Ok(Value::from(suffixes.iter().any(|suffix| owned.ends_with(suffix))))
+            }
+            "find" => Ok(Value::from(owned.find(arg_str(0)?).map(|i| i as i64).unwrap_or(-1))),
+            // Paired with the `open` global above: the content is already
+            // loaded, so `.read()` returns it unchanged.
+            "read" => Ok(Value::from(owned)),
+            "join" => {
+                let seq = args.first().ok_or_else(unsupported)?;
+                let mut parts: Vec<String> = Vec::new();
+                if let Ok(iter) = seq.try_iter() {
+                    for item in iter {
+                        parts.push(py_str(&item));
+                    }
+                }
+                Ok(Value::from(parts.join(&owned)))
+            }
+            _ => Err(unsupported()),
+        };
+    }
+
+    // Maps first: `try_iter` on a map yields keys, so dict methods must be
+    // matched before the sequence branch below.
+    if let Some(pairs) = value
+        .as_object()
+        .filter(|object| matches!(object.repr(), ObjectRepr::Map))
+        .and_then(|object| object.try_iter_pairs())
+    {
+        let entries: Vec<(minijinja::Value, minijinja::Value)> = pairs.collect();
+        return match method {
+            "get" => {
+                let key = arg_str(0)?;
+                for (k, v) in &entries {
+                    if k.as_str() == Some(key) {
+                        return Ok(v.clone());
+                    }
+                }
+                Ok(args.get(1).cloned().unwrap_or(Value::UNDEFINED))
+            }
+            "keys" => Ok(Value::from(entries.iter().map(|(k, _)| k.clone()).collect::<Vec<_>>())),
+            "values" => Ok(Value::from(entries.iter().map(|(_, v)| v.clone()).collect::<Vec<_>>())),
+            "items" => Ok(Value::from(
+                entries
+                    .iter()
+                    .map(|(k, v)| Value::from(vec![k.clone(), v.clone()]))
+                    .collect::<Vec<_>>(),
+            )),
+            _ => Err(unsupported()),
+        };
+    }
+
+    if let Ok(iter) = value.try_iter() {
+        let items: Vec<minijinja::Value> = iter.collect();
+        return match method {
+            // Jinja2 mutates in place and returns None. The template site
+            // needing the side effect is pre-applied to the Rust context
+            // (see `render_home_page`); here return Undefined so
+            // `|default("", True)` renders "" exactly like Flask.
+            "append" => Ok(Value::UNDEFINED),
+            "index" => {
+                let needle = args.first().ok_or_else(unsupported)?;
+                let position = items.iter().position(|item| {
+                    // Compare via debug rendering (covers str/num/bool).
+                    format!("{item:?}") == format!("{needle:?}")
+                });
+                match position {
+                    Some(i) => Ok(Value::from(i as i64)),
+                    None => Err(Error::new(ErrorKind::InvalidOperation, "index(): not found")),
+                }
+            }
+            "count" => {
+                let needle = args.first().ok_or_else(unsupported)?;
+                let count = items
+                    .iter()
+                    .filter(|item| format!("{item:?}") == format!("{needle:?}"))
+                    .count();
+                Ok(Value::from(count as i64))
+            }
+            _ => Err(unsupported()),
+        };
+    }
+
+    Err(unsupported())
+}
+
+/// Python `int()` semantics for the template global.
+fn py_int(value: &minijinja::Value) -> Option<i64> {
+    if let Some(s) = value.as_str() {
+        let trimmed = s.trim();
+        if let Ok(int) = trimmed.parse::<i64>() {
+            return Some(int);
+        }
+        return trimmed.parse::<f64>().ok().map(|f| f.trunc() as i64);
+    }
+    let rendered = format!("{value:?}");
+    rendered.parse::<i64>().ok().or_else(|| {
+        rendered
+            .parse::<f64>()
+            .ok()
+            .map(|f| f.trunc() as i64)
+    })
+}
+
+/// Python `str()` semantics for the template global (containers use `repr`).
+fn py_str(value: &minijinja::Value) -> String {
+    if let Some(s) = value.as_str() {
+        return s.to_string();
+    }
+    py_repr(value)
+}
+
+/// Python `repr()` for numbers, bools, None, lists, and dicts.
+fn py_repr(value: &minijinja::Value) -> String {
+    use minijinja::Value;
+    if value.is_undefined() {
+        return String::new();
+    }
+    if let Some(s) = value.as_str() {
+        return format!("'{s}'");
+    }
+    if value.is_true() && !is_number(value) {
+        return "True".to_string();
+    }
+    if !value.is_true() && is_bool_or_none(value) {
+        return if is_none(value) { "None".to_string() } else { "False".to_string() };
+    }
+    if !is_map_value(value) {
+        if let Ok(iter) = value.try_iter() {
+            let items: Vec<String> = iter.map(|item| py_repr(&item)).collect();
+            return format!("[{}]", items.join(", "));
+        }
+    }
+    if let Some(pairs) = value
+        .as_object()
+        .filter(|object| matches!(object.repr(), ObjectRepr::Map))
+        .and_then(|object| object.try_iter_pairs())
+    {
+        let items: Vec<String> = pairs
+            .map(|(k, v)| format!("{}: {}", py_repr(&k), py_repr(&v)))
+            .collect();
+        return format!("{{{}}}", items.join(", "));
+    }
+    // Numbers and anything else: debug rendering matches closely enough
+    // (integers plain, floats shortest-roundtrip like Python repr).
+    let _ = Value::UNDEFINED;
+    format!("{value:?}").trim_matches('"').to_string()
+}
+
+/// Accept a string or a sequence of strings (Python tuple form).
+fn str_or_seq(value: &minijinja::Value) -> Result<Vec<String>, minijinja::Error> {
+    if let Some(s) = value.as_str() {
+        return Ok(vec![s.to_string()]);
+    }
+    let mut items = Vec::new();
+    if let Ok(iter) = value.try_iter() {
+        for item in iter {
+            items.push(item.as_str().ok_or_else(|| {
+                minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "prefix must be a string",
+                )
+            })?.to_string());
+        }
+        return Ok(items);
+    }
+    Err(minijinja::Error::new(
+        minijinja::ErrorKind::InvalidOperation,
+        "prefix must be a string or tuple of strings",
+    ))
+}
+
+fn is_map_value(value: &minijinja::Value) -> bool {
+    value
+        .as_object()
+        .map(|object| matches!(object.repr(), ObjectRepr::Map))
+        .unwrap_or(false)
+}
+
+fn is_number(value: &minijinja::Value) -> bool {
+    format!("{value:?}").parse::<f64>().is_ok()
+}
+
+fn is_bool_or_none(value: &minijinja::Value) -> bool {
+    matches!(format!("{value:?}").as_str(), "true" | "false" | "none" | "null")
+}
+
+fn is_none(value: &minijinja::Value) -> bool {
+    matches!(format!("{value:?}").as_str(), "none" | "null")
+}
+
+/// Parse a Python literal (`['.exe']`, `[0, 100]`, `'text'`, numbers) as the
+/// template `eval()` global. Only the shapes `args.jinja` produces are
+/// supported — anything else is an error, never executed code.
+fn eval_literal(source: &str) -> Option<minijinja::Value> {
+    let parser = LiteralParser::new(source);
+    parser.parse()
+}
+
+struct LiteralParser<'a> {
+    chars: std::iter::Peekable<std::str::Chars<'a>>,
+}
+
+impl<'a> LiteralParser<'a> {
+    fn new(source: &'a str) -> Self {
+        Self { chars: source.chars().peekable() }
+    }
+
+    fn parse(mut self) -> Option<minijinja::Value> {
+        let value = self.parse_value()?;
+        self.skip_ws();
+        if self.chars.next().is_some() {
+            return None;
+        }
+        Some(value)
+    }
+
+    fn skip_ws(&mut self) {
+        while self.chars.peek().map(|c| c.is_whitespace()).unwrap_or(false) {
+            self.chars.next();
+        }
+    }
+
+    fn parse_value(&mut self) -> Option<minijinja::Value> {
+        use minijinja::Value;
+        self.skip_ws();
+        match self.chars.peek()? {
+            '[' => {
+                self.chars.next();
+                let mut items = Vec::new();
+                loop {
+                    self.skip_ws();
+                    if self.chars.peek() == Some(&']') {
+                        self.chars.next();
+                        break;
+                    }
+                    items.push(self.parse_value()?);
+                    self.skip_ws();
+                    match self.chars.peek() {
+                        Some(',') => {
+                            self.chars.next();
+                        }
+                        Some(']') => continue,
+                        _ => return None,
+                    }
+                }
+                Some(Value::from(items))
+            }
+            '\'' | '"' => {
+                let quote = self.chars.next()?;
+                let mut text = String::new();
+                while let Some(ch) = self.chars.next() {
+                    if ch == quote {
+                        return Some(Value::from(text));
+                    }
+                    if ch == '\\' {
+                        if let Some(escaped) = self.chars.next() {
+                            text.push(escaped);
+                        }
+                    } else {
+                        text.push(ch);
+                    }
+                }
+                None
+            }
+            _ => {
+                let mut token = String::new();
+                while let Some(&ch) = self.chars.peek() {
+                    if ch == ',' || ch == ']' || ch.is_whitespace() {
+                        break;
+                    }
+                    token.push(ch);
+                    self.chars.next();
+                }
+                match token.as_str() {
+                    "True" => Some(Value::from(true)),
+                    "False" => Some(Value::from(false)),
+                    "None" => Some(Value::from(())),
+                    _ => token
+                        .parse::<i64>()
+                        .map(Value::from)
+                        .or_else(|_| token.parse::<f64>().map(Value::from))
+                        .ok(),
+                }
+            }
+        }
+    }
 }
 
 // --- Routes ------------------------------------------------------------
@@ -329,22 +797,43 @@ async fn home(State(_state): State<AppState>) -> Response {
             );
             let path = std::path::Path::new(&rotated);
             if path.exists() {
-                if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                    let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
-                    let rotated_path = format!(".config/user_uploads/{stem}-90.{ext}");
-                    if !std::path::Path::new(&rotated_path).exists() {
-                        // TODO(port): image rotation via the `image` crate.
-                        log().debug(&format!(
-                            "Portrait rotation for {rotated} deferred (image crate TODO)"
-                        ));
-                    }
-                }
+                save_rotated_copy(&rotated);
             }
         }
         random_bg = candidate;
         break;
     }
     log().debug(&format!("Selected random background image: {random_bg}"));
+
+    match render_home_page(&config, &commands, &versions, &random_bg, is_exe) {
+        Ok(html) => Html(html).into_response(),
+        Err(message) => internal_error("An error occurred during a request", message, None),
+    }
+}
+
+/// Build the `index.jinja` context and render it.
+///
+/// `config` is cloned before rendering: `index.jinja:533` appends
+/// `"static/css/style.css"` to `config.front.themes` in Flask (a list
+/// mutation minijinja values cannot express), so the entry is pre-pushed
+/// here — same per-request result, since the config is re-read every time.
+fn render_home_page(
+    config: &Value,
+    commands: &Value,
+    versions: &Value,
+    random_bg: &str,
+    is_exe: bool,
+) -> Result<String, String> {
+    let mut config = config.clone();
+    if let Some(themes) = config
+        .get_mut("front")
+        .and_then(|f| f.get_mut("themes"))
+        .and_then(|t| t.as_array_mut())
+    {
+        // Mirrors the unconditional `.append("static/css/style.css")` at
+        // render time in Flask (fresh config per request, so no accumulation).
+        themes.push(Value::String("static/css/style.css".to_string()));
+    }
 
     let mut themes: Vec<String> = Vec::new();
     if let Ok(entries) = std::fs::read_dir(".config/themes/") {
@@ -371,36 +860,18 @@ async fn home(State(_state): State<AppState>) -> Response {
     });
 
     let env = minijinja_env();
-    match env.get_template("index.jinja") {
-        Ok(template) => {
-            // A template bug must never kill the worker connection: Jinja2
-            // tolerates expressions minijinja cannot (e.g. `[::-1]` on an
-            // empty list currently panics inside minijinja instead of
-            // returning empty). Contain that as a 500 until the templates
-            // get their sandbox-adaptation pass (see docs/MIGRATION_RUST.md).
-            let rendered = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                template.render(&context)
-            }));
-            match rendered {
-                Ok(Ok(html)) => Html(html).into_response(),
-                Ok(Err(e)) => internal_error(
-                    "An error occurred during a request",
-                    format!("Template render failed: {e}"),
-                    None,
-                ),
-                Err(_) => internal_error(
-                    "An error occurred during a request",
-                    "Template render panicked (minijinja/Jinja2 behavior gap — see docs/MIGRATION_RUST.md)"
-                        .to_string(),
-                    None,
-                ),
-            }
-        }
-        Err(e) => internal_error(
-            "An error occurred during a request",
-            format!("Cannot load index.jinja: {e}"),
-            None,
-        ),
+    let template = env
+        .get_template("index.jinja")
+        .map_err(|e| format!("Cannot load index.jinja: {e}"))?;
+    // A template bug must never kill the worker connection: contain any
+    // engine panic as a 500 exactly like a render error.
+    let rendered = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        template.render(&context)
+    }));
+    match rendered {
+        Ok(Ok(html)) => Ok(html),
+        Ok(Err(e)) => Err(format!("Template render failed: {e:?}")),
+        Err(_) => Err("Template render panicked (minijinja/Jinja2 behavior gap — see docs/MIGRATION_RUST.md)".to_string()),
     }
 }
 
@@ -437,8 +908,7 @@ async fn saveconfig(State(state): State<AppState>, Json(new_config): Json<Value>
     if !old_startup && new_startup {
         #[cfg(windows)]
         if !cfg!(debug_assertions) {
-            // TODO(port): Startup shortcut via windows crate (WScript.Shell).
-            log().debug("windows_startup shortcut creation not ported yet");
+            crate::app::on_start::utils::create_startup_shortcut();
         }
     } else if old_startup && !new_startup {
         #[cfg(windows)]
@@ -622,25 +1092,44 @@ async fn get_config_route(State(state): State<AppState>) -> Response {
 }
 
 /// Port of `upload_folderpath` (`POST /upload_folderpath`).
-/// TODO(port): native dialog via `rfd` (easygui equivalent).
+/// `easygui.diropenbox` → `rfd` folder picker (`""` on cancel, like Python).
 async fn upload_folderpath() -> String {
-    log().debug("upload_folderpath: native dialog not ported yet (rfd planned)");
-    String::new()
+    // Native dialogs are blocking; run off the async runtime.
+    tokio::task::spawn_blocking(|| {
+        rfd::FileDialog::new()
+            .pick_folder()
+            .map(|path| path.to_string_lossy().to_string())
+            .unwrap_or_default()
+    })
+    .await
+    .unwrap_or_default()
 }
 
 /// Port of `upload_filepath` (`POST /upload_filepath`).
-/// TODO(port): native dialog via `rfd` (easygui equivalent).
+/// `easygui.fileopenbox` → `rfd` file picker (`""` on cancel, like Python).
 async fn upload_filepath(Query(params): Query<HashMap<String, String>>) -> String {
-    let filetypes = params.get("filetypes").map(|s| s.as_str());
-    log().debug(&format!(
-        "upload_filepath(filetypes={filetypes:?}): native dialog not ported yet (rfd planned)"
-    ));
-    let _ = filetypes.map(|f| {
-        f.split('_')
-            .map(|item| format!("*{item}"))
-            .collect::<Vec<_>>()
-    });
-    String::new()
+    let filetypes = params.get("filetypes").cloned().unwrap_or_default();
+    tokio::task::spawn_blocking(move || {
+        let mut dialog = rfd::FileDialog::new();
+        if !filetypes.is_empty() {
+            // Python: `filetypes.split('_')` → `*ext` easygui patterns.
+            let extensions: Vec<String> = filetypes
+                .split('_')
+                .map(|item| item.trim().trim_start_matches('.').trim_start_matches('*').to_string())
+                .filter(|item| !item.is_empty())
+                .collect();
+            let borrowed: Vec<&str> = extensions.iter().map(|s| s.as_str()).collect();
+            if !borrowed.is_empty() {
+                dialog = dialog.add_filter("files", &borrowed);
+            }
+        }
+        dialog
+            .pick_file()
+            .map(|path| path.to_string_lossy().to_string())
+            .unwrap_or_default()
+    })
+    .await
+    .unwrap_or_default()
 }
 
 /// Port of `upload_file` (`POST /upload_file`).
@@ -691,10 +1180,7 @@ async fn upload_file(mut multipart: Multipart) -> Response {
     };
 
     if info.as_deref() == Some("background_image") {
-        // TODO(port): -90° rotation via the `image` crate.
-        log().debug(&format!(
-            "Portrait rotation for uploaded {filename} deferred (image crate TODO)"
-        ));
+        save_rotated_copy(&format!(".config/user_uploads/{filename}"));
     }
 
     log().success(&format!("File '{filename}' uploaded successfully"));
@@ -767,13 +1253,70 @@ async fn get_config_file(Path((directory, filename)): Path<(String, String)>) ->
     }
 }
 
+/// SocketIO `/` namespace setup — port of the `@socketio.on(...)` handlers
+/// in `app/server.py` (`connect`, `send`, `message_from_socket`).
+fn socketio_layer(server_address: &str, server_port: u16) -> socketioxide::layer::SocketIoLayer {
+    use socketioxide::extract::{Data, SocketRef};
+
+    let (layer, io) = socketioxide::SocketIo::new_layer();
+    let address = server_address.to_string();
+
+    io.ns("/", move |socket: SocketRef| {
+        let address = address.clone();
+        async move {
+            log().info(&format!("server connected at {address}:{server_port}"));
+
+            socket.on(
+                "send",
+                |socket: SocketRef, Data::<Value>(data)| async move {
+                    log().info(&format!("message received with : {data}"));
+                    // Python `send(data, broadcast=True)` emits "message".
+                    let _ = socket.broadcast().emit("message", &data).await;
+                },
+            );
+
+            socket.on(
+                "message_from_socket",
+                |socket: SocketRef, Data::<Value>(data)| async move {
+                    let message = data.as_str().map(|s| s.to_string()).unwrap_or_else(|| data.to_string());
+                    log().info(&format!("Message from client: {message}"));
+                    let owned = message.clone();
+                    let result =
+                        tokio::task::spawn_blocking(move || buttons::handle_command(&owned)).await;
+                    if result.is_ok() {
+                        // Python emits the ORIGINAL message, not the result.
+                        let _ = socket.emit("json_data", &message);
+                    }
+                },
+            );
+        }
+    });
+
+    layer
+}
+
 /// Port of `send_data_route` (`POST /send-data`).
-/// (The SocketIO `message_from_socket` twin is TODO with `socketioxide`.)
 async fn send_data_route(Json(body): Json<Value>) -> Response {
-    let message = body.get("message").and_then(|v| v.as_str()).unwrap_or("");
-    let result = buttons::handle_command(message);
-    // TODO(socketioxide): also emit `json_data` to SocketIO clients.
-    Json(result).into_response()
+    let message = body
+        .get("message")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    // Command handling is blocking/sync (subprocesses, sleeps, sync HTTP for
+    // Spotify/translate), like Python's gevent worker: run it off the runtime.
+    let result = tokio::task::spawn_blocking(move || buttons::handle_command(&message)).await;
+    match result {
+        Ok(result) => {
+            // NOTE: like Python's `send_data_route`, the HTTP path does not
+            // emit SocketIO events; only `on_socket_message` emits `json_data`.
+            Json(result).into_response()
+        }
+        Err(e) => internal_error(
+            "An error occurred while handling a command",
+            format!("Command task failed: {e}"),
+            None,
+        ),
+    }
 }
 
 /// Port of `run_server`.
@@ -784,6 +1327,9 @@ pub async fn run_server() -> Result<(), ServerError> {
     let (config, _commands, local_ip) = on_start().await;
     set_global_variable("config", config.clone());
 
+    // Python starts the mic loop at import time when enabled.
+    soundboard::mic::start_if_enabled();
+
     // Python module level: firewall bypass + local IP log.
     if config["settings"]["automatic_firewall_bypass"].as_bool() == Some(true)
         && !check_firewall_permission()
@@ -792,7 +1338,7 @@ pub async fn run_server() -> Result<(), ServerError> {
     }
     log().info(&format!("Local IP address detected: {local_ip}"));
 
-    change_server_state(1);
+    change_server_state(ServerState::Running);
 
     let state = AppState {
         folders_to_create: Arc::new(Mutex::new(Vec::new())),
@@ -822,11 +1368,9 @@ pub async fn run_server() -> Result<(), ServerError> {
         .with_state(state)
         .layer(middleware::from_fn(after_request));
 
-    // TODO(socketioxide): mount SocketIO layer (`connect` log, `send` relay,
-    // `message_from_socket` → handle_command → emit `json_data`).
-
     let host = get_args().host.clone().unwrap_or(local_ip);
     let port = get_port();
+    let app = app.layer(socketio_layer(&host, port));
     let listener = tokio::net::TcpListener::bind(format!("{host}:{port}"))
         .await
         .map_err(|e| ServerError(format!("Cannot bind {host}:{port}: {e}")))?;
@@ -838,4 +1382,66 @@ pub async fn run_server() -> Result<(), ServerError> {
     .await
     .map_err(|e| ServerError(format!("Server failed: {e}")))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::utils::settings::get_config::test_support::{config_guard, seed_config};
+
+    #[test]
+    fn index_renders_with_realistic_context() {
+        let _guard = config_guard();
+        seed_config(&serde_json::json!({
+            "url": {"port": 5000, "ip": "127.0.0.1"},
+            "front": {"buttons": {}, "themes": [], "portrait_rotate": false},
+            "settings": {"optimized_usage_display": false, "gpu_method": "None"},
+        }));
+        crate::app::utils::languages::init(
+            "webdeck/translations",
+            Some("webdeck/translations/misc"),
+            "en_US",
+        );
+        let config: Value = serde_json::from_str(
+            &std::fs::read_to_string("webdeck/config_default.json").expect("default config"),
+        )
+        .expect("parse default config");
+        let commands: Value = serde_json::from_str(
+            &std::fs::read_to_string("webdeck/commands.json").expect("commands"),
+        )
+        .expect("parse commands");
+        let versions: Value = serde_json::from_str(
+            &std::fs::read_to_string("webdeck/version.json").expect("versions"),
+        )
+        .expect("parse versions");
+        let html = render_home_page(&config, &commands, &versions, "#141414", false)
+            .expect("index.jinja renders");
+        assert!(html.contains("WebDeck"), "missing brand marker");
+        assert!(html.contains("static/css/style.css"), "missing base theme entry");
+    }
+
+    #[test]
+    fn eval_literal_parses_arg_shapes() {
+        let exts = eval_literal("['.exe']").expect("list of str");
+        assert_eq!(exts.try_iter().map(|i| i.count()).unwrap_or(0), 1);
+        let nums = eval_literal("['0','100']").expect("list of str");
+        assert_eq!(nums.try_iter().map(|i| i.count()).unwrap_or(0), 2);
+        assert!(eval_literal("['a', 1, True]").is_some());
+        assert!(eval_literal("not [ valid").is_none());
+    }
+
+    #[test]
+    fn rotated_copy_swaps_dimensions() {
+        let dir = std::env::temp_dir().join(format!("webdeck-rot-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        let src = dir.join("bg.png");
+        let img: image::RgbImage = image::ImageBuffer::from_fn(4, 2, |x, y| {
+            image::Rgb([x as u8, y as u8, 0])
+        });
+        img.save(&src).unwrap();
+        save_rotated_copy(&src.to_string_lossy());
+        let rotated = image::open(dir.join("bg-90.png")).unwrap();
+        assert_eq!((rotated.width(), rotated.height()), (2, 4));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

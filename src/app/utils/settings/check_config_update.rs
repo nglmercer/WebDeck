@@ -2,7 +2,7 @@
 
 use serde_json::Value;
 
-use crate::app::utils::{logger::log, working_dir};
+use crate::app::utils::{logger::log, settings::get_config::config_dir, working_dir};
 
 /// Port of `check_config_update`.
 pub fn check_config_update(config: Value) -> Value {
@@ -119,12 +119,13 @@ fn update_config_with_defaults(config: &mut Value, default_config: &Value) {
 
 /// Port of `check_config_themes`.
 pub fn check_config_themes(mut config: Value) -> Value {
-    if !std::path::Path::new(".config/themes/").exists() {
+    let themes_dir = config_dir().join("themes");
+    if !themes_dir.exists() {
         return config;
     }
 
     let mut themes: Vec<String> = Vec::new();
-    if let Ok(entries) = std::fs::read_dir(".config/themes/") {
+    if let Ok(entries) = std::fs::read_dir(&themes_dir) {
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().to_string();
             if name.ends_with(".css") {
@@ -179,7 +180,7 @@ pub fn check_config_themes(mut config: Value) -> Value {
     if let Some(installed) = front.get_mut("themes").and_then(|t| t.as_array_mut()) {
         installed.retain(|theme| {
             let file = theme.as_str().unwrap_or("").replace("//", "");
-            std::path::Path::new(".config/themes").join(file).is_file()
+            themes_dir.join(file).is_file()
         });
 
         // Remove duplicates (keep first occurrence, re-inserted at the front

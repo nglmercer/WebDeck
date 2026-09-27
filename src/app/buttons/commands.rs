@@ -27,28 +27,298 @@ fn spawn_shell(command: &str) {
     }
 }
 
-// --- Input/clipboard backends (TODO: enigo / arboard) ------------------------
+// --- Input/clipboard backends (enigo / arboard) -------------------------------
+// `pyautogui.press/hotkey` → enigo `key()` clicks; `keyboard.write` →
+// enigo `text()`; `pyperclip.copy` → arboard. pyautogui key names map to
+// enigo `Key` below (`Key::Unicode` covers single characters everywhere).
+
+use enigo::{Direction, Enigo, Key, Keyboard, Settings};
+
+fn enigo_agent() -> Result<Enigo, String> {
+    Enigo::new(&Settings::default()).map_err(|e| e.to_string())
+}
+
+/// Map a pyautogui/`keyboard` key name to enigo. Returns `None` when the
+/// name is better sent as typed text (single char) — handled by callers.
+fn map_key(name: &str) -> Option<Key> {
+    let lower = name.to_lowercase();
+    // Letters/digits exist as Key variants on Windows only; elsewhere they
+    // are typed as Unicode text (same visible effect as pyautogui.press).
+    #[cfg(windows)]
+    {
+        if lower.len() == 1 {
+            let ch = lower.chars().next().unwrap_or('\0');
+            let key = match ch {
+                'a' => Key::A, 'b' => Key::B, 'c' => Key::C, 'd' => Key::D,
+                'e' => Key::E, 'f' => Key::F, 'g' => Key::G, 'h' => Key::H,
+                'i' => Key::I, 'j' => Key::J, 'k' => Key::K, 'l' => Key::L,
+                'm' => Key::M, 'n' => Key::N, 'o' => Key::O, 'p' => Key::P,
+                'q' => Key::Q, 'r' => Key::R, 's' => Key::S, 't' => Key::T,
+                'u' => Key::U, 'v' => Key::V, 'w' => Key::W, 'x' => Key::X,
+                'y' => Key::Y, 'z' => Key::Z,
+                '0' => Key::Num0, '1' => Key::Num1, '2' => Key::Num2,
+                '3' => Key::Num3, '4' => Key::Num4, '5' => Key::Num5,
+                '6' => Key::Num6, '7' => Key::Num7, '8' => Key::Num8,
+                '9' => Key::Num9,
+                _ => return None,
+            };
+            return Some(key);
+        }
+    }
+    match lower.as_str() {
+        "ctrl" | "control" | "lctrl" => Some(Key::LControl),
+        "rctrl" => Some(Key::RControl),
+        "shift" | "lshift" => Some(Key::LShift),
+        "rshift" => Some(Key::RShift),
+        "alt" | "lalt" => Some(Key::Alt),
+        "enter" | "return" => Some(Key::Return),
+        "esc" | "escape" => Some(Key::Escape),
+        "tab" => Some(Key::Tab),
+        "space" => Some(Key::Space),
+        "backspace" => Some(Key::Backspace),
+        "delete" | "del" => Some(Key::Delete),
+        "insert" | "ins" => Some(Key::Insert),
+        "home" => Some(Key::Home),
+        "end" => Some(Key::End),
+        "pageup" | "pgup" => Some(Key::PageUp),
+        "pagedown" | "pgdn" => Some(Key::PageDown),
+        "up" => Some(Key::UpArrow),
+        "down" => Some(Key::DownArrow),
+        "left" => Some(Key::LeftArrow),
+        "right" => Some(Key::RightArrow),
+        "win" | "super" | "meta" | "lwin" | "windows" => Some(Key::Meta),
+        "rwin" => Some(Key::Meta),
+        "capslock" => Some(Key::CapsLock),
+        "numlock" => Some(Key::Numlock),
+        #[cfg(target_os = "windows")]
+        "scrolllock" => Some(Key::Scroll),
+        #[cfg(not(target_os = "windows"))]
+        "scrolllock" => Some(Key::ScrollLock),
+        "printscreen" | "prtsc" => Some(Key::PrintScr),
+        "pause" => Some(Key::Pause),
+        "volumemute" => Some(Key::VolumeMute),
+        "volumeup" => Some(Key::VolumeUp),
+        "volumedown" => Some(Key::VolumeDown),
+        "playpause" | "medianext" | "mediaplaypause" => Some(Key::MediaPlayPause),
+        "prevtrack" | "medianprevious" => Some(Key::MediaPrevTrack),
+        "nexttrack" | "medianexttrack" => Some(Key::MediaNextTrack),
+        "mediastop" => Some(Key::MediaStop),
+        "f1" => Some(Key::F1), "f2" => Some(Key::F2), "f3" => Some(Key::F3),
+        "f4" => Some(Key::F4), "f5" => Some(Key::F5), "f6" => Some(Key::F6),
+        "f7" => Some(Key::F7), "f8" => Some(Key::F8), "f9" => Some(Key::F9),
+        "f10" => Some(Key::F10), "f11" => Some(Key::F11), "f12" => Some(Key::F12),
+        _ => None,
+    }
+}
 
 fn press_key(key: &str) {
-    log().warning(&format!("press_key({key:?}): keyboard backend (enigo) not ported yet"));
+    match enigo_agent() {
+        Ok(mut enigo) => {
+            if let Some(mapped) = map_key(key) {
+                if let Err(e) = enigo.key(mapped, Direction::Click) {
+                    log().error(&format!("press_key({key:?}) failed: {e}"));
+                }
+            } else if key.chars().count() == 1 {
+                // Single characters type directly (pyautogui.press parity).
+                if let Err(e) = enigo.text(key) {
+                    log().error(&format!("press_key({key:?}) failed: {e}"));
+                }
+            } else {
+                log().warning(&format!("press_key({key:?}): unknown key name"));
+            }
+        }
+        Err(e) => log().error(&format!("press_key backend unavailable: {e}")),
+    }
 }
 
 fn hotkey(keys: &[&str]) {
-    log().warning(&format!("hotkey({keys:?}): keyboard backend (enigo) not ported yet"));
+    match enigo_agent() {
+        Ok(mut enigo) => {
+            let mut mapped: Vec<Key> = Vec::new();
+            for key in keys {
+                match map_key(key) {
+                    Some(k) => mapped.push(k),
+                    None if key.chars().count() == 1 => {
+                        if let Some(ch) = key.chars().next() {
+                            mapped.push(Key::Unicode(ch));
+                        }
+                    }
+                    None => {
+                        log().warning(&format!("hotkey({keys:?}): unknown key {key:?}"));
+                        return;
+                    }
+                }
+            }
+            // pyautogui.hotkey: press all in order, release in reverse.
+            for key in &mapped {
+                if enigo.key(*key, Direction::Press).is_err() {
+                    break;
+                }
+            }
+            for key in mapped.iter().rev() {
+                let _ = enigo.key(*key, Direction::Release);
+            }
+        }
+        Err(e) => log().error(&format!("hotkey backend unavailable: {e}")),
+    }
 }
 
 fn type_text(text: &str) {
-    log().warning(&format!(
-        "type_text({} chars): keyboard backend (enigo) not ported yet",
-        text.len()
-    ));
+    match enigo_agent() {
+        Ok(mut enigo) => {
+            if let Err(e) = enigo.text(text) {
+                log().error(&format!("type_text failed: {e}"));
+            }
+        }
+        Err(e) => log().error(&format!("type_text backend unavailable: {e}")),
+    }
 }
 
 fn clipboard_copy(text: &str) {
-    log().warning(&format!(
-        "clipboard_copy({} chars): clipboard backend (arboard) not ported yet",
-        text.len()
-    ));
+    match arboard::Clipboard::new().and_then(|mut clipboard| clipboard.set_text(text.to_string())) {
+        Ok(()) => log().debug("clipboard_copy: done"),
+        Err(e) => log().error(&format!("clipboard_copy failed: {e}")),
+    }
+}
+
+/// Port of the `/appvolume` branch — per-application volume via CoreAudio
+/// session enumeration (`pycaw` equivalent). Argument parsing and volume
+/// math mirror Python exactly (process-name match is case-insensitive).
+fn app_volume(message: &str) {
+    let normalized = message
+        .replacen("/appvolume ", "", 1)
+        .replace("set ", "set");
+    let command: Vec<&str> = normalized.split_whitespace().collect();
+    // Python IndexErrors here on missing args (→ HTTP 500); log instead.
+    if command.len() < 2 {
+        log().error("appvolume: missing process name");
+        return;
+    }
+
+    #[cfg(windows)]
+    {
+        use windows::Win32::Media::Audio::{
+            eMultimedia, eRender, IAudioSessionControl2, IAudioSessionManager2,
+            IMMDeviceEnumerator, ISimpleAudioVolume, MMDeviceEnumerator,
+        };
+        use windows::Win32::System::Com::{
+            CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_ALL, COINIT_MULTITHREADED,
+        };
+        use windows::Win32::System::Threading::{
+            OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION,
+            PROCESS_NAME_WIN32,
+        };
+        use windows::core::{Interface as _, PWSTR};
+
+        unsafe {
+            let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
+        }
+        let result = (|| -> windows::core::Result<()> {
+            unsafe {
+                let enumerator: IMMDeviceEnumerator =
+                    CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)?;
+                let device = enumerator.GetDefaultAudioEndpoint(eRender, eMultimedia)?;
+                let manager: IAudioSessionManager2 = device.Activate(CLSCTX_ALL, None)?;
+                let sessions = manager.GetSessionEnumerator()?;
+                let count = sessions.GetCount()?;
+                for i in 0..count {
+                    let Ok(control) = sessions.GetSession(i as i32) else {
+                        continue;
+                    };
+                    let Ok(control2) = control.cast::<IAudioSessionControl2>() else {
+                        continue;
+                    };
+                    let Ok(pid) = control2.GetProcessId() else {
+                        continue;
+                    };
+                    if pid == 0 {
+                        continue;
+                    }
+                    let Ok(process) =
+                        OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
+                    else {
+                        continue;
+                    };
+                    let process = ProcessGuard(process);
+                    let mut buffer = [0u16; 512];
+                    let mut length = buffer.len() as u32;
+                    if QueryFullProcessImageNameW(process.0, PROCESS_NAME_WIN32, PWSTR(buffer.as_mut_ptr()), &mut length).is_err() {
+                        continue;
+                    }
+                    let image = String::from_utf16_lossy(&buffer[..length as usize]);
+                    let process_name = image.rsplit(['/', '\\']).next().unwrap_or("");
+                    if !process_name.eq_ignore_ascii_case(command[1]) {
+                        continue;
+                    }
+                    let Ok(volume) = control.cast::<ISimpleAudioVolume>() else {
+                        continue;
+                    };
+                    let old_volume = volume.GetMasterVolume().unwrap_or(0.0);
+                    log().debug(&format!("Current volume: {old_volume}"));
+                    let old_percent = (old_volume * 100.0).round() as i32;
+
+                    let target_volume = if command[0].starts_with("set") {
+                        let mut target = command[0].replace("set", "").parse::<i32>().unwrap_or(old_percent);
+                        if target > 100 {
+                            target = 100;
+                        }
+                        if target < 0 {
+                            target = 0;
+                        }
+                        target
+                    } else if command[0].starts_with('+') {
+                        let rest = command[0].replace('+', "");
+                        if rest.is_empty() {
+                            old_percent + 1
+                        } else {
+                            old_percent + rest.parse::<i32>().unwrap_or(0)
+                        }
+                    } else if command[0].starts_with('-') {
+                        let rest = command[0].replace('-', "");
+                        if rest.is_empty() {
+                            old_percent - 1
+                        } else {
+                            old_percent - rest.parse::<i32>().unwrap_or(0)
+                        }
+                    } else {
+                        continue;
+                    };
+
+                    volume.SetMasterVolume(target_volume as f32 / 100.0, std::ptr::null())?;
+                    log().debug(&format!(
+                        "New volume: {}",
+                        volume.GetMasterVolume().unwrap_or(-1.0)
+                    ));
+                }
+                Ok(())
+            }
+        })();
+        unsafe {
+            CoUninitialize();
+        }
+        if let Err(e) = result {
+            log().exception(&e, Some("appvolume failed"), true, true, true);
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        log().warning(&format!(
+            "appvolume {command:?}: per-app volume is only supported on Windows"
+        ));
+    }
+}
+
+/// RAII `CloseHandle` for process handles opened during session matching.
+#[cfg(windows)]
+struct ProcessGuard(windows::Win32::Foundation::HANDLE);
+
+#[cfg(windows)]
+impl Drop for ProcessGuard {
+    fn drop(&mut self) {
+        unsafe {
+            let _ = windows::Win32::Foundation::CloseHandle(self.0);
+        }
+    }
 }
 
 fn success() -> Value {
@@ -137,8 +407,10 @@ pub fn handle_command(message: &str) -> Value {
         spawn_shell("taskkill /f /im explorer.exe");
         std::thread::sleep(std::time::Duration::from_millis(500));
         spawn_shell("explorer.exe");
-        if let Ok(hwnd) = window::get_by_name("explorer.exe") {
-            let _ = window::close(&hwnd);
+        // NOTE: Python passes the HWND int to close() (TypeError → HTTP 500
+        // upstream); close by title instead — same intent, no crash.
+        if window::get_by_name("explorer.exe").is_ok() {
+            let _ = window::close("explorer.exe");
         }
     } else if message.starts_with("/kill")
         || message.starts_with("/taskill")
@@ -154,6 +426,9 @@ pub fn handle_command(message: &str) -> Value {
             Ok(hwnd) => log().debug(&format!("Window '{window_name}' found with handle: {hwnd}")),
             Err(_) => log().debug(&format!("Window '{window_name}' not found")),
         }
+        // NOTE: Python passes the HWND int to close() (TypeError → taskkill
+        // fallback, and closes a random window when None); close by exact
+        // title instead, keeping the taskkill fallback.
         if window::close(&window_name).is_err() {
             if !window_name.contains('.') {
                 window_name.push_str(".exe");
@@ -178,15 +453,7 @@ pub fn handle_command(message: &str) -> Value {
         || message.starts_with("/appvolume -")
         || message.starts_with("/appvolume set")
     {
-        // TODO(port): per-app volume via `windows` crate CoreAudio (pycaw
-        // equivalent). Argument parsing is ported 1:1 below.
-        let command = message
-            .replacen("/appvolume ", "", 1)
-            .replace("set ", "set");
-        let parts: Vec<&str> = command.split_whitespace().collect();
-        log().warning(&format!(
-            "appvolume {parts:?}: CoreAudio backend not ported yet"
-        ));
+        app_volume(&message);
     } else if message.starts_with("/soundcontrol mute") {
         press_key("volumemute");
     } else if message.starts_with("/mediacontrol playpause") {
@@ -207,8 +474,8 @@ pub fn handle_command(message: &str) -> Value {
         // FIXME (upstream): fix /firstplan
         let window_name = message.replace("/firstplan", "").trim().to_string();
         match window::get_by_name(&window_name) {
-            Ok(_) => {
-                window::bring_window_to_front(&window_name);
+            Ok(hwnd) => {
+                window::foreground(hwnd);
                 press_key("ENTER");
                 log().success(&format!(
                     "Window '{window_name}' has been brought to the foreground"
@@ -263,9 +530,13 @@ pub fn handle_command(message: &str) -> Value {
     {
         system::handle_command(&message);
     } else if message.starts_with("/exec") {
-        exec::python(&message);
+        if let Err(message) = exec::python(&message) {
+            return failure(&message);
+        }
     } else if message.starts_with("/batch") {
-        exec::batch(&message);
+        if let Err(message) = exec::batch(&message) {
+            return failure(&message);
+        }
     } else {
         // Plugin commands (port of the all_func loop; arity inspection is
         // replaced by the PluginFn(&[String]) adapter convention).
@@ -289,4 +560,25 @@ pub fn handle_command(message: &str) -> Value {
     }
 
     success()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn maps_common_key_names() {
+        assert!(matches!(map_key("ctrl"), Some(Key::LControl)));
+        assert!(matches!(map_key("ENTER"), Some(Key::Return)));
+        assert!(matches!(map_key("volumemute"), Some(Key::VolumeMute)));
+        assert!(matches!(map_key("playpause"), Some(Key::MediaPlayPause)));
+        assert!(matches!(map_key("win"), Some(Key::Meta)));
+        assert!(matches!(map_key("f12"), Some(Key::F12)));
+        assert_eq!(map_key("not-a-key-zzz"), None);
+        // Single chars map on Windows (Key variants), type as text elsewhere.
+        #[cfg(windows)]
+        assert!(map_key("h").is_some());
+        #[cfg(not(windows))]
+        assert_eq!(map_key("h"), None);
+    }
 }

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
-use crate::app::utils::languages::text;
+use crate::app::utils::{languages::text, settings::get_config::config_dir};
 
 /// Port of `parse_css_file`.
 ///
@@ -87,13 +87,14 @@ pub fn parse_css_file(css_file_path: &str) -> HashMap<String, Value> {
 /// Port of `parse_themes`.
 pub fn parse_themes() -> HashMap<String, HashMap<String, Value>> {
     let mut parsed_themes: HashMap<String, HashMap<String, Value>> = HashMap::new();
-    if let Ok(entries) = std::fs::read_dir(".config/themes/") {
+    let themes_dir = config_dir().join("themes");
+    if let Ok(entries) = std::fs::read_dir(&themes_dir) {
         for entry in entries.flatten() {
             let file_name = entry.file_name().to_string_lossy().to_string();
             if file_name.ends_with(".css") {
                 parsed_themes.insert(
                     file_name.clone(),
-                    parse_css_file(&format!(".config/themes/{file_name}")),
+                    parse_css_file(&themes_dir.join(&file_name).to_string_lossy()),
                 );
             }
         }
