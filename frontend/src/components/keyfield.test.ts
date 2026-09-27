@@ -12,33 +12,38 @@ beforeEach(() => {
 });
 
 describe('keyField', () => {
-  it('renders value input, capture button, search, and named-key list', () => {
+  it('renders value input, capture button, and search dropdown', () => {
     const out = keyField({ dark: 'dark-theme', id: 'k1', value: 'a' }).value;
     expect(out).toContain('id="key-input_k1"');
     expect(out).toContain('value="a"');
     expect(out).toContain('id="key-capture_k1"');
     expect(out).toContain('>Capture</button>');
-    expect(out).toContain('id="key-search_k1"');
-    expect(out).toContain('placeholder="Search keys…"');
+    expect(out).toContain('<search-dropdown');
     expect(out).toContain('id="key-list_k1"');
-    for (const name of ['ctrl', 'space', 'enter', 'f12', 'volumemute']) {
-      expect(out).toContain(`<option value="${name}">${name}</option>`);
-    }
+    expect(out).toContain('placeholder="Search keys…"');
+    expect(out).toContain('input-class="key-aux"');
+    expect(out).not.toContain('<select');
+    expect(out).not.toContain('<option');
   });
 
-  it('marks auxiliary controls so serialization skips them', () => {
-    const out = keyField({ dark: '', id: 'k1', value: '' }).value;
-    expect(out).toContain('class="key-aux " type="text" id="key-search_k1"');
-    expect(out).toContain('class="key-aux " id="key-list_k1"');
-    expect(out).not.toContain('key-aux" type="text" name="" size="10" id="key-input_k1"');
+  it('marks the dropdown search box so serialization skips it', () => {
+    document.body.innerHTML = keyField({ dark: '', id: 'k1', value: '' }).value;
+    wireKeyField('k1');
+    const search = document.querySelector('#key-list_k1 .sd-search') as HTMLInputElement;
+    expect(search.classList.contains('key-aux')).toBe(true);
+    expect(
+      (document.querySelector('#key-input_k1') as HTMLInputElement).classList.contains('key-aux')
+    ).toBe(false);
   });
 
   it('lists every backend named key exactly once', () => {
-    const out = keyField({ dark: '', id: 'k1', value: '' }).value;
+    document.body.innerHTML = keyField({ dark: '', id: 'k1', value: '' }).value;
+    wireKeyField('k1');
     expect(new Set(NAMED_KEYS).size).toBe(NAMED_KEYS.length);
-    for (const name of NAMED_KEYS) {
-      expect(out.match(new RegExp(`<option value="${name}">`, 'g')) ?? []).toHaveLength(1);
-    }
+    const rendered = [
+      ...document.querySelectorAll('#key-list_k1 .sd-option'),
+    ].map((el) => el.getAttribute('data-value'));
+    expect(rendered).toEqual(NAMED_KEYS);
   });
 });
 
@@ -78,22 +83,20 @@ describe('wireKeyField', () => {
     return document.querySelector('#key-input_k1') as HTMLInputElement;
   }
 
-  it('writes list selection into the value input', () => {
+  it('writes dropdown selection into the value input', () => {
     mount();
-    const list = document.querySelector('#key-list_k1') as HTMLSelectElement;
-    list.value = 'enter';
-    list.dispatchEvent(new Event('change', { bubbles: true }));
+    (document.querySelector('.sd-option[data-value="enter"]') as HTMLElement).click();
     expect(input().value).toBe('enter');
   });
 
-  it('filters the list by search text', () => {
+  it('filters the dropdown by search text', () => {
     mount();
-    const search = document.querySelector('#key-search_k1') as HTMLInputElement;
+    const search = document.querySelector('#key-list_k1 .sd-search') as HTMLInputElement;
     search.value = 'vol';
     search.dispatchEvent(new Event('input', { bubbles: true }));
-    const visible = [...(document.querySelector('#key-list_k1') as HTMLSelectElement).options]
-      .filter((o) => o.style.display !== 'none')
-      .map((o) => o.value);
+    const visible = [...document.querySelectorAll('#key-list_k1 .sd-option')].map(
+      (o) => o.getAttribute('data-value')
+    );
     expect(visible).toEqual(['volumemute', 'volumeup', 'volumedown']);
   });
 

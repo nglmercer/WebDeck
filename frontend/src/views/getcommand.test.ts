@@ -78,8 +78,7 @@ describe('getCommand goldens', () => {
     });
     (document.querySelector('#key-input_7X7') as HTMLInputElement).value = 'a';
     // Aux controls hold decoy values that must never serialize.
-    (document.querySelector('#key-search_7X7') as HTMLInputElement).value = 'decoy';
-    (document.querySelector('#key-list_7X7') as HTMLSelectElement).value = 'enter';
+    (document.querySelector('#key-list_7X7 .sd-search') as HTMLInputElement).value = 'decoy';
     expect(getCommand('/key', MODAL_ID)).toBe('/key a');
   });
 

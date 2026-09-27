@@ -1,15 +1,17 @@
-import { html, join, raw, type Html } from '../framework/html';
+import { html, raw, type Html } from '../framework/html';
 import { text } from '../framework/i18n';
 import { byId, q } from '../query';
+import { SearchDropdown, searchDropdown, wireSearchDropdown } from './search-dropdown';
 
 /**
  * Key-selector field for `input key` args (e.g. Text / Press a key).
  *
  * One collected text input (serializes like a plain text arg) plus two
- * auxiliary controls that never serialize (class `key-aux`, skipped by
- * `getCommand`): a capture button that records the next physical keypress,
- * and a searchable list of the named keys the backend `/key` handler
- * accepts (see `map_key` in `src/app/buttons/commands.rs`).
+ * auxiliary controls that never serialize: a capture button that records
+ * the next physical keypress, and a {@link searchDropdown} over the named
+ * keys the backend `/key` handler accepts (see `map_key` in
+ * `src/app/buttons/commands.rs`; its search box carries `key-aux` so
+ * `collectArgValues` skips it).
  */
 
 /** Canonical named keys, in backend `map_key` order. */
@@ -77,10 +79,12 @@ export function keyField(o: KeyFieldOptions): Html {
       } />
       <button type="button" class="key-capture ${raw(o.dark)}" id="key-capture_${o.id}">${text('key_capture')}</button>
     </div>
-    <input class="key-aux ${raw(o.dark)}" type="text" id="key-search_${o.id}" placeholder="${text('key_search_keys')}" autocomplete="off" />
-    <select class="key-aux ${raw(o.dark)}" id="key-list_${o.id}" size="6">
-      ${join(NAMED_KEYS.map((name) => html`<option value="${name}">${name}</option>`))}
-    </select>
+    ${searchDropdown({
+      dark: o.dark,
+      id: `key-list_${o.id}`,
+      placeholder: text('key_search_keys'),
+      inputClass: 'key-aux',
+    })}
   </div>`;
 }
 
@@ -135,19 +139,11 @@ export function normalizeCapturedKey(key: string): string | null {
 export function wireKeyField(modalId: string): void {
   const input = byId<HTMLInputElement>(`key-input_${modalId}`).get(0) ?? null;
   const captureBtn = byId<HTMLButtonElement>(`key-capture_${modalId}`).get(0) ?? null;
-  const search = byId<HTMLInputElement>(`key-search_${modalId}`).get(0) ?? null;
-  const list = byId<HTMLSelectElement>(`key-list_${modalId}`).get(0) ?? null;
-  if (!input || !captureBtn || !search || !list) return;
+  const list = byId(`key-list_${modalId}`).get(0) ?? null;
+  if (!input || !captureBtn || !(list instanceof SearchDropdown)) return;
 
-  q(list).on('change', function () {
-    q(input).val(list.value);
-  });
-
-  q(search).on('input', function () {
-    const needle = String(q(search).val() ?? '').toLowerCase();
-    for (const option of [...list.options]) {
-      option.style.display = option.text.toLowerCase().includes(needle) ? '' : 'none';
-    }
+  wireSearchDropdown(`key-list_${modalId}`, NAMED_KEYS, (value) => {
+    q(input).val(value);
   });
 
   const idleLabel = captureBtn.textContent ?? '';
