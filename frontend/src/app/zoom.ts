@@ -57,7 +57,9 @@ let fitState: { s: number; tx: number; ty: number } = { s: 1, tx: 0, ty: 0 };
 
 function applyFit(scaler: HTMLElement, s: number, tx: number, ty: number): void {
   fitState = { s, tx, ty };
-  q(scaler).css({ transformOrigin: '0 0', transform: `translate(${tx}px, ${ty}px) scale(${s})` });
+  // NOTE: translate() on #deck-scale is conflictive — commented out, scale only.
+  // Original: transform: `translate(${tx}px, ${ty}px) scale(${s})`
+  q(scaler).css({ transformOrigin: '0 0', transform: `scale(${s})` });
 }
 
 export function auto_resize(): void {
@@ -82,8 +84,8 @@ export function auto_resize(): void {
   if (!(w > 0) || !(h > 0)) return;
   // Same intent as the upstream grow/shrink loop (fill as much as fits)
   // computed directly: exact, instant, and unable to miss convergence.
-  // translate() then centers the scaled box horizontally and pins it to
-  // the top, which also pulls rotated overflow back on-screen.
+  // Scale-only: translate() on #deck-scale proved conflictive, so
+  // centering stays with the layout CSS (.buttons-center margin/justify).
   const vw = window.innerWidth;
   const s = Math.min(vw / w, window.innerHeight / h);
   if (!isFinite(s) || s <= 0) return;
@@ -197,8 +199,8 @@ export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string, 
   const scaler = byId<HTMLElement>('deck-scale').get(0) ?? null;
 
   // Manual zoom steps relative to the current auto fit (upstream reset
-  // to an absolute zoom of 1 here); translation is preserved so the
-  // grid does not jump, and the scale stays positive.
+  // to an absolute zoom of 1 here); scale-only, and the scale stays
+  // positive.
   try {
     q(dezoomBtn).on('click', () => {
       if (!isSwapMode() && scaler) {

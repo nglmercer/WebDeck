@@ -113,6 +113,26 @@ p.buttontext {
   display: block;
 }
 
+/* In-tile label for press-key buttons (replaces the below-tile name so it
+   is not duplicated). Overlays the keycap-style image, centered. */
+.buttontext-inside {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.5rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
 
 div.usage {
   position: absolute;

@@ -8,7 +8,7 @@ import {
   rep,
   type BootContext,
 } from '../../framework/types';
-import { svgSlot } from '../svg';
+import { svgInlineStyle, svgSlot } from '../svg';
 import type { AddModalContext } from './types';
 
 export function addPreview(ctx: BootContext, mctx: AddModalContext, buttonName: string): Html {
@@ -51,7 +51,7 @@ export function addPreview(ctx: BootContext, mctx: AddModalContext, buttonName: 
     const sizeNum = parseInt(rep(asString(style['image_size']), '%', ''), 10);
     const px = 112 * (sizeNum / 100) + 3;
     media = imagelink.endsWith('.svg')
-      ? svgSlot(imagelink, ` id="button-image_${id}" style="width:${px}px; height:${px}; ${fill}"`, '<svg')
+      ? svgSlot(imagelink, ` id="button-image_${id}" ${svgInlineStyle(px, fill)}`, '<svg')
       : html`<img id="button-image_${id}" src="${imagelink}" draggable="false" style="
                             width: ${String(px)}px;
                             ${fill}"

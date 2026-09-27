@@ -13,7 +13,7 @@ import {
   type JsonObject,
 } from '../framework/types';
 import { editButtonModal } from './editmodal';
-import { svgSlot } from './svg';
+import { svgInlineStyle, svgSlot } from './svg';
 
 /**
  * `{% set onclick %}` + folder-button overrides. Returns the raw attribute
@@ -115,6 +115,10 @@ function gridButton(
   const name = asString(entry['name']);
 
   const image = asString(entry['image']);
+  // Press-key buttons show their (short) label centered inside the tile
+  // instead of below it — but only over an image, so the white overlay
+  // text stays readable, and only when names are shown at all.
+  const showInsideName = showNames && message.startsWith('/key') && image !== '' && name !== '';
   let media: Html;
   if (image === '') {
     media = raw('');
@@ -126,7 +130,7 @@ function gridButton(
     const px = 112 * (sizeNum / 100) + 3;
     if (imagepath.endsWith('.svg')) {
       // Upstream guards with isfile(); the hydrator skips failed fetches.
-      media = svgSlot(imagepath, `style="width:${px}px; height:${px}; ${fill}"`);
+      media = svgSlot(imagepath, svgInlineStyle(px, fill));
     } else {
       // onerror removal mirrors the isfile guard for missing files.
       media = html`<img src="${imagepath}" draggable="false" alt="${imagepath}" onerror="this.remove()" style="
@@ -156,12 +160,13 @@ function gridButton(
                 <div class="checkbox" style="display: none;"></div>
                 <button ${attrs} id="button_${editModalId}" edit_modal_ID="${editModalId}" class="${cls}" role="button" style="overflow: hidden; max-height: 89.6px;">
                   ${media}
+                  ${showInsideName ? html`<span class="buttontext-inside">${name}</span>` : raw('')}
                   <!--|||||||||||||||||||||||-->
                   ${usageBlock(message, fill)}
                   <!--|||||||||||||||||||||||-->
                 </button>
                 ${
-                  showNames
+                  showNames && !showInsideName
                     ? html`<p class="buttontext" ${raw(buttontextStyle)}>
                     ${name}
                   </p>`

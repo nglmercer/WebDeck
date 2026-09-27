@@ -14,6 +14,15 @@ export interface SvgSlot {
 const slots: SvgSlot[] = [];
 let slotSeq = 0;
 
+/**
+ * Inline size style for an inlined SVG icon. Both dimensions carry `px`
+ * units — a unitless `height` is dropped by the CSS parser and the SVG
+ * falls back to its tiny intrinsic height (e.g. 16px Bootstrap icons).
+ */
+export function svgInlineStyle(px: number, fill: string): string {
+  return `style="width:${px}px; height:${px}px; ${fill}"`;
+}
+
 /** Render a placeholder for an inlined SVG (resolved by `hydrateSvgs`). */
 export function svgSlot(path: string, attrs: string, needle: '<svg ' | '<svg' = '<svg '): Html {
   const id = slotSeq++;
