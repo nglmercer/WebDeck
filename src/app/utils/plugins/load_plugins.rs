@@ -76,7 +76,9 @@ pub fn load_plugins(mut commands: Value) -> (Value, Vec<String>) {
     if let Err(e) = std::fs::create_dir_all(temp_dir) {
         log().exception(
             &e,
-            Some(&format!("Error creating temp plugins directory '{temp_dir}'")),
+            Some(&format!(
+                "Error creating temp plugins directory '{temp_dir}'"
+            )),
             false,
             true,
             false,
@@ -89,7 +91,13 @@ pub fn load_plugins(mut commands: Value) -> (Value, Vec<String>) {
             if let Some(name) = src.file_name().and_then(|n| n.to_str()) {
                 let dst = std::path::Path::new(temp_dir).join(name);
                 if let Err(e) = std::fs::copy(&src, &dst) {
-                    log().exception(&e, Some(&format!("Error copying plugin {}", src.display())), true, true, false);
+                    log().exception(
+                        &e,
+                        Some(&format!("Error copying plugin {}", src.display())),
+                        true,
+                        true,
+                        false,
+                    );
                 }
             }
         }
@@ -145,10 +153,7 @@ pub fn load_plugins(mut commands: Value) -> (Value, Vec<String>) {
     if let Some(map) = commands.as_object_mut() {
         for plugin_name in plugin_commands().keys() {
             if !map.contains_key(plugin_name) {
-                map.insert(
-                    plugin_name.clone(),
-                    Value::Object(serde_json::Map::new()),
-                );
+                map.insert(plugin_name.clone(), Value::Object(serde_json::Map::new()));
                 log().info(&format!("Loaded plugin: {plugin_name}"));
             }
         }
@@ -192,17 +197,14 @@ pub(crate) fn script_engine() -> Engine {
             return r#"{"success": false, "message": "plugin recursion limit reached"}"#
                 .to_string();
         }
-        let response =
-            serde_json::to_string(&crate::app::buttons::commands::handle_command(cmd))
-                .unwrap_or_else(|_| r#"{"success": false}"#.to_string());
+        let response = serde_json::to_string(&crate::app::buttons::commands::handle_command(cmd))
+            .unwrap_or_else(|_| r#"{"success": false}"#.to_string());
         PLUGIN_DEPTH.with(|d| d.set(d.get() - 1));
         response
     });
     engine.register_fn("run_shell", |cmd: &str| -> i64 {
         #[cfg(windows)]
-        let result = std::process::Command::new("cmd")
-            .args(["/C", cmd])
-            .status();
+        let result = std::process::Command::new("cmd").args(["/C", cmd]).status();
         #[cfg(not(windows))]
         let result = std::process::Command::new("sh").args(["-c", cmd]).status();
         match result {
@@ -250,9 +252,10 @@ fn dynamic_to_json(value: Dynamic) -> Value {
 }
 
 /// Compile one `.rhai` plugin: returns (addon name, doc JSON, commands).
-fn load_rhai_plugin(path: &std::path::Path) -> Result<(String, Value, HashMap<String, PluginFn>), String> {
-    let source =
-        std::fs::read_to_string(path).map_err(|e| format!("cannot read plugin: {e}"))?;
+fn load_rhai_plugin(
+    path: &std::path::Path,
+) -> Result<(String, Value, HashMap<String, PluginFn>), String> {
+    let source = std::fs::read_to_string(path).map_err(|e| format!("cannot read plugin: {e}"))?;
     let engine = script_engine();
     let ast = engine
         .compile(source)
@@ -274,25 +277,19 @@ fn load_rhai_plugin(path: &std::path::Path) -> Result<(String, Value, HashMap<St
         let plugin = name.clone();
         let key = command.clone();
         let handler: PluginFn = Arc::new(move |args: &[String]| {
-            let args: Vec<Dynamic> =
-                args.iter().map(|s| Dynamic::from(s.clone())).collect();
+            let args: Vec<Dynamic> = args.iter().map(|s| Dynamic::from(s.clone())).collect();
             let mut vm = match vm.lock() {
                 Ok(vm) => vm,
                 Err(_) => return,
             };
             let RhaiPlugin { engine, ast, scope } = &mut *vm;
             // Return values are discarded, like Python's `func(*args)`.
-            if let Err(e) = engine.call_fn::<Dynamic>(
-                scope,
-                ast,
-                "addon_call",
-                (command.clone(), args),
-            ) {
+            if let Err(e) =
+                engine.call_fn::<Dynamic>(scope, ast, "addon_call", (command.clone(), args))
+            {
                 log().exception(
                     &e,
-                    Some(&format!(
-                        "Error in plugin '{plugin}' command '{command}'"
-                    )),
+                    Some(&format!("Error in plugin '{plugin}' command '{command}'")),
                     true,
                     true,
                     true,

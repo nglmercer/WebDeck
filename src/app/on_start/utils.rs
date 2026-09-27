@@ -4,16 +4,18 @@ use serde_json::Value;
 
 use crate::app::updater::{check::check_for_updates, updater::check_files};
 use crate::app::utils::{
-    args::get_args, get_local_ip::get_local_ip, global_variables::set_global_variable,
-    logger::log, plugins::load_plugins::load_plugins,
+    args::get_args,
+    get_local_ip::get_local_ip,
+    global_variables::set_global_variable,
+    logger::log,
+    plugins::load_plugins::load_plugins,
     settings::{get_config::get_config, save_config::save_config},
 };
 
 /// Port of `color_distance`.
 pub fn color_distance(color1: &str, color2: &str) -> f64 {
-    let channel = |color: &str, i: usize| {
-        i32::from_str_radix(&color[i + 1..i + 3], 16).unwrap_or(0)
-    };
+    let channel =
+        |color: &str, i: usize| i32::from_str_radix(&color[i + 1..i + 3], 16).unwrap_or(0);
     let (r1, g1, b1) = (channel(color1, 0), channel(color1, 2), channel(color1, 4));
     let (r2, g2, b2) = (channel(color2, 0), channel(color2, 2), channel(color2, 4));
     (((r1 - r2).pow(2) + (g1 - g2).pow(2) + (b1 - b2).pow(2)) as f64).sqrt()
@@ -111,11 +113,13 @@ async fn fetch_colors_fallback() -> Option<Value> {
 /// shortcut, no scripting host involved).
 #[cfg(windows)]
 fn create_shortcut_in_known_folder(folder_id: &windows::core::GUID) {
-    use windows::Win32::System::Com::{CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_ALL, COINIT_APARTMENTTHREADED};
+    use windows::core::{Interface as _, HSTRING};
+    use windows::Win32::System::Com::{
+        CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_ALL, COINIT_APARTMENTTHREADED,
+    };
     use windows::Win32::UI::Shell::{
         IShellLinkW, SHGetKnownFolderPath, ShellLink, KF_FLAG_DEFAULT,
     };
-    use windows::core::{Interface as _, HSTRING};
 
     unsafe {
         let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
@@ -130,8 +134,7 @@ fn create_shortcut_in_known_folder(folder_id: &windows::core::GUID) {
             if let Some(dir) = exe.parent() {
                 link.SetWorkingDirectory(&HSTRING::from(dir.to_string_lossy().as_ref()))?;
             }
-            let folder =
-                SHGetKnownFolderPath(folder_id, KF_FLAG_DEFAULT, None)?;
+            let folder = SHGetKnownFolderPath(folder_id, KF_FLAG_DEFAULT, None)?;
             let raw = folder.0;
             let mut length = 0;
             while *raw.add(length) != 0 {
@@ -168,6 +171,75 @@ pub fn create_startup_shortcut() {
     create_shortcut_in_known_folder(&FOLDERID_Startup);
 }
 
+/// Linux equivalent of the `.lnk` shortcuts: a freedesktop `.desktop` file
+/// (`~/.local/share/applications` for the app menu,
+/// `~/.config/autostart` for startup). Only created when missing (like
+/// Python's `not os.path.exists` gate) and only for release builds
+/// (`frozen` equivalent — dev runs must not litter the menu).
+#[cfg(target_os = "linux")]
+fn write_desktop_file(relative_dir: &str) -> Result<(), String> {
+    let home = std::env::var("HOME").map_err(|_| "HOME is not set".to_string())?;
+    let dir = format!("{home}/{relative_dir}");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let path = format!("{dir}/WebDeck.desktop");
+    if std::path::Path::new(&path).exists() {
+        return Ok(());
+    }
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    let workdir = exe
+        .parent()
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    std::fs::write(&path, desktop_entry(&exe.to_string_lossy(), &workdir))
+        .map_err(|e| e.to_string())?;
+    log().debug(&format!("Created Linux shortcut: {path}"));
+    Ok(())
+}
+
+/// The `.desktop` file content (pure, unit-tested).
+#[cfg(target_os = "linux")]
+fn desktop_entry(exec: &str, workdir: &str) -> String {
+    format!(
+        "[Desktop Entry]\nType=Application\nName=WebDeck\nExec={exec}\nPath={workdir}\n\
+         Icon={workdir}/static/icons/icon.ico\nTerminal=false\nCategories=Utility;\n"
+    )
+}
+
+/// Remove a previously created `.desktop` file (toggle-off path).
+#[cfg(target_os = "linux")]
+fn remove_desktop_file(relative_dir: &str) {
+    if let Ok(home) = std::env::var("HOME") {
+        let path = format!("{home}/{relative_dir}/WebDeck.desktop");
+        if std::path::Path::new(&path).exists() {
+            let _ = std::fs::remove_file(&path);
+        }
+    }
+}
+
+/// Create `~/.local/share/applications/WebDeck.desktop` (port of the
+/// `windows_start_menu_shortcut` block in `on_start`).
+#[cfg(target_os = "linux")]
+fn create_start_menu_shortcut() {
+    if let Err(e) = write_desktop_file(".local/share/applications") {
+        log().exception(&e, Some("Failed to create shortcut"), true, true, true);
+    }
+}
+
+/// Create `~/.config/autostart/WebDeck.desktop` (port of the
+/// `windows_startup` block in `saveconfig`).
+#[cfg(target_os = "linux")]
+pub fn create_startup_shortcut() {
+    if let Err(e) = write_desktop_file(".config/autostart") {
+        log().exception(&e, Some("Failed to create shortcut"), true, true, true);
+    }
+}
+
+/// Remove `~/.config/autostart/WebDeck.desktop` (toggle-off path).
+#[cfg(target_os = "linux")]
+pub fn remove_startup_shortcut() {
+    remove_desktop_file(".config/autostart");
+}
+
 /// Port of `get_gpu_method`.
 ///
 /// Keeps the config default + save flow 1:1; the `pynvml.nvmlInit()` probe
@@ -186,8 +258,7 @@ pub fn get_gpu_method() -> Value {
             );
         }
     }
-    if config["settings"]["gpu_method"] == "nvidia (pynvml)"
-        && nvml_wrapper::Nvml::init().is_err()
+    if config["settings"]["gpu_method"] == "nvidia (pynvml)" && nvml_wrapper::Nvml::init().is_err()
     {
         if let Some(settings) = config.get_mut("settings").and_then(|s| s.as_object_mut()) {
             settings.insert("gpu_method".to_string(), Value::String("AMD".to_string()));
@@ -206,11 +277,11 @@ pub fn get_gpu_method() -> Value {
 pub fn fix_vlc_cache() {
     #[cfg(windows)]
     {
+        use windows::core::w;
         use windows::Win32::System::Registry::{
             RegCloseKey, RegOpenKeyExW, RegQueryValueExW, HKEY, HKEY_LOCAL_MACHINE, KEY_READ,
             REG_VALUE_TYPE,
         };
-        use windows::core::w;
 
         let install_dir: Option<String> = unsafe {
             let mut key = HKEY::default();
@@ -250,7 +321,10 @@ pub fn fix_vlc_cache() {
             return;
         };
         let command = format!("\"{vlc_path}\\vlc-cache-gen.exe\" \"{vlc_path}\\plugins\"");
-        match std::process::Command::new("cmd").args(["/C", &command]).status() {
+        match std::process::Command::new("cmd")
+            .args(["/C", &command])
+            .status()
+        {
             Ok(status) if status.success() => {}
             Ok(status) => log().exception(
                 &format!("exit status {status}"),
@@ -293,7 +367,19 @@ pub async fn on_start() -> (Value, Value, String) {
             // NOTE (upstream): reserved for future portable-version use.
         }
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "linux")]
+    {
+        let wants_shortcut = config
+            .get("settings")
+            .and_then(|s| s.get("windows_start_menu_shortcut"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        // `frozen` equivalent: release builds only.
+        if wants_shortcut && !cfg!(debug_assertions) {
+            create_start_menu_shortcut();
+        }
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
     let _ = &config;
 
     for dir in [".config/user_uploads", ".config/themes", ".config/plugins"] {
@@ -343,9 +429,7 @@ pub async fn on_start() -> (Value, Value, String) {
     // static registry in Rust, so the global holds the loaded names.
     set_global_variable(
         "all_func",
-        Value::Array(
-            loaded_plugins.into_iter().map(Value::String).collect(),
-        ),
+        Value::Array(loaded_plugins.into_iter().map(Value::String).collect()),
     );
 
     // Get local ip.
@@ -393,5 +477,16 @@ mod tests {
         let d = color_distance("#000000", "#ffffff");
         assert!((d - (3.0f64 * 255.0 * 255.0).sqrt()).abs() < 1e-6);
         assert_eq!(color_distance("#123456", "#123456"), 0.0);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn desktop_entry_has_required_keys() {
+        let entry = desktop_entry("/opt/webdeck/webdeck", "/opt/webdeck");
+        assert!(entry.starts_with("[Desktop Entry]\n"));
+        assert!(entry.contains("\nExec=/opt/webdeck/webdeck\n"));
+        assert!(entry.contains("\nPath=/opt/webdeck\n"));
+        assert!(entry.contains("\nType=Application\n"));
+        assert!(entry.contains("Terminal=false"));
     }
 }

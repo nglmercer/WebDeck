@@ -27,12 +27,20 @@ pub fn create_folders(mut config: Value, folders_to_create: &[Value]) -> Value {
         let width = config
             .get("front")
             .and_then(|f| f.get("width"))
-            .and_then(|v| v.as_str().and_then(|s| s.parse::<usize>().ok()).or_else(|| v.as_u64().map(|n| n as usize)))
+            .and_then(|v| {
+                v.as_str()
+                    .and_then(|s| s.parse::<usize>().ok())
+                    .or_else(|| v.as_u64().map(|n| n as usize))
+            })
             .unwrap_or(0);
         let height = config
             .get("front")
             .and_then(|f| f.get("height"))
-            .and_then(|v| v.as_str().and_then(|s| s.parse::<usize>().ok()).or_else(|| v.as_u64().map(|n| n as usize)))
+            .and_then(|v| {
+                v.as_str()
+                    .and_then(|s| s.parse::<usize>().ok())
+                    .or_else(|| v.as_u64().map(|n| n as usize))
+            })
             .unwrap_or(0);
         let void_count = width.saturating_mul(height);
         for _ in 1..void_count {

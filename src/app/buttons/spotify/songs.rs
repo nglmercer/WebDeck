@@ -44,10 +44,7 @@ pub fn save(sp: &SpotifyClient) -> Value {
     ) {
         Ok(flags) => {
             if flags.first().copied().unwrap_or(false) {
-                if let Err(e) = block_on(
-                    sp.client
-                        .library_remove([LibraryId::Track(track_id)]),
-                ) {
+                if let Err(e) = block_on(sp.client.library_remove([LibraryId::Track(track_id)])) {
                     return failure(e.to_string());
                 }
                 log().success(&format!(
@@ -55,9 +52,7 @@ pub fn save(sp: &SpotifyClient) -> Value {
                     track.name
                 ));
             } else {
-                if let Err(e) =
-                    block_on(sp.client.library_add([LibraryId::Track(track_id)]))
-                {
+                if let Err(e) = block_on(sp.client.library_add([LibraryId::Track(track_id)])) {
                     return failure(e.to_string());
                 }
                 log().success(&format!("Saved track {} by {artist}", track.name));
@@ -70,14 +65,10 @@ pub fn save(sp: &SpotifyClient) -> Value {
 
 /// Port of `play`: search a track by name and start playback.
 pub fn play(sp: &SpotifyClient, song_name: &str) -> Value {
-    match block_on(sp.client.search(
-        song_name,
-        SearchType::Track,
-        None,
-        None,
-        Some(1),
-        Some(0),
-    )) {
+    match block_on(
+        sp.client
+            .search(song_name, SearchType::Track, None, None, Some(1), Some(0)),
+    ) {
         Ok(SearchResult::Tracks(page)) => {
             match page.items.first() {
                 Some(track) => match &track.id {

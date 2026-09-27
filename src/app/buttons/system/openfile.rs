@@ -10,9 +10,7 @@ use crate::app::utils::logger::log;
 pub fn openfile(path: &str) {
     if !path.contains("://") && path.contains(':') {
         let initial = std::env::current_dir().unwrap_or_else(|_| ".".into());
-        let parent = std::path::Path::new(path)
-            .parent()
-            .map(|p| p.to_path_buf());
+        let parent = std::path::Path::new(path).parent().map(|p| p.to_path_buf());
         if let Some(parent) = parent {
             let _ = std::env::set_current_dir(&parent);
         }

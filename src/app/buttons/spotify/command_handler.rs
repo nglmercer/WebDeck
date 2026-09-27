@@ -28,10 +28,7 @@ fn not_initialized() -> Value {
 
 /// Port of `handle_command`.
 pub fn handle_command(message: &str) -> Value {
-    let mut client = client_slot()
-        .lock()
-        .ok()
-        .and_then(|slot| slot.clone());
+    let mut client = client_slot().lock().ok().and_then(|slot| slot.clone());
 
     if client.is_none() {
         match initialize() {

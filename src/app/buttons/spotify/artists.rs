@@ -28,7 +28,10 @@ pub fn manage(sp: &SpotifyClient, message: &str) -> Value {
     let artist_name = artist.name.clone();
 
     if message.contains("follow_or_unfollow_artist") || message.contains("toggle_follow") {
-        match block_on(sp.client.library_contains([LibraryId::Artist(artist_id.clone())])) {
+        match block_on(
+            sp.client
+                .library_contains([LibraryId::Artist(artist_id.clone())]),
+        ) {
             Ok(flags) => {
                 if flags.first().copied().unwrap_or(false) {
                     log().debug(&format!(
@@ -57,7 +60,10 @@ fn follow_artist(
     artist_id: &rspotify::model::ArtistId,
     artist_name: &str,
 ) -> Value {
-    if let Err(e) = block_on(sp.client.library_add([LibraryId::Artist(artist_id.clone())])) {
+    if let Err(e) = block_on(
+        sp.client
+            .library_add([LibraryId::Artist(artist_id.clone())]),
+    ) {
         return failure(e.to_string());
     }
     log().success("The artist has been added to the subscription list.");
@@ -72,7 +78,10 @@ fn unfollow_artist(
     artist_id: &rspotify::model::ArtistId,
     artist_name: &str,
 ) -> Value {
-    if let Err(e) = block_on(sp.client.library_remove([LibraryId::Artist(artist_id.clone())])) {
+    if let Err(e) = block_on(
+        sp.client
+            .library_remove([LibraryId::Artist(artist_id.clone())]),
+    ) {
         return failure(e.to_string());
     }
     log().success("The artist has been removed from the subscription list.");

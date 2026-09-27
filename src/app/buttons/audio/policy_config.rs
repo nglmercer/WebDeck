@@ -12,15 +12,15 @@
 
 #[cfg(windows)]
 mod imp {
+    use windows::core::{Interface as _, GUID, HRESULT, PCWSTR};
     use windows::Win32::Devices::FunctionDiscovery::PKEY_Device_FriendlyName;
     use windows::Win32::Media::Audio::{
         EDataFlow, ERole, IMMDeviceEnumerator, MMDeviceEnumerator, DEVICE_STATE_ACTIVE,
     };
     use windows::Win32::System::Com::{
-        CoCreateInstance, CoInitializeEx, CoUninitialize,
-        StructuredStorage::PropVariantToString, CLSCTX_ALL, COINIT_MULTITHREADED, STGM_READ,
+        CoCreateInstance, CoInitializeEx, CoUninitialize, StructuredStorage::PropVariantToString,
+        CLSCTX_ALL, COINIT_MULTITHREADED, STGM_READ,
     };
-    use windows::core::{Interface as _, GUID, HRESULT, PCWSTR};
 
     const CLSID_POLICY_CONFIG_CLIENT: GUID = GUID::from_values(
         0x870af99c,
@@ -85,9 +85,7 @@ mod imp {
                         while *id.0.add(length) != 0 {
                             length += 1;
                         }
-                        let id = String::from_utf16_lossy(std::slice::from_raw_parts(
-                            id.0, length,
-                        ));
+                        let id = String::from_utf16_lossy(std::slice::from_raw_parts(id.0, length));
                         for role in roles {
                             set_default_endpoint_id(&id, *role)?;
                         }

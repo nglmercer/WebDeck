@@ -43,6 +43,23 @@ fn abspath(path: &str) -> String {
         .unwrap_or_else(|_| path.to_string())
 }
 
+/// Platform ffmpeg binary name (`ffmpeg.exe` on Windows, `ffmpeg` else).
+#[cfg(windows)]
+const FFMPEG_EXE: &str = "ffmpeg.exe";
+/// Platform ffmpeg binary name (`ffmpeg.exe` on Windows, `ffmpeg` else).
+#[cfg(not(windows))]
+const FFMPEG_EXE: &str = "ffmpeg";
+
+/// Find a tool on PATH (no extra dependency for a three-line search).
+#[cfg(target_os = "linux")]
+fn find_on_path(tool: &str) -> Option<String> {
+    let path = std::env::var_os("PATH")?;
+    std::env::split_paths(&path)
+        .map(|dir| dir.join(tool))
+        .find(|candidate| candidate.is_file())
+        .map(|candidate| candidate.to_string_lossy().into_owned())
+}
+
 /// Port of `install_ffmpeg`.
 pub fn install_ffmpeg() -> Option<String> {
     // Check if ffmpeg is already installed in the system (cached).
@@ -53,10 +70,43 @@ pub fn install_ffmpeg() -> Option<String> {
     }
 
     // Check if ffmpeg is already installed in the current directory.
-    if Path::new("ffmpeg.exe").is_file() {
-        return Some(abspath("ffmpeg.exe"));
+    if Path::new(FFMPEG_EXE).is_file() {
+        return Some(abspath(FFMPEG_EXE));
     }
 
+    // Linux: system ffmpeg via PATH (distro packages). No download: the
+    // WebDeck-served zip and winget are Windows-only.
+    #[cfg(target_os = "linux")]
+    {
+        if let Some(path) = find_on_path("ffmpeg") {
+            if let Ok(mut st) = state().lock() {
+                st.ffmpeg_path = path.clone();
+            }
+            log().debug(&format!("ffmpeg path found: {path}"));
+            return Some(path);
+        }
+        log().error(
+            "FFMPEG: not found. Install it with your package manager (e.g. `pacman -S ffmpeg` / `apt install ffmpeg`).",
+        );
+        return None;
+    }
+
+    #[cfg(windows)]
+    {
+        install_ffmpeg_windows()
+    }
+
+    #[cfg(not(any(windows, target_os = "linux")))]
+    {
+        log().error("FFMPEG: not found.");
+        None
+    }
+}
+
+/// Windows half of [`install_ffmpeg`]: WinGet search → WebDeck-servers
+/// download → `winget install`.
+#[cfg(windows)]
+fn install_ffmpeg_windows() -> Option<String> {
     // Search for ffmpeg installation on winget.
     if let Some(found) = search_winget_ffmpeg() {
         if let Ok(mut st) = state().lock() {
@@ -91,17 +141,17 @@ pub fn install_ffmpeg() -> Option<String> {
                 // skips the winget fallback below; mirrored 1:1.
                 log().exception(
                     &e,
-                    Some("FFMPEG: Error occurred while downloading ffmpeg using webdeck servers"), true, true, true,
+                    Some("FFMPEG: Error occurred while downloading ffmpeg using webdeck servers"),
+                    true,
+                    true,
+                    true,
                 );
             }
         }
     }
 
     // Install ffmpeg via winget.
-    let should_winget = state()
-        .lock()
-        .map(|st| !st.is_downloading)
-        .unwrap_or(false);
+    let should_winget = state().lock().map(|st| !st.is_downloading).unwrap_or(false);
     if should_winget {
         log().info("FFMPEG: downloading ffmpeg using winget...");
         let result = std::process::Command::new("winget")
@@ -117,13 +167,19 @@ pub fn install_ffmpeg() -> Option<String> {
                 // install keeps failing); stop instead.
                 log().exception(
                     &format!("winget exited with {status}"),
-                    Some("FFMPEG: Error occurred while downloading ffmpeg using winget"), true, true, true,
+                    Some("FFMPEG: Error occurred while downloading ffmpeg using winget"),
+                    true,
+                    true,
+                    true,
                 );
             }
             Err(e) => {
                 log().exception(
                     &e,
-                    Some("FFMPEG: Error occurred while downloading ffmpeg using winget"), true, true, true,
+                    Some("FFMPEG: Error occurred while downloading ffmpeg using winget"),
+                    true,
+                    true,
+                    true,
                 );
             }
         }
@@ -136,6 +192,7 @@ pub fn install_ffmpeg() -> Option<String> {
 /// WinGet package search (`C:/Users/*/AppData/.../Gyan.FFmpeg*/ffmpeg-*/bin/ffmpeg.exe`).
 /// Unlike Python, unreadable directories are skipped instead of aborting the
 /// whole search, and missing roots stay silent (they never exist off Windows).
+#[cfg(windows)]
 fn search_winget_ffmpeg() -> Option<String> {
     let users = std::fs::read_dir("C:/Users").ok()?;
     for user_dir in users.flatten() {
@@ -169,6 +226,7 @@ fn search_winget_ffmpeg() -> Option<String> {
 }
 
 /// Download the WebDeck-served ffmpeg zip, extract it in place, delete the zip.
+#[cfg(windows)]
 fn download_ffmpeg() -> Result<String, String> {
     log().info("FFMPEG: downloading ffmpeg using webdeck servers...");
     let url = "https://bishokus.fr/dl_ffmpeg";
@@ -190,16 +248,24 @@ fn download_ffmpeg() -> Result<String, String> {
 pub fn get_ffmpeg() -> Option<String> {
     let ffmpeg_path = install_ffmpeg()?;
 
-    if abspath(&ffmpeg_path) != abspath("ffmpeg.exe") {
-        let _ = std::fs::copy(&ffmpeg_path, "ffmpeg.exe");
-    }
-    let probe_src = ffmpeg_path.replace("ffmpeg.exe", "ffprobe.exe");
-    if abspath(&probe_src) != abspath("ffprobe.exe") {
-        // Python raises here when ffprobe is missing; ignore instead.
-        let _ = std::fs::copy(&probe_src, "ffprobe.exe");
-    }
+    // Linux: system installs are on PATH; use the resolved binary directly.
+    #[cfg(not(windows))]
+    return Some(ffmpeg_path);
 
-    Some(abspath("ffmpeg.exe"))
+    // Windows: stage ffmpeg.exe / ffprobe.exe in CWD like Python.
+    #[cfg(windows)]
+    {
+        if abspath(&ffmpeg_path) != abspath("ffmpeg.exe") {
+            let _ = std::fs::copy(&ffmpeg_path, "ffmpeg.exe");
+        }
+        let probe_src = ffmpeg_path.replace("ffmpeg.exe", "ffprobe.exe");
+        if abspath(&probe_src) != abspath("ffprobe.exe") {
+            // Python raises here when ffprobe is missing; ignore instead.
+            let _ = std::fs::copy(&probe_src, "ffprobe.exe");
+        }
+
+        Some(abspath("ffmpeg.exe"))
+    }
 }
 
 /// Port of `replace_last_element`.
@@ -223,7 +289,10 @@ pub fn add_silence_to_end(input_file: &str, output_file: &str, silence_duration_
     if !Path::new(&abs_in).is_file() {
         log().exception(
             &format!("input not found: {abs_in}"),
-            Some("Error occurred while loading the audio file"), true, true, true,
+            Some("Error occurred while loading the audio file"),
+            true,
+            true,
+            true,
         );
         if get_ffmpeg().is_none() {
             return false;
@@ -246,14 +315,20 @@ pub fn add_silence_to_end(input_file: &str, output_file: &str, silence_duration_
         Ok(status) => {
             log().exception(
                 &format!("ffmpeg exited with {status}"),
-                Some("Error occurred while adding silence to the audio file"), true, true, true,
+                Some("Error occurred while adding silence to the audio file"),
+                true,
+                true,
+                true,
             );
             false
         }
         Err(e) => {
             log().exception(
                 &e,
-                Some("Error occurred while adding silence to the audio file"), true, true, true,
+                Some("Error occurred while adding silence to the audio file"),
+                true,
+                true,
+                true,
             );
             false
         }
@@ -283,7 +358,11 @@ pub fn to_wav(input_file: &str, output_file: Option<&str>, volume: f32) -> Optio
 
     // Set default output file name if not provided.
     let output_file = output_file.map(str::to_string).unwrap_or_else(|| {
-        replace_last_element(input_file, ".mp3", &format!("_vol{}.wav", (volume * 100.0) as i32))
+        replace_last_element(
+            input_file,
+            ".mp3",
+            &format!("_vol{}.wav", (volume * 100.0) as i32),
+        )
     });
 
     // Check if the output file already exists.
@@ -295,7 +374,10 @@ pub fn to_wav(input_file: &str, output_file: Option<&str>, volume: f32) -> Optio
     if !Path::new(&abs_in).is_file() {
         log().exception(
             &format!("input not found: {abs_in}"),
-            Some("Error occurred while loading the audio file"), true, true, true,
+            Some("Error occurred while loading the audio file"),
+            true,
+            true,
+            true,
         );
         return None;
     }
@@ -313,14 +395,20 @@ pub fn to_wav(input_file: &str, output_file: Option<&str>, volume: f32) -> Optio
         Ok(status) => {
             log().exception(
                 &format!("ffmpeg exited with {status}"),
-                Some("Error occurred while converting the audio file to wav"), true, true, true,
+                Some("Error occurred while converting the audio file to wav"),
+                true,
+                true,
+                true,
             );
             None
         }
         Err(e) => {
             log().exception(
                 &e,
-                Some("Error occurred while converting the audio file to wav"), true, true, true,
+                Some("Error occurred while converting the audio file to wav"),
+                true,
+                true,
+                true,
             );
             None
         }
@@ -340,10 +428,7 @@ mod tests {
 
     #[test]
     fn silence_output_name_matches_python() {
-        assert_eq!(
-            replace_last_element("x.mp3", ".mp3", "_.mp3"),
-            "x_.mp3"
-        );
+        assert_eq!(replace_last_element("x.mp3", ".mp3", "_.mp3"), "x_.mp3");
         assert_eq!(
             replace_last_element("a.mp3.mp3", ".mp3", "_.mp3"),
             "a.mp3_.mp3"

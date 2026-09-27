@@ -198,10 +198,7 @@ pub fn get_languages_info() -> Vec<LanguageInfo> {
         Ok((files, misc)) if !files.is_empty() => (files, misc),
         _ => {
             let files = load_all_lang_files();
-            let misc = state()
-                .read()
-                .map(|s| s.misc.clone())
-                .unwrap_or_default();
+            let misc = state().read().map(|s| s.misc.clone()).unwrap_or_default();
             (files, misc)
         }
     };
@@ -308,7 +305,11 @@ mod tests {
     #[test]
     fn loads_real_lang_files() {
         // Runs from the package root, where webdeck/translations exists.
-        init("webdeck/translations", Some("webdeck/translations/misc"), "en_US");
+        init(
+            "webdeck/translations",
+            Some("webdeck/translations/misc"),
+            "en_US",
+        );
         assert!(language_exists("en_US"));
         let missing = text(Some("definitely_not_a_key_zzz"), None);
         assert_eq!(missing, "definitely_not_a_key_zzz");

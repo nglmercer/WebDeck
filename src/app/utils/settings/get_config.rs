@@ -13,7 +13,9 @@ use std::path::PathBuf;
 
 use serde_json::Value;
 
-use crate::app::utils::{args::get_args, settings::check_config_update::check_config_update, working_dir};
+use crate::app::utils::{
+    args::get_args, settings::check_config_update::check_config_update, working_dir,
+};
 
 /// Config directory: `.config` under the base dir, or `$WEBDECK_CONFIG_DIR`
 /// when set (test seam so unit tests never touch the real config).

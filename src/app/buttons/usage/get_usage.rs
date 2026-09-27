@@ -122,10 +122,17 @@ pub fn get_usage(get_all: Option<bool>, asked_devices: &[Vec<String>]) -> Value 
             let total = disk.total_space() as f64;
             let free = disk.available_space() as f64;
             let used = total - free;
-            let usage_percent = if total > 0.0 { used / total * 100.0 } else { 0.0 };
+            let usage_percent = if total > 0.0 {
+                used / total * 100.0
+            } else {
+                0.0
+            };
             let mut entry = serde_json::Map::new();
             if get_all || asked_metric(asked_devices, 2, "total_gb") {
-                entry.insert("total_gb".to_string(), json!(round2(total / 1024f64.powi(3))));
+                entry.insert(
+                    "total_gb".to_string(),
+                    json!(round2(total / 1024f64.powi(3))),
+                );
             }
             if get_all || asked_metric(asked_devices, 2, "used_gb") {
                 entry.insert("used_gb".to_string(), json!(round2(used / 1024f64.powi(3))));
@@ -189,8 +196,7 @@ fn gpu_info(config: &Value) -> Value {
                 // Unsupported graphics cards (mirrors the except branch).
                 gpus.insert("defaultGPU".to_string(), json!({}));
                 let mut config = config.clone();
-                if let Some(settings) = config.get_mut("settings").and_then(|s| s.as_object_mut())
-                {
+                if let Some(settings) = config.get_mut("settings").and_then(|s| s.as_object_mut()) {
                     settings.insert("gpu_method".to_string(), json!("None"));
                 }
                 save_config(config);

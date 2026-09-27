@@ -131,7 +131,9 @@ async fn check_local_network(
         if !ip_allowed(peer, &state.local_ip, netmask, &config) {
             return (
                 StatusCode::FORBIDDEN,
-                Json(json!({"success": false, "message": "Access denied: IP not in local network"})),
+                Json(
+                    json!({"success": false, "message": "Access denied: IP not in local network"}),
+                ),
             )
                 .into_response();
         }
@@ -170,8 +172,7 @@ fn ip_allowed(remote: IpAddr, local_ip: &str, netmask: u8, config: &Value) -> bo
     {
         for network in networks.iter().filter_map(|v| v.as_str()) {
             if let Some((base, prefix)) = network.split_once('/') {
-                if let (Ok(base), Ok(prefix)) = (base.parse::<Ipv4Addr>(), prefix.parse::<u8>())
-                {
+                if let (Ok(base), Ok(prefix)) = (base.parse::<Ipv4Addr>(), prefix.parse::<u8>()) {
                     if ipv4_masked(remote_v4, prefix) == ipv4_masked(base, prefix) {
                         return true;
                     }
@@ -244,7 +245,10 @@ fn save_rotated_copy(original: &str) {
     ) else {
         return;
     };
-    let parent = path.parent().map(|p| p.to_string_lossy().to_string()).unwrap_or_default();
+    let parent = path
+        .parent()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_default();
     let rotated_path = if parent.is_empty() {
         format!("{stem}-90.{ext}")
     } else {
@@ -257,11 +261,23 @@ fn save_rotated_copy(original: &str) {
         Ok(img) => {
             // PIL rotate(-90) = 90° clockwise = rotate270.
             if let Err(e) = img.rotate270().save(&rotated_path) {
-                log().exception(&e, Some(&format!("Failed to rotate image {original}")), true, true, true);
+                log().exception(
+                    &e,
+                    Some(&format!("Failed to rotate image {original}")),
+                    true,
+                    true,
+                    true,
+                );
             }
         }
         Err(e) => {
-            log().exception(&e, Some(&format!("Failed to rotate image {original}")), true, true, true);
+            log().exception(
+                &e,
+                Some(&format!("Failed to rotate image {original}")),
+                true,
+                true,
+                true,
+            );
         }
     }
 }
@@ -289,14 +305,17 @@ fn minijinja_env() -> minijinja::Environment<'static> {
         std::path::Path::new(&path).is_file()
     });
     // Python builtins the templates use as globals.
-    env.add_function("int", |value: minijinja::Value| -> Result<i64, minijinja::Error> {
-        py_int(&value).ok_or_else(|| {
-            minijinja::Error::new(
-                minijinja::ErrorKind::InvalidOperation,
-                "int() argument must be a number or numeric string",
-            )
-        })
-    });
+    env.add_function(
+        "int",
+        |value: minijinja::Value| -> Result<i64, minijinja::Error> {
+            py_int(&value).ok_or_else(|| {
+                minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "int() argument must be a number or numeric string",
+                )
+            })
+        },
+    );
     env.add_function("str", |value: minijinja::Value| py_str(&value));
     // `open(path)` reads a text file for inlining (SVG contents); `.read()`
     // on the result is emulated in `python_method` so `open(p).read()`
@@ -309,14 +328,17 @@ fn minijinja_env() -> minijinja::Environment<'static> {
             )
         })
     });
-    env.add_function("eval", |source: String| -> Result<minijinja::Value, minijinja::Error> {
-        eval_literal(&source).ok_or_else(|| {
-            minijinja::Error::new(
-                minijinja::ErrorKind::InvalidOperation,
-                format!("eval() cannot parse {source:?}"),
-            )
-        })
-    });
+    env.add_function(
+        "eval",
+        |source: String| -> Result<minijinja::Value, minijinja::Error> {
+            eval_literal(&source).ok_or_else(|| {
+                minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    format!("eval() cannot parse {source:?}"),
+                )
+            })
+        },
+    );
     // Python-style `value.method(...)` calls minijinja doesn't implement.
     env.set_unknown_method_callback(python_method);
     // Jinja2's `length` returns 0 for Undefined (its `__len__`); minijinja
@@ -345,15 +367,12 @@ fn jinja_length(value: minijinja::Value) -> Result<usize, minijinja::Error> {
                 )
             });
     }
-    value
-        .try_iter()
-        .map(|iter| iter.count())
-        .map_err(|_| {
-            minijinja::Error::new(
-                minijinja::ErrorKind::InvalidOperation,
-                "cannot calculate length of value",
-            )
-        })
+    value.try_iter().map(|iter| iter.count()).map_err(|_| {
+        minijinja::Error::new(
+            minijinja::ErrorKind::InvalidOperation,
+            "cannot calculate length of value",
+        )
+    })
 }
 
 /// Emulate the Python str/list/dict methods the templates call
@@ -365,7 +384,12 @@ fn python_method(
     args: &[minijinja::Value],
 ) -> Result<minijinja::Value, minijinja::Error> {
     use minijinja::{Error, ErrorKind, Value};
-    let unsupported = || Error::new(ErrorKind::InvalidOperation, format!("unsupported method {method}"));
+    let unsupported = || {
+        Error::new(
+            ErrorKind::InvalidOperation,
+            format!("unsupported method {method}"),
+        )
+    };
     let arg_str = |i: usize| -> Result<&str, Error> {
         args.get(i).and_then(|v| v.as_str()).ok_or_else(unsupported)
     };
@@ -436,13 +460,19 @@ fn python_method(
             // Python accepts a single prefix or a tuple of prefixes.
             "startswith" => {
                 let prefixes = str_or_seq(args.first().ok_or_else(unsupported)?)?;
-                Ok(Value::from(prefixes.iter().any(|prefix| owned.starts_with(prefix))))
+                Ok(Value::from(
+                    prefixes.iter().any(|prefix| owned.starts_with(prefix)),
+                ))
             }
             "endswith" => {
                 let suffixes = str_or_seq(args.first().ok_or_else(unsupported)?)?;
-                Ok(Value::from(suffixes.iter().any(|suffix| owned.ends_with(suffix))))
+                Ok(Value::from(
+                    suffixes.iter().any(|suffix| owned.ends_with(suffix)),
+                ))
             }
-            "find" => Ok(Value::from(owned.find(arg_str(0)?).map(|i| i as i64).unwrap_or(-1))),
+            "find" => Ok(Value::from(
+                owned.find(arg_str(0)?).map(|i| i as i64).unwrap_or(-1),
+            )),
             // Paired with the `open` global above: the content is already
             // loaded, so `.read()` returns it unchanged.
             "read" => Ok(Value::from(owned)),
@@ -478,8 +508,12 @@ fn python_method(
                 }
                 Ok(args.get(1).cloned().unwrap_or(Value::UNDEFINED))
             }
-            "keys" => Ok(Value::from(entries.iter().map(|(k, _)| k.clone()).collect::<Vec<_>>())),
-            "values" => Ok(Value::from(entries.iter().map(|(_, v)| v.clone()).collect::<Vec<_>>())),
+            "keys" => Ok(Value::from(
+                entries.iter().map(|(k, _)| k.clone()).collect::<Vec<_>>(),
+            )),
+            "values" => Ok(Value::from(
+                entries.iter().map(|(_, v)| v.clone()).collect::<Vec<_>>(),
+            )),
             "items" => Ok(Value::from(
                 entries
                     .iter()
@@ -506,7 +540,10 @@ fn python_method(
                 });
                 match position {
                     Some(i) => Ok(Value::from(i as i64)),
-                    None => Err(Error::new(ErrorKind::InvalidOperation, "index(): not found")),
+                    None => Err(Error::new(
+                        ErrorKind::InvalidOperation,
+                        "index(): not found",
+                    )),
                 }
             }
             "count" => {
@@ -534,12 +571,10 @@ fn py_int(value: &minijinja::Value) -> Option<i64> {
         return trimmed.parse::<f64>().ok().map(|f| f.trunc() as i64);
     }
     let rendered = format!("{value:?}");
-    rendered.parse::<i64>().ok().or_else(|| {
-        rendered
-            .parse::<f64>()
-            .ok()
-            .map(|f| f.trunc() as i64)
-    })
+    rendered
+        .parse::<i64>()
+        .ok()
+        .or_else(|| rendered.parse::<f64>().ok().map(|f| f.trunc() as i64))
 }
 
 /// Python `str()` semantics for the template global (containers use `repr`).
@@ -607,12 +642,16 @@ fn str_or_seq(value: &minijinja::Value) -> Result<Vec<String>, minijinja::Error>
     let mut items = Vec::new();
     if let Ok(iter) = value.try_iter() {
         for item in iter {
-            items.push(item.as_str().ok_or_else(|| {
-                minijinja::Error::new(
-                    minijinja::ErrorKind::InvalidOperation,
-                    "prefix must be a string",
-                )
-            })?.to_string());
+            items.push(
+                item.as_str()
+                    .ok_or_else(|| {
+                        minijinja::Error::new(
+                            minijinja::ErrorKind::InvalidOperation,
+                            "prefix must be a string",
+                        )
+                    })?
+                    .to_string(),
+            );
         }
         return Ok(items);
     }
@@ -634,7 +673,10 @@ fn is_number(value: &minijinja::Value) -> bool {
 }
 
 fn is_bool_or_none(value: &minijinja::Value) -> bool {
-    matches!(format!("{value:?}").as_str(), "true" | "false" | "none" | "null")
+    matches!(
+        format!("{value:?}").as_str(),
+        "true" | "false" | "none" | "null"
+    )
 }
 
 fn is_none(value: &minijinja::Value) -> bool {
@@ -655,7 +697,9 @@ struct LiteralParser<'a> {
 
 impl<'a> LiteralParser<'a> {
     fn new(source: &'a str) -> Self {
-        Self { chars: source.chars().peekable() }
+        Self {
+            chars: source.chars().peekable(),
+        }
     }
 
     fn parse(mut self) -> Option<minijinja::Value> {
@@ -668,7 +712,12 @@ impl<'a> LiteralParser<'a> {
     }
 
     fn skip_ws(&mut self) {
-        while self.chars.peek().map(|c| c.is_whitespace()).unwrap_or(false) {
+        while self
+            .chars
+            .peek()
+            .map(|c| c.is_whitespace())
+            .unwrap_or(false)
+        {
             self.chars.next();
         }
     }
@@ -803,10 +852,7 @@ async fn home(State(_state): State<AppState>) -> Response {
             continue;
         }
         if candidate.starts_with("**uploaded/") {
-            let rotated = candidate.replace(
-                "**uploaded/",
-                ".config/user_uploads/",
-            );
+            let rotated = candidate.replace("**uploaded/", ".config/user_uploads/");
             let path = std::path::Path::new(&rotated);
             if path.exists() {
                 save_rotated_copy(&rotated);
@@ -877,13 +923,15 @@ fn render_home_page(
         .map_err(|e| format!("Cannot load index.jinja: {e}"))?;
     // A template bug must never kill the worker connection: contain any
     // engine panic as a 500 exactly like a render error.
-    let rendered = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        template.render(&context)
-    }));
+    let rendered =
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| template.render(&context)));
     match rendered {
         Ok(Ok(html)) => Ok(html),
         Ok(Err(e)) => Err(format!("Template render failed: {e:?}")),
-        Err(_) => Err("Template render panicked (minijinja/Jinja2 behavior gap — see docs/MIGRATION_RUST.md)".to_string()),
+        Err(_) => Err(
+            "Template render panicked (minijinja/Jinja2 behavior gap — see docs/MIGRATION_RUST.md)"
+                .to_string(),
+        ),
     }
 }
 
@@ -902,8 +950,7 @@ async fn saveconfig(State(state): State<AppState>, Json(new_config): Json<Value>
     let soundboard_restart =
         config["settings"]["soundboard"] != new_config["settings"]["soundboard"];
     let obs_reload = config["settings"]["obs"] != new_config["settings"]["obs"];
-    let language_changed =
-        config["settings"]["language"] != new_config["settings"]["language"];
+    let language_changed = config["settings"]["language"] != new_config["settings"]["language"];
 
     let (soundboard_start, soundboard_stop) = {
         let old = config["settings"]["soundboard"]["enabled"]
@@ -915,10 +962,18 @@ async fn saveconfig(State(state): State<AppState>, Json(new_config): Json<Value>
         (new && !old, old && !new)
     };
 
-    let old_startup = config["settings"]["windows_startup"].as_bool().unwrap_or(false);
-    let new_startup = new_config["settings"]["windows_startup"].as_bool().unwrap_or(false);
+    let old_startup = config["settings"]["windows_startup"]
+        .as_bool()
+        .unwrap_or(false);
+    let new_startup = new_config["settings"]["windows_startup"]
+        .as_bool()
+        .unwrap_or(false);
     if !old_startup && new_startup {
         #[cfg(windows)]
+        if !cfg!(debug_assertions) {
+            crate::app::on_start::utils::create_startup_shortcut();
+        }
+        #[cfg(target_os = "linux")]
         if !cfg!(debug_assertions) {
             crate::app::on_start::utils::create_startup_shortcut();
         }
@@ -931,6 +986,10 @@ async fn saveconfig(State(state): State<AppState>, Json(new_config): Json<Value>
                 );
                 let _ = std::fs::remove_file(link);
             }
+        }
+        #[cfg(target_os = "linux")]
+        if !cfg!(debug_assertions) {
+            crate::app::on_start::utils::remove_startup_shortcut();
         }
     }
 
@@ -945,7 +1004,10 @@ async fn saveconfig(State(state): State<AppState>, Json(new_config): Json<Value>
 
     // Python re-parses a stringified background list, then saves again.
     if config["front"]["background"].is_string() {
-        let raw = config["front"]["background"].as_str().unwrap_or("").to_string();
+        let raw = config["front"]["background"]
+            .as_str()
+            .unwrap_or("")
+            .to_string();
         let normalized = raw
             .replace("['", "[\"")
             .replace("']", "\"]")
@@ -971,7 +1033,10 @@ async fn saveconfig(State(state): State<AppState>, Json(new_config): Json<Value>
     if soundboard_stop {
         soundboard::mic::stop();
     } else if soundboard_restart || soundboard_start {
-        if config["settings"]["soundboard"]["enabled"].as_bool().unwrap_or(false) {
+        if config["settings"]["soundboard"]["enabled"]
+            .as_bool()
+            .unwrap_or(false)
+        {
             soundboard::mic::restart();
         }
     }
@@ -1017,16 +1082,20 @@ async fn complete_save_config(
 
 /// Port of `save_single_button` (`POST /save_single_button`).
 async fn save_single_button(Json(data): Json<Value>) -> Response {
-    let button_folder = data.get("location_Folder").and_then(|v| {
-        v.as_u64().or_else(|| {
-            v.as_str().and_then(|s| s.parse::<u64>().ok())
+    let button_folder = data
+        .get("location_Folder")
+        .and_then(|v| {
+            v.as_u64()
+                .or_else(|| v.as_str().and_then(|s| s.parse::<u64>().ok()))
         })
-    }).unwrap_or(0) as usize;
-    let button_index = data.get("location_Id").and_then(|v| {
-        v.as_u64().or_else(|| {
-            v.as_str().and_then(|s| s.parse::<u64>().ok())
+        .unwrap_or(0) as usize;
+    let button_index = data
+        .get("location_Id")
+        .and_then(|v| {
+            v.as_u64()
+                .or_else(|| v.as_str().and_then(|s| s.parse::<u64>().ok()))
         })
-    }).unwrap_or(0) as usize;
+        .unwrap_or(0) as usize;
     let button_content = data.get("content").cloned().unwrap_or(Value::Null);
 
     let mut config = get_config(false, false);
@@ -1068,11 +1137,12 @@ async fn save_buttons_only(
 ) -> Response {
     let mut config = get_config(false, false);
 
-    if let Some(new_buttons) = new_config.get("front").and_then(|f| f.get("buttons")).cloned() {
-        if let Some(buttons) = config
-            .get_mut("front")
-            .and_then(|f| f.get_mut("buttons"))
-        {
+    if let Some(new_buttons) = new_config
+        .get("front")
+        .and_then(|f| f.get("buttons"))
+        .cloned()
+    {
+        if let Some(buttons) = config.get_mut("front").and_then(|f| f.get_mut("buttons")) {
             *buttons = new_buttons;
         }
     }
@@ -1127,7 +1197,12 @@ async fn upload_filepath(Query(params): Query<HashMap<String, String>>) -> Strin
             // Python: `filetypes.split('_')` → `*ext` easygui patterns.
             let extensions: Vec<String> = filetypes
                 .split('_')
-                .map(|item| item.trim().trim_start_matches('.').trim_start_matches('*').to_string())
+                .map(|item| {
+                    item.trim()
+                        .trim_start_matches('.')
+                        .trim_start_matches('*')
+                        .to_string()
+                })
                 .filter(|item| !item.is_empty())
                 .collect();
             let borrowed: Vec<&str> = extensions.iter().map(|s| s.as_str()).collect();
@@ -1187,8 +1262,10 @@ async fn upload_file(mut multipart: Multipart) -> Response {
 
     let Some(filename) = saved_name else {
         log().error("No files were found in the request.");
-        return Json(json!({"success": false, "message": text(Some("no_files_found_error"), None)}))
-            .into_response();
+        return Json(
+            json!({"success": false, "message": text(Some("no_files_found_error"), None)}),
+        )
+        .into_response();
     };
 
     if info.as_deref() == Some("background_image") {
@@ -1203,14 +1280,17 @@ async fn upload_file(mut multipart: Multipart) -> Response {
 /// Port of `create_folder` (`POST /create_folder`).
 async fn create_folder(State(state): State<AppState>, Json(data): Json<Value>) -> Response {
     let folder_name = data.get("name").and_then(|v| v.as_str()).unwrap_or("");
-    let parent_folder_name = data.get("parent_folder").and_then(|v| v.as_str()).unwrap_or("");
+    let parent_folder_name = data
+        .get("parent_folder")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
 
     let config = get_config(false, false);
     let mut queue = state.folders_to_create.lock().await;
 
-    let queued = queue.iter().any(|item| {
-        item.get("name").and_then(|v| v.as_str()) == Some(folder_name)
-    });
+    let queued = queue
+        .iter()
+        .any(|item| item.get("name").and_then(|v| v.as_str()) == Some(folder_name));
     let exists = config
         .get("front")
         .and_then(|f| f.get("buttons"))
@@ -1220,7 +1300,9 @@ async fn create_folder(State(state): State<AppState>, Json(data): Json<Value>) -
 
     if !queued && !exists {
         queue.push(json!({"name": folder_name, "parent_folder": parent_folder_name}));
-        log().info(&format!("Folder '{folder_name}' is in the queue to be created"));
+        log().info(&format!(
+            "Folder '{folder_name}' is in the queue to be created"
+        ));
         Json(json!({"success": true})).into_response()
     } else {
         log().error("Folder already exists");
@@ -1290,7 +1372,10 @@ fn socketio_layer(server_address: &str, server_port: u16) -> socketioxide::layer
             socket.on(
                 "message_from_socket",
                 |socket: SocketRef, Data::<Value>(data)| async move {
-                    let message = data.as_str().map(|s| s.to_string()).unwrap_or_else(|| data.to_string());
+                    let message = data
+                        .as_str()
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| data.to_string());
                     log().info(&format!("Message from client: {message}"));
                     let owned = message.clone();
                     let result =
@@ -1429,7 +1514,10 @@ mod tests {
         let html = render_home_page(&config, &commands, &versions, "#141414", false)
             .expect("index.jinja renders");
         assert!(html.contains("WebDeck"), "missing brand marker");
-        assert!(html.contains("static/css/style.css"), "missing base theme entry");
+        assert!(
+            html.contains("static/css/style.css"),
+            "missing base theme entry"
+        );
     }
 
     #[test]
@@ -1464,9 +1552,8 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("webdeck-rot-{}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         let src = dir.join("bg.png");
-        let img: image::RgbImage = image::ImageBuffer::from_fn(4, 2, |x, y| {
-            image::Rgb([x as u8, y as u8, 0])
-        });
+        let img: image::RgbImage =
+            image::ImageBuffer::from_fn(4, 2, |x, y| image::Rgb([x as u8, y as u8, 0]));
         img.save(&src).unwrap();
         save_rotated_copy(&src.to_string_lossy());
         let rotated = image::open(dir.join("bg-90.png")).unwrap();

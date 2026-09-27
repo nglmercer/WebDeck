@@ -78,11 +78,7 @@ fn ensure_reaper() {
         std::thread::sleep(std::time::Duration::from_millis(500));
         if let Some(mut map) = lock_players() {
             map.retain(|_, slot| {
-                if slot
-                    .vbcable
-                    .as_ref()
-                    .is_some_and(|s| s.player.empty())
-                {
+                if slot.vbcable.as_ref().is_some_and(|s| s.player.empty()) {
                     slot.vbcable = None;
                 }
                 if slot.local.as_ref().is_some_and(|s| s.player.empty()) {
@@ -303,9 +299,7 @@ pub fn playsound_vlc(
         .filter(|(_, slot)| slot.local.is_some())
         .map(|(id, _)| *id)
         .collect();
-    log().debug(&format!(
-        "Current VLC player for vbcable: {vbcable_keys:?}"
-    ));
+    log().debug(&format!("Current VLC player for vbcable: {vbcable_keys:?}"));
     log().debug(&format!("Current VLC player for local: {local_keys:?}"));
 
     // Python: `p_id = max(len(...), len(...))` — lengths, not max keys.
@@ -408,9 +402,7 @@ pub fn stopsound() -> Value {
     // Python only stops when the LAST player is still Playing
     // (`while str(last.get_state()) == "State.Playing"`).
     let last_playing = map.iter().next_back().is_some_and(|(_, slot)| {
-        slot.vbcable
-            .as_ref()
-            .is_some_and(|s| !s.player.empty())
+        slot.vbcable.as_ref().is_some_and(|s| !s.player.empty())
             || slot.local.as_ref().is_some_and(|s| !s.player.empty())
     });
     if last_playing {

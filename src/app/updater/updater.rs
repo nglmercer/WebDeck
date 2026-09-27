@@ -79,16 +79,23 @@ pub fn check_files() {
                 let (file_to_delete, update_limit) = match file_entry {
                     Value::String(name) => (name.clone(), "99.99.99".to_string()),
                     Value::Array(pair) => (
-                        pair.get(0).and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                        pair.get(1).and_then(|v| v.as_str()).unwrap_or("99.99.99").to_string(),
+                        pair.get(0)
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_default()
+                            .to_string(),
+                        pair.get(1)
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("99.99.99")
+                            .to_string(),
                     ),
                     _ => continue,
                 };
                 if compare_versions(&update_limit, &current_version) > 0 {
                     let path = wd_dir.join(&file_to_delete);
                     match std::fs::remove_file(&path) {
-                        Ok(()) => updater_log()
-                            .info(&format!("UPDATER: Deleted {}", path.display())),
+                        Ok(()) => {
+                            updater_log().info(&format!("UPDATER: Deleted {}", path.display()))
+                        }
                         Err(e) => updater_log().exception(
                             &e,
                             Some(&format!("UPDATER: Error deleting {}", path.display())),
@@ -113,12 +120,8 @@ pub fn check_files() {
                 continue;
             };
             let source = wd_dir.join(pair.get(0).and_then(|v| v.as_str()).unwrap_or_default());
-            let destination =
-                wd_dir.join(pair.get(1).and_then(|v| v.as_str()).unwrap_or_default());
-            let update_limit = pair
-                .get(2)
-                .and_then(|v| v.as_str())
-                .unwrap_or("99.99.99");
+            let destination = wd_dir.join(pair.get(1).and_then(|v| v.as_str()).unwrap_or_default());
+            let update_limit = pair.get(2).and_then(|v| v.as_str()).unwrap_or("99.99.99");
             if compare_versions(update_limit, &current_version) > 0 {
                 if let Some(parent) = destination.parent() {
                     let _ = std::fs::create_dir_all(parent);
@@ -198,12 +201,21 @@ pub fn move_folder_content(source: &std::path::Path, destination: &std::path::Pa
 pub fn compare_versions(version1: &str, version2: &str) -> i32 {
     fn parse_version(version: &str) -> (Vec<u64>, Option<&str>) {
         if let Some(base) = version.strip_suffix("-pre") {
-            return (base.split('.').filter_map(|p| p.parse().ok()).collect(), Some("pre"));
+            return (
+                base.split('.').filter_map(|p| p.parse().ok()).collect(),
+                Some("pre"),
+            );
         }
         if let Some(base) = version.strip_suffix("-beta") {
-            return (base.split('.').filter_map(|p| p.parse().ok()).collect(), Some("beta"));
+            return (
+                base.split('.').filter_map(|p| p.parse().ok()).collect(),
+                Some("beta"),
+            );
         }
-        (version.split('.').filter_map(|p| p.parse().ok()).collect(), None)
+        (
+            version.split('.').filter_map(|p| p.parse().ok()).collect(),
+            None,
+        )
     }
 
     let (v1, s1) = parse_version(version1);
@@ -243,7 +255,10 @@ pub async fn fetch_latest_release(
     let latest = releases
         .iter()
         .find(|release| {
-            let draft = release.get("draft").and_then(|v| v.as_bool()).unwrap_or(false);
+            let draft = release
+                .get("draft")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
             let prerelease = release
                 .get("prerelease")
                 .and_then(|v| v.as_bool())
@@ -417,7 +432,9 @@ pub async fn download_and_extract(
         }
     }
     drop(file);
-    updater_log().info(&format!("Downloading: {downloaded}/{total_size} bytes done"));
+    updater_log().info(&format!(
+        "Downloading: {downloaded}/{total_size} bytes done"
+    ));
 
     if total_size != 0 && downloaded != total_size {
         let percentage = (downloaded as f64 / total_size as f64) * 100.0;
@@ -554,9 +571,9 @@ pub fn request_admin_permissions() {
 
     #[cfg(windows)]
     {
+        use windows::core::{w, HSTRING};
         use windows::Win32::UI::Shell::{IsUserAnAdmin, ShellExecuteW};
         use windows::Win32::UI::WindowsAndMessaging::SW_NORMAL;
-        use windows::core::{w, HSTRING};
 
         let is_admin = unsafe { IsUserAnAdmin().as_bool() };
         if !is_admin {

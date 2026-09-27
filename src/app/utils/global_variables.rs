@@ -36,11 +36,7 @@ pub fn get_global_variable(variable_name: &str) -> Option<Value> {
 /// same call shape: `get_global_variables(["obs_host", "obs_port"])`.
 pub fn get_global_variables<const N: usize>(variable_names: [&str; N]) -> [Option<Value>; N] {
     let vars = map().lock();
-    variable_names.map(|name| {
-        vars.as_ref()
-            .ok()
-            .and_then(|vars| vars.get(name).cloned())
-    })
+    variable_names.map(|name| vars.as_ref().ok().and_then(|vars| vars.get(name).cloned()))
 }
 
 #[cfg(test)]

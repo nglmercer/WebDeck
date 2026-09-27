@@ -29,10 +29,7 @@ pub fn check_config_update(config: Value) -> Value {
     {
         if let Some(settings) = config.get_mut("settings").and_then(|s| s.as_object_mut()) {
             if let Some(value) = settings.remove("open_settings_in_browser") {
-                settings.insert(
-                    "open_settings_in_integrated_browser".to_string(),
-                    value,
-                );
+                settings.insert("open_settings_in_integrated_browser".to_string(), value);
             }
         }
     }
@@ -61,16 +58,16 @@ pub fn check_config_update(config: Value) -> Value {
                 let target = settings
                     .entry("allowed_networks".to_string())
                     .or_insert(Value::Array(Vec::new()));
-                if let (Some(target), Value::Array(items)) =
-                    (target.as_array_mut(), moved)
-                {
+                if let (Some(target), Value::Array(items)) = (target.as_array_mut(), moved) {
                     target.extend(items);
                 }
             }
         }
     }
 
-    let default_path = working_dir::get_base_dir().join("webdeck").join("config_default.json");
+    let default_path = working_dir::get_base_dir()
+        .join("webdeck")
+        .join("config_default.json");
     let default_content =
         std::fs::read_to_string(&default_path).expect("Cannot read webdeck/config_default.json");
     let default_config: Value =
@@ -102,9 +99,7 @@ fn update_config_with_defaults(config: &mut Value, default_config: &Value) {
                             (None, default_value) => {
                                 existing_map.insert(key.clone(), default_value.clone());
                             }
-                            (Some(existing_value), Value::Object(_))
-                                if key != "buttons" =>
-                            {
+                            (Some(existing_value), Value::Object(_)) if key != "buttons" => {
                                 update_config_with_defaults(existing_value, value);
                             }
                             _ => {}
@@ -134,9 +129,7 @@ pub fn check_config_themes(mut config: Value) -> Value {
         }
     }
 
-    let front = config
-        .get_mut("front")
-        .and_then(|f| f.as_object_mut());
+    let front = config.get_mut("front").and_then(|f| f.as_object_mut());
     let Some(front) = front else {
         return config;
     };

@@ -44,12 +44,7 @@ fn ask_yes_no(title: &str, message: &str) -> bool {
 ///
 /// NOTE: blocks on native dialogs — async callers must invoke via
 /// `tokio::task::block_in_place`.
-pub fn show_error(
-    message: Option<&str>,
-    title: &str,
-    error: bool,
-    exception: Option<&dyn Debug>,
-) {
+pub fn show_error(message: Option<&str>, title: &str, error: bool, exception: Option<&dyn Debug>) {
     let (full_message, github_message) = match (message, exception) {
         (Some(message), Some(exception)) => {
             log().exception(exception, Some(message), false, true, true);
@@ -90,9 +85,7 @@ pub fn show_error(
             &text(Some("open_github_issue_prompt_title"), None),
             &text(Some("open_github_issue_prompt_message"), None),
         ) {
-            let exception_text = exception
-                .map(|e| format!("{e:?}"))
-                .unwrap_or_default();
+            let exception_text = exception.map(|e| format!("{e:?}")).unwrap_or_default();
             let url = github_issue_url(title, &exception_text, &github_message);
             crate::app::buttons::system::openfile::openfile(&url);
         } else if ask_yes_no(

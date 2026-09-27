@@ -18,9 +18,9 @@ use std::sync::{Mutex, OnceLock};
 use clap::Parser;
 
 use crate::app::buttons::soundboard::ffmpeg;
-use crate::app::utils::{exit::exit_program, languages, logger::log};
 #[cfg(windows)]
 use crate::app::utils::show_error::show_error;
+use crate::app::utils::{exit::exit_program, languages, logger::log};
 
 /// Exit-command aliases — port of the `positionals["exit"]["choices"]` list.
 pub const EXIT_CHOICES: &[&str] = &[
@@ -266,9 +266,20 @@ pub fn handle_startup_arguments() {
                 "en_US",
             );
             #[cfg(windows)]
-            show_error(None, "WebDeck Error", true, Some(&e as &dyn std::fmt::Debug));
+            show_error(
+                None,
+                "WebDeck Error",
+                true,
+                Some(&e as &dyn std::fmt::Debug),
+            );
             #[cfg(not(windows))]
-            log().exception(&e, Some("Failed to initialize tray icon"), false, true, true);
+            log().exception(
+                &e,
+                Some("Failed to initialize tray icon"),
+                false,
+                true,
+                true,
+            );
         }
     }
 

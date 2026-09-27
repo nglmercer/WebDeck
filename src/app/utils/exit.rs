@@ -43,7 +43,13 @@ pub fn exit_program(force: bool, from_timeout: bool) {
                     ));
                 }
                 Err(e) => {
-                    log().exception(&e, Some(&format!("Failed to terminate process '{target}'")), true, true, false);
+                    log().exception(
+                        &e,
+                        Some(&format!("Failed to terminate process '{target}'")),
+                        true,
+                        true,
+                        false,
+                    );
                 }
             }
         }

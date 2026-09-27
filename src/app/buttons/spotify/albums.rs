@@ -45,10 +45,7 @@ pub fn save(sp: &SpotifyClient) -> Value {
     ) {
         Ok(flags) => {
             if flags.first().copied().unwrap_or(false) {
-                if let Err(e) = block_on(
-                    sp.client
-                        .library_remove([LibraryId::Album(album_id)]),
-                ) {
+                if let Err(e) = block_on(sp.client.library_remove([LibraryId::Album(album_id)])) {
                     return failure(e.to_string());
                 }
                 log().info(&format!(
@@ -56,9 +53,7 @@ pub fn save(sp: &SpotifyClient) -> Value {
                     album.name
                 ));
             } else {
-                if let Err(e) =
-                    block_on(sp.client.library_add([LibraryId::Album(album_id)]))
-                {
+                if let Err(e) = block_on(sp.client.library_add([LibraryId::Album(album_id)])) {
                     return failure(e.to_string());
                 }
                 log().info(&format!("Saved album '{}' by {artists}", album.name));

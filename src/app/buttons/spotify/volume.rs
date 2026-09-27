@@ -11,7 +11,9 @@ use crate::app::utils::{languages::text, logger::log};
 /// failure JSON); `Ok(())` maps to `{"success": True}`.
 pub fn manage(sp: &SpotifyClient, message: &str) -> Result<(), String> {
     // Get the current playback information.
-    let playback = block_on(sp.client.current_playback(None, no_additional_types())).ok().flatten();
+    let playback = block_on(sp.client.current_playback(None, no_additional_types()))
+        .ok()
+        .flatten();
 
     // Check if there is an active device.
     let (device_id, current_volume) = match playback {
@@ -33,17 +35,29 @@ pub fn manage(sp: &SpotifyClient, message: &str) -> Result<(), String> {
 
     let current = current_volume as i32;
     let target = if message.contains('-') {
-        match message.replace("/spotify volume -", "").trim().parse::<i32>() {
+        match message
+            .replace("/spotify volume -", "")
+            .trim()
+            .parse::<i32>()
+        {
             Ok(n) => current - n,
             Err(_) => current - 10,
         }
     } else if message.contains('+') {
-        match message.replace("/spotify volume +", "").trim().parse::<i32>() {
+        match message
+            .replace("/spotify volume +", "")
+            .trim()
+            .parse::<i32>()
+        {
             Ok(n) => current + n,
             Err(_) => current + 10,
         }
     } else if message.contains("set") {
-        match message.replace("/spotify volume set", "").trim().parse::<i32>() {
+        match message
+            .replace("/spotify volume set", "")
+            .trim()
+            .parse::<i32>()
+        {
             Ok(n) => n,
             // Python's `int()` here is uncaught (ValueError → 500);
             // fail gracefully instead.
@@ -60,12 +74,24 @@ pub fn manage(sp: &SpotifyClient, message: &str) -> Result<(), String> {
         if e.to_string().to_lowercase().contains("premium") {
             log().exception(
                 &e,
-                Some("Unable to apply volume because Spotify Prenium is required."), true, true, true,
+                Some("Unable to apply volume because Spotify Prenium is required."),
+                true,
+                true,
+                true,
             );
             return Err(text(Some("spotify_volume_prenium_error"), None));
         }
-        log().exception(&e, Some("Error while setting the spotify volume."), false, true, true);
-        return Err(format!("{}: {e}", text(Some("spotify_apply_volume_error"), None)));
+        log().exception(
+            &e,
+            Some("Error while setting the spotify volume."),
+            false,
+            true,
+            true,
+        );
+        return Err(format!(
+            "{}: {e}",
+            text(Some("spotify_apply_volume_error"), None)
+        ));
     }
 
     // Get the updated volume.
@@ -84,17 +110,29 @@ mod tests {
     /// Spotify credentials. Mirrors `manage` exactly.
     fn parse_target_volume(message: &str, current: i32) -> Option<i32> {
         let target = if message.contains('-') {
-            match message.replace("/spotify volume -", "").trim().parse::<i32>() {
+            match message
+                .replace("/spotify volume -", "")
+                .trim()
+                .parse::<i32>()
+            {
                 Ok(n) => current - n,
                 Err(_) => current - 10,
             }
         } else if message.contains('+') {
-            match message.replace("/spotify volume +", "").trim().parse::<i32>() {
+            match message
+                .replace("/spotify volume +", "")
+                .trim()
+                .parse::<i32>()
+            {
                 Ok(n) => current + n,
                 Err(_) => current + 10,
             }
         } else if message.contains("set") {
-            match message.replace("/spotify volume set", "").trim().parse::<i32>() {
+            match message
+                .replace("/spotify volume set", "")
+                .trim()
+                .parse::<i32>()
+            {
                 Ok(n) => n,
                 Err(_) => return None,
             }

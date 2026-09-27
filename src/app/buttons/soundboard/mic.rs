@@ -166,7 +166,10 @@ pub fn soundboard() {
         Err(e) => {
             log().exception(
                 &e,
-                Some("Failed to open soundboard input stream"), true, true, true,
+                Some("Failed to open soundboard input stream"),
+                true,
+                true,
+                true,
             );
             return;
         }
@@ -198,7 +201,10 @@ pub fn soundboard() {
         Err(e) => {
             log().exception(
                 &e,
-                Some("Failed to open soundboard output stream"), true, true, true,
+                Some("Failed to open soundboard output stream"),
+                true,
+                true,
+                true,
             );
             return;
         }
@@ -207,14 +213,20 @@ pub fn soundboard() {
     if let Err(e) = stream_in.play() {
         log().exception(
             &e,
-            Some("Failed to start soundboard input stream"), true, true, true,
+            Some("Failed to start soundboard input stream"),
+            true,
+            true,
+            true,
         );
         return;
     }
     if let Err(e) = stream_out.play() {
         log().exception(
             &e,
-            Some("Failed to start soundboard output stream"), true, true, true,
+            Some("Failed to start soundboard output stream"),
+            true,
+            true,
+            true,
         );
         return;
     }

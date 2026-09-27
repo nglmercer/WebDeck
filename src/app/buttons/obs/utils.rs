@@ -49,7 +49,10 @@ pub fn reload_obs() -> ObsSession {
             .to_string(),
         port: obs
             .get("port")
-            .and_then(|v| v.as_u64().or_else(|| v.as_str().and_then(|s| s.parse().ok())))
+            .and_then(|v| {
+                v.as_u64()
+                    .or_else(|| v.as_str().and_then(|s| s.parse().ok()))
+            })
             .unwrap_or(4455) as u16,
         password: obs
             .get("password")

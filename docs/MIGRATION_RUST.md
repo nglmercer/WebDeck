@@ -24,17 +24,17 @@ so the three binaries share one implementation.
 | `run.py` | `src/main.rs` | ported | server + tray spawn; UAC via `windows` crate |
 | `console.py` | `src/bin/console.rs` | ported | REPL via `reqwest` |
 | `app/server.py` | `src/app/server.rs` | ported | all routes + middleware; `socketioxide` layer; `/` renders via minijinja compat shims |
-| `app/tray.py` | `src/app/tray.rs` | ported | `tray-icon` menu + `tao`/`wry` QR/config/port windows (Windows-only, like Python) |
+| `app/tray.py` | `src/app/tray.rs` | ported | `tray-icon` menu + `tao`/`wry` QR/config/port windows; Linux via `ksni` StatusNotifier |
 | `app/buttons/commands.py` | `…/buttons/commands.rs` | ported | full dispatch incl. plugins; input/clipboard via `enigo`/`arboard` |
-| `app/buttons/audio/*` (4) | `…/audio/*` | ported | CoreAudio via `windows` crate; media keys via `keybd_event` |
-| `app/buttons/color_picker/*` (6) | `…/color_picker/*` | ported | capture via `screenshots`, clipboard via `arboard`, toast via `winrt-notification` |
+| `app/buttons/audio/*` (4) | `…/audio/*` | ported | CoreAudio via `windows` crate; Linux via `pactl`; media keys via `keybd_event` |
+| `app/buttons/color_picker/*` (6) | `…/color_picker/*` | ported | capture via `screenshots` (+ `grim` fallback on Wayland), clipboard via `arboard`, toast via `winrt-notification`/`notify-rust` |
 | `app/buttons/exec/*` (4) | `…/exec/*` | ported | `/exec` scripts run as **rhai** (see deviations); `/batch` shells out; file-`/batch` mirrors upstream's no-op |
 | `app/buttons/obs/*` (7) | `…/obs/*` | ported | wire protocol via `obws` (connect-per-command, same error mapping) |
 | `app/buttons/soundboard/*` (5) | `…/soundboard/*` | ported | playback via `rodio`, mic loop via `cpal`, ffmpeg install/discovery + `apad`/`volume` filters |
 | `app/buttons/spotify/*` (7) | `…/spotify/*` | ported | auth + API via `rspotify` (same redirect/scopes, `.cache-<user>` token file) |
 | `app/buttons/system/*` (4) | `…/system/*` | ported | `openfile`/`opendir` real (explorer/xdg-open/open) |
 | `app/buttons/usage/*` (3) | `…/usage/*` | ported | readings via `sysinfo`/`nvml-wrapper` |
-| `app/buttons/window/*` (5) | `…/window/*` | ported | handles via `windows` crate |
+| `app/buttons/window/*` (5) | `…/window/*` | ported | handles via `windows` crate; Linux via `wmctrl`/`xdotool` (X11) |
 | `app/on_start/*` (2) | `…/on_start/*` | ported | shortcuts via `windows` ShellLink, GPU probe via `nvml-wrapper`, VLC cache fix |
 | `app/updater/*` (3) | `…/updater/*` | ported | `compare_versions`, `check_files`, download/extract (via `zip`), relaunch; UAC elevation |
 | `app/utils/args.py` | `…/utils/args.rs` | ported | same flags via `clap`; `get_arg('x')` → `get_args().x` |
@@ -150,6 +150,24 @@ cargo check --target x86_64-pc-windows-gnu --all-targets  # Windows coverage
   `SampleRate(u32)` → `u32`; error kinds via `Error::kind()`. `rodio`
   0.22 renamed `Sink` → `Player`, `OutputStream` → `MixerDeviceSink`.
 
+## Linux backends (no Python required)
+
+Every Windows-only API has a Linux equivalent behind `cfg(target_os =
+"linux")`; dispatch signatures are unchanged:
+
+- Audio (volume/mic/speaker/appvolume): `pactl` (PipeWire/PulseAudio).
+- PC control: `systemctl`/`loginctl` (power, session, lock), screensaver via
+  `qdbus`/GNOME/KDE calls, kill via `/proc` scan, media keys via MPRIS
+  (`playerctl`/`qdbus`).
+- Window management: `wmctrl` + `xdotool` (X11; native Wayland window
+  control is a compositor limitation).
+- Tray: `ksni` StatusNotifier menu; QR/config/port windows still `tao`/`wry`.
+- Shortcuts/autostart: `.desktop` files
+  (`~/.local/share/applications`, `~/.config/autostart`).
+- ffmpeg: system `PATH` lookup (`apt install ffmpeg`); no download.
+- Color picker: `screenshots` crate, with a `grim` 1x1 fallback on Wayland.
+- Toasts: `notify-rust`; dialogs stay `rfd`.
+
 ## Known gaps / next steps
 
 1. **Packaging**: release profile + installer/portable-zip script replacing
@@ -159,13 +177,14 @@ cargo check --target x86_64-pc-windows-gnu --all-targets  # Windows coverage
    windows, VB-Cable/rodio device selection) compile but need runs on a
    Windows host with OBS/Spotify/VLC-adjacent setups for end-to-end proof.
 
-## Verification evidence (2026-09-26)
+## Verification evidence (2026-09-26, updated 2026-09-27)
 
 - `cargo check --all-targets`: clean, zero warnings (one pre-existing
   `screenshots` future-incompat note from the crate itself).
 - `cargo check --target x86_64-pc-windows-gnu --all-targets`: clean, zero
   warnings — full Windows backend coverage including tray/rodio/cpal.
-- `cargo test`: 57 passed, 0 failed, 1 ignored.
+- `cargo test`: 66 passed, 0 failed, 1 ignored (incl. Linux pactl/wmctrl/
+  grim-parser/backend unit tests; tray menu test inits real lang files).
 - Live smoke test (`--no-tray -p 18080`, isolated copy of
   `webdeck/`+`templates/`+`static/`): `POST /usage` → 200,
   `POST /send-data` (`/debug-send`, `/volume +`, `/exec type:single_line …`)

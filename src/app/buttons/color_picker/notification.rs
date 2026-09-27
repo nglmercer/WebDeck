@@ -15,11 +15,19 @@ pub fn format_toast_message(
     typestocopy: Option<&str>,
     color_names_final: &HashMap<String, String>,
 ) -> String {
-    let single_copy =
-        typestocopy.map(|t| t.split(';').count() == 1).unwrap_or(false);
-    if display_type.map(|d| d.to_lowercase() != "list").unwrap_or(false) {
+    let single_copy = typestocopy
+        .map(|t| t.split(';').count() == 1)
+        .unwrap_or(false);
+    if display_type
+        .map(|d| d.to_lowercase() != "list")
+        .unwrap_or(false)
+    {
         if single_copy {
-            color_names_final.values().next().cloned().unwrap_or_default()
+            color_names_final
+                .values()
+                .next()
+                .cloned()
+                .unwrap_or_default()
         } else {
             color_names_final
                 .values()

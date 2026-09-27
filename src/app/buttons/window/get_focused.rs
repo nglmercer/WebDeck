@@ -23,9 +23,25 @@ pub fn get_focused_window() -> Result<String, String> {
         log().debug(&format!("Focused window: {title}"));
         Ok(title)
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "linux")]
     {
-        log().debug("No window has focus (only supported on Windows)");
+        use super::find_window::{run_output, tool_present};
+        if !tool_present("xdotool") {
+            log().debug("No window has focus (needs xdotool on X11/XWayland)");
+            return Err("No window has focus".to_string());
+        }
+        let id = run_output("xdotool", &["getwindowfocus"])
+            .map(|s| s.trim().to_string())
+            .map_err(|_| "No window has focus".to_string())?;
+        let title = run_output("xdotool", &["getwindowname", &id])
+            .map(|s| s.trim().to_string())
+            .map_err(|_| "No window has focus".to_string())?;
+        log().debug(&format!("Focused window: {title}"));
+        Ok(title)
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
+    {
+        log().debug("No window has focus (only supported on Windows and Linux)");
         Err("No window has focus".to_string())
     }
 }

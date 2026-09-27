@@ -10,7 +10,8 @@ fn hex_to_rgb(hex_code: &str) -> Result<(i32, i32, i32), String> {
         return Err(format!("Invalid hex color: {hex_code}"));
     }
     let channel = |i: usize| {
-        i32::from_str_radix(&hex[i..i + 2], 16).map_err(|_| format!("Invalid hex color: {hex_code}"))
+        i32::from_str_radix(&hex[i..i + 2], 16)
+            .map_err(|_| format!("Invalid hex color: {hex_code}"))
     };
     Ok((channel(0)?, channel(2)?, channel(4)?))
 }

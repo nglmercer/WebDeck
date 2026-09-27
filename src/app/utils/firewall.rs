@@ -53,16 +53,26 @@ pub fn check_firewall_permission() -> bool {
                 if has_rule {
                     log().debug("The application has permission to pass through the firewall.");
                 } else {
-                    log().debug("The application does not have permission to pass through the firewall.");
+                    log().debug(
+                        "The application does not have permission to pass through the firewall.",
+                    );
                 }
                 has_rule
             }
             Ok(_) => {
-                log().debug("The application does not have permission to pass through the firewall.");
+                log().debug(
+                    "The application does not have permission to pass through the firewall.",
+                );
                 false
             }
             Err(e) => {
-                log().exception(&e, Some("Error checking firewall permissions."), true, true, true);
+                log().exception(
+                    &e,
+                    Some("Error checking firewall permissions."),
+                    true,
+                    true,
+                    true,
+                );
                 true
             }
         }

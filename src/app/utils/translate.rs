@@ -94,7 +94,10 @@ mod tests {
     #[test]
     fn parses_google_response() {
         let body = r#"[[["Hola Mundo","hello world",null,null,1]],null,"en"]"#;
-        assert_eq!(parse_translate_response(body), Some("Hola Mundo".to_string()));
+        assert_eq!(
+            parse_translate_response(body),
+            Some("Hola Mundo".to_string())
+        );
         assert_eq!(parse_translate_response("not json"), None);
         assert_eq!(parse_translate_response("{}"), None);
     }

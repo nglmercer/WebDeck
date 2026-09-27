@@ -7,8 +7,8 @@
 use std::collections::HashMap;
 
 use crate::app::buttons::color_picker::{
-    get_arg::getarg, get_color_name::get_color_name,
-    get_mouse_pixel_color::get_mouse_pixel_color, notification::toast,
+    get_arg::getarg, get_color_name::get_color_name, get_mouse_pixel_color::get_mouse_pixel_color,
+    notification::toast,
 };
 use crate::app::utils::{logger::log, translate::translate};
 
@@ -70,8 +70,7 @@ pub fn handle_command(message: &str) {
                     if selected.to_uppercase().contains("HEX")
                         && remove_hex_sharp.as_deref() == Some("True")
                     {
-                        color_names_final
-                            .insert(selected.to_uppercase(), value.replace('#', ""));
+                        color_names_final.insert(selected.to_uppercase(), value.replace('#', ""));
                     } else {
                         color_names_final.insert(selected.to_uppercase(), value.clone());
                     }
@@ -96,8 +95,7 @@ pub fn handle_command(message: &str) {
                     if selected.to_uppercase().contains("HEX")
                         && remove_hex_sharp.as_deref() == Some("True")
                     {
-                        typestocopy_final
-                            .insert(selected.to_uppercase(), value.replace('#', ""));
+                        typestocopy_final.insert(selected.to_uppercase(), value.replace('#', ""));
                     } else {
                         typestocopy_final.insert(selected.to_uppercase(), value.clone());
                     }
@@ -108,7 +106,11 @@ pub fn handle_command(message: &str) {
         let text = if copy_type.as_deref().unwrap_or("").to_lowercase() == "list" {
             if parts.len() == 1 {
                 // Python: str(dict)[:-2][2:].replace("'", "") — single value.
-                typestocopy_final.values().cloned().collect::<Vec<_>>().join("")
+                typestocopy_final
+                    .values()
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join("")
             } else {
                 typestocopy_final
                     .values()
@@ -117,7 +119,11 @@ pub fn handle_command(message: &str) {
                     .join(",\n")
             }
         } else if parts.len() == 1 {
-            typestocopy_final.values().cloned().next().unwrap_or_default()
+            typestocopy_final
+                .values()
+                .cloned()
+                .next()
+                .unwrap_or_default()
         } else {
             typestocopy_final
                 .values()

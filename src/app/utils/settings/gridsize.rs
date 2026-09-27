@@ -120,9 +120,7 @@ pub fn update_gridsize(config: Value, new_height: usize, new_width: usize) -> Va
                     // Drop the last all-VOID row if there is one.
                     let mut removed = false;
                     for row_index in (0..folder.len()).rev() {
-                        if !folder[row_index].is_empty()
-                            && folder[row_index].iter().all(is_void)
-                        {
+                        if !folder[row_index].is_empty() && folder[row_index].iter().all(is_void) {
                             folder.remove(row_index);
                             removed = true;
                             break;
@@ -215,7 +213,10 @@ pub fn update_gridsize(config: Value, new_height: usize, new_width: usize) -> Va
                     let mut removed = false;
                     for col_from_right in 0..folder[0].len() {
                         let col = folder[0].len() - 1 - col_from_right;
-                        if folder.iter().all(|row| row.get(col).map(is_void).unwrap_or(false)) {
+                        if folder
+                            .iter()
+                            .all(|row| row.get(col).map(is_void).unwrap_or(false))
+                        {
                             for row in folder.iter_mut() {
                                 row.remove(col);
                             }

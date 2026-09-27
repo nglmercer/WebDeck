@@ -30,9 +30,9 @@ async fn main() {
 
     #[cfg(windows)]
     {
+        use windows::core::{w, HSTRING};
         use windows::Win32::UI::Shell::{IsUserAnAdmin, ShellExecuteW};
         use windows::Win32::UI::WindowsAndMessaging::SW_NORMAL;
-        use windows::core::{w, HSTRING};
 
         let wants_admin = config
             .get("settings")
@@ -122,13 +122,9 @@ async fn main() {
             log().info("Running without tray icon");
             match tokio::signal::ctrl_c().await {
                 Ok(()) => log().info("Exiting WebDeck... (Ctrl+C)"),
-                Err(e) => log().exception(
-                    &e,
-                    Some("Failed to listen for Ctrl+C"),
-                    false,
-                    true,
-                    true,
-                ),
+                Err(e) => {
+                    log().exception(&e, Some("Failed to listen for Ctrl+C"), false, true, true)
+                }
             }
         }
 

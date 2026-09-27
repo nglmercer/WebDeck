@@ -8,7 +8,9 @@
 //! - `PIL.Image.open("*.ico")` -> [`image`] crate decode.
 //! - `qrcode` -> [`qrcode`] crate (EC level L, auto version, 290px).
 //!
-//! Like Python, the tray is Windows-only; other platforms get inert stubs.
+//! Python runs the tray on Windows only; the Rust port enables the same tray
+//! on Linux too (StatusNotifier icon + native webviews). Other platforms get
+//! inert stubs.
 //! Deviations forced by the backend (documented, no behavior lost):
 //! - `show_qrcode` re-entry is guarded (a second call is a no-op) instead of
 //!   lifting the existing window, since tao gives no cross-thread lift API.
@@ -16,29 +18,29 @@
 //! - The integrated config window is maximized at creation instead of via a
 //!   post-hoc `ShowWindow(SW_MAXIMIZE)` call.
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 use crate::app::buttons::system::openfile::openfile;
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 use crate::app::utils::exit::exit_program;
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 use crate::app::utils::firewall::fix_firewall_permission;
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 use crate::app::utils::get_local_ip::get_local_ip;
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 use crate::app::utils::languages::{get_language, get_languages_info, set_default_language, text};
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 use crate::app::utils::logger::log;
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 use crate::app::utils::restart::restart_program;
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 use crate::app::utils::settings::get_config::{get_config, get_port, save_config};
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 use std::sync::atomic::{AtomicBool, Ordering};
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 use std::sync::{Mutex, OnceLock};
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 use tray_icon::menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 use tray_icon::{TrayIconBuilder, TrayIconEvent};
 
 /// Desired tray menu state, polled by the tray thread.
@@ -46,19 +48,19 @@ use tray_icon::{TrayIconBuilder, TrayIconEvent};
 /// `TrayIcon` is `!Send`, so the icon stays owned by the thread running
 /// [`create_tray_icon`] and cross-thread updates (language / server state)
 /// go through this plain-data state instead of a shared icon handle.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 struct DesiredTrayState {
     language: String,
     status: ServerState,
     dirty: bool,
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 static TRAY_STATE: OnceLock<Mutex<DesiredTrayState>> = OnceLock::new();
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 static TRAY_RUNNING: AtomicBool = AtomicBool::new(false);
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 fn tray_state() -> &'static Mutex<DesiredTrayState> {
     TRAY_STATE.get_or_init(|| {
         Mutex::new(DesiredTrayState {
@@ -70,7 +72,7 @@ fn tray_state() -> &'static Mutex<DesiredTrayState> {
 }
 
 /// Request a tray menu rebuild in `language` (applied by the tray thread).
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 fn request_tray_language(language: &str) {
     if let Ok(mut state) = tray_state().lock() {
         state.language = language.to_string();
@@ -79,7 +81,7 @@ fn request_tray_language(language: &str) {
 }
 
 /// Request a tray menu rebuild with `status` (applied by the tray thread).
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 fn request_tray_status(status: ServerState) {
     if let Ok(mut state) = tray_state().lock() {
         state.status = status;
@@ -88,7 +90,7 @@ fn request_tray_status(status: ServerState) {
 }
 /// Python keeps the tkinter window in a global; a bool guard is the
 /// cross-thread equivalent (tao windows cannot be lifted from here).
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 static QR_OPEN: AtomicBool = AtomicBool::new(false);
 
 /// Server reachability state shown in the tray menu.
@@ -103,7 +105,7 @@ pub enum ServerState {
 }
 
 /// Port of `reload_config`: (port, dark_theme, language, integrated_browser).
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 pub fn reload_config() -> (u16, bool, String, bool) {
     let config = get_config(true, false);
     let port = get_port();
@@ -126,14 +128,14 @@ pub fn reload_config() -> (u16, bool, String, bool) {
 }
 
 /// Best-effort local IP (Python computes it once at import).
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 fn local_ip() -> String {
     get_local_ip().unwrap_or_else(|_| "127.0.0.1".to_string())
 }
 
 /// Port of `generate_qr_code`: EC-L QR PNG bytes for `url`, ~290px,
 /// black-on-white (Python's `show_qrcode` always uses `dark_theme=False`).
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 fn generate_qr_code_png(url: &str) -> Option<Vec<u8>> {
     let code = qrcode::QrCode::with_error_correction_level(url, qrcode::EcLevel::L).ok()?;
     let image = code
@@ -142,21 +144,15 @@ fn generate_qr_code_png(url: &str) -> Option<Vec<u8>> {
         .build();
     let mut png = Vec::new();
     image
-        .write_to(
-            &mut std::io::Cursor::new(&mut png),
-            image::ImageFormat::Png,
-        )
+        .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
         .ok()?;
     Some(png)
 }
 
 /// Port of `generate_menu`. Item ids are stable dispatch keys.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 fn generate_menu(language: &str, server_status: ServerState) -> Menu {
-    log().info(&format!(
-        "Server status updated: {}",
-        server_status as u8
-    ));
+    log().info(&format!("Server status updated: {}", server_status as u8));
 
     let lang = Some(language);
     let status_text = match server_status {
@@ -166,20 +162,11 @@ fn generate_menu(language: &str, server_status: ServerState) -> Menu {
     };
 
     let menu = Menu::new();
-    let item_qr = MenuItem::with_id(
-        "qr",
-        text(Some("qr_code"), lang),
-        true,
-        None,
-    );
+    let item_qr = MenuItem::with_id("qr", text(Some("qr_code"), lang), true, None);
 
     let submenu = Submenu::new(text(Some("options"), lang), true);
-    let item_open_config = MenuItem::with_id(
-        "open_config",
-        text(Some("open_config"), lang),
-        true,
-        None,
-    );
+    let item_open_config =
+        MenuItem::with_id("open_config", text(Some("open_config"), lang), true, None);
 
     // Language submenu: `native_name (code)` unless identical, misc
     // languages after a separator, current language checked.
@@ -214,18 +201,9 @@ fn generate_menu(language: &str, server_status: ServerState) -> Menu {
         true,
         None,
     );
-    let item_edit_port = MenuItem::with_id(
-        "edit_port",
-        text(Some("edit_port"), lang),
-        true,
-        None,
-    );
-    let item_fix_firewall = MenuItem::with_id(
-        "fix_firewall",
-        text(Some("fix_firewall"), lang),
-        true,
-        None,
-    );
+    let item_edit_port = MenuItem::with_id("edit_port", text(Some("edit_port"), lang), true, None);
+    let item_fix_firewall =
+        MenuItem::with_id("fix_firewall", text(Some("fix_firewall"), lang), true, None);
     let _ = submenu.append_items(&[
         &item_open_config,
         &lang_menu,
@@ -240,18 +218,9 @@ fn generate_menu(language: &str, server_status: ServerState) -> Menu {
         true,
         None,
     );
-    let item_issue = MenuItem::with_id(
-        "report_issue",
-        text(Some("report_issue"), lang),
-        true,
-        None,
-    );
-    let item_exit = MenuItem::with_id(
-        "exit",
-        text(Some("exit"), lang),
-        true,
-        None,
-    );
+    let item_issue =
+        MenuItem::with_id("report_issue", text(Some("report_issue"), lang), true, None);
+    let item_exit = MenuItem::with_id("exit", text(Some("exit"), lang), true, None);
 
     let _ = menu.append_items(&[&item_qr, &submenu, &item_server]);
     let _ = menu.append(&PredefinedMenuItem::separator());
@@ -260,7 +229,7 @@ fn generate_menu(language: &str, server_status: ServerState) -> Menu {
 }
 
 /// Dispatch a tray menu activation by item id.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 fn dispatch_menu(id: &str) {
     match id {
         "qr" => show_qrcode(),
@@ -280,7 +249,7 @@ fn dispatch_menu(id: &str) {
 }
 
 /// Load an app `.ico` file as RGBA pixels resized to `size`x`size`.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 fn load_icon_rgba(path: &str, size: u32) -> Option<(Vec<u8>, u32, u32)> {
     let img = image::open(path).ok()?;
     let img = img.resize_exact(size, size, image::imageops::FilterType::Lanczos3);
@@ -291,7 +260,7 @@ fn load_icon_rgba(path: &str, size: u32) -> Option<(Vec<u8>, u32, u32)> {
 
 /// Port of `show_qrcode`: QR image + URL label, not resizable,
 /// Escape/Return/Space close.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 pub fn show_qrcode() {
     if QR_OPEN.swap(true, Ordering::SeqCst) {
         return;
@@ -320,7 +289,7 @@ pub fn show_qrcode() {
 }
 
 /// Port of `open_config`: integrated maximized window or external browser.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 pub fn open_config() {
     std::thread::spawn(|| {
         let (_, _, _, integrated) = reload_config();
@@ -345,7 +314,7 @@ pub fn open_config() {
 
 /// Port of `change_port_prompt`: label + entry + randomize + save.
 /// Return saves, Escape closes, window icon is `icon_black.ico`.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 pub fn change_port_prompt() {
     std::thread::spawn(|| {
         let (_, _, language, _) = reload_config();
@@ -384,10 +353,7 @@ pub fn change_port_prompt() {
                     _ => return,
                 };
                 let mut config = get_config(true, false);
-                if let Some(port_slot) = config
-                    .get_mut("url")
-                    .and_then(|u| u.get_mut("port"))
-                {
+                if let Some(port_slot) = config.get_mut("url").and_then(|u| u.get_mut("port")) {
                     *port_slot = serde_json::Value::from(new_port as u64);
                 }
                 save_config(&config);
@@ -398,7 +364,7 @@ pub fn change_port_prompt() {
 }
 
 /// Which keys close a tao window (Python binds differ per window).
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 #[derive(Clone, Copy)]
 enum CloseKeys {
     /// Escape/Return/Space (QR window).
@@ -408,7 +374,7 @@ enum CloseKeys {
 }
 
 /// Run a tao/wry window with the given builder. Blocks until closed.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 #[allow(clippy::too_many_arguments)]
 fn run_window<F>(
     title: &str,
@@ -435,7 +401,7 @@ fn run_window<F>(
 }
 
 /// Same as [`run_window`] plus a JS `window.ipc.postMessage` handler.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 fn run_window_with_ipc(
     title: &str,
     width: u32,
@@ -458,7 +424,7 @@ fn run_window_with_ipc(
 }
 
 /// Core tao/wry window runner with optional IPC callback.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 #[allow(clippy::too_many_arguments)]
 fn run_window_inner<F>(
     title: &str,
@@ -520,7 +486,10 @@ fn run_window_inner<F>(
                         CloseKeys::EscapeOnly => event.physical_key == KeyCode::Escape,
                         CloseKeys::Activate => matches!(
                             event.physical_key,
-                            KeyCode::Escape | KeyCode::Enter | KeyCode::NumpadEnter | KeyCode::Space
+                            KeyCode::Escape
+                                | KeyCode::Enter
+                                | KeyCode::NumpadEnter
+                                | KeyCode::Space
                         ),
                     };
                     if close {
@@ -550,7 +519,7 @@ pub fn validate_port_value(value: &str, current: u16) -> bool {
 
 /// Port of `change_tray_language`: regenerate the menu in the new language
 /// (server state resets to the default online, exactly as in Python).
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 pub fn change_tray_language(new_lang: &str) {
     request_tray_language(new_lang);
     // Python also resets the server state to the default online here.
@@ -558,7 +527,7 @@ pub fn change_tray_language(new_lang: &str) {
 }
 
 /// Port of `update_language`: default language + tray menu + saved config.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 pub fn update_language(new_lang: &str) {
     set_default_language(new_lang);
     change_tray_language(new_lang);
@@ -574,7 +543,7 @@ pub fn update_language(new_lang: &str) {
 }
 
 /// Port of `change_server_state`.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 pub fn change_server_state(new_state: ServerState) {
     request_tray_status(new_state);
 }
@@ -582,7 +551,7 @@ pub fn change_server_state(new_state: ServerState) {
 /// Port of `generate_tray_icon` + `create_tray_icon`: build the icon
 /// (tooltip `WebDeck`, or `WebDeck DEV` in debug builds like Python's
 /// non-frozen branch) and service menu events. Blocks forever.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 pub fn create_tray_icon() {
     if TRAY_RUNNING.swap(true, Ordering::SeqCst) {
         return;
@@ -663,40 +632,40 @@ pub fn create_tray_icon() {
     }
 }
 
-/// Non-Windows stub: tray is Windows-only in the Python build as well.
-#[cfg(not(windows))]
+/// Non-desktop stub (macOS and other Unixes without the GUI stack).
+#[cfg(not(any(windows, target_os = "linux")))]
 pub fn create_tray_icon() {
-    eprintln!("[tray] system tray is only supported on Windows");
+    eprintln!("[tray] system tray is only supported on Windows and Linux");
 }
 
 /// Non-Windows stub.
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 pub fn show_qrcode() {}
 
 /// Non-Windows stub.
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 pub fn open_config() {}
 
 /// Non-Windows stub.
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 pub fn reload_config() -> (u16, bool, String, bool) {
     (5000, false, "system".to_string(), false)
 }
 
 /// Non-Windows stub.
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 pub fn update_language(_language: &str) {}
 
 /// Non-Windows stub.
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 pub fn change_port_prompt() {}
 
 /// Non-Windows stub.
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 pub fn change_tray_language(_language: &str) {}
 
 /// Non-Windows stub.
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 pub fn change_server_state(_server_state: ServerState) {}
 
 #[cfg(test)]
@@ -725,10 +694,19 @@ mod tests {
         assert_eq!(ServerState::Stopped as u8, 2);
     }
 
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "linux"))]
     #[test]
     fn menu_builds_with_all_states() {
-        for state in [ServerState::Running, ServerState::Stopped, ServerState::Loading] {
+        crate::app::utils::languages::init(
+            "webdeck/translations",
+            Some("webdeck/translations/misc"),
+            "en_US",
+        );
+        for state in [
+            ServerState::Running,
+            ServerState::Stopped,
+            ServerState::Loading,
+        ] {
             let _ = generate_menu("en", state);
         }
     }

@@ -26,7 +26,10 @@ pub fn get_device(device: &str) -> Result<String, String> {
                 &e,
                 Some(&format!(
                     "Failed to retrieve audio device '{device}'. Ensure VLC is installed properly."
-                )), true, true, true,
+                )),
+                true,
+                true,
+                true,
             );
             return Err(text(Some("vlc_not_installed_error"), None));
         }

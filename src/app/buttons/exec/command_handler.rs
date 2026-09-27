@@ -35,17 +35,13 @@ pub fn python(message: &str) -> Result<(), String> {
             });
         }
     } else if message.contains("type:file_path") {
-        let python_file = message
-            .replace("/exec ", "")
-            .replace("type:file_path", "");
+        let python_file = message.replace("/exec ", "").replace("type:file_path", "");
         let python_file = python_file.trim().to_string();
         std::thread::spawn(move || {
             let _ = python_code::execute(&python_file);
         });
     } else {
-        let code = message
-            .replace("/exec", "")
-            .replace("type:single_line", "");
+        let code = message.replace("/exec", "").replace("type:single_line", "");
         python_code::run_script(code.trim()).map_err(|e| e.to_string())?;
     }
     Ok(())
@@ -69,9 +65,7 @@ pub fn batch(message: &str) -> Result<(), String> {
             std::thread::spawn(move || batch_code::execute(&batch_file));
         }
     } else if message.contains("type:file_path") {
-        let batch_file = message
-            .replace("/batch ", "")
-            .replace("type:file_path", "");
+        let batch_file = message.replace("/batch ", "").replace("type:file_path", "");
         let batch_file = batch_file.trim().to_string();
         std::thread::spawn(move || batch_code::execute(&batch_file));
     } else {

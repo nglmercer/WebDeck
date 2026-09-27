@@ -180,7 +180,10 @@ impl Logger {
                 exception_type,
                 &format!("{message} - {exception_title}\n{exception_message}"),
             ),
-            None => self.write_log(exception_type, &format!("{exception_title}\n{exception_message}")),
+            None => self.write_log(
+                exception_type,
+                &format!("{exception_title}\n{exception_message}"),
+            ),
         };
         if print_log {
             println!("{MAGENTA}{log_message}{RESET}");

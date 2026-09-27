@@ -28,8 +28,7 @@ pub fn block_on<F: std::future::Future>(future: F) -> F::Output {
 
 /// `current_playback` extra-types argument. Python passes no
 /// `additional_types`; the opaque-iterator type just needs pinning.
-pub fn no_additional_types(
-) -> Option<std::iter::Empty<&'static rspotify::model::AdditionalType>> {
+pub fn no_additional_types() -> Option<std::iter::Empty<&'static rspotify::model::AdditionalType>> {
     None
 }
 
@@ -56,10 +55,7 @@ pub fn initialize() -> Option<AuthCodeSpotify> {
     // Reload config before assuming it's not set (Python re-reads the file).
     let config = get_config(true, false);
     let api = config.get("settings")?.get("spotify_api")?.clone();
-    let username = api
-        .get("username")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
+    let username = api.get("username").and_then(|v| v.as_str()).unwrap_or("");
     let client_id = api.get("client_id").and_then(|v| v.as_str()).unwrap_or("");
     let client_secret = api
         .get("client_secret")

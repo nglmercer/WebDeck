@@ -17,7 +17,9 @@ fn absolute(path: &str) -> String {
 
 /// Port of `opendir` (returns the opened path, like Python).
 pub fn opendir(message: &str) -> String {
-    let path = message.replacen("/openfolder", "", 1).replacen("/opendir", "", 1);
+    let path = message
+        .replacen("/openfolder", "", 1)
+        .replacen("/opendir", "", 1);
     let path = absolute(normalize_path(path.trim()).as_str());
 
     log().debug(&format!("Opening directory: {path}"));

@@ -10,11 +10,11 @@ use crate::app::utils::logger::log;
 pub fn bring_window_to_front(window_title: &str) -> Result<(), String> {
     #[cfg(windows)]
     {
+        use windows::core::{HSTRING, PCWSTR};
         use windows::Win32::Foundation::HWND;
         use windows::Win32::UI::WindowsAndMessaging::{
             FindWindowW, SetForegroundWindow, ShowWindow, SW_RESTORE,
         };
-        use windows::core::{HSTRING, PCWSTR};
 
         let title = HSTRING::from(window_title);
         let hwnd = unsafe { FindWindowW(PCWSTR::null(), PCWSTR(title.as_ptr())) }
@@ -29,10 +29,30 @@ pub fn bring_window_to_front(window_title: &str) -> Result<(), String> {
         }
         Ok(())
     }
-    #[cfg(not(windows))]
+    // Exact title match (port of FindWindow's equality), then activate.
+    #[cfg(target_os = "linux")]
+    {
+        match super::find_window::list_windows() {
+            Ok(windows) => match windows.into_iter().find(|(_, title)| title == window_title) {
+                Some((id, _)) => super::find_window::activate_window(id).map_err(|e| {
+                    log().warning(&format!("bring_window_to_front({window_title:?}): {e}"));
+                    format!("Window with title '{window_title}' not found")
+                }),
+                None => {
+                    log().error(&format!("Window with title '{window_title}' not found"));
+                    Err(format!("Window with title '{window_title}' not found"))
+                }
+            },
+            Err(e) => {
+                log().warning(&format!("bring_window_to_front({window_title:?}): {e}"));
+                Err(format!("Window with title '{window_title}' not found"))
+            }
+        }
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
     {
         log().warning(&format!(
-            "bring_window_to_front({window_title:?}): only supported on Windows"
+            "bring_window_to_front({window_title:?}): only supported on Windows and Linux"
         ));
         Err(format!("Window with title '{window_title}' not found"))
     }
@@ -49,7 +69,11 @@ pub fn foreground(hwnd: isize) {
             let _ = SetForegroundWindow(HWND(hwnd as *mut std::ffi::c_void));
         }
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "linux")]
+    {
+        let _ = super::find_window::activate_window(hwnd);
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
     {
         let _ = hwnd;
     }

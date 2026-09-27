@@ -28,9 +28,7 @@ use crate::app::buttons::obs::{
     utils::{block_on, failure, reload_obs},
     virtualcam,
 };
-use crate::app::utils::{
-    global_variables::get_global_variables, languages::text, logger::log,
-};
+use crate::app::utils::{global_variables::get_global_variables, languages::text, logger::log};
 
 /// Port of `handle_command`.
 /// Reference: <https://github.com/obsproject/obs-websocket/blob/master/docs/generated/protocol.md>
@@ -120,10 +118,11 @@ pub fn handle_command(message: &str) -> Value {
         scenes::set(&client, scene_name.trim())
     } else if message.starts_with("/obs_key") {
         let hotkey = message.split(' ').next_back().unwrap_or("");
-        match block_on(client.hotkeys().trigger_by_sequence(
-            &format!("OBS_KEY_{hotkey}"),
-            KeyModifiers::default(),
-        )) {
+        match block_on(
+            client
+                .hotkeys()
+                .trigger_by_sequence(&format!("OBS_KEY_{hotkey}"), KeyModifiers::default()),
+        ) {
             Ok(()) => {
                 log().success(&format!("Hotkey triggered '{hotkey}' successfully."));
                 Ok(())
