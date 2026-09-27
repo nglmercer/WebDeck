@@ -181,16 +181,13 @@ describe('add/edit parity', () => {
     document.body.innerHTML = modalHtml;
     const inner = document.querySelector('.args-container')!.innerHTML;
     document.body.innerHTML = '';
-    return (
-      inner
-        .replaceAll(`_${modalId}`, '_ID')
-        .replaceAll(modalId, 'ID')
-        // Parsed HTML lowercases attribute names.
-        .replaceAll('arg_modal_id', 'modal_id')
-        .replaceAll('edit_modal_id', 'modal_id')
-        .replaceAll('arg_modal_ID', 'modal_ID')
-        .replaceAll('edit_modal_ID', 'modal_ID')
-    );
+    // split/join: String.replaceAll needs a newer lib than this target.
+    const swap = (s: string, from: string, to: string): string => s.split(from).join(to);
+    let out = swap(swap(inner, `_${modalId}`, '_ID'), modalId, 'ID');
+    // Parsed HTML lowercases attribute names.
+    out = swap(swap(out, 'arg_modal_id', 'modal_id'), 'edit_modal_id', 'modal_id');
+    out = swap(swap(out, 'arg_modal_ID', 'modal_ID'), 'edit_modal_ID', 'modal_ID');
+    return out;
   }
 
   function renderAdd(commandValue: JsonObject, category: string, command: string): string {
