@@ -26,5 +26,6 @@ data.json
 /frontend/dist
 /frontend/demo/*.mp4
 /frontend/demo/*.webm
+/frontend/demo/.frames-3d
 /frontend/e2e/test-results
 /node_modules

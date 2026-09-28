@@ -1,0 +1,144 @@
+/* 3D showcase chrome: full-viewport stage, vignette, minimal HUD. */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background-color: #0b0d10;
+  color: #eef1f4;
+  font-family: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+}
+
+#stage canvas,
+#stage > div {
+  display: block;
+}
+
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 42%, transparent 55%, rgba(0, 0, 0, 0.5) 100%);
+}
+
+.hud {
+  position: fixed;
+  z-index: 3;
+}
+
+/* Minimalist cover framing: brand lockup only, no HUD, no vignette. */
+.brand {
+  position: fixed;
+  z-index: 3;
+  top: 44px;
+  left: 60px;
+  display: none;
+  align-items: center;
+  gap: 18px;
+}
+
+.brand-word {
+  font-size: 88px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: #ef1a7a;
+}
+
+body.clean .brand {
+  display: flex;
+}
+
+body.clean .hud,
+body.clean .vignette {
+  display: none;
+}
+
+.hud-title {
+  top: 20px;
+  left: 24px;
+  max-width: 340px;
+  pointer-events: none;
+}
+
+.hud-title h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.hud-title h1 span {
+  color: #e8a33d;
+  font-weight: 600;
+}
+
+.hud-title p {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #aeb6c0;
+}
+
+.hud-angles {
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background-color: rgba(16, 21, 31, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+}
+
+.hud-angles button {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background-color: transparent;
+  color: #cfd6e0;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  cursor: pointer;
+}
+
+.hud-angles button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.hud-angles button.is-active {
+  background-color: #e8a33d;
+  border-color: #e8a33d;
+  color: #16181d;
+}
+
+/* Live-app panel hosted by the CSS3DObject. */
+.wd3d-panel {
+  width: 1280px;
+  height: 720px;
+  overflow: hidden;
+  border-radius: 6px;
+  background-color: #000000;
+}
+
+.wd3d-panel iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  pointer-events: auto;
+}

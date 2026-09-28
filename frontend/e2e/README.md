@@ -86,3 +86,34 @@ execute for real):
 ```sh
 WEBDECK_DEMO_BASE_URL=http://<host>:<port> npm run demo:video
 ```
+
+## 3D showcase captures
+
+Still product shots of the live app on a studio console (`demo-3d/`
+page: Three.js scene, app streamed into 3D via CSS3D iframe):
+
+```sh
+cd frontend
+npm run demo:3d
+```
+
+Output: `demo/3d-cover.png` plus `3d-front.png`, `3d-hero.png`,
+`3d-side.png`, `3d-top.png` (3840x2160: 1080p viewport at 2x scale).
+Same deterministic backend mocks as the video tour; camera angles come
+from the page's `window.__demo3d` API (`e2e/demo-3d.spec.ts`,
+`capture-3d.config.ts`). Captures run with `?clean=1`: brand lockup +
+floating tablet only (no HUD, floor, or shadows). To view and orbit
+interactively: `npm run dev`, then open
+`http://127.0.0.1:5173/demo-3d/`.
+
+Animated tour (`demo/3d-tour.gif`, 960px loop: camera flights plus the
+grid and Spotify-folder app screens):
+
+```sh
+cd frontend
+npm run demo:3d-gif
+```
+
+Frames render to `demo/.frames-3d/` (gitignored) and are assembled by
+`e2e/finalize-3d-gif.mjs` (`e2e/demo-3d-gif.spec.ts`,
+`capture-3d-gif.config.ts`).
