@@ -194,6 +194,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ashpd"
+version = "0.13.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb8421aaa9644a5faf26735f258b669b15f063313ef8f8e2bdb28912a1a6f111"
+dependencies = [
+ "enumflags2",
+ "futures-util",
+ "getrandom 0.4.3",
+ "serde",
+ "serde_repr",
+ "tokio",
+ "zbus",
+]
+
+[[package]]
 name = "async-broadcast"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6280,6 +6295,7 @@ dependencies = [
  "signal-hook-registry",
  "socket2",
  "tokio-macros",
+ "tracing",
  "windows-sys 0.61.2",
 ]
 
@@ -6939,10 +6955,12 @@ name = "webdeck"
 version = "1.8.7"
 dependencies = [
  "arboard",
+ "ashpd",
  "axum",
  "base64 0.23.1",
  "clap",
  "cpal 0.18.2",
+ "display-info",
  "enigo",
  "ffmpeg-sidecar",
  "hound",
@@ -6972,6 +6990,8 @@ dependencies = [
  "windows 0.62.2",
  "winrt-notification",
  "wry",
+ "xcb",
+ "zbus",
  "zip 2.4.2",
 ]
 
@@ -7852,6 +7872,7 @@ dependencies = [
  "rustix",
  "serde",
  "serde_repr",
+ "tokio",
  "tracing",
  "uds_windows",
  "uuid",

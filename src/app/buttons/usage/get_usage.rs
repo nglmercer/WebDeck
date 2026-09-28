@@ -25,7 +25,13 @@ use crate::app::utils::{merge_dicts::merge_dicts, settings::get_config::get_conf
 static SYS: OnceLock<Mutex<System>> = OnceLock::new();
 
 fn system() -> &'static Mutex<System> {
-    SYS.get_or_init(|| Mutex::new(System::new_all()))
+    // NOTE: never `System::new_all()` here — it preloads every process and
+    // sysinfo keeps one `/proc/<pid>/stat` fd open per process/thread for
+    // the process lifetime (~2000 fds), starving the fd table and pushing
+    // later sockets past FD_SETSIZE. Only CPU/memory are read from the
+    // shared handle (each call site refreshes first); disks/networks use
+    // their own short-lived handles.
+    SYS.get_or_init(|| Mutex::new(System::new()))
 }
 
 pub(crate) fn round2(value: f64) -> f64 {
@@ -296,6 +302,39 @@ mod tests {
         // method (that bricks GPU tiles with no recovery path).
         let after = get_config(false, false);
         assert_eq!(after["settings"]["gpu_method"], "nvidia (NVML)");
+    }
+
+    /// Regression: the shared `System` must not hoard `/proc` stat
+    /// handles. `System::new_all()` opens — and keeps open for the
+    /// process lifetime — one fd per process/thread (~2000 fds), pushing
+    /// every later socket past `FD_SETSIZE`. On Wayland that turned the
+    /// color picker's D-Bus screenshot call into a stack-smashing SIGABRT
+    /// inside vendored libdbus.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn shared_system_holds_no_proc_stat_fds() {
+        let _guard = test_env();
+        let _ = get_usage(Some(true), &[]);
+        let _ = get_usage(Some(true), &[]);
+        let mut held = Vec::new();
+        if let Ok(entries) = std::fs::read_dir("/proc/self/fd") {
+            for entry in entries.flatten() {
+                if let Ok(target) = std::fs::read_link(entry.path()) {
+                    let t = target.to_string_lossy().into_owned();
+                    // Precisely per-process/thread stat files; the transient
+                    // system-wide `/proc/stat` (CPU refresh) is excluded.
+                    if t != "/proc/stat" && t.starts_with("/proc/") && t.ends_with("/stat") {
+                        held.push(t);
+                    }
+                }
+            }
+        }
+        assert!(
+            held.is_empty(),
+            "shared System holds {} /proc stat fds (e.g. {:?})",
+            held.len(),
+            held.iter().take(3).collect::<Vec<_>>()
+        );
     }
 
     #[test]

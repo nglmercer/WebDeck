@@ -44,7 +44,6 @@ image = "0.25.10"
 qrcode = "0.14.1"
 arboard = "3.6.1"
 enigo = "0.6.1"
-screenshots = "0.8.10"
 notify-rust = "4.18.0"
 rhai = { version = "1.26.1", features = ["sync"] }
 libloading = "0.9.0"
@@ -93,6 +92,21 @@ winrt-notification = "0"
 tray-icon = { version = "0.25.1", default-features = false, features = ["ksni"] }
 wry = "0.57.0"
 tao = "0.37.1"
+# Color-picker capture without `screenshots`: it forces dbus/vendored, whose
+# libdbus build lacks HAVE_POLL, so any D-Bus call with an fd >= 1024 ends in
+# a stack-smashing SIGABRT (select/FD_SET emulation). grim (subprocess) +
+# ashpd portal (pure Rust) + raw xcb cover the same backends with no libdbus.
+xcb = "1"
+display-info = "0.4"
+ashpd = { version = "0.13", default-features = false, features = ["tokio", "screenshot"] }
+# Direct use: one fresh bus connection per portal capture (ashpd's cached
+# global connection cannot outlive our throwaway runtimes).
+zbus = "5"
+
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+# `screenshots` is Linux-unsafe (see above); elsewhere its dbus dependency
+# (Linux-only) never builds, so it stays.
+screenshots = "0.8.10"
 
 [dev-dependencies]
 # Router regression tests drive the real route table via `oneshot`.
