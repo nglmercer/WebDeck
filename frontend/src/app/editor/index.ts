@@ -1,6 +1,5 @@
 // Editor mode barrel (split from editor.ts; './editor' import paths unchanged).
 
-export { editorBarView } from './bar';
 export { isSwapMode } from './state';
 export {
   createVoidButton,

@@ -1,6 +1,5 @@
-import { html, join } from '../framework/html';
+import { mount, unmount } from 'svelte';
 import { asObject, asString, get, type BootContext } from '../framework/types';
-import { q } from '../query';
 import { initBackgroundSetting } from '../legacy/background-setting';
 import { initColorSetting } from '../legacy/color-setting';
 import { initFilepath } from '../legacy/filepath';
@@ -8,34 +7,28 @@ import { initFolderpath } from '../legacy/folderpath';
 import { initLoadingScreen } from '../legacy/loadingscreen';
 import { initThemesSetting } from '../legacy/themes-setting';
 import { initUploadFile } from '../legacy/upload-file';
-import { collectAddModals, addModalChrome, wireAddModal, wireBrowserDropdowns, wireBrowserSearch } from '../views/addbutton';
-import { configView } from '../views/config';
+import { collectAddModals, wireAddModal, wireBrowserDropdowns, wireBrowserSearch } from '../views/addbutton';
 import { collectEditModals, wireEditModal } from '../views/editmodal';
-import { editorBarView } from '../app/editor';
-import { gridView } from '../views/grid';
-import { loadingScreen } from '../views/loading';
-import { applyHead, shellView } from '../views/shell';
+import { applyHead } from '../views/shell';
 import { hydrateSvgs } from '../views/svg';
 import { auto_resize } from '../app/zoom';
 import { installGlobals, wireApp } from '../app/wireup';
 import { startUsageLoop } from '../app/usage';
+import App from './App.svelte';
 
-/** Full page: render all views, then wire behavior (DOMContentLoaded order). */
-export function renderApp(mount: HTMLElement, ctx: BootContext): void {
+let mountedApp: Record<string, never> | null = null;
+
+/** Full page: mount the Svelte shell, then wire behavior (DOMContentLoaded order). */
+export function renderApp(target: HTMLElement, ctx: BootContext): void {
   applyHead(ctx);
-  q(mount).html(
-    join([
-      loadingScreen(ctx.svgs),
-      shellView(ctx),
-      // Scale wrapper: auto_resize scales ONLY the grid, so fixed UI
-      // (folder bar, editor bar, modals) stays viewport-anchored instead
-      // of drifting/scaling with the body transform.
-      html`<div id="deck-scale">${gridView(ctx)}</div>`,
-      editorBarView(),
-      configView(ctx),
-      addModalChrome(ctx),
-    ]).value
-  );
+  if (mountedApp !== null) {
+    void unmount(mountedApp);
+    mountedApp = null;
+  }
+  // mount() appends; clear first so re-renders replace the previous tree
+  // (the same replace semantics the old innerHTML render had).
+  target.textContent = '';
+  mountedApp = mount(App, { target, props: { ctx } }) as unknown as Record<string, never>;
 
   installGlobals();
 

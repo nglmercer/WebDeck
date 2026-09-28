@@ -1,4 +1,5 @@
-import { html, raw, type Html } from '../framework/html';
+import { flushSync, mount } from 'svelte';
+import SearchDropdownView from './SearchDropdownView.svelte';
 
 /**
  * Reusable searchable dropdown custom element (`<search-dropdown>`).
@@ -9,6 +10,12 @@ import { html, raw, type Html } from '../framework/html';
  * value as `detail`. Light DOM on purpose, so the host's page theme
  * classes (e.g. `dark-theme`) cascade into the list.
  *
+ * The element is a thin shell: rendering + interaction state live in the
+ * Svelte interior (`SearchDropdownView.svelte`), mounted here. The public
+ * API (`value`, `setOptions`, `visibleOptions`, observed attributes) is
+ * unchanged, and every mutation is wrapped in `flushSync` so callers keep
+ * the synchronous DOM semantics the imperative version had.
+ *
  * Styling hooks: `.sd-search` / `.sd-list` / `.sd-option` (+ `.active`,
  * `.selected`, `[aria-selected="true"]`); see
  * `static/css/components/search-dropdown.css`.
@@ -17,12 +24,21 @@ import { html, raw, type Html } from '../framework/html';
 /** Selection event name; `detail` is the selected value. */
 export const SEARCH_DROPDOWN_CHANGE = 'search-dropdown-change';
 
+/** Imperative API the Svelte interior exposes. */
+interface SearchDropdownExports {
+  setOptions(options: string[]): void;
+  getValue(): string;
+  setValue(next: string): void;
+  setAttrs(placeholder: string, inputClass: string): void;
+  visibleOptions(): string[];
+}
+
 export class SearchDropdown extends HTMLElement {
-  private options: string[] = [];
-  private selected: string | null = null;
-  private activeValue: string | null = null;
-  private search: HTMLInputElement | null = null;
-  private list: HTMLDivElement | null = null;
+  private app: SearchDropdownExports | null = null;
+  // Pre-connect writes are queued: `setOptions`/value assignment must work
+  // before `connectedCallback` mounts the interior (as before).
+  private pendingOptions: string[] | null = null;
+  private pendingValue: string | null = null;
 
   static get observedAttributes(): string[] {
     return ['placeholder', 'input-class'];
@@ -30,141 +46,74 @@ export class SearchDropdown extends HTMLElement {
 
   /** Currently selected value ('' when nothing is selected). */
   get value(): string {
-    return this.selected ?? '';
+    return this.app?.getValue() ?? this.pendingValue ?? '';
   }
 
   set value(next: string) {
-    if (next !== '' && !this.options.includes(next)) return;
-    this.selected = next === '' ? null : next;
-    this.activeValue = this.selected;
-    this.paint();
+    if (this.app) {
+      const app = this.app;
+      flushSync(() => app.setValue(next));
+    } else {
+      this.pendingValue = next;
+    }
   }
 
   /** Replace the option list (selection kept when still present). */
   setOptions(options: string[]): void {
-    this.options = [...options];
-    if (this.selected !== null && !this.options.includes(this.selected)) {
-      this.selected = null;
+    if (this.app) {
+      const app = this.app;
+      flushSync(() => app.setOptions(options));
+    } else {
+      this.pendingOptions = [...options];
     }
-    this.activeValue = null;
-    this.renderOptions();
   }
 
   /** Visible option values, in order. */
   visibleOptions(): string[] {
-    const needle = (this.search?.value ?? '').toLowerCase();
-    return this.options.filter((option) => option.toLowerCase().includes(needle));
+    return this.app?.visibleOptions() ?? [];
   }
 
   connectedCallback(): void {
-    if (this.search) return;
-    const search = document.createElement('input');
-    search.type = 'text';
-    search.className = 'sd-search';
-    search.setAttribute('autocomplete', 'off');
-    search.setAttribute('role', 'combobox');
-    search.setAttribute('aria-expanded', 'true');
-    search.setAttribute('aria-autocomplete', 'list');
-    const list = document.createElement('div');
-    list.className = 'sd-list';
-    list.setAttribute('role', 'listbox');
-    const listId = `${this.id || 'sd'}-listbox`;
-    list.id = listId;
-    search.setAttribute('aria-controls', listId);
-    this.append(search, list);
-    this.search = search;
-    this.list = list;
-    this.applySearchAttrs();
-    search.addEventListener('input', () => {
-      this.activeValue = null;
-      this.renderOptions();
+    if (this.app) return;
+    const app = mount(SearchDropdownView, {
+      target: this,
+      props: {
+        hostId: this.id,
+        placeholder: this.getAttribute('placeholder') ?? '',
+        inputClass: this.getAttribute('input-class') ?? '',
+        onSelect: (value: string) => {
+          this.dispatchEvent(
+            new CustomEvent<string>(SEARCH_DROPDOWN_CHANGE, { detail: value, bubbles: true })
+          );
+        },
+      },
+    }) as unknown as SearchDropdownExports;
+    this.app = app;
+    // Skip the flush when there is nothing queued: this element upgrades
+    // inside App's subtree (a nested mount sharing the outer batch), and
+    // a gratuitous flushSync would settle + null that batch before the
+    // outer mount's boundary resolves (transfer_effects crash).
+    if (this.pendingOptions === null && this.pendingValue === null) return;
+    flushSync(() => {
+      if (this.pendingOptions) {
+        app.setOptions(this.pendingOptions);
+        this.pendingOptions = null;
+      }
+      if (this.pendingValue !== null) {
+        app.setValue(this.pendingValue);
+        this.pendingValue = null;
+      }
     });
-    search.addEventListener('keydown', (event) => this.onSearchKey(event as KeyboardEvent));
-    list.addEventListener('click', (event) => {
-      const option = (event.target as Element).closest?.('.sd-option') ?? null;
-      const value = option?.getAttribute('data-value');
-      if (value !== null && value !== undefined) this.select(value, true);
-    });
-    this.renderOptions();
   }
 
   attributeChangedCallback(name: string): void {
-    if (name === 'placeholder' || name === 'input-class') this.applySearchAttrs();
-  }
-
-  private applySearchAttrs(): void {
-    const search = this.search;
-    if (!search) return;
-    search.placeholder = this.getAttribute('placeholder') ?? '';
-    search.className = ['sd-search', this.getAttribute('input-class')]
-      .filter((cls) => cls !== null && cls !== '')
-      .join(' ');
-  }
-
-  private onSearchKey(event: KeyboardEvent): void {
-    const visible = this.visibleOptions();
-    if (event.key === 'Enter') {
-      const first = visible[0];
-      if (first !== undefined) this.select(first, true);
-    } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault();
-      if (visible.length === 0) return;
-      const at = visible.indexOf(this.activeValue ?? '');
-      const next =
-        event.key === 'ArrowDown'
-          ? visible[(at + 1) % visible.length]
-          : visible[(at - 1 + visible.length) % visible.length];
-      this.activeValue = next ?? null;
-      this.paint();
-      for (const el of this.list?.querySelectorAll('.sd-option') ?? []) {
-        if (el.getAttribute('data-value') === this.activeValue) {
-          el.scrollIntoView?.({ block: 'nearest' });
-          break;
-        }
-      }
-    } else if (event.key === 'Escape') {
-      if (this.search) this.search.value = '';
-      this.activeValue = null;
-      this.renderOptions();
-    }
-  }
-
-  private renderOptions(): void {
-    const list = this.list;
-    if (!list) return;
-    const visible = new Set(this.visibleOptions());
-    list.replaceChildren(
-      ...this.options
-        .filter((option) => visible.has(option))
-        .map((option) => {
-          const el = document.createElement('div');
-          el.className = 'sd-option';
-          el.setAttribute('role', 'option');
-          el.textContent = option;
-          el.setAttribute('data-value', option);
-          return el;
-        })
-    );
-    this.paint();
-  }
-
-  private paint(): void {
-    for (const el of this.list?.querySelectorAll('.sd-option') ?? []) {
-      const value = el.getAttribute('data-value');
-      const selected = value !== null && value === this.selected;
-      el.classList.toggle('selected', selected);
-      el.classList.toggle('active', value !== null && value === this.activeValue && !selected);
-      el.setAttribute('aria-selected', selected ? 'true' : 'false');
-    }
-  }
-
-  private select(value: string, emit: boolean): void {
-    this.selected = value;
-    this.activeValue = value;
-    this.paint();
-    if (emit) {
-      this.dispatchEvent(
-        new CustomEvent<string>(SEARCH_DROPDOWN_CHANGE, { detail: value, bubbles: true })
+    if ((name === 'placeholder' || name === 'input-class') && this.app) {
+      const app = this.app;
+      flushSync(() =>
+        app.setAttrs(
+          this.getAttribute('placeholder') ?? '',
+          this.getAttribute('input-class') ?? ''
+        )
       );
     }
   }
@@ -177,20 +126,6 @@ export function defineSearchDropdown(): void {
 }
 
 defineSearchDropdown();
-
-export interface SearchDropdownOptions {
-  dark: string;
-  /** Host id (unique per use site). */
-  id: string;
-  placeholder: string;
-  /** Extra class(es) for the internal search input (e.g. `key-aux`). */
-  inputClass?: string;
-}
-
-export function searchDropdown(o: SearchDropdownOptions): Html {
-  const extra = o.inputClass ? html` input-class="${o.inputClass}"` : raw('');
-  return html`<search-dropdown class="${raw(o.dark)}" id="${o.id}" placeholder="${o.placeholder}"${extra}></search-dropdown>`;
-}
 
 /** Mount options + selection listener; no-op when the element is absent. */
 export function wireSearchDropdown(

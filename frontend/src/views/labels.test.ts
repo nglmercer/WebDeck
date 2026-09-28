@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { initI18n } from '../framework/i18n';
 import type { BootContext, JsonObject } from '../framework/types';
-import { addArgsModal, collectAddModals } from './addbutton';
+import { collectAddModals } from './addbutton';
+import { argsData, type BranchData, type FieldData } from './args';
 
 // Repo root, resolved from this file (Vite denies `?raw` imports above root).
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -16,9 +17,9 @@ function readRepo(relative: string): string {
 const commandsJson = JSON.parse(readRepo('webdeck/commands.json')) as JsonObject;
 
 /**
- * Label-coverage audit: render every add-button modal from the real
+ * Label-coverage audit: resolve every add-button args block from the real
  * `commands.json` and fail on any raw `*_arg_N…` key leaking into the
- * markup. Arg labels have no display fallback (unlike button titles), so a
+ * labels. Arg labels have no display fallback (unlike button titles), so a
  * missing `.lang` entry — or a misbuilt query — shows the raw key to users.
  *
  * English gaps fail; other languages only report (console) so one missing
@@ -74,6 +75,29 @@ interface Leak {
   keys: string[];
 }
 
+/** Every resolved display string one field can emit. */
+function fieldLabels(field: FieldData): string[] {
+  switch (field.kind) {
+    case 'dropdown':
+      return field.options.map((o) => o.label);
+    case 'gpus':
+      return field.options.map((o) => o.label);
+    case 'number':
+      return [field.placeholder];
+    default:
+      return [];
+  }
+}
+
+function branchLabels(branch: BranchData): string[] {
+  if (branch.kind === 'input') return [branch.label, ...fieldLabels(branch.field)];
+  if (branch.kind === 'choice') {
+    return branch.options.flatMap((o) => [o.name, ...o.fields.flatMap(fieldLabels)]);
+  }
+  if (branch.kind === 'hidden') return fieldLabels(branch.field);
+  return [];
+}
+
 function audit(dict: Record<string, string>): Leak[] {
   initI18n(dict);
   const ctx = auditCtx();
@@ -81,8 +105,22 @@ function audit(dict: Record<string, string>): Leak[] {
   expect(modals.length).toBeGreaterThan(0);
   const leaks: Leak[] = [];
   for (const mctx of modals) {
-    const html = addArgsModal(ctx, mctx).value;
-    const keys = [...new Set(html.match(RAW_ARG_KEY) ?? [])];
+    // Every `__arg_N` query resolves inside `argsData` (labels, option
+    // names, dropdown labels); scanning the resolved strings covers the
+    // same surface the old markup audit did, without rendering.
+    const data = argsData({
+      ctx,
+      category: mctx.category,
+      command: mctx.command,
+      subId: mctx.subId,
+      parentCommand: mctx.parentCommand,
+      commandValue: mctx.commandValue,
+      modalId: mctx.argModalId,
+      idAttr: 'arg_modal_ID',
+    });
+    const keys = [
+      ...new Set(data.branches.flatMap(branchLabels).flatMap((s) => s.match(RAW_ARG_KEY) ?? [])),
+    ];
     if (keys.length > 0) {
       leaks.push({ modal: `${mctx.argModalId} ${mctx.category} / ${mctx.command}`, keys });
     }

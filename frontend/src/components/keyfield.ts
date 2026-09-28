@@ -1,17 +1,20 @@
-import { html, raw, type Html } from '../framework/html';
-import { text } from '../framework/i18n';
-import { byId, q } from '../query';
-import { SearchDropdown, searchDropdown, wireSearchDropdown } from './search-dropdown';
+import { mount } from 'svelte';
+import KeyFieldView from './KeyFieldView.svelte';
 
 /**
  * Key-selector field for `input key` args (e.g. Text / Press a key).
  *
  * One collected text input (serializes like a plain text arg) plus two
  * auxiliary controls that never serialize: a capture button that records
- * the next physical keypress, and a {@link searchDropdown} over the named
+ * the next physical keypress, and a `searchDropdown` over the named
  * keys the backend `/key` handler accepts (see `map_key` in
  * `src/app/buttons/commands.rs`; its search box carries `key-aux` so
  * `collectArgValues` skips it).
+ *
+ * The element is a thin shell: rendering + interaction state live in the
+ * Svelte interior (`KeyFieldView.svelte`), mounted here. Connection
+ * auto-wires everything; `wireKeyField` stays as the id-based entry
+ * point (no-op when the modal has no key field).
  */
 
 /** Canonical named keys, in backend `map_key` order. */
@@ -64,29 +67,33 @@ export const NAMED_KEYS = [
   'f12',
 ];
 
-export interface KeyFieldOptions {
-  dark: string;
-  /** Modal id suffix (unique per modal). */
-  id: string;
-  value: string;
+export class KeyField extends HTMLElement {
+  private mounted = false;
+
+  connectedCallback(): void {
+    if (this.mounted) return;
+    this.mounted = true;
+    mount(KeyFieldView, {
+      target: this,
+      props: {
+        fieldId: this.getAttribute('field-id') ?? '',
+        dark: this.getAttribute('dark') ?? '',
+        initialValue: this.getAttribute('value') ?? '',
+      },
+    });
+    // NOTE: no flushSync here (same nested-mount rule as search-dropdown):
+    // this element upgrades inside modal subtrees sharing the outer
+    // batch; search wiring runs in the interior effect, post-mount.
+  }
 }
 
-export function keyField(o: KeyFieldOptions): Html {
-  return html`<div class="key-field">
-    <div class="key-field-row">
-      <input class="${raw(o.dark)}" type="text" name="" size="10" id="key-input_${o.id}"${
-        o.value !== '' ? html` value="${o.value}"` : raw('')
-      } />
-      <button type="button" class="key-capture ${raw(o.dark)}" id="key-capture_${o.id}">${text('key_capture')}</button>
-    </div>
-    ${searchDropdown({
-      dark: o.dark,
-      id: `key-list_${o.id}`,
-      placeholder: text('key_search_keys'),
-      inputClass: 'key-aux',
-    })}
-  </div>`;
+export function defineKeyField(): void {
+  if (!customElements.get('key-field')) {
+    customElements.define('key-field', KeyField);
+  }
 }
+
+defineKeyField();
 
 const CAPTURED_KEY_MAP: Record<string, string> = {
   ' ': 'space',
@@ -137,39 +144,7 @@ export function normalizeCapturedKey(key: string): string | null {
 
 /** Wire one modal's key field; no-op when the modal has none. */
 export function wireKeyField(modalId: string): void {
-  const input = byId<HTMLInputElement>(`key-input_${modalId}`).get(0) ?? null;
-  const captureBtn = byId<HTMLButtonElement>(`key-capture_${modalId}`).get(0) ?? null;
-  const list = byId(`key-list_${modalId}`).get(0) ?? null;
-  if (!input || !captureBtn || !(list instanceof SearchDropdown)) return;
-
-  wireSearchDropdown(`key-list_${modalId}`, NAMED_KEYS, (value) => {
-    q(input).val(value);
-  });
-
-  const idleLabel = captureBtn.textContent ?? '';
-  let armed = false;
-  const disarm = (): void => {
-    armed = false;
-    q(captureBtn).text(idleLabel);
-    q(captureBtn).removeClass('arming');
-    document.removeEventListener('keydown', onKeydown, true);
-  };
-  const onKeydown = (event: Event): void => {
-    const e = event as KeyboardEvent;
-    e.preventDefault();
-    e.stopPropagation();
-    const name = normalizeCapturedKey(e.key);
-    disarm();
-    if (name !== null) q(input).val(name);
-  };
-  q(captureBtn).on('click', function () {
-    if (armed) {
-      disarm();
-      return;
-    }
-    armed = true;
-    q(captureBtn).text(text('key_capture_prompt'));
-    q(captureBtn).addClass('arming');
-    document.addEventListener('keydown', onKeydown, true);
-  });
+  const el = document.getElementById(`key-field_${modalId}`);
+  if (!(el instanceof KeyField)) return;
+  // Connection auto-wires (capture UI + search list); nothing else needed.
 }

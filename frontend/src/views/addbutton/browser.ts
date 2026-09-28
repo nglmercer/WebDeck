@@ -1,6 +1,6 @@
-// Command browser + modal chrome (extracted from addbutton.ts).
+// Command browser data (extracted from addbutton.ts). Markup in
+// `AddBrowser.svelte` (tree) + `AddModal.svelte` (modal chrome).
 
-import { html, join, raw, type Html } from '../../framework/html';
 import { text } from '../../framework/i18n';
 import {
   asArray,
@@ -10,12 +10,39 @@ import {
   type BootContext,
 } from '../../framework/types';
 import { catKey, cmdKey } from '../args';
-import { modalCloseIcon } from '../../components/icons';
-import { addArgsModal } from './argsmodal';
 import type { AddModalContext } from './types';
 
-/** Command browser (index.jinja `.all-commands` block). */
-export function addBrowserView(ctx: BootContext): Html {
+/** One leaf row: optional description + opener button + its args modal. */
+export interface BrowserLeaf {
+  desc: string;
+  title: string;
+  argModalId: string;
+  commandTag: string;
+  mctx: AddModalContext;
+}
+
+export interface BrowserBranch {
+  desc: string;
+  title: string;
+  command: string;
+  subs: BrowserLeaf[];
+}
+
+export type BrowserItem =
+  | { kind: 'single'; leaf: BrowserLeaf }
+  | { kind: 'multi'; branch: BrowserBranch };
+
+export interface BrowserCategory {
+  name: string;
+  items: BrowserItem[];
+}
+
+export interface AddBrowserData {
+  dark: string;
+  categories: BrowserCategory[];
+}
+
+export function addBrowserData(ctx: BootContext): AddBrowserData {
   const commands = asObject(ctx.commands);
   const dark = ctx.dark_theme;
 
@@ -25,64 +52,69 @@ export function addBrowserView(ctx: BootContext): Html {
     let categoryName = text(catQuery);
     if (categoryName === catQuery || categoryName === '') categoryName = category;
 
-    const items = Object.entries(catObj)
-      .map(([command, commandValue], cmdIndex) => {
-        if (command === 'CATEGORY-SETTINGS') return raw('');
-        const cmdObj = asObject(commandValue);
-        const argModalId = `${catIndex}X${cmdIndex}`;
-        const type = asString(cmdObj['TYPE']);
+    const items: BrowserItem[] = [];
+    for (const [command, commandValue] of Object.entries(catObj)) {
+      const cmdIndex = Object.keys(catObj).indexOf(command);
+      if (command === 'CATEGORY-SETTINGS') continue;
+      const cmdObj = asObject(commandValue);
+      const argModalId = `${catIndex}X${cmdIndex}`;
+      const type = asString(cmdObj['TYPE']);
 
-        const descQuery = `${catKey(category)}_${cmdKey(command)}__${type.includes('multiple') ? 'category' : 'btn'}_description`;
-        let buttonDescription = text(descQuery);
-        // Plugin entries carry their doc text inline (no `.lang` entry).
-        if (buttonDescription === descQuery) buttonDescription = asString(cmdObj['description']);
-        const descBlock =
-          buttonDescription !== ''
-            ? html`<div class="addbutton-description"><p>${buttonDescription}</p></div>`
-            : raw('');
+      const descQuery = `${catKey(category)}_${cmdKey(command)}__${type.includes('multiple') ? 'category' : 'btn'}_description`;
+      let buttonDescription = text(descQuery);
+      // Plugin entries carry their doc text inline (no `.lang` entry).
+      if (buttonDescription === descQuery) buttonDescription = asString(cmdObj['description']);
 
-        if (type !== 'multiple') {
-          const titleQuery = `${catKey(category)}_${cmdKey(command)}__btn_name`;
-          let buttonTitle = text(titleQuery);
-          if (buttonTitle === titleQuery || buttonTitle === '') buttonTitle = command;
-          const mctx: AddModalContext = {
-            argModalId,
-            category,
-            command,
-            parentCommand: '',
-            subId: 0,
-            commandValue: cmdObj,
-            commandId: asString(cmdObj['command']),
-            buttonTitle,
-          };
-          return join([
-            descBlock,
-            html`<button arg_modal_ID="${argModalId}" class="dropdown-btn no-dropdown ${raw(dark)}" id="open-button-${argModalId}" dropdown-commandTag="${command}">
-              ${buttonTitle}
-            </button>`,
-            addArgsModal(ctx, mctx),
-          ]);
-        }
-
-        // TYPE == multiple: sub-command dropdown.
-        const titleQuery = `${catKey(category)}_${cmdKey(command)}__category_name`;
+      if (type !== 'multiple') {
+        const titleQuery = `${catKey(category)}_${cmdKey(command)}__btn_name`;
         let buttonTitle = text(titleQuery);
-        if (buttonTitle === titleQuery || buttonTitle === '') buttonTitle = category;
-        const subs = asArray(cmdObj['commands']).map((subValue, subIndex) => {
-          const subObj = asObject(subValue);
-          const subArgId = `${argModalId}X${subIndex}`;
-          const subId = subIndex + 1;
-          const subCommand = rep(asString(subObj['command']), '/', '');
-          const subDescQuery = `${catKey(category)}_${cmdKey(command)}__category_description`;
-          let subDesc = text(subDescQuery);
-          if (subDesc === subDescQuery) subDesc = '';
-          const subBtn = asString(subObj['TYPE']).includes('multiple') ? 'category' : 'btn';
-          const subTitleQuery = `${catKey(category)}_${cmdKey(command)}_sub${subId}__${subBtn}_name`;
-          // NOTE: upstream shadows `command` before building `_command`,
-          // which is equivalent to parent + _sub{N} here.
-          let subTitle = text(subTitleQuery);
-          if (subTitle === subTitleQuery || subTitle === '') subTitle = subCommand;
-          const mctx: AddModalContext = {
+        if (buttonTitle === titleQuery || buttonTitle === '') buttonTitle = command;
+        items.push({
+          kind: 'single',
+          leaf: {
+            desc: buttonDescription,
+            title: buttonTitle,
+            argModalId,
+            commandTag: command,
+            mctx: {
+              argModalId,
+              category,
+              command,
+              parentCommand: '',
+              subId: 0,
+              commandValue: cmdObj,
+              commandId: asString(cmdObj['command']),
+              buttonTitle,
+            },
+          },
+        });
+        continue;
+      }
+
+      // TYPE == multiple: sub-command dropdown.
+      const titleQuery = `${catKey(category)}_${cmdKey(command)}__category_name`;
+      let buttonTitle = text(titleQuery);
+      if (buttonTitle === titleQuery || buttonTitle === '') buttonTitle = category;
+      const subs: BrowserLeaf[] = asArray(cmdObj['commands']).map((subValue, subIndex) => {
+        const subObj = asObject(subValue);
+        const subArgId = `${argModalId}X${subIndex}`;
+        const subId = subIndex + 1;
+        const subCommand = rep(asString(subObj['command']), '/', '');
+        const subDescQuery = `${catKey(category)}_${cmdKey(command)}__category_description`;
+        let subDesc = text(subDescQuery);
+        if (subDesc === subDescQuery) subDesc = '';
+        const subBtn = asString(subObj['TYPE']).includes('multiple') ? 'category' : 'btn';
+        const subTitleQuery = `${catKey(category)}_${cmdKey(command)}_sub${subId}__${subBtn}_name`;
+        // NOTE: upstream shadows `command` before building `_command`,
+        // which is equivalent to parent + _sub{N} here.
+        let subTitle = text(subTitleQuery);
+        if (subTitle === subTitleQuery || subTitle === '') subTitle = subCommand;
+        return {
+          desc: subDesc,
+          title: subTitle,
+          argModalId: subArgId,
+          commandTag: subCommand,
+          mctx: {
             argModalId: subArgId,
             category,
             command: subCommand,
@@ -91,60 +123,14 @@ export function addBrowserView(ctx: BootContext): Html {
             commandValue: subObj,
             commandId: asString(subObj['command']),
             buttonTitle: subTitle,
-          };
-          return join([
-            subDesc !== '' ? html`<div class="addbutton-description"><p>${subDesc}</p></div>` : raw(''),
-            html`<button arg_modal_ID="${subArgId}" class="dropdown-btn no-dropdown ${raw(dark)}" id="open-button-${subArgId}" dropdown-commandTag="${subCommand}">
-              ${subTitle}
-            </button>`,
-            addArgsModal(ctx, mctx),
-          ]);
-        });
-        return join([
-          descBlock,
-          html`<button class="dropdown-btn ${raw(dark)}" dropdown-category="${command}">
-            ${buttonTitle}
-          </button>
-          <div class="dropdown-container">
-            <div class="dropdown-item-container">
-              ${join(subs)}
-            </div>
-          </div>`,
-        ]);
+          },
+        };
       });
+      items.push({ kind: 'multi', branch: { desc: buttonDescription, title: buttonTitle, command, subs } });
+    }
 
-    return join([
-      html`<button class="dropdown-btn ${raw(dark)}" dropdown-category="${categoryName}">
-        ${categoryName}
-      </button>
-      <div class="dropdown-container">
-        ${join(items)}
-      </div>`,
-    ]);
+    return { name: categoryName, items };
   });
 
-  return join(categories);
-}
-
-/** Add-button modal chrome (index.jinja addbutton section). */
-export function addModalChrome(ctx: BootContext): Html {
-  const dark = ctx.dark_theme;
-  return html`
-    <div class="addbutton-modal-container ${raw(dark)}">
-      <div class="addbutton-modal-content ${raw(dark)}" id="addbutton-modal-content">
-        <div class="addbutton-modal-header bold">
-          <h1 class="addbutton-modal"> ${text('add_a_button')} </h1>
-          <div class="addbutton-modal-close">
-            ${modalCloseIcon('addbutton-config-modal', raw(dark))}
-          </div>
-        </div>
-        <div class="addbutton-modal-main">
-          <br class="addbutton-container ${raw(dark)}" />
-          <input type="text" id="addbutton-search" class="addbutton-search ${raw(dark)}" placeholder="${text('search_commands')}" />
-          <div class="all-commands ${raw(dark)}">
-            ${addBrowserView(ctx)}
-          </div>
-        </div>
-      </div>
-    </div>`;
+  return { dark, categories };
 }

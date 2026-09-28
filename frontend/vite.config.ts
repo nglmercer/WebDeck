@@ -1,3 +1,4 @@
+import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { createLogger } from 'vite';
 import { defineConfig } from 'vitest/config';
 
@@ -19,12 +20,18 @@ for (const method of ['warn', 'warnOnce'] as const) {
   }) as typeof logger[typeof method];
 }
 
-// Zero runtime dependencies: the app is a hand-rolled micro-framework
-// (src/framework/*). Vite is build tooling only. Relative base so the
-// Rust server can serve dist/ from any route prefix.
+// Svelte islands mount into the existing page alongside the hand-rolled
+// micro-framework (src/framework/*); each migrated view deletes its
+// imperative counterpart. Relative base so the Rust server can serve
+// dist/ from any route prefix.
 export default defineConfig({
   base: './',
   customLogger: logger,
+  plugins: [svelte()],
+  // Vitest resolves through node conditions by default, which picks
+  // Svelte's server build (`mount` unavailable). Force the browser
+  // build for tests only; dev/build keep Vite's client defaults.
+  ...(process.env.VITEST ? { resolve: { conditions: ['browser'] } } : {}),
   build: {
     outDir: 'dist',
     emptyOutDir: true,

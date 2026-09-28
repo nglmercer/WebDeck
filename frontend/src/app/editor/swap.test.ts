@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { initI18n } from '../../framework/i18n';
 import { pageState } from '../state';
-import { editorBarView } from './bar';
 import { editorUiState } from './state';
 import { swapButton, swapEditorButtonFunction } from './swap';
 
@@ -128,9 +127,3 @@ describe('swapButton picks', () => {
   });
 });
 
-describe('editorBarView', () => {
-  it('renders the swap hint slot', () => {
-    initI18n({});
-    expect(editorBarView().value).toContain('id="swapHint"');
-  });
-});

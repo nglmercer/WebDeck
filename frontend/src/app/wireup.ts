@@ -20,7 +20,6 @@ import {
   wireModals,
 } from './modals';
 import { io } from 'socket.io-client';
-import { wireCollapses } from '../components/collapse';
 import { pageState, socketHolder, type AppSocket } from './state';
 import { showError } from './toast';
 import { updateUsageTiles } from './usage';
@@ -293,7 +292,9 @@ export function wireApp(ctx: BootContext): void {
     });
 
   wireVideos();
-  wireCollapses();
+  // NOTE: collapse persistence/link handling lives in Collapse.svelte
+  // ($effect per section); no global wiring needed (and double-wiring
+  // would open tutorial links twice).
   wireEditorChrome();
   reloadEditorEvents();
   wireSocket(transferMethod);

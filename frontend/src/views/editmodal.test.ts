@@ -1,9 +1,13 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { buildCommand } from './args';
+import { mount, tick, unmount } from 'svelte';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { defineKeyField } from '../components/keyfield';
+import { buildCommand, collectArgValues } from './args';
 import type { BootContext, JsonObject } from '../framework/types';
 import { initI18n } from '../framework/i18n';
-import { addArgsModal, type AddModalContext } from './addbutton';
-import { editButtonModal, wireEditModal } from './editmodal';
+import { type AddModalContext } from './addbutton';
+import AddArgsModal from './addbutton/AddArgsModal.svelte';
+import EditModal from './EditModal.svelte';
+import { wireEditModal } from './editmodal';
 
 const COMMANDS = {
   Text: {
@@ -83,81 +87,128 @@ function testCtx(overrides: Partial<BootContext> = {}): BootContext {
   };
 }
 
-function renderEdit(ctx: BootContext, modalId: string, message: string, extra: JsonObject = {}): string {
-  const entry = { message, name: 'n', ...extra };
-  return editButtonModal(ctx, 'folderA', 0, modalId, entry, message).value;
-}
-
-beforeEach(() => {
-  initI18n({ ...I18N });
-  document.body.innerHTML = '';
-});
-
 describe('edit modal arg form', () => {
-  it('renders the resolved key field prefilled with its label', () => {
-    const out = renderEdit(testCtx(), 'e0X0', '/key a');
-    expect(out).toContain('class="args-container');
-    expect(out).toContain('>Tecla:<');
-    expect(out).toContain('id="key-input_e0X0"');
-    expect(out).toContain('value="a"');
-    expect(out).toContain('>Capturar</button>');
+  let host: HTMLElement | null = null;
+  let app: Record<string, never> | null = null;
+
+  beforeEach(() => {
+    initI18n({ ...I18N });
+    defineKeyField();
+    document.body.innerHTML = '';
   });
 
-  it('renders choice panes with the saved option selected', () => {
-    const out = renderEdit(testCtx(), 'e0X0', '/copy hi');
-    expect(out).toContain('>Copiar texto<');
-    // Second pane visible, first hidden.
-    expect(out).toMatch(/arg_id="1">\s*<input[^>]*value="hi"/);
-    expect(out).toContain('style="display: none;" class="arg_container" edit_modal_ID="e0X0" arg_id="0"');
+  afterEach(async () => {
+    if (app) {
+      await unmount(app);
+      app = null;
+    }
+    host?.remove();
+    host = null;
+    document.body.innerHTML = '';
   });
 
-  it('stays form-less for unresolvable messages', () => {
-    const out = renderEdit(testCtx(), 'e0X0', '/whatever x');
-    expect(out).not.toContain('args-container');
-    expect(out).not.toContain('key-input_e0X0');
+  async function mountEdit(
+    ctx: BootContext,
+    modalId: string,
+    message: string,
+    extra: JsonObject = {}
+  ): Promise<HTMLElement> {
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    const entry = { message, name: 'n', ...extra };
+    app = mount(EditModal, {
+      target: host,
+      props: { ctx, editModalId: modalId, entry, message },
+    }) as unknown as Record<string, never>;
+    await tick();
+    return host;
+  }
+
+  it('renders the resolved key field prefilled with its label', async () => {
+    const el = await mountEdit(testCtx(), 'e0X0', '/key a');
+    expect(el.querySelector('.args-container')).not.toBeNull();
+    expect(el.querySelector('.args-container label')?.textContent).toBe('Tecla:');
+    expect((el.querySelector('#key-input_e0X0') as HTMLInputElement).value).toBe('a');
+    expect(el.querySelector('#key-capture_e0X0')?.textContent).toBe('Capturar');
   });
 
-  it('shows the dev command box only without an arg form', () => {
+  it('renders choice panes with the saved option selected', async () => {
+    const el = await mountEdit(testCtx(), 'e0X0', '/copy hi');
+    expect(el.innerHTML).toContain('>Copiar texto<');
+    const panes = [...el.querySelectorAll('.choices_ALL .arg_container')] as HTMLElement[];
+    // Second pane visible with the saved value, first hidden.
+    expect(panes[1]!.style.display).toBe('');
+    expect((panes[1]!.querySelector('input[type="text"]') as HTMLInputElement).value).toBe('hi');
+    expect(panes[0]!.style.display).toBe('none');
+    expect(panes[0]!.getAttribute('arg_id')).toBe('0');
+  });
+
+  it('stays form-less for unresolvable messages', async () => {
+    const el = await mountEdit(testCtx(), 'e0X0', '/whatever x');
+    expect(el.querySelector('.args-container')).toBeNull();
+    expect(el.querySelector('#key-input_e0X0')).toBeNull();
+    // Style block + save still render.
+    expect(el.querySelector('.editorStyle')).not.toBeNull();
+    expect(el.querySelector('#e0X0_submit')).not.toBeNull();
+  });
+
+  it('shows the dev command box only without an arg form', async () => {
     const dev = testCtx({ config: { front: {}, settings: { dev_mode: true } } });
-    expect(renderEdit(dev, 'e0X0', '/key a')).not.toContain('id="command_e0X0"');
-    const legacy = renderEdit(dev, 'e0X0', '/whatever x');
-    expect(legacy).toContain('id="command_e0X0"');
-    expect(legacy).toContain('value="/whatever x"');
+    const withForm = await mountEdit(dev, 'e0X0', '/key a');
+    expect(withForm.querySelector('#command_e0X0')).toBeNull();
+    if (app) await unmount(app);
+    app = null;
+    host?.remove();
+    const legacy = await mountEdit(dev, 'e0X0', '/whatever x');
+    expect((legacy.querySelector('#command_e0X0') as HTMLInputElement).value).toBe('/whatever x');
   });
 });
 
 describe('edit resave round-trip', () => {
-  function mountEdit(message: string, ctx: BootContext = testCtx()): Element {
-    document.body.innerHTML = renderEdit(ctx, 'e0X0', message);
+  beforeEach(() => {
+    initI18n({ ...I18N });
+    defineKeyField();
+    document.body.innerHTML = '';
+  });
+
+  async function mountEdit(message: string, ctx: BootContext = testCtx()): Promise<Element> {
+    document.body.innerHTML = '';
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    mount(EditModal, {
+      target: host,
+      props: { ctx, editModalId: 'e0X0', entry: { message, name: 'n' }, message },
+    });
+    await tick();
     wireEditModal(ctx, 'e0X0', { message, name: 'n' });
     return document.querySelector('.args-container')!;
   }
 
-  it('rebuilds unchanged messages verbatim', () => {
-    expect(buildCommand('/key', mountEdit('/key a'))).toBe('/key a');
-    expect(buildCommand('/copy', mountEdit('/copy hi'))).toBe('/copy hi');
-    expect(buildCommand('/copy', mountEdit('/copy '))).toBe('/copy ');
+  it('rebuilds unchanged messages verbatim', async () => {
+    expect(buildCommand('/key', await mountEdit('/key a'))).toBe('/key a');
+    expect(buildCommand('/copy', await mountEdit('/copy hi'))).toBe('/copy hi');
+    expect(buildCommand('/copy', await mountEdit('/copy '))).toBe('/copy ');
     expect(
-      buildCommand("/usage '", mountEdit("/usage ' CPU<|§|>' usage_dict['cpu']['usage_percent']"))
+      buildCommand("/usage '", await mountEdit("/usage ' CPU<|§|>' usage_dict['cpu']['usage_percent']"))
     ).toBe("/usage ' CPU<|§|>' usage_dict['cpu']['usage_percent']");
   });
 
-  it('applies field edits to the rebuilt message', () => {
-    const container = mountEdit('/key a');
+  it('applies field edits to the rebuilt message', async () => {
+    const container = await mountEdit('/key a');
     (document.querySelector('#key-input_e0X0') as HTMLInputElement).value = 'enter';
     expect(buildCommand('/key', container)).toBe('/key enter');
   });
 
-  it('preserves upload filenames across resaves', () => {
+  it('preserves upload filenames across resaves', async () => {
     const message = '/exec type:uploaded_file<|§|>C:\\fakepath\\x.rhai';
-    const container = mountEdit(message);
+    const container = await mountEdit(message);
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     expect(fileInput.getAttribute('data-preserved')).toBe('C:\\fakepath\\x.rhai');
     expect(buildCommand('/exec', container)).toBe(message);
   });
 
-  it('switches choice panes through the shared switcher', () => {
-    mountEdit('/copy hi');
+  it('switches choice panes through the shared switcher', async () => {
+    await mountEdit('/copy hi');
     const show = (window as unknown as Record<string, (id: string) => void>)['showArg_e0X0']!;
     expect(typeof show).toBe('function');
     show('0');
@@ -167,8 +218,8 @@ describe('edit resave round-trip', () => {
     expect(buildCommand('/copy', document.querySelector('.args-container')!)).toBe('/copy ');
   });
 
-  it('binds the suffixed folder form without collisions', () => {
-    document.body.innerHTML = renderEdit(testCtx(), 'e0X0', '/folder folderB');
+  it('binds the suffixed folder form without collisions', async () => {
+    await mountEdit('/folder folderB');
     expect(document.querySelector('#submitButton_e0X0')).not.toBeNull();
     expect(document.querySelector('#folderName_e0X0')).not.toBeNull();
     expect(() => wireEditModal(testCtx(), 'e0X0', { message: '/folder folderB', name: 'n' })).not.toThrow();
@@ -177,20 +228,17 @@ describe('edit resave round-trip', () => {
 });
 
 describe('add/edit parity', () => {
-  function argsInner(modalHtml: string, modalId: string): string {
-    document.body.innerHTML = modalHtml;
-    const inner = document.querySelector('.args-container')!.innerHTML;
+  beforeEach(() => {
+    initI18n({ ...I18N });
+    defineKeyField();
     document.body.innerHTML = '';
-    // split/join: String.replaceAll needs a newer lib than this target.
-    const swap = (s: string, from: string, to: string): string => s.split(from).join(to);
-    let out = swap(swap(inner, `_${modalId}`, '_ID'), modalId, 'ID');
-    // Parsed HTML lowercases attribute names.
-    out = swap(swap(out, 'arg_modal_id', 'modal_id'), 'edit_modal_id', 'modal_id');
-    out = swap(swap(out, 'arg_modal_ID', 'modal_ID'), 'edit_modal_ID', 'modal_ID');
-    return out;
-  }
+  });
 
-  function renderAdd(commandValue: JsonObject, category: string, command: string): string {
+  async function renderAdd(
+    commandValue: JsonObject,
+    category: string,
+    command: string
+  ): Promise<{ host: HTMLElement; app: Record<string, never> }> {
     const mctx: AddModalContext = {
       argModalId: '9X9',
       category,
@@ -201,19 +249,43 @@ describe('add/edit parity', () => {
       commandId: String(commandValue['command'] ?? ''),
       buttonTitle: command,
     };
-    return addArgsModal(testCtx(), mctx).value;
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const app = mount(AddArgsModal, { target: host, props: { ctx: testCtx(), mctx } }) as unknown as Record<string, never>;
+    await tick();
+    return { host, app };
   }
 
   it.each([
-    ['key field', 'Text', 'Press a key', '/key '],
-    ['choice group', 'Text', 'Copy', '/copy '],
-    ['usage form', 'Display', 'CPU', "/usage ' CPU<|§|>' usage_dict['cpu']['usage_percent']"],
-    ['folder radios', 'Webdeck', 'Open a folder', '/folder '],
-  ])('renders identical %s in both modals', (_label, category, command, message) => {
+    ['key field', 'Text', 'Press a key', '/key ', '/key'],
+    ['choice group', 'Text', 'Copy', '/copy ', '/copy'],
+    ['usage form', 'Display', 'CPU', "/usage ' CPU<|§|>' usage_dict['cpu']['usage_percent']", "/usage '"],
+    ['folder radios', 'Webdeck', 'Open a folder', '/folder ', '/folder'],
+  ])('collects identical %s in both modals', async (_label, category, command, message, commandId) => {
     const cat = (COMMANDS[category] ?? {}) as JsonObject;
     const commandValue = (cat[command] ?? {}) as JsonObject;
-    const addInner = argsInner(renderAdd(commandValue, category, command), '9X9');
-    const editInner = argsInner(renderEdit(testCtx(), 'e0X0', message), 'e0X0');
-    expect(editInner).toBe(addInner);
+    // Add side: Svelte renderer, mounted.
+    const { host: addHost, app: addApp } = await renderAdd(commandValue, category, command);
+    // Edit side: Svelte renderer, mounted.
+    const editHost = document.createElement('div');
+    document.body.appendChild(editHost);
+    const editApp = mount(EditModal, {
+      target: editHost,
+      props: {
+        ctx: testCtx(),
+        editModalId: 'e0X0',
+        entry: { message, name: 'n' },
+        message,
+      },
+    });
+    await tick();
+    const addValues = collectArgValues(addHost.querySelector('.args-container')!);
+    const editValues = collectArgValues(editHost.querySelector('.args-container')!);
+    expect(editValues).toEqual(addValues);
+    expect(`${commandId} ${editValues.join('<|§|>')}`).toBe(`${commandId} ${addValues.join('<|§|>')}`);
+    await unmount(editApp as unknown as Record<string, never>);
+    await unmount(addApp);
+    addHost.remove();
+    editHost.remove();
   });
 });

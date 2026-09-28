@@ -1,4 +1,3 @@
-import { html, raw, type Html } from '../framework/html';
 import { q } from '../query';
 
 // Replaces `open(path).read()` SVG inlining: the markup renders a
@@ -23,11 +22,14 @@ export function svgInlineStyle(px: number, fill: string): string {
   return `style="width:${px}px; height:${px}px; ${fill}"`;
 }
 
-/** Render a placeholder for an inlined SVG (resolved by `hydrateSvgs`). */
-export function svgSlot(path: string, attrs: string, needle: '<svg ' | '<svg' = '<svg '): Html {
+/**
+ * Register an inlined-SVG placeholder (resolved by `hydrateSvgs`) and
+ * return its slot id. Views render the marker natively (`SvgSlot.svelte`).
+ */
+export function svgSlotId(path: string, attrs: string, needle: '<svg ' | '<svg' = '<svg '): number {
   const id = slotSeq++;
   slots.push({ path, attrs, replaceNeedle: needle });
-  return html`<span data-svg-slot="${String(id)}" style="display:contents"></span>`;
+  return id;
 }
 
 /** Fetch all Solo placeholders and inline them (same surgery as Jinja). */
@@ -56,10 +58,6 @@ export async function hydrateSvgs(root: ParentNode = document): Promise<void> {
 }
 
 /** Brand SVG icon used by several config links (info.svg + icon class). */
-export function infoIcon(darkTheme: string): Html {
-  return svgSlot('static/img/info.svg', `class="info-icon${darkTheme}"`);
-}
-
-export function rawHtml(value: string): Html {
-  return raw(value);
+export function infoSlotId(darkTheme: string): number {
+  return svgSlotId('static/img/info.svg', `class="info-icon${darkTheme}"`);
 }

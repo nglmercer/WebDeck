@@ -1,8 +1,5 @@
-import { html, join, raw, type Html } from '../framework/html';
-import { text } from '../framework/i18n';
 import { asArray, asBool, asObject, asString, get, rep, type BootContext } from '../framework/types';
 import { q } from '../query';
-import { folderDeleteIcon } from '../components/icons';
 
 /** <head> extras that depend on boot data: title + theme stylesheets. */
 export function applyHead(ctx: BootContext): void {
@@ -24,31 +21,19 @@ export function applyHead(ctx: BootContext): void {
   // existed (404), so there is nothing to inject 1:1.
 }
 
-function backgroundVideo(randomBg: string): Html {
-  if (!randomBg.endsWith('.mp4')) return raw('');
-  const src = '.config/user_uploads/' + rep(rep(randomBg, '//', ''), '**uploaded/', '');
-  return html`
-    <div class="background-video">
-      <video autoplay muted loop class="background-video">
-        <source src="${src}" type="video/mp4" />
-        Your browser does not support the video tag...
-      </video>
-    </div>
-  `;
+/** Video background source ('' when the bg is not a video). Rendered by Shell.svelte. */
+export function backgroundVideoSrc(randomBg: string): string {
+  if (!randomBg.endsWith('.mp4')) return '';
+  return '.config/user_uploads/' + rep(rep(randomBg, '//', ''), '**uploaded/', '');
 }
 
-function consoleForm(ctx: BootContext): Html {
-  if (!asBool(get(ctx.config, 'settings', 'show_console'))) return raw('');
-  return html`
-    <form class="form">
-      <label style="color: white;">Console:</label><br />
-      <input type="text" class="message ${raw(ctx.dark_theme)}" /><br />
-      <button type="submit">Submit</button>
-    </form>
-  `;
+/** Whether the debug console form renders. Rendered by Shell.svelte. */
+export function showConsoleForm(ctx: BootContext): boolean {
+  return asBool(get(ctx.config, 'settings', 'show_console'));
 }
 
-function dynamicStyle(ctx: BootContext): Html {
+/** Dynamic per-boot CSS text (wrapped in `<style>` by Shell.svelte). */
+export function shellCss(ctx: BootContext): string {
   const { config, random_bg: randomBg, dark_theme: _dark } = ctx;
   void _dark;
   let css = '';
@@ -169,32 +154,30 @@ function dynamicStyle(ctx: BootContext): Html {
       }
     }
   }
-  return raw(`<style>${css}\n    </style>`);
+  return `${css}\n    `;
 }
 
-function foldersBar(ctx: BootContext): Html {
+/** One folder tab: raw id plus the handler-attribute form. */
+export interface FolderTab {
+  folderId: string;
+  /** `"` pre-replaced (parsed attrs hold `&quot;`, exactly as upstream). */
+  safe: string;
+}
+
+/**
+ * Folder-tab bar data (markup in `FoldersBar.svelte`). The tabs keep
+ * upstream string `onclick` handlers (`folder(...)` / `deleteFolder(...)`)
+ * as content attributes: browsers compile them, `swap.ts` reads sibling
+ * handler attributes back, and `deleteFolder` queries
+ * `button[onclick="folder(...)"]` — so a Svelte function handler would
+ * silently break deletion.
+ */
+export function foldersBarData(ctx: BootContext): FolderTab[] {
   const buttons = asObject(get(ctx.config, 'front', 'buttons'));
-  const folders = Object.keys(buttons).map((folderId) => {
-    // Upstream replaces '"' then autoescapes (double-escaping to &amp;quot;);
-    // interpolating the replaced value reproduces that exactly.
-    const safe = rep(folderId, '"', '&quot;');
-    return html`
-        <div style="display: inline-block; margin-right: 10px;">
-          <button class="button EditorButtons-Folder" onclick="folder(\`${safe}\`)" style="display: flex; justify-content: center;align-items: center;">
-            ${folderId}
-            ${folderDeleteIcon(safe)}
-          </button>
-        </div>`;
-  });
-  return html`
-    <div id="EditorButtons-Folders" style="color: white; display: none; position: fixed; top: 0; right: 0; text-align: right;">
-      ${text('open_folder')}:
-      ${join(folders)}
-    </div>
-  `;
+  return Object.keys(buttons).map((folderId) => ({
+    folderId,
+    safe: rep(folderId, '"', '&quot;'),
+  }));
 }
 
-/** Top-of-body shell: background, console, dynamic style, folder bar. */
-export function shellView(ctx: BootContext): Html {
-  return join([backgroundVideo(ctx.random_bg), consoleForm(ctx), dynamicStyle(ctx), foldersBar(ctx)]);
-}
+

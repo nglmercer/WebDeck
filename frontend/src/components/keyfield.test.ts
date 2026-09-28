@@ -1,6 +1,7 @@
+import { tick } from 'svelte';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { initI18n } from '../framework/i18n';
-import { keyField, normalizeCapturedKey, wireKeyField, NAMED_KEYS } from './keyfield';
+import { defineKeyField, normalizeCapturedKey, wireKeyField, NAMED_KEYS } from './keyfield';
 
 beforeEach(() => {
   initI18n({
@@ -8,27 +9,33 @@ beforeEach(() => {
     key_capture_prompt: 'Press a key…',
     key_search_keys: 'Search keys…',
   });
+  defineKeyField();
   document.body.innerHTML = '';
 });
 
+function keyFieldEl(dark: string, id: string, value: string): string {
+  return `<key-field id="key-field_${id}" field-id="${id}" dark="${dark}" value="${value}"></key-field>`;
+}
+
 describe('keyField', () => {
-  it('renders value input, capture button, and search dropdown', () => {
-    const out = keyField({ dark: 'dark-theme', id: 'k1', value: 'a' }).value;
-    expect(out).toContain('id="key-input_k1"');
-    expect(out).toContain('value="a"');
-    expect(out).toContain('id="key-capture_k1"');
-    expect(out).toContain('>Capture</button>');
-    expect(out).toContain('<search-dropdown');
-    expect(out).toContain('id="key-list_k1"');
-    expect(out).toContain('placeholder="Search keys…"');
-    expect(out).toContain('input-class="key-aux"');
-    expect(out).not.toContain('<select');
-    expect(out).not.toContain('<option');
+  it('renders value input, capture button, and search dropdown', async () => {
+    document.body.innerHTML = keyFieldEl('dark-theme', 'k1', 'a');
+    await tick();
+    expect(document.querySelector('#key-input_k1')).not.toBeNull();
+    expect((document.querySelector('#key-input_k1') as HTMLInputElement).value).toBe('a');
+    expect(document.querySelector('#key-capture_k1')?.textContent).toBe('Capture');
+    expect(document.querySelector('search-dropdown')).not.toBeNull();
+    const list = document.querySelector('#key-list_k1') as HTMLElement;
+    expect(list.getAttribute('placeholder')).toBe('Search keys…');
+    expect(list.getAttribute('input-class')).toBe('key-aux');
+    expect(document.querySelector('select')).toBeNull();
+    expect(document.querySelector('option')).toBeNull();
   });
 
-  it('marks the dropdown search box so serialization skips it', () => {
-    document.body.innerHTML = keyField({ dark: '', id: 'k1', value: '' }).value;
+  it('marks the dropdown search box so serialization skips it', async () => {
+    document.body.innerHTML = keyFieldEl('', 'k1', '');
     wireKeyField('k1');
+    await tick();
     const search = document.querySelector('#key-list_k1 .sd-search') as HTMLInputElement;
     expect(search.classList.contains('key-aux')).toBe(true);
     expect(
@@ -36,9 +43,10 @@ describe('keyField', () => {
     ).toBe(false);
   });
 
-  it('lists every backend named key exactly once', () => {
-    document.body.innerHTML = keyField({ dark: '', id: 'k1', value: '' }).value;
+  it('lists every backend named key exactly once', async () => {
+    document.body.innerHTML = keyFieldEl('', 'k1', '');
     wireKeyField('k1');
+    await tick();
     expect(new Set(NAMED_KEYS).size).toBe(NAMED_KEYS.length);
     const rendered = [
       ...document.querySelectorAll('#key-list_k1 .sd-option'),
@@ -74,39 +82,43 @@ describe('normalizeCapturedKey', () => {
 });
 
 describe('wireKeyField', () => {
-  function mount(): void {
-    document.body.innerHTML = keyField({ dark: '', id: 'k1', value: '' }).value;
+  async function mount(): Promise<void> {
+    document.body.innerHTML = keyFieldEl('', 'k1', '');
     wireKeyField('k1');
+    await tick();
   }
 
   function input(): HTMLInputElement {
     return document.querySelector('#key-input_k1') as HTMLInputElement;
   }
 
-  it('writes dropdown selection into the value input', () => {
-    mount();
+  it('writes dropdown selection into the value input', async () => {
+    await mount();
     (document.querySelector('.sd-option[data-value="enter"]') as HTMLElement).click();
     expect(input().value).toBe('enter');
   });
 
-  it('filters the dropdown by search text', () => {
-    mount();
+  it('filters the dropdown by search text', async () => {
+    await mount();
     const search = document.querySelector('#key-list_k1 .sd-search') as HTMLInputElement;
     search.value = 'vol';
     search.dispatchEvent(new Event('input', { bubbles: true }));
+    await tick();
     const visible = [...document.querySelectorAll('#key-list_k1 .sd-option')].map(
       (o) => o.getAttribute('data-value')
     );
     expect(visible).toEqual(['volumemute', 'volumeup', 'volumedown']);
   });
 
-  it('captures the next physical keypress', () => {
-    mount();
+  it('captures the next physical keypress', async () => {
+    await mount();
     (document.querySelector('#key-capture_k1') as HTMLButtonElement).click();
+    await tick();
     expect((document.querySelector('#key-capture_k1') as HTMLButtonElement).textContent).toBe(
       'Press a key…'
     );
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
+    await tick();
     expect(input().value).toBe('up');
     // Button restored; listener disarmed (further keys ignored).
     expect((document.querySelector('#key-capture_k1') as HTMLButtonElement).textContent).toBe('Capture');
@@ -114,10 +126,12 @@ describe('wireKeyField', () => {
     expect(input().value).toBe('up');
   });
 
-  it('cancels capture on Escape without touching the value', () => {
-    mount();
+  it('cancels capture on Escape without touching the value', async () => {
+    await mount();
     (document.querySelector('#key-capture_k1') as HTMLButtonElement).click();
+    await tick();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    await tick();
     expect(input().value).toBe('');
     expect((document.querySelector('#key-capture_k1') as HTMLButtonElement).textContent).toBe('Capture');
   });

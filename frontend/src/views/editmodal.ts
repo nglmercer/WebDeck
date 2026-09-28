@@ -1,4 +1,3 @@
-import { html, raw, type Html } from '../framework/html';
 import { text } from '../framework/i18n';
 import {
   asBool,
@@ -12,34 +11,51 @@ import {
   type JsonValue,
 } from '../framework/types';
 import { q, byId, post } from '../query';
-import { editorSaveButton, editorStyleBlock } from '../components/editor';
-import { modalCloseIcon } from '../components/icons';
 import { wireKeyField } from '../components/keyfield';
-import { buildCommand, registerShowArg, renderArgsBlock } from './args';
+import { previewImageLink, type PreviewData } from '../components/preview';
+import { buildCommand, registerShowArg, type ArgsPrefill } from './args';
 import { resolveButtonCommand } from './argvalues';
 import { wireFoldernameForm } from './addbutton';
 import { swapPreviewImage, updateButtonBackgroundColor, updateImageSize, type ButtonState } from './modalstyle';
-import { svgSlot } from './svg';
+import { svgSlotId } from './svg';
 
 /**
- * Port of editbutton_modal.jinja. The saved message resolves back to its
- * commands entry so the modal renders the same arg form as the add modal
- * (prefilled); unresolvable messages keep the legacy form-less rendering.
- * (Upstream's match loop is scope-dead — `command_value` always fell back
- * to `button_settings` and `command_id` rendered "".)
+ * Edit-button modal data (editbutton_modal.jinja). The saved message
+ * resolves back to its commands entry so the modal renders the same arg
+ * form as the add modal (prefilled); unresolvable messages keep the
+ * legacy form-less rendering. (Upstream's match loop is scope-dead —
+ * `command_value` always fell back to `button_settings` and `command_id`
+ * rendered "".) Markup out in `EditModal.svelte`.
  */
-export function editButtonModal(
+export interface EditModalArgs {
+  category: string;
+  command: string;
+  subId: number;
+  parentCommand: string;
+  commandValue: JsonObject;
+  prefill: ArgsPrefill;
+}
+
+export interface EditModalData {
+  dark: string;
+  modalId: string;
+  args: EditModalArgs | null;
+  preview: PreviewData;
+  defaultSize: string;
+  backgroundColor: string;
+  buttonName: string;
+  nameValue: string;
+  showDevbox: boolean;
+  devboxValue: string;
+}
+
+export function editModalData(
   ctx: BootContext,
-  _folderId: string,
-  _buttonId: number,
   editModalId: string,
   buttonSettings: JsonObject,
   message: string
-): Html {
-  void _folderId;
-  void _buttonId;
+): EditModalData {
   const dark = ctx.dark_theme;
-  const hasSettings = Object.keys(buttonSettings).length > 0;
   const resolved = resolveButtonCommand(ctx.commands, message);
 
   let fill = '';
@@ -50,78 +66,41 @@ export function editButtonModal(
 
   const buttonName = resolveButtonName(buttonSettings, undefined);
   const namesColor = asString(get(ctx.config, 'front', 'names_color'));
-  const buttontextStyle =
-    namesColor !== '' && namesColor.trim() !== '' ? `style="color:${namesColor};"` : '';
+  const textStyle =
+    namesColor !== '' && namesColor.trim() !== '' ? `color:${namesColor};` : null;
 
-  const preview = hasSettings ? previewWithSettings(ctx, editModalId, buttonSettings, fill, buttonName, buttontextStyle) : previewEmpty(editModalId);
+  const preview = editPreviewData(editModalId, buttonSettings, fill, buttonName, textStyle);
 
   const imageSize = asString(buttonSettings['image_size']);
-  const defaultSize = imageSize !== '' && imageSize.trim() !== '' ? imageSize.trim().replace('%', '') : '75';
-
-  const bgColor = asString(buttonSettings['background_color']);
+  const defaultSize =
+    imageSize !== '' && imageSize.trim() !== '' ? imageSize.trim().replace('%', '') : '75';
 
   const nameValue = asString(buttonSettings['name']);
   const hasName = 'name' in buttonSettings && nameValue.trim() !== '';
 
-  const devMode = asBool(get(ctx.config, 'settings', 'dev_mode'));
-
-  return html`
-<div class="editbutton-modal-container ${raw(dark)}" id="edit-modal-container-${editModalId}" edit_modal_ID="${editModalId}">
-  <div class="editbutton-modal-content ${raw(dark)}">
-    <div class="editbutton-modal-header bold edit-modal-container-${editModalId}">
-      <h1 class="editbutton-modal"> ${text('configure_your_button')} </h1>
-      <div class="editbutton-modal-close">
-        ${modalCloseIcon('editbutton-config-modal', raw(dark))}
-      </div>
-    </div>
-    <div class="editbutton-modal-main">
-      <div class="config-container ${raw(dark)}">
-        <form class="args-form" edit_modal_ID="${editModalId}" novalidate>
-          ${resolved
-            ? renderArgsBlock({
-                ctx,
-                category: resolved.category,
-                command: resolved.command,
-                subId: resolved.subId,
-                parentCommand: resolved.parentCommand,
-                commandValue: resolved.commandValue,
-                modalId: editModalId,
-                idAttr: 'edit_modal_ID',
-                cursor: { prefill: resolved.prefill, pos: 0 },
-              })
-            : raw('')}
-          ${resolved ? html`<div class="editorStyle-bar ${raw(dark)}"></div>` : raw('')}
-          ${editorStyleBlock({
-            dark,
-            id: editModalId,
-            preview,
-            defaultSize,
-            backgroundColor: bgColor,
-            buttonName,
-            nameValue: hasName ? buttonName : '',
-          })}
-          ${
-            // The raw command box stays for messages without an arg form;
-            // otherwise the form itself is the editor (single source of truth).
-            devMode && !resolved
-              ? html`
-          <div class="editorStyle-bar ${raw(dark)}"></div>
-          <div class="arg_container" edit_modal_ID="${editModalId}">
-            <label for="command_${editModalId}"> ${text('edit_command')} </label>
-            <input class="${raw(dark)}" type="text" name="" id="command_${editModalId}" value="${rep(
-              asString(buttonSettings['message']),
-              '"',
-              '&quot;'
-            )}" />
-          </div>`
-              : raw('')
-          }
-          ${editorSaveButton(dark, editModalId)}
-        </form>
-      </div>
-    </div>
-  </div>
-</div>`;
+  return {
+    dark,
+    modalId: editModalId,
+    args: resolved
+      ? {
+          category: resolved.category,
+          command: resolved.command,
+          subId: resolved.subId,
+          parentCommand: resolved.parentCommand,
+          commandValue: resolved.commandValue,
+          prefill: resolved.prefill,
+        }
+      : null,
+    preview,
+    defaultSize,
+    backgroundColor: asString(buttonSettings['background_color']),
+    buttonName,
+    nameValue: hasName ? buttonName : '',
+    showDevbox: asBool(get(ctx.config, 'settings', 'dev_mode')) && !resolved,
+    // Parsed-HTML parity: the legacy template pre-replaced quotes, then
+    // autoescaping doubled them back on parse (see grid hidden inputs).
+    devboxValue: rep(asString(buttonSettings['message']), '"', '&quot;'),
+  };
 }
 
 /** Button-name fallback chain (the `[language]` branch is dead upstream). */
@@ -148,77 +127,62 @@ function resolveButtonName(buttonSettings: JsonObject, commandStyleName: JsonVal
   return '';
 }
 
-function previewWithSettings(
-  ctx: BootContext,
+/** Shared-preview data for the edit tile (never a usage overlay). */
+export function editPreviewData(
   editModalId: string,
   buttonSettings: JsonObject,
   fill: string,
   buttonName: string,
-  buttontextStyle: string
-): Html {
-  const image = asString(buttonSettings['image']);
-  const bgBlock =
-    asString(buttonSettings['background_color']) !== ''
-      ? `background-color: ${asString(buttonSettings['background_color'])};\n                        box-shadow: ${asString(
-          buttonSettings['background_color']
-        )} 0 1px 3px 0;`
-      : '';
-  if (image === '') {
-    return html`
-                <button type="button" id="button-element_${editModalId}" class="wd_button" role="button"
-                      style="overflow: hidden; overflow-y: hidden; max-height: 89.6px;
-                      ${raw(bgBlock)}
-                      ">
-                      <img id="button-image_${editModalId}" draggable="false" alt="" style="
-                        width: ${String(112 * (50 / 100) + 3)}px;" />
-                    </button>
-                    <p class="buttontext" id="button-text-preview_${editModalId}" ${raw(buttontextStyle)}>
-                      ${buttonName}
-                    </p>`;
+  textStyle: string | null
+): PreviewData {
+  const base = 'overflow: hidden; overflow-y: hidden; max-height: 89.6px;';
+  if (Object.keys(buttonSettings).length === 0) {
+    return {
+      id: editModalId,
+      buttonId: false,
+      buttonStyle: base,
+      media: { kind: 'img', src: null, alt: '', removeOnError: false, widthPx: 112 * (50 / 100) + 3, fill: '' },
+      usageFill: null,
+      text: 'Button name',
+      textStyle: null,
+    };
   }
-  const imagelink = editImageLink(image);
+  const bg = asString(buttonSettings['background_color']);
+  const buttonStyle = bg !== '' ? `${base} background-color: ${bg}; box-shadow: ${bg} 0 1px 3px 0;` : base;
+  const image = asString(buttonSettings['image']);
+  if (image === '') {
+    return {
+      id: editModalId,
+      buttonId: true,
+      buttonStyle,
+      media: { kind: 'img', src: null, alt: '', removeOnError: false, widthPx: 112 * (50 / 100) + 3, fill: '' },
+      usageFill: null,
+      text: buttonName,
+      textStyle,
+    };
+  }
+  const imagelink = previewImageLink(image);
   const imageSize = asString(buttonSettings['image_size']);
   const size = imageSize !== '' ? imageSize : '70%';
   const px = 112 * (parseInt(rep(size, '%', ''), 10) / 100) + 3;
-  let media: Html;
-  if (imagelink.endsWith('.svg')) {
-    media = svgSlot(imagelink, ` id="button-image_${editModalId}" style="width:${px}px; height:${px}; ${fill}"`, '<svg');
-  } else {
-    media = html`<img id="button-image_${editModalId}" src="${imagelink}" draggable="false" alt="${imagelink}" onerror="this.remove()" style="
-                            width: ${String(px)}px;
-                            ${fill}"
-                          />`;
-  }
-  return html`
-                    <button type="button" id="button-element_${editModalId}" class="wd_button" role="button"
-                    style="overflow: hidden; overflow-y: hidden; max-height: 89.6px;
-                    ${raw(bgBlock)}
-                    ">
-                      ${media}
-                    </button>
-                    <p class="buttontext" id="button-text-preview_${editModalId}" ${raw(buttontextStyle)}>
-                      ${buttonName}
-                    </p>`;
-}
-
-function previewEmpty(editModalId: string): Html {
-  return html`
-                    <button type="button" class="wd_button" role="button" style="overflow: hidden; overflow-y: hidden; max-height: 89.6px;">
-                      <img id="button-image_${editModalId}" draggable="false" alt="" style="
-                        width: ${String(112 * (50 / 100) + 3)}px;" />
-                    </button>
-                    <p class="buttontext" id="button-text-preview_${editModalId}">
-                      Button name
-                    </p>`;
-}
-
-function editImageLink(image: string): string {
-  if (image.startsWith('http')) return image;
-  if (image.includes(':')) return 'static/img/' + (image.split('\\').pop() ?? image);
-  if (image.startsWith('**uploaded/')) {
-    return '.config/user_uploads/' + rep(image, '**uploaded/', '');
-  }
-  return 'static/img/' + image;
+  return {
+    id: editModalId,
+    buttonId: true,
+    buttonStyle,
+    media: imagelink.endsWith('.svg')
+      ? {
+          kind: 'svg',
+          slot: svgSlotId(
+            imagelink,
+            ` id="button-image_${editModalId}" style="width:${px}px; height:${px}; ${fill}"`,
+            '<svg'
+          ),
+        }
+      : { kind: 'img', src: imagelink, alt: imagelink, removeOnError: true, widthPx: px, fill },
+    usageFill: null,
+    text: buttonName,
+    textStyle,
+  };
 }
 
 // --- Wire-up (per-modal <script> block) -------------------------------------

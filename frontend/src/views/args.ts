@@ -1,4 +1,3 @@
-import { html, join, raw, type Html } from '../framework/html';
 import { text } from '../framework/i18n';
 import {
   asArray,
@@ -9,7 +8,6 @@ import {
   type JsonObject,
 } from '../framework/types';
 import { q } from '../query';
-import { keyField } from '../components/keyfield';
 import { consumesArgNumber, parseArg, parseField, type ArgSchema } from './argschema';
 
 export { evalList } from './argschema';
@@ -35,15 +33,6 @@ export interface ArgsRenderContext {
   argModalId: string;
   idAttr: ModalIdAttr;
   commandValue: JsonObject;
-}
-
-function queryBase(rctx: ArgsRenderContext): string {
-  const cat = rctx.category.replace(/ /g, '').toUpperCase();
-  let cmd = rctx.command.replace(/ /g, '_').replace(/'/g, '').toLowerCase();
-  if (rctx.subId !== 0) {
-    cmd = rctx.parentCommand.replace(/ /g, '_').replace(/'/g, '').toLowerCase() + '_sub' + rctx.subId;
-  }
-  return `${cat}_${cmd}`;
 }
 
 /**
@@ -125,228 +114,211 @@ export function buildCommand(commandId: string, container: Element): string {
 }
 
 /**
- * Render one parsed field. `fieldId` is the 1-based arg number and only
- * feeds dropdown option labels; every other kind ignores it. `cursor`
- * feeds saved values in collection order (edit modal; absent when adding).
+ * Args data model: one parsed field with its render-order prefill resolved.
+ * Built by a single traversal (`argsData`) so the string renderer and
+ * `ArgsBlock.svelte` share numbering/cursor semantics exactly.
  */
-export function renderField(
+export type FieldData =
+  | { kind: 'none' }
+  | { kind: 'foldername'; folders: string[]; checked: string | undefined }
+  | { kind: 'audioUpload'; preserved: string | undefined }
+  | { kind: 'filetype'; inputs: Array<{ accepts: string; preserved: string | undefined }> }
+  | { kind: 'filepath'; inputs: Array<{ filetypes: string; value: string | undefined }> }
+  | { kind: 'filePicker'; value: string | undefined }
+  | { kind: 'folderPicker'; value: string | undefined }
+  | { kind: 'url'; value: string | undefined }
+  | { kind: 'key'; value: string }
+  | {
+      kind: 'number';
+      inputs: Array<{ min: string; max: string; value: string | undefined }>;
+      placeholder: string;
+    }
+  | { kind: 'longtext'; value: string | undefined }
+  | { kind: 'usageTitle'; preset: string }
+  | { kind: 'text'; preset: string }
+  | { kind: 'hidden'; value: string }
+  | { kind: 'dropdown'; options: Array<{ id: string; label: string; selected: boolean }> }
+  | { kind: 'gpus'; options: Array<{ key: string; label: string; selected: boolean }> }
+  | { kind: 'diskLetter'; options: Array<{ disk: string; selected: boolean }> };
+
+export type BranchData =
+  | { kind: 'input'; argIndex: number; label: string; folderForm: boolean; field: FieldData }
+  | {
+      kind: 'choice';
+      options: Array<{ choiceIndex: number; name: string; selected: boolean; fields: FieldData[] }>;
+    }
+  | { kind: 'hidden'; field: FieldData }
+  | { kind: 'none' };
+
+export interface ArgsData {
+  dark: string;
+  modalId: string;
+  idAttr: ModalIdAttr;
+  branches: BranchData[];
+}
+
+function queryBase(rctx: ArgsRenderContext): string {
+  const cat = rctx.category.replace(/ /g, '').toUpperCase();
+  let cmd = rctx.command.replace(/ /g, '_').replace(/'/g, '').toLowerCase();
+  if (rctx.subId !== 0) {
+    cmd = rctx.parentCommand.replace(/ /g, '_').replace(/'/g, '').toLowerCase() + '_sub' + rctx.subId;
+  }
+  return `${cat}_${cmd}`;
+}
+
+function branchBase(rctx: ArgsRenderContext): string {
+  return rctx.subId !== 0
+    ? `${catKey(rctx.category)}_${cmdKey(rctx.parentCommand)}_sub${rctx.subId}`
+    : `${catKey(rctx.category)}_${cmdKey(rctx.command)}`;
+}
+
+/** Resolve one parsed field's runtime values (consumes prefill in order). */
+export function fieldData(
   rctx: ArgsRenderContext,
   schema: ArgSchema,
   fieldId: string | number,
   cursor?: PrefillCursor
-): Html {
-  const { ctx, argModalId } = rctx;
-  const dark = ctx.dark_theme;
-  const file = ''; // `{{file}}` is undefined upstream → renders ""
-
+): FieldData {
+  const { ctx } = rctx;
   switch (schema.kind) {
     case 'none':
-      return raw('');
-    case 'foldername': {
-      const folders = Object.keys(asObject(get(ctx.config, 'front', 'buttons')));
-      const checked = nextPrefill(cursor);
-      return html`<div class="webdeck_foldername_ALL">
-        ${join(
-          folders.map(
-            (key) => html`<div class="webdeck_foldername">
-                <input${checked !== undefined && key === checked ? raw(' checked') : raw('')} class="${raw(dark)}" type="radio" name="file" value="${key}" />
-                <label for="${key}">${key}</label>
-            </div>`
-          )
-        )}
-    </div>`;
-    }
-    case 'audioUpload': {
-      const preserved = nextPrefill(cursor);
-      return html`<input class="${raw(dark)} audio-input" id="audio-input_${argModalId}" type="file" name="file" accept=".mp3"${preserved !== undefined ? html` data-preserved="${preserved}"` : raw('')} />`;
-    }
+      return { kind: 'none' };
+    case 'foldername':
+      return {
+        kind: 'foldername',
+        folders: Object.keys(asObject(get(ctx.config, 'front', 'buttons'))),
+        checked: nextPrefill(cursor),
+      };
+    case 'audioUpload':
+      return { kind: 'audioUpload', preserved: nextPrefill(cursor) };
     case 'filetype':
-      return join(
-        schema.accepts.map((filetypes) => {
-          const preserved = nextPrefill(cursor);
-          return html`<input class="${raw(dark)} audio-input" id="audio-input_${argModalId}" type="file" name="file" accept="${filetypes.join(', ')}"${preserved !== undefined ? html` data-preserved="${preserved}"` : raw('')} />`;
-        })
-      );
+      return {
+        kind: 'filetype',
+        inputs: schema.accepts.map((filetypes) => ({
+          accepts: filetypes.join(', '),
+          preserved: nextPrefill(cursor),
+        })),
+      };
     case 'filepath':
-      return join(
-        schema.acceptLists.map((filetypes) => {
-          const value = nextPrefill(cursor);
-          return html`<div class="filepath">
-                <button class="filepath" filetypes="${filetypes.join('_')}"> ${text('select_your_file')} </button>
-                <input type="text" class="filepath ${raw(dark)}" placeholder="${text('no_file_chosen')}"${value !== undefined ? html` value="${value}"` : raw('')} />
-            </div>`;
-        })
-      );
-    case 'filePicker': {
-      const value = nextPrefill(cursor);
-      return html`<div class="filepath">
-        <button class="filepath"> ${text('select_your_file')} </button>
-        <input type="text" class="filepath ${raw(dark)}" placeholder="${text('no_file_chosen')}"${value !== undefined ? html` value="${value}"` : raw('')} />
-    </div>`;
-    }
-    case 'folderPicker': {
-      const value = nextPrefill(cursor);
-      return html`<div class="folderpath">
-        <button class="folderpath"> ${text('select_your_file')} </button>
-        <input type="text" class="folderpath ${raw(dark)}" placeholder="${text('no_file_chosen')}"${value !== undefined ? html` value="${value}"` : raw('')} />
-    </div>`;
-    }
-    case 'url': {
-      const value = nextPrefill(cursor);
-      return html`<input class="${raw(dark)}" type="url" name="${file}" id="url_${argModalId}" placeholder="https://example.com"${value !== undefined ? html` value="${value}"` : raw('')} />`;
-    }
+      return {
+        kind: 'filepath',
+        inputs: schema.acceptLists.map((filetypes) => ({
+          filetypes: filetypes.join('_'),
+          value: nextPrefill(cursor),
+        })),
+      };
+    case 'filePicker':
+      return { kind: 'filePicker', value: nextPrefill(cursor) };
+    case 'folderPicker':
+      return { kind: 'folderPicker', value: nextPrefill(cursor) };
+    case 'url':
+      return { kind: 'url', value: nextPrefill(cursor) };
     case 'key':
-      return keyField({ dark, id: argModalId, value: nextPrefill(cursor) ?? schema.value });
+      return { kind: 'key', value: nextPrefill(cursor) ?? schema.value };
     case 'number':
-      return join(
-        schema.ranges.map(({ min, max }) => {
-          const value = nextPrefill(cursor);
-          const preset = value !== undefined ? html` value="${value}"` : raw('');
-          if (min.startsWith('-') || max.startsWith('-')) {
-            return html`<input class="${raw(dark)}" type="number" name="${file}" min="${min}" max="${max}" placeholder="${schema.placeholder}"${preset} />`;
-          }
-          return html`<input class="${raw(dark)}" type="number" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '');" name="${file}" min="${min}" max="${max}" placeholder="${schema.placeholder}"${preset} />`;
-        })
-      );
-    case 'longtext': {
-      const value = nextPrefill(cursor);
-      return html`<textarea class="${raw(dark)}" name="${file}" rows="5" cols="33">${value ?? ''}</textarea>`;
-    }
-    case 'usageTitle': {
-      const preset = nextPrefill(cursor) ?? schema.value;
-      return html`<input id="usage-title-input_${argModalId}" class="${raw(dark)}" type="text" name="${file}" size="10"
-        ${preset !== '' ? html`value="${preset}"` : raw('')}
-    />`;
-    }
-    case 'text': {
-      const preset = nextPrefill(cursor) ?? schema.value;
-      return html`<input class="${raw(dark)}" type="text" name="${file}" size="10"
-        ${preset !== '' ? html`value="${preset}"` : raw('')}
-    />`;
-    }
+      return {
+        kind: 'number',
+        inputs: schema.ranges.map(({ min, max }) => ({ min, max, value: nextPrefill(cursor) })),
+        placeholder: schema.placeholder,
+      };
+    case 'longtext':
+      return { kind: 'longtext', value: nextPrefill(cursor) };
+    case 'usageTitle':
+      return { kind: 'usageTitle', preset: nextPrefill(cursor) ?? schema.value };
+    case 'text':
+      return { kind: 'text', preset: nextPrefill(cursor) ?? schema.value };
     case 'hidden':
       // Fixed carrier: consume the aligned position, render the declared value.
       nextPrefill(cursor);
-      return html`<input class="invisible" type="text" size="10" value="${schema.value}" />`;
+      return { kind: 'hidden', value: schema.value };
     case 'dropdown': {
       const base = queryBase(rctx);
       const effectiveFieldId = String(fieldId) === '' ? 1 : fieldId;
       const selected = nextPrefill(cursor);
-      const options = schema.options.map((option, index) => {
-        const optionId = index + 1;
-        const optionName =
-          option.label ?? text(`${base}__arg_${effectiveFieldId}_option_${optionId}_name`);
-        return html`<option value="${option.id}"${selected !== undefined && option.id === selected ? raw(' selected') : raw('')}> ${optionName} </option>`;
-      });
-      return html`<select name="${file}">
-        ${join(options)}
-    </select>`;
+      return {
+        kind: 'dropdown',
+        options: schema.options.map((option, index) => ({
+          id: option.id,
+          label: option.label ?? text(`${base}__arg_${effectiveFieldId}_option_${index + 1}_name`),
+          selected: selected !== undefined && option.id === selected,
+        })),
+      };
     }
     case 'gpus': {
       const gpus = asObject(get(ctx.usage_example, 'gpus'));
       const selected = nextPrefill(cursor);
-      const options = Object.entries(gpus).map(([gpu, usage]) => {
-        // The option value is embedded verbatim as the `usage_dict['gpus']`
-        // key in the tile message, so it must be the dict key (`GPU1`,
-        // `defaultGPU`, …): names never match a key, and names with spaces
-        // also break the dotted tile-path lookup — either way the tile
-        // sticks at `-`. The name stays as the visible label.
-        const name = asString(asObject(usage)['name']);
-        const label = name !== '' ? name : gpu;
-        const isSelected = selected !== undefined && (gpu === selected || label === selected);
-        return html`<option value="${gpu}"${isSelected ? raw(' selected') : raw('')}> ${label} </option>`;
-      });
-      return html`<select name="${file}">
-        ${join(options)}
-    </select>`;
+      return {
+        kind: 'gpus',
+        options: Object.entries(gpus).map(([gpu, usage]) => {
+          // The option value is embedded verbatim as the `usage_dict['gpus']`
+          // key in the tile message, so it must be the dict key (`GPU1`,
+          // `defaultGPU`, …): names never match a key, and names with spaces
+          // also break the dotted tile-path lookup — either way the tile
+          // sticks at `-`. The name stays as the visible label.
+          const name = asString(asObject(usage)['name']);
+          const label = name !== '' ? name : gpu;
+          return { key: gpu, label, selected: selected !== undefined && (gpu === selected || label === selected) };
+        }),
+      };
     }
     case 'diskLetter': {
       const disks = asObject(get(ctx.usage_example, 'disks'));
       const selected = nextPrefill(cursor) ?? 'C';
-      const options = Object.entries(disks).map(
-        ([disk]) =>
-          html`<option value="${disk}"${disk === selected ? raw('\n                    selected') : raw('')}> ${disk} </option>`
-      );
-      return html`<select id="disk-letter_${argModalId}" name="${file}">
-        ${join(options)}
-    </select>`;
+      return {
+        kind: 'diskLetter',
+        options: Object.entries(disks).map(([disk]) => ({ disk, selected: disk === selected })),
+      };
     }
   }
 }
 
-/** Single arg field (one args.jinja include): parse, then render. */
-export function argField(rctx: ArgsRenderContext, arg: JsonObject, argId: string | number): Html {
-  return renderField(rctx, parseField(arg), argId);
-}
-
-/** One arg with its label/group chrome (shared add/edit template). */
-export function argBranch(
-  ctx: BootContext,
+/** Resolve one arg's branch chrome (consumes prefill in collection order). */
+export function branchData(
   rctx: ArgsRenderContext,
   arg: JsonObject,
   argIndex: number,
   argCounter: number,
   cursor?: PrefillCursor
-): Html {
-  const dark = ctx.dark_theme;
+): BranchData {
   const parsed = parseArg(arg);
-  const base =
-    rctx.subId !== 0
-      ? `${catKey(rctx.category)}_${cmdKey(rctx.parentCommand)}_sub${rctx.subId}`
-      : `${catKey(rctx.category)}_${cmdKey(rctx.command)}`;
-
+  const base = branchBase(rctx);
   if (parsed.kind === 'input') {
-    const argName = parsed.label ?? text(`${base}__arg_${argCounter}_name`);
-    const folderForm = parsed.folderForm
-      ? html`<div class="webdeck_foldername_div">
-                      <form id="webdeck_foldername_form" novalidate>
-                        <input class="${raw(dark)}" type="text" id="folderName_${rctx.argModalId}" name="folderName" placeholder="New folder name" />
-                        <button id="submitButton_${rctx.argModalId}" type="submit">Create folder</button>
-                      </form>
-                    </div>`
-      : raw('');
-    return join([
-      html`<div class="arg_container" ${raw(rctx.idAttr)}="${rctx.argModalId}" arg_id="${String(argIndex)}">
-                  <label for="${argName}_${rctx.argModalId}">${argName}:</label>
-                  ${renderField(rctx, parsed.field, argCounter, cursor)}
-                </div>`,
-      folderForm,
-    ]);
+    return {
+      kind: 'input',
+      argIndex,
+      label: parsed.label ?? text(`${base}__arg_${argCounter}_name`),
+      folderForm: parsed.folderForm,
+      field: fieldData(rctx, parsed.field, argCounter, cursor),
+    };
   }
   if (parsed.kind === 'choice') {
     const override = cursor?.prefill.choices.get(argIndex);
-    const choices = parsed.options.map((option, choiceIndex) => {
-      const choiceId = choiceIndex + 1;
-      const choiceName = option.label ?? text(`${base}__arg_${argCounter}_option_${choiceId}_name`);
-      const selected = override !== undefined ? choiceIndex === override : option.checked;
-      // NOTE: nested fields keep the legacy 0-based choice index as their
-      // label id (only nested dropdowns consume it; none exist in
-      // commands.json, so this preserves behavior exactly).
-      // Only the selected pane consumes prefill (mirrors collection, which
-      // skips hidden panes); the rest render defaults.
-      const paneCursor = selected ? cursor : undefined;
-      const items = join(
-        option.fields.map((field) => renderField(rctx, field, choiceIndex, paneCursor))
-      );
-      return join([
-        html`<div class="choice">
-                      <input ${selected ? raw('checked') : raw('')} class="choice ${raw(dark)}" type="radio" name="choice" value="${String(choiceIndex)}" onchange="showArg_${rctx.argModalId}('${String(choiceIndex)}')" />
-                      <label for="${choiceName}">${choiceName}</label>
-                    </div>`,
-        html`<div ${selected ? raw('') : raw('style="display: none;"')} class="arg_container" ${raw(rctx.idAttr)}="${rctx.argModalId}" arg_id="${String(choiceIndex)}">
-                      ${items}
-                    </div>`,
-      ]);
-    });
-    return html`<div class="choices_ALL">
-                  <label for="choice">${text('choose_option')} :</label><br />
-                  ${join(choices)}
-                </div>`;
+    return {
+      kind: 'choice',
+      options: parsed.options.map((option, choiceIndex) => {
+        const selected = override !== undefined ? choiceIndex === override : option.checked;
+        // NOTE: nested fields keep the legacy 0-based choice index as their
+        // label id (only nested dropdowns consume it; none exist in
+        // commands.json, so this preserves behavior exactly).
+        // Only the selected pane consumes prefill (mirrors collection, which
+        // skips hidden panes); the rest render defaults.
+        const paneCursor = selected ? cursor : undefined;
+        return {
+          choiceIndex,
+          name: option.label ?? text(`${base}__arg_${argCounter}_option_${choiceIndex + 1}_name`),
+          selected,
+          fields: option.fields.map((field) => fieldData(rctx, field, choiceIndex, paneCursor)),
+        };
+      }),
+    };
   }
   if (parsed.kind === 'hidden') {
-    return renderField(rctx, { kind: 'hidden', value: parsed.value }, argCounter, cursor);
+    return {
+      kind: 'hidden',
+      field: fieldData(rctx, { kind: 'hidden', value: parsed.value }, argCounter, cursor),
+    };
   }
-  return raw('');
+  return { kind: 'none' };
 }
 
 export interface ArgsBlockOptions {
@@ -359,6 +331,28 @@ export interface ArgsBlockOptions {
   modalId: string;
   idAttr: ModalIdAttr;
   cursor?: PrefillCursor;
+}
+
+/** Resolve a whole args block (single numbering/cursor traversal). */
+export function argsData(o: ArgsBlockOptions): ArgsData {
+  const args = asArray(o.commandValue['args']);
+  let argCounter = 0;
+  const rctx: ArgsRenderContext = {
+    ctx: o.ctx,
+    category: o.category,
+    command: o.command,
+    subId: o.subId,
+    parentCommand: o.parentCommand,
+    argModalId: o.modalId,
+    idAttr: o.idAttr,
+    commandValue: o.commandValue,
+  };
+  const branches = args.map((argValue, argIndex) => {
+    const arg = asObject(argValue);
+    if (consumesArgNumber(arg)) argCounter++;
+    return branchData(rctx, arg, argIndex, argCounter, o.cursor);
+  });
+  return { dark: o.ctx.dark_theme, modalId: o.modalId, idAttr: o.idAttr, branches };
 }
 
 /**
@@ -381,29 +375,3 @@ export function registerShowArg(modalId: string, idAttr: ModalIdAttr): void {
   };
 }
 
-/** The `.args-container` block (shared add/edit template). */
-export function renderArgsBlock(o: ArgsBlockOptions): Html {
-  const dark = o.ctx.dark_theme;
-  const args = asArray(o.commandValue['args']);
-  let argCounter = 0;
-  const blocks = args.map((argValue, argIndex) => {
-    const arg = asObject(argValue);
-    if (consumesArgNumber(arg)) argCounter++;
-    const rctx: ArgsRenderContext = {
-      ctx: o.ctx,
-      category: o.category,
-      command: o.command,
-      subId: o.subId,
-      parentCommand: o.parentCommand,
-      argModalId: o.modalId,
-      idAttr: o.idAttr,
-      commandValue: o.commandValue,
-    };
-    return argBranch(o.ctx, rctx, arg, argIndex, argCounter, o.cursor);
-  });
-  // NOTE: inner whitespace is load-bearing — it keeps add-modal output
-  // byte-identical with the pre-refactor template.
-  return html`<div class="args-container ${raw(dark)}" ${raw(o.idAttr)}="${o.modalId}">
-            ${join(blocks)}
-          </div>`;
-}

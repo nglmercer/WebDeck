@@ -1,7 +1,19 @@
-import { describe, expect, it } from 'vitest';
+import { mount, tick, unmount } from 'svelte';
+import { afterEach, describe, expect, it } from 'vitest';
+import { defineKeyField } from '../components/keyfield';
 import { initI18n } from '../framework/i18n';
 import type { BootContext, JsonObject } from '../framework/types';
-import { addArgsModal, addBrowserView, type AddModalContext } from './addbutton';
+import type { AddModalContext } from './addbutton';
+import AddArgsModal from './addbutton/AddArgsModal.svelte';
+import AddBrowser from './addbutton/AddBrowser.svelte';
+
+let apps: Record<string, never>[] = [];
+
+afterEach(async () => {
+  for (const app of apps) await unmount(app);
+  apps = [];
+  document.body.innerHTML = '';
+});
 
 function testCtx(): BootContext {
   return {
@@ -35,6 +47,22 @@ function mctxFor(category: string, command: string, commandValue: JsonObject): A
   };
 }
 
+async function renderModal(
+  ctx: BootContext,
+  category: string,
+  command: string,
+  commandValue: JsonObject
+): Promise<HTMLElement> {
+  defineKeyField();
+  const host = document.createElement('div');
+  document.body.appendChild(host);
+  apps.push(
+    mount(AddArgsModal, { target: host, props: { ctx, mctx: mctxFor(category, command, commandValue) } }) as unknown as Record<string, never>
+  );
+  await tick();
+  return host;
+}
+
 const editorKeys = {
   configure_your_button: 'Configura tu botón',
   image: 'Imagen',
@@ -46,43 +74,38 @@ const editorKeys = {
 };
 
 describe('arg labels', () => {
-  it('resolves the input label via the double-underscore key', () => {
+  it('resolves the input label via the double-underscore key', async () => {
     initI18n({ ...editorKeys, TEXT_press_a_key__arg_1_name: 'Tecla' });
-    const out = addArgsModal(
-      testCtx(),
-      mctxFor('Text', 'Press a key', {
-        command: '/key',
-        args: [{ TYPE: 'input text' }],
-        style: { image: 'key.png', image_size: '75%' },
-      })
-    ).value;
-    expect(out).toContain('>Tecla:<');
-    expect(out).not.toContain('TEXT_press_a_key_arg_1_name');
+    const el = await renderModal(testCtx(), 'Text', 'Press a key', {
+      command: '/key',
+      args: [{ TYPE: 'input text' }],
+      style: { image: 'key.png', image_size: '75%' },
+    });
+    expect(el.innerHTML).toContain('>Tecla:<');
+    expect(el.innerHTML).not.toContain('TEXT_press_a_key_arg_1_name');
   });
 
-  it('renders the key selector with its translated label', () => {
+  it('renders the key selector with its translated label', async () => {
     initI18n({
       ...editorKeys,
       TEXT_press_a_key__arg_1_name: 'Tecla',
       key_capture: 'Capturar',
       key_search_keys: 'Buscar teclas…',
     });
-    const out = addArgsModal(
-      testCtx(),
-      mctxFor('Text', 'Press a key', {
-        command: '/key',
-        args: [{ TYPE: 'input key' }],
-        style: { image: 'key.png', image_size: '75%' },
-      })
-    ).value;
-    expect(out).toContain('>Tecla:<');
-    expect(out).toContain('class="key-field"');
-    expect(out).toContain('>Capturar</button>');
-    expect(out).toContain('placeholder="Buscar teclas…"');
-    expect(out).not.toContain('TEXT_press_a_key_arg_1_name');
+    const el = await renderModal(testCtx(), 'Text', 'Press a key', {
+      command: '/key',
+      args: [{ TYPE: 'input key' }],
+      style: { image: 'key.png', image_size: '75%' },
+    });
+    expect(el.innerHTML).toContain('>Tecla:<');
+    expect(el.innerHTML).not.toContain('TEXT_press_a_key_arg_1_name');
+    // The key field itself is a custom-element island: assert the mounted DOM.
+    expect(el.querySelector('.key-field')).not.toBeNull();
+    expect(el.querySelector('#key-capture_9X9')?.textContent).toBe('Capturar');
+    expect(el.querySelector('#key-list_9X9')?.getAttribute('placeholder')).toBe('Buscar teclas…');
   });
 
-  it('resolves dropdown option labels with the 1-based arg number', () => {
+  it('resolves dropdown option labels with the 1-based arg number', async () => {
     initI18n({
       ...editorKeys,
       SYSTEM_screensaver__arg_1_name: 'Modo',
@@ -90,48 +113,42 @@ describe('arg labels', () => {
       SYSTEM_screensaver__arg_1_option_2_name: 'Completo',
       SYSTEM_screensaver__arg_1_option_3_name: 'Apagado',
     });
-    const out = addArgsModal(
-      testCtx(),
-      mctxFor('System', 'ScreenSaver', {
-        command: '/screensaver',
-        args: [{ TYPE: 'input dropdown', options: [{ ID: 'NONE' }, { ID: 'full' }, { ID: 'off' }] }],
-      })
-    ).value;
-    expect(out).toContain('>Modo:<');
-    expect(out).toContain('> Nada </option>');
-    expect(out).toContain('> Completo </option>');
-    expect(out).toContain('> Apagado </option>');
-    expect(out).not.toContain('SYSTEM_screensaver_arg_');
+    const el = await renderModal(testCtx(), 'System', 'ScreenSaver', {
+      command: '/screensaver',
+      args: [{ TYPE: 'input dropdown', options: [{ ID: 'NONE' }, { ID: 'full' }, { ID: 'off' }] }],
+    });
+    expect(el.innerHTML).toContain('>Modo:<');
+    expect(el.innerHTML).toContain('>Nada</option>');
+    expect(el.innerHTML).toContain('>Completo</option>');
+    expect(el.innerHTML).toContain('>Apagado</option>');
+    expect(el.innerHTML).not.toContain('SYSTEM_screensaver_arg_');
   });
 
-  it('prefers inline plugin labels over i18n lookups', () => {
+  it('prefers inline plugin labels over i18n lookups', async () => {
     initI18n({ ...editorKeys, choose_option: 'Choose' });
-    const out = addArgsModal(
-      testCtx(),
-      mctxFor('Calc', 'add', {
-        command: '/add',
-        args: [
-          { TYPE: "input number['1','100']", label: 'First', placeholder: '1' },
-          {
-            TYPE: 'choice',
-            options: [
-              { TYPE: 'NONE checked', label: 'Nothing' },
-              { TYPE: 'input text', label: 'Something' },
-            ],
-          },
-          { TYPE: 'input dropdown', label: 'Mode', options: [{ ID: 'x', label: 'Ex' }] },
-        ],
-      })
-    ).value;
-    expect(out).toContain('>First:<');
-    expect(out).toContain('>Nothing<');
-    expect(out).toContain('>Something<');
-    expect(out).toContain('>Mode:<');
-    expect(out).toContain('> Ex </option>');
-    expect(out).not.toContain('CALC_add_arg_');
+    const el = await renderModal(testCtx(), 'Calc', 'add', {
+      command: '/add',
+      args: [
+        { TYPE: "input number['1','100']", label: 'First', placeholder: '1' },
+        {
+          TYPE: 'choice',
+          options: [
+            { TYPE: 'NONE checked', label: 'Nothing' },
+            { TYPE: 'input text', label: 'Something' },
+          ],
+        },
+        { TYPE: 'input dropdown', label: 'Mode', options: [{ ID: 'x', label: 'Ex' }] },
+      ],
+    });
+    expect(el.innerHTML).toContain('>First:<');
+    expect(el.innerHTML).toContain('>Nothing<');
+    expect(el.innerHTML).toContain('>Something<');
+    expect(el.innerHTML).toContain('>Mode:<');
+    expect(el.innerHTML).toContain('>Ex</option>');
+    expect(el.innerHTML).not.toContain('CALC_add_arg_');
   });
 
-  it('shows the inline plugin description in the command browser', () => {
+  it('shows the inline plugin description in the command browser', async () => {
     initI18n({ ...editorKeys, choose_option: 'Choose' });
     const ctx = testCtx();
     ctx.commands = {
@@ -139,28 +156,33 @@ describe('arg labels', () => {
         add: { command: '/add', description: 'adds two numbers', args: [] },
       },
     };
-    const out = addBrowserView(ctx).value;
-    expect(out).toContain('adds two numbers');
-    expect(out).toContain('add');
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    apps.push(mount(AddBrowser, { target: host, props: { ctx } }) as unknown as Record<string, never>);
+    await tick();
+    expect(host.innerHTML).toContain('adds two numbers');
+    expect(host.innerHTML).toContain('add');
+    // Leaf rows keep their opener contract: id + modal-id + command tag.
+    const btn = host.querySelector('#open-button-0X0') as HTMLElement;
+    expect(btn?.getAttribute('arg_modal_ID')).toBe('0X0');
+    expect(btn?.getAttribute('dropdown-commandTag')).toBe('add');
+    expect(host.querySelector('#modal-container-0X0')).not.toBeNull();
   });
 
-  it('resolves choice option labels via the double-underscore key', () => {
+  it('resolves choice option labels via the double-underscore key', async () => {
     initI18n({
       ...editorKeys,
       choose_option: 'Elige opción',
       TEXT_copy__arg_1_option_1_name: 'Copiar (ctrl+c)',
       TEXT_copy__arg_1_option_2_name: 'Copiar texto',
     });
-    const out = addArgsModal(
-      testCtx(),
-      mctxFor('Text', 'Copy', {
-        command: '/copy',
-        args: [{ TYPE: 'choice', options: [{ TYPE: 'NONE checked' }, { TYPE: 'input text' }] }],
-        style: { image: 'copy.png', image_size: '100%' },
-      })
-    ).value;
-    expect(out).toContain('>Copiar (ctrl+c)<');
-    expect(out).toContain('>Copiar texto<');
-    expect(out).not.toContain('TEXT_copy_arg_');
+    const el = await renderModal(testCtx(), 'Text', 'Copy', {
+      command: '/copy',
+      args: [{ TYPE: 'choice', options: [{ TYPE: 'NONE checked' }, { TYPE: 'input text' }] }],
+      style: { image: 'copy.png', image_size: '100%' },
+    });
+    expect(el.innerHTML).toContain('>Copiar (ctrl+c)<');
+    expect(el.innerHTML).toContain('>Copiar texto<');
+    expect(el.innerHTML).not.toContain('TEXT_copy_arg_');
   });
 });

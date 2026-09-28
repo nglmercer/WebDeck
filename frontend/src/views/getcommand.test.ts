@@ -1,7 +1,10 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { mount, tick, unmount } from 'svelte';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { defineKeyField } from '../components/keyfield';
 import { initI18n } from '../framework/i18n';
 import type { BootContext, JsonObject } from '../framework/types';
-import { addArgsModal, getCommand, type AddModalContext } from './addbutton';
+import { getCommand, type AddModalContext } from './addbutton';
+import AddArgsModal from './addbutton/AddArgsModal.svelte';
 
 /**
  * Serialization goldens: `getCommand` must keep producing the exact
@@ -32,7 +35,19 @@ function testCtx(overrides: Partial<BootContext> = {}): BootContext {
   };
 }
 
-function render(ctx: BootContext, category: string, command: string, commandValue: JsonObject): void {
+let apps: Record<string, never>[] = [];
+
+afterEach(async () => {
+  for (const app of apps) await unmount(app);
+  apps = [];
+});
+
+async function render(
+  ctx: BootContext,
+  category: string,
+  command: string,
+  commandValue: JsonObject
+): Promise<void> {
   const mctx: AddModalContext = {
     argModalId: MODAL_ID,
     category,
@@ -43,7 +58,10 @@ function render(ctx: BootContext, category: string, command: string, commandValu
     commandId: String(commandValue['command'] ?? ''),
     buttonTitle: command,
   };
-  document.body.innerHTML = addArgsModal(ctx, mctx).value;
+  const host = document.createElement('div');
+  document.body.appendChild(host);
+  apps.push(mount(AddArgsModal, { target: host, props: { ctx, mctx } }) as unknown as Record<string, never>);
+  await tick();
 }
 
 function fields(): HTMLElement[] {
@@ -56,12 +74,13 @@ function setValue(el: HTMLElement, value: string): void {
 
 beforeEach(() => {
   initI18n({});
+  defineKeyField();
   document.body.innerHTML = '';
 });
 
 describe('getCommand goldens', () => {
-  it('serializes a text arg (Text / Press a key)', () => {
-    render(testCtx(), 'Text', 'Press a key', {
+  it('serializes a text arg (Text / Press a key)', async () => {
+    await render(testCtx(), 'Text', 'Press a key', {
       command: '/key',
       args: [{ TYPE: 'input text' }],
       style: { image: 'key.png', image_size: '75%' },
@@ -70,8 +89,8 @@ describe('getCommand goldens', () => {
     expect(getCommand('/key', MODAL_ID)).toBe('/key a');
   });
 
-  it('serializes key args, skipping search and list aux controls (Text / Press a key)', () => {
-    render(testCtx(), 'Text', 'Press a key', {
+  it('serializes key args, skipping search and list aux controls (Text / Press a key)', async () => {
+    await render(testCtx(), 'Text', 'Press a key', {
       command: '/key',
       args: [{ TYPE: 'input key' }],
       style: { image: 'key.png', image_size: '75%' },
@@ -82,8 +101,8 @@ describe('getCommand goldens', () => {
     expect(getCommand('/key', MODAL_ID)).toBe('/key a');
   });
 
-  it('serializes a longtext arg (Text / Write text and press Enter)', () => {
-    render(testCtx(), 'Text', 'Write text and press Enter', {
+  it('serializes a longtext arg (Text / Write text and press Enter)', async () => {
+    await render(testCtx(), 'Text', 'Write text and press Enter', {
       command: '/writeandsend',
       args: [{ TYPE: 'input longtext' }],
       style: { image: 'write.png', image_size: '75%' },
@@ -92,8 +111,8 @@ describe('getCommand goldens', () => {
     expect(getCommand('/writeandsend', MODAL_ID)).toBe('/writeandsend hello');
   });
 
-  it('serializes choice options, skipping hidden panes (Text / Copy)', () => {
-    render(testCtx(), 'Text', 'Copy', {
+  it('serializes choice options, skipping hidden panes (Text / Copy)', async () => {
+    await render(testCtx(), 'Text', 'Copy', {
       command: '/copy',
       args: [{ TYPE: 'choice', options: [{ TYPE: 'NONE checked' }, { TYPE: 'input text' }] }],
       style: { image: 'copy.png', image_size: '100%' },
@@ -108,8 +127,8 @@ describe('getCommand goldens', () => {
     expect(getCommand('/copy', MODAL_ID)).toBe('/copy hi');
   });
 
-  it('serializes dropdown selection by option id (System / ScreenSaver)', () => {
-    render(testCtx(), 'System', 'ScreenSaver', {
+  it('serializes dropdown selection by option id (System / ScreenSaver)', async () => {
+    await render(testCtx(), 'System', 'ScreenSaver', {
       command: '/screensaver',
       args: [{ TYPE: 'input dropdown', options: [{ ID: 'NONE' }, { ID: 'full' }, { ID: 'off' }] }],
     });
@@ -117,8 +136,8 @@ describe('getCommand goldens', () => {
     expect(getCommand('/screensaver', MODAL_ID)).toBe('/screensaver full');
   });
 
-  it('serializes multi-item choices positionally (System / Execute script code)', () => {
-    render(testCtx(), 'System', 'Execute script code', {
+  it('serializes multi-item choices positionally (System / Execute script code)', async () => {
+    await render(testCtx(), 'System', 'Execute script code', {
       command: '/exec',
       args: [
         {
@@ -141,8 +160,8 @@ describe('getCommand goldens', () => {
     expect(getCommand('/exec', MODAL_ID)).toBe('/exec type:single_line<|§|>print(1)');
   });
 
-  it('serializes file upload + number args (Soundboard / Playsound)', () => {
-    render(testCtx(), 'Soundboard', 'Playsound', {
+  it('serializes file upload + number args (Soundboard / Playsound)', async () => {
+    await render(testCtx(), 'Soundboard', 'Playsound', {
       command: '/playsound',
       args: [{ TYPE: "input filetype['.mp3']" }, { TYPE: "input number['1','100']", placeholder: '50' }],
       style: { image: 'volume-up.svg', image_size: '70%' },
@@ -151,8 +170,8 @@ describe('getCommand goldens', () => {
     expect(getCommand('/playsound', MODAL_ID)).toBe('/playsound 75');
   });
 
-  it('serializes usage titles with hidden fragments (Display / CPU)', () => {
-    render(testCtx(), 'Display', 'CPU', {
+  it('serializes usage titles with hidden fragments (Display / CPU)', async () => {
+    await render(testCtx(), 'Display', 'CPU', {
       command: "/usage '",
       args: [{ TYPE: 'input usage-title-text', value: 'CPU' }, { TYPE: 'text', value: "' usage_dict['cpu']['usage_percent']" }],
       style: { image: '', image_size: '' },
@@ -160,9 +179,9 @@ describe('getCommand goldens', () => {
     expect(getCommand("/usage '", MODAL_ID)).toBe("/usage ' CPU<|§|>' usage_dict['cpu']['usage_percent']");
   });
 
-  it('serializes disk-letter selects with C preselected (Display / Disks)', () => {
+  it('serializes disk-letter selects with C preselected (Display / Disks)', async () => {
     const ctx = testCtx({ usage_example: { disks: { C: {}, D: {} } } });
-    render(ctx, 'Display', 'Disks', {
+    await render(ctx, 'Display', 'Disks', {
       command: "/usage '",
       args: [
         { TYPE: 'input usage-title-text', value: 'Disk' },
@@ -180,12 +199,12 @@ describe('getCommand goldens', () => {
     );
   });
 
-  it('serializes gpu selects by device key (Display / GPU)', () => {
+  it('serializes gpu selects by device key (Display / GPU)', async () => {
     // The message fragment is a `usage_dict['gpus']` key (`GPU1`, …), never
     // the display name: names miss the lookup (and spaced names break the
     // dotted tile-path eval), leaving the tile at `-`.
     const ctx = testCtx({ usage_example: { gpus: { GPU1: { name: 'RTX 4090' } } } });
-    render(ctx, 'Display', 'GPU', {
+    await render(ctx, 'Display', 'GPU', {
       command: "/usage '",
       args: [
         { TYPE: 'input usage-title-text', value: 'GPU' },
@@ -199,12 +218,12 @@ describe('getCommand goldens', () => {
       "/usage ' GPU<|§|>' usage_dict['gpus']['<|§|>GPU1<|§|>']['usage_percent']"
     );
     // The device name stays visible as the option label.
-    expect(document.querySelector('select')!.innerHTML).toContain('> RTX 4090 </option>');
+    expect(document.querySelector('select')!.innerHTML).toContain('>RTX 4090</option>');
   });
 
-  it('serializes folder radios, ignoring the create-folder form (Webdeck / Open a folder)', () => {
+  it('serializes folder radios, ignoring the create-folder form (Webdeck / Open a folder)', async () => {
     const ctx = testCtx({ config: { front: { names_color: '', buttons: { folderA: [], folderB: [] } }, settings: {} } });
-    render(ctx, 'Webdeck', 'Open a folder', {
+    await render(ctx, 'Webdeck', 'Open a folder', {
       command: '/folder',
       args: [{ TYPE: 'input webdeck_foldername' }],
     });
@@ -213,18 +232,18 @@ describe('getCommand goldens', () => {
     expect(getCommand('/folder', MODAL_ID)).toBe('/folder folderB');
   });
 
-  it('serializes file-picker text, skipping the picker button (System / Open)', () => {
-    render(testCtx(), 'System', 'Open', { command: '/start', args: [{ TYPE: 'input file' }] });
+  it('serializes file-picker text, skipping the picker button (System / Open)', async () => {
+    await render(testCtx(), 'System', 'Open', { command: '/start', args: [{ TYPE: 'input file' }] });
     setValue(fields()[0]!, 'C:\\x.exe');
     expect(getCommand('/start', MODAL_ID)).toBe('/start C:\\x.exe');
   });
 
-  it('serializes folder-picker and url args', () => {
-    render(testCtx(), 'System', 'opendir', { command: '/openfolder', args: [{ TYPE: 'input folderpath' }] });
+  it('serializes folder-picker and url args', async () => {
+    await render(testCtx(), 'System', 'opendir', { command: '/openfolder', args: [{ TYPE: 'input folderpath' }] });
     setValue(fields()[0]!, 'C:\\games');
     expect(getCommand('/openfolder', MODAL_ID)).toBe('/openfolder C:\\games');
 
-    render(testCtx(), 'System', 'Open a website', { command: '/start', args: [{ TYPE: 'input url' }] });
+    await render(testCtx(), 'System', 'Open a website', { command: '/start', args: [{ TYPE: 'input url' }] });
     setValue(fields()[0]!, 'https://example.com');
     expect(getCommand('/start', MODAL_ID)).toBe('/start https://example.com');
   });
