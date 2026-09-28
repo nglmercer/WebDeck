@@ -67,7 +67,7 @@ export function SaveExitEditor(tempConfig: JsonObject): void {
   swapEditorButtonFunction();
   const swapLabel = swapButtonLabel();
   if (swapLabel) {
-    swapLabel.textContent = text('swap_buttons');
+    swapLabel.textContent = text('swap_buttons_short');
   }
   byId('swapEditorButton').get(0)?.setAttribute('title', `${text('swap_buttons')} (S)`);
   editorUiState.swapFirstBtn = 0;

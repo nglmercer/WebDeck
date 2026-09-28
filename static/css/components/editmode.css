@@ -127,27 +127,13 @@
 .editor-btn-icon {
   flex: none;
 }
+/* Compact buttons show one short word; the full label + shortcut hint
+   live in the title tooltip. Ellipsis guards extra-long translations. */
 .editor-btn-label {
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 220px;
-}
-
-/* Shortcut chip: icon and key hint stay visually distinct from the label. */
-.editor-kbd {
-  font-family: ui-monospace, SFMono-Regular, Consolas, Menlo, monospace;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1;
-  padding: 3px 6px;
-  border-radius: 6px;
-  background-color: rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(0, 0, 0, 0.16);
-  color: inherit;
-}
-.editor-btn-primary .editor-kbd {
-  background-color: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+  max-width: 140px;
 }
 
 #swapHint {
@@ -161,7 +147,8 @@
   max-width: 260px;
 }
 
-/* Top-right folder tabs: same solid pill treatment as the bottom bar. */
+/* Top-right folders dropdown: transparent positioning shell; the toggle
+   and the expanded panel carry the solid pill treatment. */
 .folders-bar {
   position: fixed;
   top: 12px;
@@ -169,25 +156,76 @@
   z-index: 3;
   align-items: center;
   justify-content: flex-end;
-  flex-wrap: wrap;
+  color: #ffffff;
+}
+.folders-dropdown {
+  position: relative;
+  display: inline-flex;
+}
+/* Icon-only toggle, collapsed by default; full label via title tooltip. */
+summary.folders-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  cursor: pointer;
+  background-color: #f4f4f6;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 6px 10px;
+  transition: background-color 150ms, border-color 150ms;
+}
+summary.folders-toggle::-webkit-details-marker {
+  display: none;
+}
+summary.folders-toggle::marker {
+  content: none;
+}
+summary.folders-toggle:hover {
+  background-color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.65);
+}
+summary.folders-toggle:focus-visible {
+  outline: 2px solid #6cb2f5;
+  outline-offset: 2px;
+}
+.folders-toggle-icon {
+  flex: none;
+}
+.folders-toggle-chevron {
+  flex: none;
+  opacity: 0.7;
+  transition: transform 150ms;
+}
+.folders-dropdown[open] .folders-toggle-chevron {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .folders-toggle-chevron {
+    transition: none;
+  }
+}
+.folders-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  max-width: min(92vw, 680px);
+  min-width: max-content;
+  max-width: min(78vw, 320px);
   background-color: #10151f;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
-  padding: 8px 12px;
+  padding: 8px;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
-  color: #ffffff;
-  text-align: right;
-}
-.folders-bar-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #cfd6e0;
-  white-space: nowrap;
 }
 .folder-tab-wrap {
-  display: inline-flex;
+  display: flex;
+}
+.folders-panel button.folder-tab {
+  flex: 1;
+  justify-content: space-between;
 }
 button.folder-tab {
   display: inline-flex;

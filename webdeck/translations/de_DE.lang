@@ -146,6 +146,10 @@ quit_without_saving=Beenden ohne zu speichern
 save_and_exit=Speichern und beenden
 swap_buttons=2 Schaltflächen tauschen
 stop_swap_mode=Swap-Modus beenden
+save_and_exit_short=Speichern
+quit_without_saving_short=Beenden
+swap_buttons_short=Tauschen
+stop_swap_mode_short=Stoppen
 swap_hint=Tauschmodus: erst eine Schaltfläche, dann das Ziel anklicken. Leere Felder verschieben. S oder Esc beendet.
 no_changes_to_undo=Es gibt keine Änderungen, die rückgängig gemacht werden können.
 

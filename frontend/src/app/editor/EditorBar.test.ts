@@ -34,18 +34,18 @@ describe('EditorBar', () => {
     expect(el.querySelector('#swapEditorButton')).not.toBeNull();
   });
 
-  it('shows icon, label, and shortcut chip per action', () => {
+  it('shows icon plus short label with full title tooltip per action', () => {
     const el = render();
-    for (const [id, key, shortcut] of [
-      ['SaveExitEditorButton', 'save_and_exit', 'E'],
-      ['exitEditorButton', 'quit_without_saving', 'Q'],
-      ['swapEditorButton', 'swap_buttons', 'S'],
+    for (const [id, shortKey, fullKey, shortcut] of [
+      ['SaveExitEditorButton', 'save_and_exit_short', 'save_and_exit', 'E'],
+      ['exitEditorButton', 'quit_without_saving_short', 'quit_without_saving', 'Q'],
+      ['swapEditorButton', 'swap_buttons_short', 'swap_buttons', 'S'],
     ] as const) {
       const button = el.querySelector(`#${id}`)!;
       expect(button.querySelector('img.editor-btn-icon')).not.toBeNull();
-      expect(button.querySelector('.editor-btn-label')?.textContent).toBe(key);
-      expect(button.querySelector('kbd.editor-kbd')?.textContent).toBe(shortcut);
-      expect(button.getAttribute('title')).toBe(`${key} (${shortcut})`);
+      expect(button.querySelector('.editor-btn-label')?.textContent).toBe(shortKey);
+      expect(button.querySelector('kbd')).toBeNull();
+      expect(button.getAttribute('title')).toBe(`${fullKey} (${shortcut})`);
       expect(button.getAttribute('aria-keyshortcuts')).toBe(shortcut.toLowerCase());
     }
   });
@@ -53,8 +53,8 @@ describe('EditorBar', () => {
   it('exposes the swap label slot for mode toggles', () => {
     const el = render();
     const label = el.querySelector('#swapEditorButton #swapEditorLabel');
-    expect(label?.textContent).toBe('swap_buttons');
-    expect(swapButtonLabel()?.textContent).toBe('swap_buttons');
+    expect(label?.textContent).toBe('swap_buttons_short');
+    expect(swapButtonLabel()?.textContent).toBe('swap_buttons_short');
   });
 
   it('uses no duplicate ids', () => {

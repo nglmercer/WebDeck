@@ -145,6 +145,10 @@ quit_without_saving=Wyjdź bez zapisywania
 save_and_exit=Zapisz i wyjdź
 swap_buttons=Przemieść przyciski
 stop_swap_mode=Wyjdź z trybu przemieszczania
+save_and_exit_short=Zapisz
+quit_without_saving_short=Wyjdź
+swap_buttons_short=Przemieść
+stop_swap_mode_short=Stop
 swap_hint=Tryb zamiany: kliknij przycisk, potem cel. Puste pola przenoszą. S lub Esc kończy tryb.
 no_changes_to_undo=Brak zmian do cofnięcia
 

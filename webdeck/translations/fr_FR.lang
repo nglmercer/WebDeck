@@ -146,6 +146,10 @@ quit_without_saving=Quitter sans sauvegarder
 save_and_exit=Sauvegarder et quitter
 swap_buttons=Échanger des boutons
 stop_swap_mode=Arrêter d'échanger
+save_and_exit_short=Sauvegarder
+quit_without_saving_short=Quitter
+swap_buttons_short=Échanger
+stop_swap_mode_short=Arrêter
 swap_hint=Mode échange : cliquez sur un bouton puis sur sa cible. Les emplacements vides le déplacent. S ou Échap pour quitter.
 no_changes_to_undo=Aucune modification ne peut être annulée.
 

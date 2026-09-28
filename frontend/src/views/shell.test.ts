@@ -37,7 +37,7 @@ beforeEach(() => {
 describe('applyHead themes', () => {
   it('links the built-in stylesheet directly instead of prefixing .config/themes', async () => {
     applyHead(testCtx(['static/css/style.css']));
-    expect(stylesheetHrefs()).toEqual(['/static/css/style.css?v=studio1']);
+    expect(stylesheetHrefs()).toEqual(['/static/css/style.css?v=studio2']);
   });
 
   it('keeps prefixing user themes and skipping commented entries', async () => {
@@ -47,7 +47,7 @@ describe('applyHead themes', () => {
 
   it('loads the base theme before user overrides (cascade order)', async () => {
     applyHead(testCtx(['mytheme.css', 'static/css/style.css']));
-    expect(stylesheetHrefs()).toEqual(['/static/css/style.css?v=studio1', '.config/themes/mytheme.css']);
+    expect(stylesheetHrefs()).toEqual(['/static/css/style.css?v=studio2', '.config/themes/mytheme.css']);
   });
 });
 
@@ -165,5 +165,20 @@ describe('Shell', () => {
     const del = tabs[1]?.querySelector('svg.folder-tab-delete')!;
     expect(del.querySelector('title')?.textContent).toBe('Delete folder spotify');
     expect(del.getAttribute('aria-label')).toBe('Delete folder spotify');
+  });
+
+  it('collapses folder tabs behind an icon-only toggle by default', async () => {
+    const el = await render(shellCtx({ buttons: { index: [], spotify: [] } }));
+    const dropdown = el.querySelector('#EditorButtons-Folders details.folders-dropdown');
+    expect(dropdown).not.toBeNull();
+    expect((dropdown as HTMLDetailsElement | null)?.open).toBe(false);
+    const toggle = el.querySelector('#EditorButtons-Folders summary.folders-toggle');
+    expect(toggle?.getAttribute('title')).toBe('open_folder');
+    expect(toggle?.getAttribute('aria-label')).toBe('open_folder');
+    expect(toggle?.querySelector('img.folders-toggle-icon')).not.toBeNull();
+    const panelTabs = el.querySelectorAll(
+      '#EditorButtons-Folders .folders-panel button.EditorButtons-Folder'
+    );
+    expect(panelTabs).toHaveLength(2);
   });
 });

@@ -15,7 +15,7 @@ export function applyHead(ctx: BootContext): void {
     // config value can never turn into an arbitrary remote stylesheet URL.
     // ?v= cache-bust (see frontend/index.html): bump with static/css changes.
     const href =
-      name === 'static/css/style.css' ? '/static/css/style.css?v=studio1' : `.config/themes/${name}`;
+      name === 'static/css/style.css' ? '/static/css/style.css?v=studio2' : `.config/themes/${name}`;
     head.append(q('<link>').attr({ rel: 'stylesheet', href }));
   }
   // NOTE: socket.io is a bundled `socket.io-client` import in wireup.ts;

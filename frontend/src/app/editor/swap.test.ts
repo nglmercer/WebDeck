@@ -67,11 +67,11 @@ describe('swapEditorButtonFunction', () => {
     const button = document.querySelector('#swapEditorButton') as HTMLElement;
 
     swapEditorButtonFunction();
-    expect(button.textContent).toBe('stop_swap_mode');
+    expect(button.textContent).toBe('stop_swap_mode_short');
     expect(button.getAttribute('title')).toBe('stop_swap_mode (S)');
 
     swapEditorButtonFunction();
-    expect(button.textContent).toBe('swap_buttons');
+    expect(button.textContent).toBe('swap_buttons_short');
     expect(button.getAttribute('title')).toBe('swap_buttons (S)');
   });
 

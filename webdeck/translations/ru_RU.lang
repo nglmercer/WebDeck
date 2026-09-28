@@ -146,6 +146,10 @@ quit_without_saving=Закрыть без сохранения
 save_and_exit=Сохранить и закрыть
 swap_buttons=Поменять 2 кнопки местами
 stop_swap_mode=Закрыть режим смены местами
+save_and_exit_short=Сохранить
+quit_without_saving_short=Закрыть
+swap_buttons_short=Поменять
+stop_swap_mode_short=Стоп
 swap_hint=Режим обмена: нажмите кнопку, затем цель. Пустые ячейки перемещают. S или Esc — выход.
 no_changes_to_undo=Нет изменений для отмены.
 
