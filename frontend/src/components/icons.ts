@@ -45,7 +45,10 @@ export type SectionIconName =
   | 'flask'
   | 'swatch'
   | 'upload'
-  | 'check';
+  | 'check'
+  | 'text'
+  | 'play'
+  | 'plus';
 
 export const SECTION_ICONS: Record<SectionIconName, string> = {
   sliders:
@@ -75,4 +78,7 @@ export const SECTION_ICONS: Record<SectionIconName, string> = {
   upload:
     '<path d="M8 10V2.5M5 5l3-3 3 3"/>' + '<path d="M2.5 10.5v2A1.5 1.5 0 0 0 4 14h8a1.5 1.5 0 0 0 1.5-1.5v-2"/>',
   check: '<path d="M2.5 8.5l3.5 3.5 7.5-8"/>',
+  text: '<path d="M4 3.5h8M8 3.5V12M5.5 12h5"/>',
+  play: '<path d="M5 3.5v9l7-4.5z"/>',
+  plus: '<path d="M8 3v10M3 8h10"/>',
 };

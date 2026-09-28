@@ -1017,7 +1017,11 @@ search-dropdown.dark-theme .sd-option.selected {
 .wd2-searchwrap {
   position: relative;
 }
-.wd2-searchwrap .addbutton-search {
+/* NOTE: the modal-content prefix is load-bearing specificity — the generic
+   `.addbutton-modal-content input[type="text"]` rule above would otherwise
+   win and its `padding` shorthand would bury `padding-left`, sliding the
+   text under the magnifier icon. */
+.addbutton-modal-content .wd2-searchwrap .addbutton-search {
   margin: 0;
   padding-left: 36px;
   background-color: var(--wd2-input);
@@ -1025,7 +1029,7 @@ search-dropdown.dark-theme .sd-option.selected {
   color: var(--wd2-text);
   border-radius: 10px;
 }
-.wd2-searchwrap .addbutton-search:focus {
+.addbutton-modal-content .wd2-searchwrap .addbutton-search:focus {
   border-color: var(--wd2-focus);
   box-shadow: 0 0 0 2px var(--wd2-focus-soft);
   outline: none;
@@ -1117,9 +1121,31 @@ search-dropdown.dark-theme .sd-option.selected {
   color: var(--wd2-muted);
 }
 .dropdown-btn:not(.no-dropdown):not(.active)::before,
-.dropdown-btn.active:not(.no-dropdown)::before,
-.no-dropdown::before {
+.dropdown-btn.active:not(.no-dropdown)::before {
   margin-left: 0;
+}
+/* Row icons: preset art sits in a light well (a miniature of the deck
+   tile it previews); group glyphs render inline in the text color. */
+.all-commands .wd2-rowicon {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid var(--wd2-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.all-commands .wd2-rowicon img,
+.all-commands .wd2-rowicon svg {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+.all-commands .wd2-section-icon {
+  flex: none;
 }
 .wd2-branch {
   border: 1px solid var(--wd2-border);

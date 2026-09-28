@@ -1,5 +1,6 @@
 import { asArray, asBool, asObject, asString, get, pySplit, rep, repCount } from '../framework/types';
 import type { BootContext, JsonObject } from '../framework/types';
+import { iconFillStyle } from '../components/button-icons';
 import { text } from '../framework/i18n';
 import { svgInlineStyle, svgSlotId } from './svg';
 
@@ -97,9 +98,7 @@ function buttonClass(buttons: JsonObject, folderId: string, buttonId: number): s
 
 function fillStyle(entry: JsonObject): string {
   if (!('color' in entry)) return '';
-  const color = asString(entry['color']);
-  if (color === 'invert') return 'filter: invert(1)';
-  return `fill:${color}; color:${color};`;
+  return iconFillStyle(asString(entry['color']));
 }
 
 /** Usage title/value block shared by both image branches. */

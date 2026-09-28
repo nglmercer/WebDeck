@@ -1,7 +1,9 @@
 <script lang="ts">
+  import SectionIcon from '../../components/SectionIcon.svelte';
+  import SvgSlot from '../../components/SvgSlot.svelte';
   import type { BootContext } from '../../framework/types';
   import AddArgsModal from './AddArgsModal.svelte';
-  import { addBrowserData, type BrowserLeaf } from './browser';
+  import { addBrowserData, type BrowserLeaf, type BrowserRowIcon } from './browser';
 
   interface Props {
     ctx: BootContext;
@@ -14,6 +16,22 @@
   // svelte-ignore state_referenced_locally
   const data = addBrowserData(ctx);
 </script>
+
+{#snippet rowIcon(icon: BrowserRowIcon)}
+  {#if icon.kind === 'glyph'}
+    <SectionIcon name={icon.name} size={18} />
+  {:else}
+    <!-- Art renders in a light well (deck-tile preview); the adjacent
+         title carries the accessible name, so the image is decorative. -->
+    <span class="wd2-rowicon">
+      {#if icon.kind === 'svg'}
+        <SvgSlot slot={icon.slot} />
+      {:else}
+        <img src={icon.src} draggable={false} alt="" style={icon.fill} />
+      {/if}
+    </span>
+  {/if}
+{/snippet}
 
 {#snippet leafRow(item: BrowserLeaf)}
   <!-- .wd2-leaf wraps desc + opener; the description stays the button's
@@ -28,6 +46,7 @@
       id="open-button-{item.argModalId}"
       dropdown-commandTag={item.commandTag}
     >
+      {@render rowIcon(item.icon)}
       {item.title}
     </button>
     <AddArgsModal ctx={ctx} mctx={item.mctx} />
@@ -37,6 +56,7 @@
 {#each data.categories as category}
   <div class="wd2-cat-card">
     <button class="dropdown-btn {data.dark}" dropdown-category={category.name}>
+      <SectionIcon name={category.icon} size={18} />
       {category.name}
     </button>
     <div class="dropdown-container">
@@ -49,6 +69,7 @@
               <div class="addbutton-description"><p>{item.branch.desc}</p></div>
             {/if}
             <button class="dropdown-btn {data.dark}" dropdown-category={item.branch.command}>
+              {@render rowIcon(item.branch.icon)}
               {item.branch.title}
             </button>
             <div class="dropdown-container">

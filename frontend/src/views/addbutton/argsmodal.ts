@@ -2,6 +2,7 @@
 
 import { text } from '../../framework/i18n';
 import { asObject, asString, type BootContext } from '../../framework/types';
+import { resolvePresetIcon } from '../../components/button-icons';
 import type { PreviewData } from '../../components/preview';
 import { catKey, cmdKey, hasVisibleParams } from '../args';
 import { addPreviewData } from './preview';
@@ -27,10 +28,14 @@ export function addArgsData(ctx: BootContext, mctx: AddModalContext): AddArgsDat
   const btn: 'btn' | 'category' = asString(commandValue['TYPE']).includes('multiple') ? 'category' : 'btn';
   const buttonName = addButtonName(ctx, mctx, btn, hasStyle);
 
+  const providedSize = asString(style['image_size']).trim();
+  const icon = resolvePresetIcon(mctx, style);
   const defaultSize =
-    hasStyle && asString(style['image_size']).trim() !== ''
-      ? asString(style['image_size']).trim().replace('%', '')
-      : '75';
+    providedSize !== ''
+      ? providedSize.replace('%', '')
+      : icon !== null
+        ? icon.image_size.replace('%', '')
+        : '75';
 
   return {
     dark,

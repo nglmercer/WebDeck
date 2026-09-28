@@ -68,25 +68,30 @@
   top: 8px;
 }
 
+/* Group chevrons render as currentColor masks, not `content: url()`: an SVG
+   loaded as replaced content is an isolated document, so its `currentColor`
+   falls back to black and the markers vanish on dark surfaces. Data-URI
+   (not /static: no extra request, no origin dependence): contrast follows
+   the button text color in both themes with no per-theme swap. Glyph bytes
+   match chevron_down.svg, which stays in place for themes referencing it.
+   (Leaf rows show their preset art in a well instead of a marker.) */
 .dropdown-btn:not(.no-dropdown):not(.active)::before,
 .dropdown-btn.active:not(.no-dropdown)::before {
-  content: url(/static/img//chevron_down.svg);
+  content: "";
+  width: 16px;
+  height: 16px;
   margin-left: -6px;
   margin-right: 6px;
   display: inline-block;
+  flex: none;
+  background: currentColor;
+  --wd-marker: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-chevron-down' viewBox='0 0 16 16'%3E  %3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+  mask: var(--wd-marker) no-repeat center / contain;
+  -webkit-mask: var(--wd-marker) no-repeat center / contain;
 }
 
 .dropdown-btn:not(.no-dropdown):not(.active)::before {
   transform: rotate(-90deg);
-}
-
-.no-dropdown::before {
-  content: url(/static/img//plus-circle2.svg);
-  margin-left: -6px;
-  margin-right: 6px;
-}
-.no-dropdown.dark-theme::before {
-  content: url(/static/img//plus-circle.svg)!important;
 }
 
 .addbutton-search {

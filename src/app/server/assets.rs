@@ -124,14 +124,15 @@ mod tests {
         // NOTE: `checked.svg` is gone on purpose — the swap checkbox now
         // renders a text check (contrast fix), so no stylesheet references
         // it and the inventory must not list it.
+        // NOTE: `chevron_down.svg` / `plus-circle.svg` / `plus-circle2.svg`
+        // are gone on purpose too — the add-button markers render as
+        // currentColor data-URI masks (contrast fix), so no stylesheet
+        // references the files anymore (they stay in place for themes).
         assert_eq!(
             get_svgs(),
             vec![
                 "/static/img//eye.svg",
                 "/static/img//eye-slash.svg",
-                "/static/img//chevron_down.svg",
-                "/static/img//plus-circle2.svg",
-                "/static/img//plus-circle.svg",
                 "/static/img//caret-up.svg",
                 "/static/img//caret-up.svg",
                 "/static/img//caret-up.svg",

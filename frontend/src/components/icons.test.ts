@@ -5,9 +5,10 @@ import DeleteXIcon from './DeleteXIcon.svelte';
 import FolderDeleteIcon from './FolderDeleteIcon.svelte';
 import PencilIcon from './PencilIcon.svelte';
 import PlusIcon from './PlusIcon.svelte';
+import SectionIcon from './SectionIcon.svelte';
 import SvgSlot from './SvgSlot.svelte';
 import TrashIcon from './TrashIcon.svelte';
-import { addPlusIcon } from './icons';
+import { addPlusIcon, SECTION_ICONS } from './icons';
 
 // Parsed-DOM parity: upstream SVGs carry a duplicated `class` attribute
 // (the parser keeps the first) and pre-escaped handler strings; the
@@ -78,6 +79,16 @@ describe('icons', () => {
     const el = await render(SvgSlot, { slot: 7 });
     const span = el.querySelector('span[data-svg-slot="7"]') as HTMLElement;
     expect(span?.style.display).toBe('contents');
+  });
+
+  it('renders the browser group glyphs as currentColor strokes', async () => {
+    for (const name of ['text', 'play', 'plus'] as const) {
+      expect(SECTION_ICONS[name]).toContain('<path d="M');
+      const el = await render(SectionIcon, { name });
+      const svg = el.querySelector('svg.wd2-section-icon')!;
+      expect(svg.getAttribute('stroke')).toBe('currentColor');
+      expect(svg.querySelector('path')).not.toBeNull();
+    }
   });
 
   it('keeps the runtime plus string for void-slot construction', () => {

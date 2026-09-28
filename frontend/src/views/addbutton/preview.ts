@@ -1,5 +1,6 @@
 // Button preview tile data (extracted from addbutton.ts).
 
+import { iconFillStyle, resolvePresetIcon } from '../../components/button-icons';
 import { previewImageLink, type PreviewData, type PreviewMedia } from '../../components/preview';
 import {
   asObject,
@@ -20,9 +21,12 @@ export function addPreviewData(ctx: BootContext, mctx: AddModalContext, buttonNa
   const textStyle =
     hasStyle && namesColor !== '' && namesColor.trim() !== '' ? `color:${namesColor};` : null;
 
-  let fill = '';
+  const fill = 'color' in style ? iconFillStyle(asString(style['color'])) : '';
+  // Provided art wins; otherwise the registry supplies the preset's
+  // default icon (usage presets resolve null: text-only by design).
+  const icon = resolvePresetIcon(mctx, style);
   let media: PreviewMedia;
-  if (!hasStyle) {
+  if (icon === null) {
     media = {
       kind: 'img',
       src: null,
@@ -32,36 +36,20 @@ export function addPreviewData(ctx: BootContext, mctx: AddModalContext, buttonNa
       fill: '',
     };
   } else {
-    if ('color' in style) {
-      const color = asString(style['color']);
-      fill = color === 'invert' ? 'filter: invert(1)' : `fill:${color}; color:${color};`;
-    }
-    const styleImage = asString(style['image']);
-    if (styleImage === '') {
-      media = {
-        kind: 'img',
-        src: null,
-        alt: '',
-        removeOnError: false,
-        widthPx: 112 * (50 / 100) + 3,
-        fill: '',
-      };
-    } else {
-      const imagelink = previewImageLink(styleImage);
-      const sizeNum = parseInt(rep(asString(style['image_size']), '%', ''), 10);
-      const px = 112 * (sizeNum / 100) + 3;
-      media = imagelink.endsWith('.svg')
-        ? {
-            kind: 'svg',
-            slot: svgSlotId(imagelink, ` id="button-image_${id}" ${svgInlineStyle(px, fill)}`, '<svg'),
-          }
-        : { kind: 'img', src: imagelink, alt: null, removeOnError: false, widthPx: px, fill };
-    }
+    const imagelink = previewImageLink(icon.image);
+    const sizeNum = parseInt(rep(icon.image_size, '%', ''), 10);
+    const px = 112 * (sizeNum / 100) + 3;
+    media = imagelink.endsWith('.svg')
+      ? {
+          kind: 'svg',
+          slot: svgSlotId(imagelink, ` id="button-image_${id}" ${svgInlineStyle(px, fill)}`, '<svg'),
+        }
+      : { kind: 'img', src: imagelink, alt: null, removeOnError: false, widthPx: px, fill };
   }
 
   return {
     id,
-    buttonId: hasStyle,
+    buttonId: hasStyle || icon !== null,
     buttonStyle: 'overflow: hidden; overflow-y: hidden; max-height: 89.6px;',
     media,
     usageFill: fill,

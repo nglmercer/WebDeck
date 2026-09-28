@@ -9,8 +9,37 @@ import {
   rep,
   type BootContext,
 } from '../../framework/types';
+import {
+  branchIcon,
+  categoryIcon,
+  rowIcon,
+  type RowIcon,
+} from '../../components/button-icons';
+import type { SectionIconName } from '../../components/icons';
+import { previewImageLink } from '../../components/preview';
 import { catKey, cmdKey } from '../args';
+import { svgInlineStyle, svgSlotId } from '../svg';
 import type { AddModalContext } from './types';
+
+/** Render-ready row icon: art resolves to an img or svg slot, glyphs inline. */
+export type BrowserRowIcon =
+  | { kind: 'img'; src: string; fill: string }
+  | { kind: 'svg'; slot: number }
+  | { kind: 'glyph'; name: SectionIconName };
+
+/** Row art edge, in px (rendered inside the light icon well). */
+export const ROW_ICON_PX = 20;
+
+function toRowIcon(icon: RowIcon): BrowserRowIcon {
+  if (icon.kind === 'glyph' || icon.image === '') {
+    return { kind: 'glyph', name: icon.kind === 'glyph' ? icon.name : 'plus' };
+  }
+  const src = previewImageLink(icon.image);
+  if (src.endsWith('.svg')) {
+    return { kind: 'svg', slot: svgSlotId(src, svgInlineStyle(ROW_ICON_PX, icon.fill)) };
+  }
+  return { kind: 'img', src, fill: icon.fill };
+}
 
 /** One leaf row: optional description + opener button + its args modal. */
 export interface BrowserLeaf {
@@ -18,6 +47,7 @@ export interface BrowserLeaf {
   title: string;
   argModalId: string;
   commandTag: string;
+  icon: BrowserRowIcon;
   mctx: AddModalContext;
 }
 
@@ -25,6 +55,7 @@ export interface BrowserBranch {
   desc: string;
   title: string;
   command: string;
+  icon: BrowserRowIcon;
   subs: BrowserLeaf[];
 }
 
@@ -34,6 +65,7 @@ export type BrowserItem =
 
 export interface BrowserCategory {
   name: string;
+  icon: SectionIconName;
   items: BrowserItem[];
 }
 
@@ -69,6 +101,16 @@ export function addBrowserData(ctx: BootContext): AddBrowserData {
         const titleQuery = `${catKey(category)}_${cmdKey(command)}__btn_name`;
         let buttonTitle = text(titleQuery);
         if (buttonTitle === titleQuery || buttonTitle === '') buttonTitle = command;
+        const mctx: AddModalContext = {
+          argModalId,
+          category,
+          command,
+          parentCommand: '',
+          subId: 0,
+          commandValue: cmdObj,
+          commandId: asString(cmdObj['command']),
+          buttonTitle,
+        };
         items.push({
           kind: 'single',
           leaf: {
@@ -76,16 +118,8 @@ export function addBrowserData(ctx: BootContext): AddBrowserData {
             title: buttonTitle,
             argModalId,
             commandTag: command,
-            mctx: {
-              argModalId,
-              category,
-              command,
-              parentCommand: '',
-              subId: 0,
-              commandValue: cmdObj,
-              commandId: asString(cmdObj['command']),
-              buttonTitle,
-            },
+            icon: toRowIcon(rowIcon(mctx, asObject(cmdObj['style']))),
+            mctx,
           },
         });
         continue;
@@ -109,27 +143,38 @@ export function addBrowserData(ctx: BootContext): AddBrowserData {
         // which is equivalent to parent + _sub{N} here.
         let subTitle = text(subTitleQuery);
         if (subTitle === subTitleQuery || subTitle === '') subTitle = subCommand;
+        const mctx: AddModalContext = {
+          argModalId: subArgId,
+          category,
+          command: subCommand,
+          parentCommand: command,
+          subId,
+          commandValue: subObj,
+          commandId: asString(subObj['command']),
+          buttonTitle: subTitle,
+        };
         return {
           desc: subDesc,
           title: subTitle,
           argModalId: subArgId,
           commandTag: subCommand,
-          mctx: {
-            argModalId: subArgId,
-            category,
-            command: subCommand,
-            parentCommand: command,
-            subId,
-            commandValue: subObj,
-            commandId: asString(subObj['command']),
-            buttonTitle: subTitle,
-          },
+          icon: toRowIcon(rowIcon(mctx, asObject(subObj['style']))),
+          mctx,
         };
       });
-      items.push({ kind: 'multi', branch: { desc: buttonDescription, title: buttonTitle, command, subs } });
+      items.push({
+        kind: 'multi',
+        branch: {
+          desc: buttonDescription,
+          title: buttonTitle,
+          command,
+          icon: toRowIcon(branchIcon({ category, branch: command })),
+          subs,
+        },
+      });
     }
 
-    return { name: categoryName, items };
+    return { name: categoryName, icon: categoryIcon(category), items };
   });
 
   return { dark, categories };

@@ -11,6 +11,7 @@ import {
   type BootContext,
 } from '../../framework/types';
 import { q, byId, post } from '../../query';
+import { seedPresetButtonState } from '../../components/button-icons';
 import { wireKeyField } from '../../components/keyfield';
 import { buildCommand, catKey, cmdKey, registerShowArg } from '../args';
 import { swapPreviewImage, updateButtonBackgroundColor, updateImageSize, type ButtonState } from '../modalstyle';
@@ -83,6 +84,9 @@ export function wireAddModal(ctx: BootContext, mctx: AddModalContext): void {
   const hasStyle = Object.keys(mctx.commandValue).includes('style') && Object.keys(style).length > 0;
   const btn: 'btn' | 'category' = asString(mctx.commandValue['TYPE']).includes('multiple') ? 'category' : 'btn';
   const buttonState: ButtonState = hasStyle ? { ...style } : {};
+  // Style-less presets save their registered default icon so the new tile
+  // matches the preview; provided art is never touched.
+  seedPresetButtonState(mctx, style, buttonState);
   const buttonName = addButtonName(ctx, mctx, btn, hasStyle);
   buttonState['name'] = buttonName;
   // NOTE: upstream references an undefined `command_X` global (ReferenceError

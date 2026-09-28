@@ -11,6 +11,7 @@ import {
   type JsonValue,
 } from '../framework/types';
 import { q, byId, post } from '../query';
+import { iconFillStyle } from '../components/button-icons';
 import { wireKeyField } from '../components/keyfield';
 import { previewImageLink, type PreviewData } from '../components/preview';
 import { buildCommand, hasVisibleParams, registerShowArg, type ArgsPrefill } from './args';
@@ -61,11 +62,7 @@ export function editModalData(
   const dark = ctx.dark_theme;
   const resolved = resolveButtonCommand(ctx.commands, message);
 
-  let fill = '';
-  if ('color' in buttonSettings) {
-    const color = asString(buttonSettings['color']);
-    fill = color === 'invert' ? 'filter: invert(1)' : `fill:${color}; color:${color};`;
-  }
+  const fill = 'color' in buttonSettings ? iconFillStyle(asString(buttonSettings['color'])) : '';
 
   const buttonName = resolveButtonName(buttonSettings, undefined);
   const namesColor = asString(get(ctx.config, 'front', 'names_color'));
