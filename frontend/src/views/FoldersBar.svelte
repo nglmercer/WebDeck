@@ -15,26 +15,25 @@
   // boot context, so this intentionally captures the initial props.
   // svelte-ignore state_referenced_locally
   const tabs = foldersBarData(ctx);
+  // svelte-ignore state_referenced_locally
+  const openFolder = text('open_folder');
 
   function tabAttrs(tab: FolderTab): Record<string, string> {
     return { onclick: `folder(\`${tab.safe}\`)` };
   }
 </script>
 
-<div
-  id="EditorButtons-Folders"
-  style="color: white; display: none; position: fixed; top: 0; right: 0; text-align: right;"
->
-  {text('open_folder')}:
+<div id="EditorButtons-Folders" class="folders-bar" style="display: none;">
+  <span class="folders-bar-label">{openFolder}:</span>
   {#each tabs as tab}
-    <div style="display: inline-block; margin-right: 10px;">
+    <div class="folder-tab-wrap">
       <button
-        class="button EditorButtons-Folder"
+        class="button folder-tab EditorButtons-Folder"
         use:stringAttrs={tabAttrs(tab)}
-        style="display: flex; justify-content: center;align-items: center;"
+        title="{openFolder}: {tab.folderId}"
       >
-        {tab.folderId}
-        <FolderDeleteIcon safeFolder={tab.safe} />
+        <span class="folder-tab-name">{tab.folderId}</span>
+        <FolderDeleteIcon folderName={tab.folderId} safeFolder={tab.safe} />
       </button>
     </div>
   {/each}

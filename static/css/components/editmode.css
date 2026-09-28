@@ -9,14 +9,14 @@
 .edit-button, .delete-button {
   position: absolute;
   top: 0;
-  right: 28px;
+  right: 30px;
   margin: 5px;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   color: #ffffff;
   background-color: #17233d;
   border-radius: 50%;
-  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.9), 0 2px 6px rgba(0, 0, 0, 0.5);
   text-align: center;
   font-size: 14px;
   cursor: pointer;
@@ -25,10 +25,17 @@
   align-items: center;
   justify-content: center;
   flex-direction: row;
+  transition: background-color 150ms, filter 150ms;
+}
+.edit-button:hover {
+  filter: brightness(1.35);
 }
 .delete-button {
   right: 0;
   background-color: #8f1d22;
+}
+.delete-button:hover {
+  background-color: #b3261e;
 }
 
 
@@ -50,23 +57,13 @@
   align-items: center;
   justify-content: center;
   flex-direction: row;
+  transition: filter 150ms;
+}
+.add-button:hover {
+  filter: brightness(1.2);
 }
 
-#swapEditorButton {
-  display: inline-flex;
-  align-items: center;
-}
-
-#EditorButtonLogo {
-  margin-right: 5px;
-}
-
-#SaveExitEditorButton {
-  display: inline-flex;
-  align-items: center;
-  margin-right: 5px;
-}
-
+/* Bottom editor bar: solid pill so tiles never bleed through behind it. */
 #EditorButtons {
   display: none;
   position: fixed;
@@ -75,19 +72,159 @@
   right: 16px;
   z-index: 2;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
-  background-color: rgba(13, 19, 32, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 12px;
+  max-width: calc(100vw - 32px);
+  background-color: #10151f;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+}
+
+/* Editor action buttons: explicit solid colors (theme-proof — they must
+   stay readable even when a user theme redefines button defaults). */
+#EditorButtons button.editor-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f4f4f6;
+  color: #16181d;
+  border: 1px solid transparent;
+  border-radius: 10px;
   padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: background-color 150ms, border-color 150ms;
+}
+#EditorButtons button.editor-btn:hover {
+  background-color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.65);
+}
+#EditorButtons button.editor-btn:active {
+  background-color: #e2e2e6;
+}
+#EditorButtons button.editor-btn:focus-visible {
+  outline: 2px solid #6cb2f5;
+  outline-offset: 2px;
+}
+#EditorButtons button.editor-btn-primary {
+  background-color: #2e7d32;
+  border-color: #2e7d32;
+  color: #ffffff;
+}
+#EditorButtons button.editor-btn-primary:hover {
+  background-color: #388e3c;
+  border-color: #388e3c;
+}
+#EditorButtons button.editor-btn-primary:active {
+  background-color: #256b29;
+}
+
+.editor-btn-icon {
+  flex: none;
+}
+.editor-btn-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+/* Shortcut chip: icon and key hint stay visually distinct from the label. */
+.editor-kbd {
+  font-family: ui-monospace, SFMono-Regular, Consolas, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 6px;
+  background-color: rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  color: inherit;
+}
+.editor-btn-primary .editor-kbd {
+  background-color: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 #swapHint {
   display: none;
-  color: #e8edf5;
+  color: #eef2f7;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 6px 10px;
   font-size: 12px;
   line-height: 1.35;
   max-width: 260px;
+}
+
+/* Top-right folder tabs: same solid pill treatment as the bottom bar. */
+.folders-bar {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: min(92vw, 680px);
+  background-color: #10151f;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 8px 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  color: #ffffff;
+  text-align: right;
+}
+.folders-bar-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #cfd6e0;
+  white-space: nowrap;
+}
+.folder-tab-wrap {
+  display: inline-flex;
+}
+button.folder-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f4f4f6;
+  color: #16181d;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 5px 8px 5px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  transition: background-color 150ms, border-color 150ms;
+}
+button.folder-tab:hover {
+  background-color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.65);
+}
+button.folder-tab:focus-visible {
+  outline: 2px solid #6cb2f5;
+  outline-offset: 2px;
+}
+.folder-tab-name {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.folder-tab-delete {
+  flex: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #5b6472;
+}
+.folder-tab-delete:hover {
+  color: #b3261e;
 }
 
 div.swapMode-open-folder {

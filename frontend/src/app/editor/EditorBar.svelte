@@ -13,18 +13,37 @@
   const swapButtons = text('swap_buttons');
 </script>
 
-<div id="EditorButtons" style="display: none;">
+<div id="EditorButtons" style="display: none;" role="toolbar" aria-label="Editor">
   <span id="swapHint" style="display: none;">{swapHint}</span>
-  <button class="button" id="SaveExitEditorButton">
-    <!-- svelte-ignore a11y_missing_attribute: 1:1 port, decorative button glyph. -->
-    <img src="static/img/save.svg" width="20" height="20" id="EditorButtonLogo" />
-    [E] {saveAndExit}
+  <button
+    class="button editor-btn editor-btn-primary"
+    id="SaveExitEditorButton"
+    title="{saveAndExit} (E)"
+    aria-keyshortcuts="e"
+  >
+    <img src="static/img/save.svg" width="16" height="16" class="editor-btn-icon" alt="" />
+    <span class="editor-btn-label">{saveAndExit}</span>
+    <kbd class="editor-kbd">E</kbd>
   </button>
-  <button class="button" id="exitEditorButton"> [Q] {quitWithoutSaving} </button>
+  <button
+    class="button editor-btn"
+    id="exitEditorButton"
+    title="{quitWithoutSaving} (Q)"
+    aria-keyshortcuts="q"
+  >
+    <img src="static/img/cross.svg" width="16" height="16" class="editor-btn-icon" alt="" />
+    <span class="editor-btn-label">{quitWithoutSaving}</span>
+    <kbd class="editor-kbd">Q</kbd>
+  </button>
 
-  <button class="button" id="swapEditorButton">
-    <!-- svelte-ignore a11y_missing_attribute: 1:1 port, decorative button glyph. -->
-    <img src="static/img/swap.png" width="20" height="20" id="EditorButtonLogo" />
-    [S] {swapButtons}
+  <button
+    class="button editor-btn"
+    id="swapEditorButton"
+    title="{swapButtons} (S)"
+    aria-keyshortcuts="s"
+  >
+    <img src="static/img/swap.png" width="16" height="16" class="editor-btn-icon" alt="" />
+    <span class="editor-btn-label" id="swapEditorLabel">{swapButtons}</span>
+    <kbd class="editor-kbd">S</kbd>
   </button>
 </div>

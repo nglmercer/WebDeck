@@ -10,8 +10,40 @@ export interface SvgSlot {
   replaceNeedle: '<svg ' | '<svg';
 }
 
-const slots: SvgSlot[] = [];
+let slots: SvgSlot[] = [];
 let slotSeq = 0;
+// One shared fetch per icon path: grids repeat the same few icons dozens
+// of times, and refetching per placeholder costs ~100 HTTP round trips.
+const svgCache = new Map<string, Promise<string | null>>();
+
+/**
+ * Drop all registered slots (call before a fresh mount: slot ids are
+ * assigned during render, so re-renders must start from zero instead of
+ * leaking stale entries on every refresh).
+ */
+export function resetSvgSlots(): void {
+  slots = [];
+  slotSeq = 0;
+}
+
+async function fetchSvg(path: string): Promise<string | null> {
+  let pending = svgCache.get(path);
+  if (!pending) {
+    pending = (async () => {
+      try {
+        const response = await fetch(path);
+        if (!response.ok) return null; // mirrors {% if isfile(...) %} guards
+        const svg = await response.text();
+        return svg.includes('<svg') ? svg : null;
+      } catch {
+        // Missing file renders nothing, like the isfile guards.
+        return null;
+      }
+    })();
+    svgCache.set(path, pending);
+  }
+  return pending;
+}
 
 /**
  * Inline size style for an inlined SVG icon. Both dimensions carry `px`
@@ -40,19 +72,13 @@ export async function hydrateSvgs(root: ParentNode = document): Promise<void> {
       const id = Number(q(span).attr('data-svg-slot'));
       const slot = slots[id];
       if (!slot) return;
-      try {
-        const response = await fetch(slot.path);
-        if (!response.ok) return; // mirrors {% if isfile(...) %} guards
-        const svg = await response.text();
-        if (!svg.includes('<svg')) return;
-        const inlined =
-          slot.replaceNeedle === '<svg '
-            ? svg.replace('<svg ', `<svg ${slot.attrs} `)
-            : svg.replace('<svg', `<svg${slot.attrs} `);
-        q(span).replaceWith(inlined.trim());
-      } catch {
-        // Missing file renders nothing, like the isfile guards.
-      }
+      const svg = await fetchSvg(slot.path);
+      if (svg === null) return;
+      const inlined =
+        slot.replaceNeedle === '<svg '
+          ? svg.replace('<svg ', `<svg ${slot.attrs} `)
+          : svg.replace('<svg', `<svg${slot.attrs} `);
+      q(span).replaceWith(inlined.trim());
     })
   );
 }

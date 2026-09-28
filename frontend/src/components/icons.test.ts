@@ -60,12 +60,14 @@ describe('icons', () => {
   });
 
   it('keeps the string delete handler with the pre-escaped folder id', async () => {
-    const el = await render(FolderDeleteIcon, { safeFolder: 'a&quot;b' });
+    const el = await render(FolderDeleteIcon, { folderName: 'a"b', safeFolder: 'a&quot;b' });
     const svg = el.querySelector('svg.delete-icon')!;
     // The parsed attribute holds `&quot;` (callers pre-replace `"`,
     // exactly as the inline template did after its double escape).
     expect(svg.getAttribute('onclick')).toBe(`event.stopPropagation(); deleteFolder('a&quot;b')`);
     expect(svg.querySelector('path')?.getAttribute('d')).toContain('M11.742 4.258');
+    expect(svg.querySelector('title')?.textContent).toBe('Delete folder a"b');
+    expect(svg.getAttribute('aria-label')).toBe('Delete folder a"b');
   });
 
   it('renders the trash glyph with a spaced title', async () => {

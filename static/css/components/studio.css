@@ -262,13 +262,23 @@ input[type="submit"].createbutton_submit:hover {
   background-color: var(--wd2-accent-h);
   box-shadow: none;
 }
-button.button {
+/* Scoped to modal shells on purpose: the --wd2-* tokens are defined
+   on those containers only. An unscoped `button.button` rule resolves to
+   transparent bg + inherited text outside modals, which made the editor
+   bar and folder tabs unreadable on the dark grid background. */
+.modal-container button.button,
+.addbutton-modal-container button.button,
+.addbutton-modal-container-args button.button,
+.editbutton-modal-container button.button {
   background-color: var(--wd2-panel);
   color: var(--wd2-text);
   border: 1px solid var(--wd2-border-strong);
   border-radius: 8px;
 }
-button.button:hover {
+.modal-container button.button:hover,
+.addbutton-modal-container button.button:hover,
+.addbutton-modal-container-args button.button:hover,
+.editbutton-modal-container button.button:hover {
   background-color: var(--wd2-border);
 }
 

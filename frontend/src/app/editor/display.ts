@@ -21,12 +21,19 @@ export function toggleEditorButtonsMode(): void {
   setEditorButtonsDisplay('.edit-button', display);
   setEditorButtonsDisplay('.delete-button', display);
   q(editorButtons()).css('display', display);
-  q(editorButtonsFolders()).css('display', pageState.editorMode === 0 ? 'none' : 'block');
+  q(editorButtonsFolders()).css('display', display);
 }
 
-/** Swap-button label text node (qdom has no text-node API; stays native). */
-export function swapButtonLabel(): ChildNode | null {
-  return byId('swapEditorButton').get(0)?.childNodes[1] ?? null;
+/**
+ * Swap-button label slot. Prefers the dedicated `#swapEditorLabel` span
+ * (its `textContent` is the label); falls back to the legacy second child
+ * node for markup without the span. Callers must set `textContent`
+ * (works on both elements and text nodes), never `nodeValue`.
+ */
+export function swapButtonLabel(): Node | null {
+  return (
+    byId('swapEditorLabel').get(0) ?? byId('swapEditorButton').get(0)?.childNodes[1] ?? null
+  );
 }
 
 export function hideEditorPartially(): void {

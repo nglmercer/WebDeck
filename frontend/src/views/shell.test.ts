@@ -154,4 +154,16 @@ describe('Shell', () => {
     expect(tab?.getAttribute('onclick')).toContain('&quot;');
     expect(tab?.textContent).toContain('a"b');
   });
+
+  it('labels folder tabs with hover titles and delete tooltips', async () => {
+    const el = await render(shellCtx({ buttons: { index: [], spotify: [] } }));
+    const bar = el.querySelector('#EditorButtons-Folders');
+    expect(bar?.classList.contains('folders-bar')).toBe(true);
+    const tabs = el.querySelectorAll('#EditorButtons-Folders button.EditorButtons-Folder');
+    expect(tabs[0]?.getAttribute('title')).toBe('open_folder: index');
+    expect(tabs[1]?.querySelector('.folder-tab-name')?.textContent).toBe('spotify');
+    const del = tabs[1]?.querySelector('svg.folder-tab-delete')!;
+    expect(del.querySelector('title')?.textContent).toBe('Delete folder spotify');
+    expect(del.getAttribute('aria-label')).toBe('Delete folder spotify');
+  });
 });

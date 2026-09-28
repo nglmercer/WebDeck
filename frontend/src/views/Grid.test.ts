@@ -105,6 +105,61 @@ describe('Grid', () => {
     });
   });
 
+  describe('hover titles and icon text', () => {
+    it('shows the tile name on hover and as the accessible name', async () => {
+      const el = await render(testCtx({ index: [volumeButton] }));
+      const button = form(el).querySelector('#button_e0X0') as HTMLElement;
+      expect(button.getAttribute('title')).toBe('Subir el volumen');
+      expect(button.getAttribute('aria-label')).toBe('Subir el volumen');
+    });
+
+    it('falls back to the command when the tile is unnamed', async () => {
+      const el = await render(testCtx({ index: [{ message: '/key a', name: '', image: '' }] }));
+      const button = form(el).querySelector('#button_e0X0') as HTMLElement;
+      expect(button.getAttribute('title')).toBe('/key a');
+    });
+
+    it('omits the tooltip when the tile has neither name nor command', async () => {
+      const el = await render(testCtx({ index: [{ message: '', name: '', image: '' }] }));
+      const button = form(el).querySelector('#button_e0X0') as HTMLElement;
+      expect(button.getAttribute('title')).toBeNull();
+    });
+
+    it('labels edit/delete badges and add slots for hover', async () => {
+      const el = await render(
+        testCtx({ index: [volumeButton, { message: '', name: '', image: '' }] })
+      );
+      const badges = form(el).querySelector('.container-editmode')!;
+      expect(badges.querySelector('.edit-button')?.getAttribute('title')).toBe(
+        'Subir el volumen'
+      );
+      expect(badges.querySelector('.delete-button')?.getAttribute('title')).toBe(
+        'Subir el volumen'
+      );
+      const voidHost = await render(testCtx({ index: [{ VOID: 'VOID' }] }));
+      expect(voidHost.querySelector('.void .add-button')?.getAttribute('title')).toBe(
+        'add_a_button'
+      );
+    });
+
+    it('prefers the tile name over the image path for icon alt text', async () => {
+      const el = await render(
+        testCtx({
+          index: [{ message: '/volume +', name: 'Subir el volumen', image: 'key.png' }],
+        })
+      );
+      expect(form(el).querySelector('.wd_button img')?.getAttribute('alt')).toBe(
+        'Subir el volumen'
+      );
+      const unnamed = await render(
+        testCtx({ index: [{ message: '/x', name: '', image: 'key.png', image_size: '75%' }] })
+      );
+      expect(form(unnamed).querySelector('.wd_button img')?.getAttribute('alt')).toBe(
+        'static/img/key.png'
+      );
+    });
+  });
+
   describe('handlers and values', () => {
     it('keeps inline string handlers on folder buttons', async () => {
       const el = await render(testCtx({ index: [{ message: '/folder docs', name: 'docs', image: '' }] }));

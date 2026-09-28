@@ -4,6 +4,7 @@
   import PencilIcon from '../components/PencilIcon.svelte';
   import PlusIcon from '../components/PlusIcon.svelte';
   import SvgSlot from '../components/SvgSlot.svelte';
+  import { text } from '../framework/i18n';
   import type { BootContext } from '../framework/types';
   import EditModal from './EditModal.svelte';
   import { gridData, type CellData } from './grid';
@@ -20,11 +21,28 @@
   // light DOM, exactly as with the previous innerHTML render.
   // svelte-ignore state_referenced_locally
   const grid = gridData(ctx);
+  // svelte-ignore state_referenced_locally
+  const addLabel = text('add_a_button');
 
   /** Raw handler attrs for /folder buttons (empty otherwise). */
   function folderAttrs(cell: CellData): Record<string, string> {
     if (cell.kind !== 'button' || cell.folderHandler === null) return {};
     return { onclick: cell.folderHandler, onclickhandler: cell.folderHandler };
+  }
+
+  /**
+   * Hover tooltip + accessible name for a tile (undefined omits the
+   * attribute). Falls back to the command when the tile is unnamed.
+   */
+  function tileTitle(cell: CellData): string | undefined {
+    if (cell.kind !== 'button') return undefined;
+    if (cell.name !== '') return cell.name;
+    return cell.message !== '' ? cell.message : undefined;
+  }
+
+  /** Icon alt text: tile name, falling back to the image path. */
+  function iconAlt(cell: Extract<CellData, { kind: 'button' }>, src: string): string {
+    return cell.name !== '' ? cell.name : src;
   }
 
   function removeSelf(event: Event): void {
@@ -46,6 +64,7 @@
               add_FOLDER={cell.folderId}
               add_ID={String(cell.buttonId)}
               style="display: none;"
+              title={addLabel}
             >
               <PlusIcon />
             </div>
@@ -62,10 +81,15 @@
               </div>
             {/if}
             <div class="container-editmode">
-              <div class="edit-button" style="display: none;" edit_modal_ID={cell.editModalId}>
+              <div
+                class="edit-button"
+                style="display: none;"
+                edit_modal_ID={cell.editModalId}
+                title={tileTitle(cell)}
+              >
                 <PencilIcon />
               </div>
-              <div class="delete-button" style="display: none;">
+              <div class="delete-button" style="display: none;" title={tileTitle(cell)}>
                 <DeleteXIcon />
               </div>
             </div>
@@ -81,6 +105,8 @@
               data-message={cell.message}
               class={cell.cls}
               role="button"
+              title={tileTitle(cell)}
+              aria-label={tileTitle(cell)}
               style="overflow: hidden; max-height: 89.6px;"
             >
               {#if cell.media.kind === 'svg'}
@@ -90,7 +116,7 @@
                 <img
                   src={cell.media.src}
                   draggable="false"
-                  alt={cell.media.src}
+                  alt={iconAlt(cell, cell.media.src)}
                   onerror={removeSelf}
                   style="width: {cell.media.px}px; {cell.media.fill}"
                 />

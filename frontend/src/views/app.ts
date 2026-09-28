@@ -10,7 +10,7 @@ import { initUploadFile } from '../legacy/upload-file';
 import { collectAddModals, wireAddModal, wireBrowserDropdowns, wireBrowserSearch } from '../views/addbutton';
 import { collectEditModals, wireEditModal } from '../views/editmodal';
 import { applyHead } from '../views/shell';
-import { hydrateSvgs } from '../views/svg';
+import { hydrateSvgs, resetSvgSlots } from '../views/svg';
 import { auto_resize } from '../app/zoom';
 import { installGlobals, wireApp } from '../app/wireup';
 import { wireModalA11y } from '../components/studio/a11y';
@@ -29,6 +29,9 @@ export function renderApp(target: HTMLElement, ctx: BootContext): void {
   // mount() appends; clear first so re-renders replace the previous tree
   // (the same replace semantics the old innerHTML render had).
   target.textContent = '';
+  // Slot ids are assigned during render: restart from zero so refreshes
+  // never accumulate stale entries.
+  resetSvgSlots();
   mountedApp = mount(App, { target, props: { ctx } }) as unknown as Record<string, never>;
 
   installGlobals();

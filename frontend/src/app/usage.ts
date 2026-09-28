@@ -111,6 +111,9 @@ export function startUsageLoop(reloadMs: number): void {
   if (usageIntervalId !== null) {
     clearInterval(usageIntervalId);
   }
+  // Poll immediately so tiles fill on first paint instead of going stale
+  // for a full interval (3s by default).
+  pollUsageOnce();
   usageIntervalId = setInterval(function () {
     pollUsageOnce();
   }, reloadMs);

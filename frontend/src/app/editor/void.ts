@@ -42,6 +42,7 @@ export function createVoidButton(event: Event | null = null, form: Element | nul
   const addButtonDiv = q('<div>')
     .addClass('add-button')
     .attr('data-testid', 'add-slot')
+    .attr('title', text('add_a_button'))
     .css('display', 'flex');
   const checkboxDiv = q('<div>').addClass('checkbox').css('display', 'none');
   // Parsed from markup: <svg>/<path> land in the SVG namespace, exactly

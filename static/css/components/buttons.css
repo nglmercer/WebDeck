@@ -25,6 +25,13 @@ button.button {
   background-color: rgba(51, 51, 51, 0.05);
   color: #333333;
 } */
+button.button:hover {
+  background-color: #ffffff;
+}
+button.button:focus-visible {
+  outline: 2px solid #1a73e8;
+  outline-offset: 2px;
+}
 
 .wd_button, .wd_button:focus {
   align-items: center;
@@ -84,6 +91,11 @@ button.button {
   transform: translateY(-1px);
   animation-name: wd-button-press;
   animation-duration: 1s;
+}
+
+.wd_button:focus-visible {
+  outline: 3px solid #1a73e8;
+  outline-offset: 2px;
 }
 
 .wd_button:active {

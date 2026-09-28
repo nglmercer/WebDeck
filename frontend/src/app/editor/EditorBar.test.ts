@@ -1,37 +1,8 @@
 import { mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import { html, type Html } from '../../framework/html';
-import { initI18n, text } from '../../framework/i18n';
+import { initI18n } from '../../framework/i18n';
+import { swapButtonLabel } from './display';
 import EditorBar from './EditorBar.svelte';
-
-/** Frozen pre-Svelte editor bar (editor/bar.ts, since migrated). */
-function legacyEditorBar(): Html {
-  return html`
-    <div id="EditorButtons" style="display: none;">
-      <span id="swapHint" style="display: none;">${text('swap_hint')}</span>
-      <button class="button" id="SaveExitEditorButton">
-        <img src="static/img/save.svg" width="20" height="20" id="EditorButtonLogo" />
-        [E] ${text('save_and_exit')}
-      </button>
-      <button class="button" id="exitEditorButton"> [Q] ${text('quit_without_saving')} </button>
-
-      <button class="button" id="swapEditorButton">
-        <img src="static/img/swap.png" width="20" height="20" id="EditorButtonLogo" />
-        [S] ${text('swap_buttons')}
-      </button>
-    </div>
-  `;
-}
-
-/** Strip Svelte anchor comments + whitespace for comparison. */
-function normalize(out: string): string {
-  return out
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/\s+/g, ' ')
-    .replace(/> /g, '>')
-    .replace(/ </g, '<')
-    .trim();
-}
 
 describe('EditorBar', () => {
   let host: HTMLElement | null = null;
@@ -55,18 +26,40 @@ describe('EditorBar', () => {
     return host;
   }
 
-  it('matches the legacy markup (modulo svelte anchors)', () => {
-    const el = render();
-    const oracle = document.createElement('div');
-    oracle.innerHTML = legacyEditorBar().value;
-    expect(normalize(el.innerHTML)).toBe(normalize(oracle.innerHTML));
-  });
-
   it('renders the swap hint slot and editor buttons', () => {
     const el = render();
     expect(el.querySelector('#swapHint')).not.toBeNull();
     expect(el.querySelector('#SaveExitEditorButton')).not.toBeNull();
     expect(el.querySelector('#exitEditorButton')).not.toBeNull();
     expect(el.querySelector('#swapEditorButton')).not.toBeNull();
+  });
+
+  it('shows icon, label, and shortcut chip per action', () => {
+    const el = render();
+    for (const [id, key, shortcut] of [
+      ['SaveExitEditorButton', 'save_and_exit', 'E'],
+      ['exitEditorButton', 'quit_without_saving', 'Q'],
+      ['swapEditorButton', 'swap_buttons', 'S'],
+    ] as const) {
+      const button = el.querySelector(`#${id}`)!;
+      expect(button.querySelector('img.editor-btn-icon')).not.toBeNull();
+      expect(button.querySelector('.editor-btn-label')?.textContent).toBe(key);
+      expect(button.querySelector('kbd.editor-kbd')?.textContent).toBe(shortcut);
+      expect(button.getAttribute('title')).toBe(`${key} (${shortcut})`);
+      expect(button.getAttribute('aria-keyshortcuts')).toBe(shortcut.toLowerCase());
+    }
+  });
+
+  it('exposes the swap label slot for mode toggles', () => {
+    const el = render();
+    const label = el.querySelector('#swapEditorButton #swapEditorLabel');
+    expect(label?.textContent).toBe('swap_buttons');
+    expect(swapButtonLabel()?.textContent).toBe('swap_buttons');
+  });
+
+  it('uses no duplicate ids', () => {
+    const el = render();
+    const ids = [...el.querySelectorAll('[id]')].map((node) => node.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });

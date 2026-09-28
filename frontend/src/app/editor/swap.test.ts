@@ -62,6 +62,19 @@ describe('swapEditorButtonFunction', () => {
     }
   });
 
+  it('syncs the swap label and hover title with the mode', () => {
+    pageState.editorMode = 1;
+    const button = document.querySelector('#swapEditorButton') as HTMLElement;
+
+    swapEditorButtonFunction();
+    expect(button.textContent).toBe('stop_swap_mode');
+    expect(button.getAttribute('title')).toBe('stop_swap_mode (S)');
+
+    swapEditorButtonFunction();
+    expect(button.textContent).toBe('swap_buttons');
+    expect(button.getAttribute('title')).toBe('swap_buttons (S)');
+  });
+
   it('clears stale pick markers when leaving swap mode', () => {
     pageState.editorMode = 1;
     editorUiState.swapMode = 1;

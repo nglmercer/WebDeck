@@ -97,23 +97,25 @@ export function swapButton(event: Event): void {
   }
 }
 
+/** Keep the swap button's label span and hover title in sync. */
+function setSwapLabel(label: string): void {
+  const swapLabel = swapButtonLabel();
+  if (swapLabel) {
+    swapLabel.textContent = label;
+  }
+  byId('swapEditorButton').get(0)?.setAttribute('title', `${label} (S)`);
+}
+
 export function swapEditorButtonFunction(_event?: Event): void {
   void _event;
   editorUiState.swapMode = editorUiState.swapMode === 0 ? 1 : 0;
-  const swapLabel = swapButtonLabel();
-  if (swapLabel) {
-    swapLabel.nodeValue =
-      editorUiState.swapMode === 0 ? `[S] ${text('swap_buttons')}` : `[S] ${text('stop_swap_mode')}`;
-  }
+  setSwapLabel(editorUiState.swapMode === 0 ? text('swap_buttons') : text('stop_swap_mode'));
   editorUiState.swapFirstBtn = 0;
   editorUiState.swapSecondBtn = 0;
   console.log('La valeur de swapMode a été modifiée :', editorUiState.swapMode);
 
   if (pageState.editorMode === 1 && editorUiState.swapMode === 1) {
-    const swapLabelInner = swapButtonLabel();
-    if (swapLabelInner) {
-      swapLabelInner.nodeValue = `[S] ${text('stop_swap_mode')}`;
-    }
+    setSwapLabel(text('stop_swap_mode'));
     hideEditorPartially();
     setEditorButtonsDisplay('.swapMode-open-folder', 'inline-flex');
     setEditorButtonsDisplay('div.checkbox', 'block');
@@ -133,10 +135,7 @@ export function swapEditorButtonFunction(_event?: Event): void {
       }
     }
   } else {
-    const swapLabelElse = swapButtonLabel();
-    if (swapLabelElse) {
-      swapLabelElse.nodeValue = `[S] ${text('swap_buttons')}`;
-    }
+    setSwapLabel(text('swap_buttons'));
     editorUiState.swapMode = 0;
     showEditorPartially();
 
