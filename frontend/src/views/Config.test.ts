@@ -202,7 +202,7 @@ describe('Config', () => {
     expect(libBtns[1]!.getAttribute('aria-current')).toBe('true');
 
     // Same-style tab strip switches panes in place.
-    expect(el.querySelectorAll('[role="tab"]')).toHaveLength(2);
+    expect(el.querySelectorAll('.wd2-lib-tabs [role="tab"]')).toHaveLength(2);
     (el.querySelector('#config-lib-tab-themes') as HTMLButtonElement).click();
     await tick();
     expect(el.querySelector('#config-lib-pane-themes')?.hasAttribute('hidden')).toBe(false);
@@ -238,6 +238,30 @@ describe('Config', () => {
     const toggle = entries[0]?.querySelector('.choose-bg-activate-button');
     expect(toggle?.tagName).toBe('BUTTON');
     expect(toggle?.getAttribute('aria-pressed')).toBe('true');
+    expect(el.querySelector('#create-image-bg.wd2-dropfile-input')).not.toBeNull();
+  });
+
+  it('switches the add-background tabs while keeping both panes mounted', async () => {
+    const el = await render();
+    const colorTab = el.querySelector('#bg-add-tab-color') as HTMLButtonElement;
+    const fileTab = el.querySelector('#bg-add-tab-file') as HTMLButtonElement;
+    const colorPane = el.querySelector('#bg-add-pane-color') as HTMLElement;
+    const filePane = el.querySelector('#bg-add-pane-file') as HTMLElement;
+    // Color composer first; file pane mounted but hidden.
+    expect(colorTab.getAttribute('aria-selected')).toBe('true');
+    expect(colorPane.hasAttribute('hidden')).toBe(false);
+    expect(filePane.hasAttribute('hidden')).toBe(true);
+
+    fileTab.click();
+    await tick();
+    expect(fileTab.getAttribute('aria-selected')).toBe('true');
+    expect(colorTab.getAttribute('aria-selected')).toBe('false');
+    expect(filePane.hasAttribute('hidden')).toBe(false);
+    expect(colorPane.hasAttribute('hidden')).toBe(true);
+
+    // Hidden panes stay in the DOM: the legacy wiring hooks survive.
+    expect(el.querySelector('#background-color-hex')).not.toBeNull();
+    expect(el.querySelector('#create-color-bg')).not.toBeNull();
     expect(el.querySelector('#create-image-bg.wd2-dropfile-input')).not.toBeNull();
   });
 

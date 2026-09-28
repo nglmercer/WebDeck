@@ -1489,7 +1489,11 @@ a.wd-collapse-info:hover {
   margin: 0;
   font-size: 13px;
 }
-/* add-background composer: color row, divider, upload row */
+/* add-background composer: tab strip + one visible panel (color / file) */
+/* composer tabs reuse the modal tab style, without its modal padding */
+.wd2-bg-add-tabs .wd2-tabs {
+  padding: 0;
+}
 #create-bg-choices {
   display: flex;
   flex-direction: column;
@@ -1501,6 +1505,12 @@ a.wd-collapse-info:hover {
   font-size: 13px;
   color: var(--wd2-muted);
 }
+#create-bg-choices [role="tabpanel"][hidden] {
+  display: none;
+}
+#create-bg-choices [role="tabpanel"] {
+  padding-top: 2px;
+}
 .wd2-bg-add-row {
   display: flex;
   gap: 10px;
@@ -1510,21 +1520,6 @@ a.wd-collapse-info:hover {
 .wd2-bg-add-row .background-color-input-container {
   flex: 1 1 220px;
   min-width: 0;
-}
-.wd2-bg-or {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-.wd2-bg-or::before,
-.wd2-bg-or::after {
-  content: "";
-  flex: 1;
-  border-top: 1px solid var(--wd2-border);
 }
 /* background cards: preview block + footer (label left, actions right) */
 #choose-backgrounds-container {
@@ -1657,7 +1652,7 @@ div.choose-bg-element-color {
 #setting-themes,
 #setting-background,
 #open-themes-folder,
-#create-bg-choices button,
+#create-bg-choices button:not(.wd2-tab),
 #create-color-bg {
   border: 1px solid var(--wd2-border-strong);
   background: var(--wd2-panel);
@@ -1670,7 +1665,7 @@ div.choose-bg-element-color {
 #setting-themes:hover,
 #setting-background:hover,
 #open-themes-folder:hover,
-#create-bg-choices button:hover,
+#create-bg-choices button:not(.wd2-tab):hover,
 #create-color-bg:hover {
   background: var(--wd2-border);
 }

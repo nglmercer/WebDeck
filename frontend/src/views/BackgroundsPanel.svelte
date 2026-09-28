@@ -4,6 +4,7 @@
   import SectionIcon from '../components/SectionIcon.svelte';
   import TrashIcon from '../components/TrashIcon.svelte';
   import { tx } from '../components/studio/labels';
+  import StudioTabs from '../components/studio/StudioTabs.svelte';
   import { text } from '../framework/i18n';
   import type { BgEntry } from './config';
 
@@ -16,6 +17,16 @@
   let { dark, backgrounds, trashTitle }: Props = $props();
 
   const toggleLabel = tx('studio_bg_toggle', 'Toggle background');
+
+  // Add-background composer tabs. Panes stay mounted (hidden only) so the
+  // legacy wiring on #background-color-*, #create-color-bg and
+  // #create-image-bg keeps working — same contract as the library tabs.
+  let addTab = $state('color');
+  // svelte-ignore state_referenced_locally
+  const addTabs = [
+    { id: 'color', label: text('background_color') },
+    { id: 'file', label: text('select_your_file') },
+  ];
 </script>
 
 {#snippet bgButtons(entry: BgEntry)}
@@ -38,27 +49,48 @@
     <span class="wd2-count" id="bg-count">{backgrounds.length}</span>
   </div>
   <div id="create-bg-choices">
-    <div class="wd2-bg-add-row">
-      <ColorField
-        dark={dark}
-        containerClass="background-color-input-container"
-        colorClass="background-color-input"
-        colorId="background-color-input"
-        hexClass="background-color-setting"
-        hexId="background-color-hex"
-        placeholder="{text('wallpaper_color')} (HEX)"
-        value=""
+    <div class="wd2-bg-add-tabs">
+      <StudioTabs
+        tabs={addTabs}
+        selected={addTab}
+        onSelect={(id) => (addTab = id)}
+        idPrefix="bg-add"
       />
-      <button class={dark} id="create-color-bg"> {text('add_background_color')} </button>
     </div>
-    <p class="wd2-bg-or"><span>{text('or')}</span></p>
-    <FileField
-      id="create-image-bg"
-      accept="image/jpeg, image/png, image/gif, video/mp4"
-      browseLabel={text('select_your_file')}
-      emptyLabel={text('no_file_chosen')}
-      hint="JPG · PNG · GIF · MP4"
-    />
+    <div
+      role="tabpanel"
+      id="bg-add-pane-color"
+      aria-labelledby="bg-add-tab-color"
+      hidden={addTab !== 'color'}
+    >
+      <div class="wd2-bg-add-row">
+        <ColorField
+          dark={dark}
+          containerClass="background-color-input-container"
+          colorClass="background-color-input"
+          colorId="background-color-input"
+          hexClass="background-color-setting"
+          hexId="background-color-hex"
+          placeholder="{text('wallpaper_color')} (HEX)"
+          value=""
+        />
+        <button class={dark} id="create-color-bg"> {text('add_background_color')} </button>
+      </div>
+    </div>
+    <div
+      role="tabpanel"
+      id="bg-add-pane-file"
+      aria-labelledby="bg-add-tab-file"
+      hidden={addTab !== 'file'}
+    >
+      <FileField
+        id="create-image-bg"
+        accept="image/jpeg, image/png, image/gif, video/mp4"
+        browseLabel={text('select_your_file')}
+        emptyLabel={text('no_file_chosen')}
+        hint="JPG · PNG · GIF · MP4"
+      />
+    </div>
   </div>
   <div id="choose-backgrounds-container">
     {#each backgrounds as entry}
