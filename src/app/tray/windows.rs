@@ -1,8 +1,8 @@
-//! Tray windows: QR, config, port prompt (extracted from `tray.rs`).
+//! Tray windows: config, port prompt (extracted from `tray.rs`).
 //!
-//! The tao/wry window runner plus the three windows built on it. Python
-//! keeps the tkinter window in a global; a bool guard is the cross-thread
-//! equivalent (tao windows cannot be lifted from here).
+//! The tao/wry window runner plus the two windows built on it. The QR
+//! popup is a separate `webdeck-qr` child process instead (see
+//! [`show_qrcode`]): one light `minifb` window, no webview.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -10,6 +10,7 @@ use super::state::{local_ip, reload_config};
 use crate::app::buttons::system::openfile::openfile;
 use crate::app::utils::languages::text;
 use crate::app::utils::logger::log;
+use crate::app::utils::qr;
 use crate::app::utils::restart::restart_program;
 use crate::app::utils::settings::get_config::{get_config, get_port, save_config};
 
@@ -17,19 +18,15 @@ use crate::app::utils::settings::get_config::{get_config, get_port, save_config}
 /// cross-thread equivalent (tao windows cannot be lifted from here).
 static QR_OPEN: AtomicBool = AtomicBool::new(false);
 
-/// Port of `generate_qr_code`: EC-L QR PNG bytes for `url`, ~290px,
-/// black-on-white (Python's `show_qrcode` always uses `dark_theme=False`).
-fn generate_qr_code_png(url: &str) -> Option<Vec<u8>> {
-    let code = qrcode::QrCode::with_error_correction_level(url, qrcode::EcLevel::L).ok()?;
-    let image = code
-        .render::<image::Luma<u8>>()
-        .max_dimensions(290, 290)
-        .build();
-    let mut png = Vec::new();
-    image
-        .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
-        .ok()?;
-    Some(png)
+/// Stdin of the running QR viewer, when one is open: each line is a frame
+/// command for the child's protocol (`<png-path>` swaps the frame,
+/// `QUIT` closes). Held apart from the `Child` so frame pushes never
+/// block on the spawner thread's `wait`.
+static QR_STDIN: std::sync::OnceLock<std::sync::Mutex<Option<std::process::ChildStdin>>> =
+    std::sync::OnceLock::new();
+
+fn qr_stdin_slot() -> &'static std::sync::Mutex<Option<std::process::ChildStdin>> {
+    QR_STDIN.get_or_init(|| std::sync::Mutex::new(None))
 }
 
 /// Load an app `.ico` file as RGBA pixels resized to `size`x`size`.
@@ -43,6 +40,8 @@ pub(crate) fn load_icon_rgba(path: &str, size: u32) -> Option<(Vec<u8>, u32, u32
 
 /// Port of `show_qrcode`: QR image + URL label, not resizable,
 /// Escape/Return/Space close.
+/// Rendered by a detached `webdeck-qr` child process (light `minifb`
+/// window, no webview); a second call while one is open stays a no-op.
 pub fn show_qrcode() {
     if QR_OPEN.swap(true, Ordering::SeqCst) {
         return;
@@ -50,24 +49,58 @@ pub fn show_qrcode() {
     std::thread::spawn(|| {
         let (_, _, language, _) = reload_config();
         let url = format!("http://{}:{}/", local_ip(), get_port());
-        let png = generate_qr_code_png(&url).unwrap_or_default();
-        let b64 = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &png);
-        let html = format!(
-            "<!doctype html><html><body style=\"background:#fff;color:#000;font-family:sans-serif;text-align:center;margin:0;padding:8px\">\
-             <img src=\"data:image/png;base64,{b64}\" width=\"290\" height=\"290\"/>\
-             <p style=\"margin:6px 0 0;font-size:13px;font-family:Helvetica,sans-serif\">{url}</p></body></html>"
-        );
-        run_window(
-            &text(Some("qr_code"), Some(&language)),
-            310,
-            360,
-            false,
-            false,
-            CloseKeys::Activate,
-            move |builder| builder.with_html(html),
-        );
+        if let Err(e) = spawn_qr_viewer(&url, &text(Some("qr_code"), Some(&language))) {
+            log().warning(&format!("qr viewer failed: {e}"));
+        }
+        *qr_stdin_slot().lock().unwrap_or_else(|e| e.into_inner()) = None;
         QR_OPEN.store(false, Ordering::SeqCst);
     });
+}
+
+/// Write the QR PNG handoff file and run the viewer to completion.
+/// Blocks until the viewer exits (runs on the spawner thread).
+fn spawn_qr_viewer(url: &str, title: &str) -> Result<(), String> {
+    let png =
+        qr::generate_qr_code_png(url).ok_or_else(|| format!("cannot encode {url:?} as QR"))?;
+    let path = qr::qr_png_path();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("cannot create temp dir: {e}"))?;
+    }
+    std::fs::write(&path, png).map_err(|e| format!("cannot write {}: {e}", path.display()))?;
+
+    let mut cmd = std::process::Command::new(qr::resolve_viewer_binary());
+    cmd.arg(format!("--png={}", path.display()));
+    cmd.arg(format!("--title={title}"));
+    cmd.arg(format!("--label={url}"));
+    cmd.stdin(std::process::Stdio::piped());
+    #[cfg(windows)]
+    {
+        // Keep the child from flashing a console window.
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000);
+    }
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| format!("cannot spawn webdeck-qr: {e}"))?;
+    *qr_stdin_slot().lock().unwrap_or_else(|e| e.into_inner()) = child.stdin.take();
+    child
+        .wait()
+        .map_err(|e| format!("webdeck-qr failed: {e}"))?;
+    Ok(())
+}
+
+/// Push a new frame (PNG path) to the open QR viewer, if any.
+/// Returns false when no viewer is running (call [`show_qrcode`] first).
+#[allow(dead_code)]
+pub fn push_qr_frame(png_path: &std::path::Path) -> bool {
+    use std::io::Write;
+    let mut slot = qr_stdin_slot().lock().unwrap_or_else(|e| e.into_inner());
+    match slot.as_mut() {
+        Some(stdin) => writeln!(stdin, "{}", png_path.display())
+            .and_then(|_| stdin.flush())
+            .is_ok(),
+        None => false,
+    }
 }
 
 /// Port of `open_config`: integrated maximized window or external browser.
@@ -146,9 +179,9 @@ pub fn change_port_prompt() {
 /// Which keys close a tao window (Python binds differ per window).
 #[derive(Clone, Copy)]
 enum CloseKeys {
-    /// Escape/Return/Space (QR window).
-    Activate,
     /// Escape only (config + port windows handle Return themselves).
+    /// (The QR window moved to the `webdeck-qr` child, which closes on
+    /// Escape/Return/Space itself.)
     EscapeOnly,
 }
 
@@ -260,13 +293,6 @@ fn run_window_inner<F>(
                     }
                     let close = match close_keys {
                         CloseKeys::EscapeOnly => event.physical_key == KeyCode::Escape,
-                        CloseKeys::Activate => matches!(
-                            event.physical_key,
-                            KeyCode::Escape
-                                | KeyCode::Enter
-                                | KeyCode::NumpadEnter
-                                | KeyCode::Space
-                        ),
                     };
                     if close {
                         *control_flow = ControlFlow::Exit;

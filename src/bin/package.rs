@@ -6,8 +6,8 @@
 //!
 //! Mapping vs `setup.py`:
 //! - cx_Freeze `build_exe` → `cargo build --release` (`webdeck` → `WebDeck`,
-//!   `update` → `update`; the dev-only `console` binary is not shipped,
-//!   like before).
+//!   `update` → `update`, `webdeck-qr` → `webdeck-qr`; the dev-only
+//!   `console` binary is not shipped, like before).
 //! - `include_files` (whole repo minus ignores) → the runtime-closed set:
 //!   `webdeck/`, `static/`, `frontend/dist/`, docs READMEs, `lib/nircmd.exe`.
 //!   No Python sources, no frozen `lib/` tree, no `venv`/`target` bloat.
@@ -74,9 +74,18 @@ fn read_version() -> Result<String, String> {
 
 /// Port of the cx_Freeze compile step: release binaries for the app + updater.
 fn release_build() -> Result<(), String> {
-    println!("package: cargo build --release --bin webdeck --bin update");
+    println!("package: cargo build --release --bin webdeck --bin update --bin webdeck-qr");
     let status = Command::new("cargo")
-        .args(["build", "--release", "--bin", "webdeck", "--bin", "update"])
+        .args([
+            "build",
+            "--release",
+            "--bin",
+            "webdeck",
+            "--bin",
+            "update",
+            "--bin",
+            "webdeck-qr",
+        ])
         .status()
         .map_err(|e| format!("cannot run cargo build: {e}"))?;
     if !status.success() {
@@ -186,7 +195,11 @@ fn stage_tree() -> Result<PathBuf, String> {
     let stage = root.join("WebDeck");
     let exe = std::env::consts::EXE_SUFFIX;
 
-    for (bin, shipped) in [("webdeck", "WebDeck"), ("update", "update")] {
+    for (bin, shipped) in [
+        ("webdeck", "WebDeck"),
+        ("update", "update"),
+        ("webdeck-qr", "webdeck-qr"),
+    ] {
         let src = Path::new("target/release").join(format!("{bin}{exe}"));
         if !src.is_file() {
             return Err(format!("missing release binary: {}", src.display()));

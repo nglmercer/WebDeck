@@ -15,6 +15,7 @@ pub mod languages;
 pub mod logger;
 pub mod merge_dicts;
 pub mod plugins;
+pub mod qr;
 pub mod restart;
 pub mod settings;
 pub mod show_error;

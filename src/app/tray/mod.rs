@@ -2,7 +2,8 @@
 //!
 //! Backend mapping (behavior kept 1:1 with the Python build):
 //! - `pystray` tray icon + menu -> [`tray_icon`] (+ `muda` menu items).
-//! - `tkinter` QR / port-prompt windows -> `tao` + `wry` windows.
+//! - `tkinter` QR window -> `webdeck-qr` child process (`minifb`, no webview).
+//! - `tkinter` port-prompt window -> `tao` + `wry` window.
 //! - `pywebview` integrated config window -> `tao` + `wry` maximized window.
 //! - `webbrowser.open` -> [`crate::app::buttons::system::openfile::openfile`].
 //! - `PIL.Image.open("*.ico")` -> [`image`] crate decode.

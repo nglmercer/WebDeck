@@ -22,6 +22,10 @@ path = "src/bin/update.rs"
 name = "package"
 path = "src/bin/package.rs"
 
+[[bin]]
+name = "webdeck-qr"
+path = "src/bin/qr.rs"
+
 [lib]
 name = "webdeck"
 path = "src/lib.rs"
@@ -42,6 +46,7 @@ zip = "2"
 sysinfo = "0.39.6"
 image = "0.25.10"
 qrcode = "0.14.1"
+minifb = "0.28"
 arboard = "3.6.1"
 enigo = "0.6.1"
 notify-rust = "4.18.0"
