@@ -16,43 +16,51 @@
 </script>
 
 {#snippet leafRow(item: BrowserLeaf)}
-  {#if item.desc !== ''}
-    <div class="addbutton-description"><p>{item.desc}</p></div>
-  {/if}
-  <button
-    arg_modal_ID={item.argModalId}
-    class="dropdown-btn no-dropdown {data.dark}"
-    id="open-button-{item.argModalId}"
-    dropdown-commandTag={item.commandTag}
-  >
-    {item.title}
-  </button>
-  <AddArgsModal ctx={ctx} mctx={item.mctx} />
+  <!-- .wd2-leaf wraps desc + opener; the description stays the button's
+       previous sibling so the live filter keeps pairing them. -->
+  <div class="wd2-leaf">
+    {#if item.desc !== ''}
+      <div class="addbutton-description"><p>{item.desc}</p></div>
+    {/if}
+    <button
+      arg_modal_ID={item.argModalId}
+      class="dropdown-btn no-dropdown {data.dark}"
+      id="open-button-{item.argModalId}"
+      dropdown-commandTag={item.commandTag}
+    >
+      {item.title}
+    </button>
+    <AddArgsModal ctx={ctx} mctx={item.mctx} />
+  </div>
 {/snippet}
 
 {#each data.categories as category}
-  <button class="dropdown-btn {data.dark}" dropdown-category={category.name}>
-    {category.name}
-  </button>
-  <div class="dropdown-container">
-    {#each category.items as item}
-      {#if item.kind === 'single'}
-        {@render leafRow(item.leaf)}
-      {:else}
-        {#if item.branch.desc !== ''}
-          <div class="addbutton-description"><p>{item.branch.desc}</p></div>
-        {/if}
-        <button class="dropdown-btn {data.dark}" dropdown-category={item.branch.command}>
-          {item.branch.title}
-        </button>
-        <div class="dropdown-container">
-          <div class="dropdown-item-container">
-            {#each item.branch.subs as sub}
-              {@render leafRow(sub)}
-            {/each}
+  <div class="wd2-cat-card">
+    <button class="dropdown-btn {data.dark}" dropdown-category={category.name}>
+      {category.name}
+    </button>
+    <div class="dropdown-container">
+      {#each category.items as item}
+        {#if item.kind === 'single'}
+          {@render leafRow(item.leaf)}
+        {:else}
+          <div class="wd2-branch">
+            {#if item.branch.desc !== ''}
+              <div class="addbutton-description"><p>{item.branch.desc}</p></div>
+            {/if}
+            <button class="dropdown-btn {data.dark}" dropdown-category={item.branch.command}>
+              {item.branch.title}
+            </button>
+            <div class="dropdown-container">
+              <div class="dropdown-item-container">
+                {#each item.branch.subs as sub}
+                  {@render leafRow(sub)}
+                {/each}
+              </div>
+            </div>
           </div>
-        </div>
-      {/if}
-    {/each}
+        {/if}
+      {/each}
+    </div>
   </div>
 {/each}

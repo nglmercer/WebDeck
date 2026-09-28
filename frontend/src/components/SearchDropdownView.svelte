@@ -137,6 +137,7 @@
 />
 <!-- svelte-ignore a11y_interactive_supports_focus, a11y_click_events_have_key_events: 1:1 port of the original markup (keyboard handling lives on the search box, as before). -->
 <div class="sd-list" role="listbox" id={listId} bind:this={listEl} onclick={onListClick}>
+  {#if visible.length === 0}<div class="wd2-sd-empty">No matches — try another search.</div>{/if}
   {#each visible as option}<div
       class="sd-option"
       class:selected={option === selected}

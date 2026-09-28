@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V1 Refinada — Configura tu botón</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 28px 16px; background: #141414; color: #ececec;
+    font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  }
+  .stage { position: fixed; inset: 0; display: grid; grid-template-columns: repeat(8, 1fr);
+    gap: 10px; padding: 22px; pointer-events: none; opacity: .55; }
+  .stage i { background: #202020; border-radius: 10px; }
+  .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.62); pointer-events: none; }
+  .modal {
+    position: relative; width: 660px; max-width: 100%; max-height: calc(100vh - 56px);
+    display: flex; flex-direction: column; background: #242424;
+    border: 1px solid #353535; border-radius: 14px;
+    box-shadow: 0 26px 70px rgba(0,0,0,.55); overflow: hidden;
+  }
+  header { padding: 18px 22px 14px; border-bottom: 1px solid #353535;
+    display: flex; align-items: flex-start; gap: 12px; }
+  header h1 { font-size: 18px; margin: 0; }
+  header p { margin: 3px 0 0; font-size: 13px; color: #9c9c9c; }
+  header p code { background: #1b1b1b; border: 1px solid #3a3a3a; border-radius: 6px;
+    padding: 1px 6px; color: #cfcfcf; font-size: 12px; }
+  .close { margin-left: auto; border: 1px solid #404040; background: #2c2c2c; color: #cfcfcf;
+    width: 30px; height: 30px; border-radius: 8px; font-size: 16px; cursor: pointer; line-height: 1; }
+  .close:hover { background: #383838; }
+  .content { padding: 18px 22px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+  section { background: #1d1d1d; border: 1px solid #333; border-radius: 11px; padding: 14px 16px 16px; }
+  section > h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
+    color: #9c9c9c; margin: 0 0 12px; font-weight: 700; }
+  label.lbl { display: block; font-size: 13px; color: #c6c6c6; margin: 0 0 6px; font-weight: 600; }
+  input[type="text"], input[type="search"] {
+    width: 100%; background: #141414; border: 1px solid #3d3d3d; color: #ececec;
+    border-radius: 8px; padding: 10px 12px; font-size: 14px; outline: none;
+  }
+  input:focus { border-color: #6cb2f5; box-shadow: 0 0 0 2px rgba(108,178,245,.25); }
+  .row { display: flex; gap: 10px; }
+  .row > input { flex: 1; }
+  .btn {
+    border: 1px solid #4a4a4a; background: #313131; color: #f0f0f0; border-radius: 8px;
+    padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+  .btn:hover { background: #3b3b3b; }
+  .btn.arming { background: #7b1fa2; border-color: #a446c9; animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: .75; } }
+  @media (prefers-reduced-motion: reduce) { .btn.arming { animation: none; } }
+  .search { margin-top: 10px; }
+  .keys { margin: 8px 0 0; padding: 6px; list-style: none; max-height: 168px; overflow-y: auto;
+    background: #141414; border: 1px solid #3d3d3d; border-radius: 8px; }
+  .keys li { padding: 8px 10px; border-radius: 6px; font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; gap: 10px; }
+  .keys li:hover { background: #262626; }
+  .keys li.sel { background: #234d26; }
+  .keys kbd { font-family: inherit; font-size: 12px; background: #2e2e2e; border: 1px solid #4a4a4a;
+    border-bottom-width: 2px; border-radius: 6px; padding: 2px 8px; color: #e0e0e0; }
+  .keys .empty { color: #9c9c9c; cursor: default; }
+  .imgrow { display: flex; gap: 14px; align-items: center; }
+  .thumb { width: 74px; height: 74px; border-radius: 10px; background: #101010;
+    border: 1px solid #3d3d3d; display: flex; align-items: center; justify-content: center;
+    font-size: 30px; color: #8a8a8a; flex: none; }
+  .imgmeta { flex: 1; min-width: 0; }
+  .filebtn { display: inline-block; border: 1px solid #4a4a4a; background: #313131;
+    border-radius: 8px; padding: 8px 14px; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+  .filebtn:hover { background: #3b3b3b; }
+  .filename { font-size: 12.5px; color: #9c9c9c; margin: 6px 0 0; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+  .sizerow { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+  .sizerow input[type="range"] { flex: 1; accent-color: #43a047; }
+  .pct { font-size: 13px; font-weight: 700; background: #141414; border: 1px solid #3d3d3d;
+    border-radius: 7px; padding: 5px 10px; min-width: 62px; text-align: center; }
+  .colorrow { display: flex; gap: 10px; }
+  .colorrow input[type="color"] { width: 46px; height: 40px; padding: 2px; border: 1px solid #3d3d3d;
+    border-radius: 8px; background: #141414; cursor: pointer; flex: none; }
+  .colorrow input[type="text"] { font-family: ui-monospace, Consolas, monospace; }
+  .field + .field { margin-top: 12px; }
+  footer { border-top: 1px solid #353535; padding: 14px 22px; display: flex;
+    justify-content: flex-end; gap: 10px; background: #202020; }
+  .btn.ghost { background: transparent; }
+  .btn.primary { background: #43a047; border-color: #43a047; }
+  .btn.primary:hover { background: #4cb050; }
+  .toast {
+    position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #2e7d32; color: #fff; font-weight: 600; font-size: 14px;
+    padding: 11px 20px; border-radius: 10px; opacity: 0; transition: opacity .2s, transform .2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="stage" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+<div class="scrim" aria-hidden="true"></div>
+<div class="modal" role="dialog" aria-label="Configura tu botón">
+  <header>
+    <div>
+      <h1>Configura tu botón: Pulsar una tecla del teclado</h1>
+      <p>Comando <code>/key</code> · V1 Refinada</p>
+    </div>
+    <button class="close" type="button" aria-label="Cerrar">×</button>
+  </header>
+  <div class="content">
+    <section>
+      <h2>Tecla</h2>
+      <div class="row">
+        <input type="text" id="key" placeholder="p. ej. a" autocomplete="off">
+        <button class="btn" id="capture" type="button">Capturar</button>
+      </div>
+      <div class="search">
+        <input type="search" id="search" placeholder="Buscar teclas…" autocomplete="off">
+      </div>
+      <ul class="keys" id="keys"></ul>
+    </section>
+    <section>
+      <h2>Imagen</h2>
+      <div class="imgrow">
+        <div class="thumb" id="thumb">⌨</div>
+        <div class="imgmeta">
+          <label class="filebtn" for="file">Examinar…</label>
+          <input type="file" id="file" accept="image/*" hidden>
+          <p class="filename" id="filename">Ningún archivo seleccionado.</p>
+        </div>
+      </div>
+      <div class="sizerow">
+        <label class="lbl" for="size" style="margin:0">Tamaño de la imagen:</label>
+        <input type="range" id="size" min="10" max="130" value="75">
+        <span class="pct" id="pct">75 %</span>
+      </div>
+    </section>
+    <section>
+      <h2>Apariencia</h2>
+      <div class="field">
+        <label class="lbl" for="hex">Color de fondo</label>
+        <div class="colorrow">
+          <input type="color" id="color" value="#141414">
+          <input type="text" id="hex" value="#141414" maxlength="7" spellcheck="false">
+        </div>
+      </div>
+      <div class="field">
+        <label class="lbl" for="title">Título del botón</label>
+        <input type="text" id="title" value="Pulsar la tecla">
+      </div>
+    </section>
+  </div>
+  <footer>
+    <button class="btn ghost" type="button" id="cancel">Cancelar</button>
+    <button class="btn primary" type="button" id="save">Guardar</button>
+  </footer>
+</div>
+<div class="toast" id="toast">¡Guardado! (maqueta interactiva)</div>
+<script>
+const KEYS = ['ctrl','rctrl','shift','rshift','alt','enter','esc','tab','space','backspace','delete','insert','home','end','pageup','pagedown','up','down','left','right','win','rwin','capslock','numlock','scrolllock','printscreen','pause','volumemute','volumeup','volumedown','playpause','prevtrack','nexttrack','mediastop','f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12'];
+const MAP = {' ':'space',Enter:'enter',Tab:'tab',Backspace:'backspace',Delete:'delete',Insert:'insert',Home:'home',End:'end',PageUp:'pageup',PageDown:'pagedown',ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',Meta:'win',OS:'win',Alt:'alt',Control:'ctrl',Shift:'shift',CapsLock:'capslock',NumLock:'numlock',ScrollLock:'scrolllock',PrintScreen:'printscreen',Pause:'pause',AudioVolumeMute:'volumemute',AudioVolumeUp:'volumeup',AudioVolumeDown:'volumedown',MediaPlayPause:'playpause',MediaTrackNext:'nexttrack',MediaTrackPrevious:'prevtrack',MediaStop:'mediastop'};
+const $ = (id) => document.getElementById(id);
+const keyInput = $('key'), list = $('keys'), search = $('search');
+
+function render(filter = '') {
+  const q = filter.trim().toLowerCase();
+  const items = KEYS.filter((k) => k.includes(q));
+  list.innerHTML = '';
+  if (!items.length) {
+    const li = document.createElement('li');
+    li.className = 'empty'; li.textContent = 'Sin resultados para «' + filter + '».';
+    list.appendChild(li); return;
+  }
+  for (const k of items) {
+    const li = document.createElement('li');
+    if (k === keyInput.value) li.classList.add('sel');
+    const kbd = document.createElement('kbd'); kbd.textContent = k;
+    li.appendChild(kbd);
+    li.appendChild(document.createTextNode(k === keyInput.value ? ' — seleccionada' : ''));
+    li.addEventListener('click', () => { keyInput.value = k; render(search.value); });
+    list.appendChild(li);
+  }
+}
+search.addEventListener('input', () => render(search.value));
+keyInput.addEventListener('input', () => render(search.value));
+render();
+
+const cap = $('capture');
+let armed = false;
+function disarm() {
+  armed = false; cap.classList.remove('arming'); cap.textContent = 'Capturar';
+  document.removeEventListener('keydown', onKey, true);
+}
+function onKey(e) {
+  e.preventDefault(); e.stopPropagation();
+  if (e.key !== 'Escape') {
+    let name = MAP[e.key];
+    if (name === undefined) name = (/^F\d{1,2}$/.test(e.key)) ? e.key.toLowerCase() : (e.key.length === 1 ? e.key : e.key.toLowerCase());
+    keyInput.value = name; render(search.value);
+  }
+  disarm();
+}
+cap.addEventListener('click', () => {
+  if (armed) { disarm(); return; }
+  armed = true; cap.classList.add('arming'); cap.textContent = 'Pulsa una tecla… (Esc cancela)';
+  document.addEventListener('keydown', onKey, true);
+});
+
+const size = $('size'), pct = $('pct');
+size.addEventListener('input', () => { pct.textContent = size.value + ' %'; });
+$('file').addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  $('filename').textContent = f ? f.name : 'Ningún archivo seleccionado.';
+});
+const color = $('color'), hex = $('hex');
+color.addEventListener('input', () => { hex.value = color.value; });
+hex.addEventListener('input', () => {
+  if (/^#[0-9a-fA-F]{6}$/.test(hex.value)) color.value = hex.value;
+});
+const toast = $('toast');
+let t = null;
+function saved() {
+  toast.classList.add('show');
+  clearTimeout(t); t = setTimeout(() => toast.classList.remove('show'), 1800);
+}
+$('save').addEventListener('click', saved);
+$('cancel').addEventListener('click', disarm);
+document.querySelector('.close').addEventListener('click', disarm);
+</script>
+</body>
+</html>

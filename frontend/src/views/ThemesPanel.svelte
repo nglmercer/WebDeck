@@ -18,11 +18,11 @@
 </script>
 
 <div class="config-container choose-themes {dark}" id="choose-themes" style="display: none;">
-  <!-- NOTE: the lone "<" below mirrors an upstream typo (renders as text). -->
-  {'<'}
-  <button type="button" id="setting-themes-back" class="button {dark}">
-    {text('back')}
-  </button>
+  <div>
+    <button type="button" id="setting-themes-back" class="button {dark}">
+      ← {text('back')}
+    </button>
+  </div>
   <div id="themes-tutorial-container">
     <a href={text('link_themes')} target="_blank" title={text('themes_tutorial')}>
       <SvgSlot slot={infoSlot} />

@@ -13,6 +13,7 @@ import { applyHead } from '../views/shell';
 import { hydrateSvgs } from '../views/svg';
 import { auto_resize } from '../app/zoom';
 import { installGlobals, wireApp } from '../app/wireup';
+import { wireModalA11y } from '../components/studio/a11y';
 import { startUsageLoop } from '../app/usage';
 import App from './App.svelte';
 
@@ -51,6 +52,7 @@ export function renderApp(target: HTMLElement, ctx: BootContext): void {
   initLoadingScreen();
 
   wireApp(ctx);
+  wireModalA11y();
 
   // window-load equivalents (upstream ordering: folder first, resize, poll).
   const folders = Object.keys(asObject(get(ctx.config, 'front', 'buttons')));

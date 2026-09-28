@@ -23,7 +23,7 @@
   });
 </script>
 
-<div class="setting {containerClass}">
+<div class="setting wd2-field {containerClass}">
   {#if label !== undefined}<label for={id}> {label} </label>{/if}
   <select {id} {name} bind:this={selectEl}>{#each options as opt}<option value={opt.value} selected={opt.selected}>{opt.label}</option>{/each}</select>
 </div>

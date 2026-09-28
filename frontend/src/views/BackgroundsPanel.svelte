@@ -14,11 +14,11 @@
 </script>
 
 <div class="config-container choose-background {dark}" id="choose-background" style="display: none;">
-  <!-- NOTE: the lone "<" below mirrors an upstream typo (renders as text). -->
-  {'<'}
-  <button type="button" id="setting-background-back" class="button {dark}">
-    {text('back')}
-  </button>
+  <div>
+    <button type="button" id="setting-background-back" class="button {dark}">
+      ← {text('back')}
+    </button>
+  </div>
   <h1 class="config-title"> {text('random_bg_menu_title')} </h1>
   <ColorField
     dark={dark}

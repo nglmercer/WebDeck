@@ -17,6 +17,7 @@ import { buildCommand, registerShowArg, type ArgsPrefill } from './args';
 import { resolveButtonCommand } from './argvalues';
 import { wireFoldernameForm } from './addbutton';
 import { swapPreviewImage, updateButtonBackgroundColor, updateImageSize, type ButtonState } from './modalstyle';
+import { wireStudioPreview } from './studio-preview';
 import { svgSlotId } from './svg';
 
 /**
@@ -234,6 +235,7 @@ export function wireEditModal(ctx: BootContext, editModalId: string, buttonSetti
   registerShowArg(editModalId, 'edit_modal_ID');
   wireFoldernameForm(editModalId);
   wireKeyField(editModalId);
+  wireStudioPreview(editModalId);
 
   const image = byId<HTMLElement>(`button-image_${editModalId}`).get(0) ?? null;
   const imageSizeSlider = byId<HTMLInputElement>(`image-size-slider_${editModalId}`).get(0) ?? null;

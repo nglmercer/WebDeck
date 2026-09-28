@@ -14,6 +14,7 @@ import { q, byId, post } from '../../query';
 import { wireKeyField } from '../../components/keyfield';
 import { buildCommand, catKey, cmdKey, registerShowArg } from '../args';
 import { swapPreviewImage, updateButtonBackgroundColor, updateImageSize, type ButtonState } from '../modalstyle';
+import { wireStudioPreview } from '../studio-preview';
 import { addButtonName } from './argsmodal';
 import type { AddModalContext } from './types';
 
@@ -93,6 +94,7 @@ export function wireAddModal(ctx: BootContext, mctx: AddModalContext): void {
   wireFoldernameForm(id);
   wireUsagePreview(id);
   wireKeyField(id);
+  wireStudioPreview(id);
 
   byId(`image-input_${id}`).on('change', function () {
     const input = this as unknown as HTMLInputElement;

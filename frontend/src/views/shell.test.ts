@@ -37,7 +37,7 @@ beforeEach(() => {
 describe('applyHead themes', () => {
   it('links the built-in stylesheet directly instead of prefixing .config/themes', async () => {
     applyHead(testCtx(['static/css/style.css']));
-    expect(stylesheetHrefs()).toEqual(['/static/css/style.css']);
+    expect(stylesheetHrefs()).toEqual(['/static/css/style.css?v=studio1']);
   });
 
   it('keeps prefixing user themes and skipping commented entries', async () => {
@@ -47,7 +47,7 @@ describe('applyHead themes', () => {
 
   it('loads the base theme before user overrides (cascade order)', async () => {
     applyHead(testCtx(['mytheme.css', 'static/css/style.css']));
-    expect(stylesheetHrefs()).toEqual(['/static/css/style.css', '.config/themes/mytheme.css']);
+    expect(stylesheetHrefs()).toEqual(['/static/css/style.css?v=studio1', '.config/themes/mytheme.css']);
   });
 });
 

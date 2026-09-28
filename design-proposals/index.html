@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Propuestas de rediseño — Configura tu botón</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #141414; color: #ececec;
+    font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+    padding: 40px 20px 60px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  .sub { color: #9c9c9c; margin: 0 0 28px; font-size: 15px; }
+  .sub code { color: #d7d7d7; background: #222; padding: 1px 6px; border-radius: 6px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+  .card {
+    background: #1f1f1f; border: 1px solid #333; border-radius: 14px;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .shot { height: 300px; overflow: hidden; background: #101010; border-bottom: 1px solid #333; }
+  .shot iframe {
+    width: 200%; height: 660px; border: 0; pointer-events: none;
+    transform: scale(0.5); transform-origin: top left;
+  }
+  .body { padding: 18px 18px 20px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .tag {
+    align-self: flex-start; font-size: 12px; font-weight: 600;
+    background: #2e7d32; color: #fff; border-radius: 20px; padding: 3px 10px;
+  }
+  .tag.b { background: #1565c0; }
+  .tag.c { background: #6d4c41; }
+  h2 { font-size: 19px; margin: 0; }
+  p { margin: 0; color: #bdbdbd; font-size: 14px; line-height: 1.5; }
+  ul { margin: 0; padding-left: 18px; color: #bdbdbd; font-size: 13.5px; line-height: 1.55; }
+  a.btn {
+    margin-top: auto; text-align: center; text-decoration: none; font-weight: 600;
+    background: #43a047; color: #fff; border-radius: 9px; padding: 11px;
+  }
+  a.btn:hover { background: #4cb050; }
+  .note { margin-top: 26px; color: #9c9c9c; font-size: 13.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Propuestas de rediseño — «Configura tu botón»</h1>
+  <p class="sub">Tres direcciones interactivas e independientes para el modal de configuración de botón
+    (ejemplo: <code>Pulsar una tecla del teclado</code>). Abre cada propuesta a pantalla completa para probarla:
+    capturar teclas, buscar, mover el tamaño y cambiar el color funcionan.</p>
+  <div class="grid">
+    <div class="card">
+      <div class="shot"><iframe src="v1-refinada.html" loading="lazy" title="Vista previa V1"></iframe></div>
+      <div class="body">
+        <span class="tag">V1 · Evolución</span>
+        <h2>Refinada</h2>
+        <p>El mismo flujo de una columna, bien ejecutado. Menor coste de implementación.</p>
+        <ul>
+          <li>Secciones claras con pie fijo (Cancelar / Guardar)</li>
+          <li>Lista de teclas con estados hover / seleccionada</li>
+          <li>Captura con estado visible + tamaño y color sincronizados</li>
+        </ul>
+        <a class="btn" href="v1-refinada.html">Abrir propuesta V1</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="shot"><iframe src="v2-estudio.html" loading="lazy" title="Vista previa V2"></iframe></div>
+      <div class="body">
+        <span class="tag b">V2 · Cambio mayor</span>
+        <h2>Estudio</h2>
+        <p>Dos paneles: vista previa en vivo a la izquierda, formulario por pestañas a la derecha.</p>
+        <ul>
+          <li>El botón se redibuja mientras escribes</li>
+          <li>Teclas agrupadas por categoría en chips</li>
+          <li>Pestañas Tecla / Apariencia separan conceptos</li>
+        </ul>
+        <a class="btn" href="v2-estudio.html">Abrir propuesta V2</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="shot"><iframe src="v3-compacta.html" loading="lazy" title="Vista previa V3"></iframe></div>
+      <div class="body">
+        <span class="tag c">V3 · Densidad</span>
+        <h2>Compacta</h2>
+        <p>Tarjeta estrecha y moderna para pantallas táctiles pequeñas.</p>
+        <ul>
+          <li>Modos Escribir / Capturar / Buscar conmutables</li>
+          <li>Accesos rápidos a las teclas más usadas</li>
+          <li>Filas densas, menos bordes, un solo Guardar</li>
+        </ul>
+        <a class="btn" href="v3-compacta.html">Abrir propuesta V3</a>
+      </div>
+    </div>
+  </div>
+  <p class="note">Nota: son maquetas con datos falsos (nombres de tecla reales del backend).
+    Dime qué versión prefieres —o qué piezas de cada una— y la implemento en el frontend de verdad.</p>
+</div>
+</body>
+</html>

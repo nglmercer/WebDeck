@@ -21,4 +21,6 @@
   const inputClass = $derived(`${cls} ${dark}`);
 </script>
 
-{#if label !== undefined}<label for={labelFor ?? id}> {label} </label>{/if}{#if showToggle}<div class="password-container"><input class={inputClass} type="password" {id} {name} value={hasValue ? value : undefined} {placeholder} /><!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions: 1:1 port, upstream wires a bare onclick span. --><span id={toggleId} class="show-password" onclick={() => window.togglePasswordVisibility?.(id, toggleId ?? '')}></span></div>{:else}<input class={inputClass} type={password === true ? 'password' : 'text'} {id} {name} value={hasValue ? value : undefined} {placeholder} />{/if}
+<div class="setting wd2-field {cls}-wrap">
+  {#if label !== undefined}<label class="wd2-label" for={labelFor ?? id}> {label} </label>{/if}{#if showToggle}<div class="password-container"><input class={inputClass} type="password" {id} {name} value={hasValue ? value : undefined} {placeholder} /><!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions: 1:1 port, upstream wires a bare onclick span. --><span id={toggleId} class="show-password" onclick={() => window.togglePasswordVisibility?.(id, toggleId ?? '')}></span></div>{:else}<input class={inputClass} type={password === true ? 'password' : 'text'} {id} {name} value={hasValue ? value : undefined} {placeholder} />{/if}
+</div>
