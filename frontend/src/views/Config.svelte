@@ -95,6 +95,7 @@
                 <button
                   type="button"
                   class="wd2-lib-btn"
+                  data-testid="lib-tab-themes"
                   aria-current={step === 'library' && libTab === 'themes' ? 'true' : 'false'}
                   onclick={() => openLibrary('themes')}
                 >
@@ -104,6 +105,7 @@
                 <button
                   type="button"
                   class="wd2-lib-btn"
+                  data-testid="lib-tab-backgrounds"
                   aria-current={step === 'library' && libTab === 'backgrounds' ? 'true' : 'false'}
                   onclick={() => openLibrary('backgrounds')}
                 >

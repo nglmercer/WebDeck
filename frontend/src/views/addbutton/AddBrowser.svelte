@@ -44,6 +44,7 @@
       arg_modal_ID={item.argModalId}
       class="dropdown-btn no-dropdown {data.dark}"
       id="open-button-{item.argModalId}"
+      data-testid="add-leaf"
       dropdown-commandTag={item.commandTag}
     >
       {@render rowIcon(item.icon)}

@@ -145,6 +145,7 @@
               type="submit"
               value={text('save')}
               id="{modal.id}_submit"
+              data-testid="add-args-save"
               class="createbutton_submit {modal.dark}"
             />
           </div>

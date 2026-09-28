@@ -42,6 +42,7 @@
             <div class="checkbox" style="display: none;"></div>
             <div
               class="add-button"
+              data-testid="add-slot"
               add_FOLDER={cell.folderId}
               add_ID={String(cell.buttonId)}
               style="display: none;"
@@ -76,6 +77,8 @@
               type={cell.folderHandler !== null ? undefined : 'submit'}
               id="button_{cell.editModalId}"
               edit_modal_ID={cell.editModalId}
+              data-testid="deck-tile"
+              data-message={cell.message}
               class={cell.cls}
               role="button"
               style="overflow: hidden; max-height: 89.6px;"
