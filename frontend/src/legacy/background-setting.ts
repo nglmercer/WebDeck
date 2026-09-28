@@ -320,5 +320,3 @@ export function initBackgroundSetting(): void {
   wireActivateButtons();
   refreshBgCount();
 }
-
-console.log('background-setting.js loaded');

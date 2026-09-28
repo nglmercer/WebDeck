@@ -1,5 +1,5 @@
 import { mount, tick, unmount } from 'svelte';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineKeyField } from '../components/keyfield';
 import { buildCommand, collectArgValues } from './args';
 import type { BootContext, JsonObject } from '../framework/types';
@@ -303,5 +303,53 @@ describe('add/edit parity', () => {
     await unmount(addApp);
     addHost.remove();
     editHost.remove();
+  });
+});
+
+describe('edit submit coalescing', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    document.body.innerHTML = '';
+  });
+
+  it('sends one save for rapid double submits', async () => {
+    initI18n({ ...I18N });
+    defineKeyField();
+    const ctx = testCtx();
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const app = mount(EditModal, {
+      target: host,
+      props: {
+        ctx,
+        editModalId: 'e0X0',
+        entry: { message: '/copy hi', name: 'n' },
+        message: '/copy hi',
+      },
+    });
+    await tick();
+    wireEditModal(ctx, 'e0X0', { message: '/copy hi', name: 'n' });
+
+    const fetchMock = vi.fn(async (_url: string) => ({
+      ok: true,
+      json: async () => ({ success: true }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    vi.useFakeTimers();
+    try {
+      const submit = document.querySelector('#e0X0_submit') as HTMLElement;
+      submit.click();
+      submit.click();
+      await vi.advanceTimersByTimeAsync(1500);
+      const saves = fetchMock.mock.calls.filter(([url]) =>
+        String(url).includes('save_single_button')
+      );
+      expect(saves).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+      await unmount(app as unknown as Record<string, never>);
+      host.remove();
+    }
   });
 });

@@ -25,8 +25,8 @@ const DEMO_DIR = path.dirname(DEMO_VIDEO);
 
 test.setTimeout(300_000);
 test('webdeck demo tour', async ({ page }) => {
-  // Save flows use alert()/confirm(); accept so the tour never stalls.
-  page.on('dialog', (dialog) => void dialog.accept());
+  // Save flows report through the Alert component (no native dialogs);
+  // steps dismiss it via dismissAlert() after the save events land.
   await injectCursor(page);
   await installEventRecorder(page);
   await setupDemoMocks(page);

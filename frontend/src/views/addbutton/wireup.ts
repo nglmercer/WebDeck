@@ -15,6 +15,7 @@ import { emitAppEvent } from '../../app/events';
 import { hide_addbutton_args_modal, hide_addbutton_modal } from '../../app/modals';
 import { refreshApp } from '../../app/refresh';
 import { seedPresetButtonState } from '../../components/button-icons';
+import { showAlert } from '../../components/dialog';
 import { wireKeyField } from '../../components/keyfield';
 import { buildCommand, catKey, cmdKey, registerShowArg } from '../args';
 import { swapPreviewImage, updateButtonBackgroundColor, updateImageSize, type ButtonState } from '../modalstyle';
@@ -22,7 +23,10 @@ import { wireStudioPreview } from '../studio-preview';
 import { addButtonName } from './argsmodal';
 import type { AddModalContext } from './types';
 
-const addModalStates = new Map<string, { button: ButtonState; command: string }>();
+const addModalStates = new Map<
+  string,
+  { button: ButtonState; command: string; submitPending?: boolean }
+>();
 
 export function collectAddModals(ctx: BootContext): AddModalContext[] {
   const out: AddModalContext[] = [];
@@ -156,6 +160,11 @@ export function wireAddModal(ctx: BootContext, mctx: AddModalContext): void {
     if (id !== 'NONE') {
       event.preventDefault();
     }
+    // The delayed save invites double-clicks (nothing happens for a
+    // second): ignore while one is already pending.
+    const pending = addModalStates.get(id);
+    if (pending?.submitPending) return;
+    if (pending) pending.submitPending = true;
     setTimeout(function () {
       buttonCommandAdd(id, mctx.commandId);
     }, 1000);
@@ -316,18 +325,22 @@ function buttonCommandAdd(argModalId: string, command: string): void {
     })
     .then(function (response: { success?: boolean }) {
       if (response.success) {
-        alert(text('settings_save_success'));
         emitAppEvent('save:completed', { flow: 'add' });
         hide_addbutton_args_modal();
         hide_addbutton_modal();
         void refreshApp();
+        void showAlert(text('settings_save_success'));
       } else {
         throw new Error(text('settings_save_error'));
       }
     })
     .catch(function (error: Error) {
-      alert(error.message);
+      void showAlert(error.message);
       throw new Error(error.message);
+    })
+    .finally(function () {
+      const pending = addModalStates.get(argModalId);
+      if (pending) pending.submitPending = false;
     });
 
   q(element).removeAttr('add_ID');

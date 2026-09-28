@@ -22,7 +22,7 @@ Output: `frontend/demo/webdeck-demo-720p.mp4` (H.264 when `ffmpeg` is on
 
 ## Layout
 
-- `demo-video.spec.ts` — thin orchestrator: dialog guard, cursor, mocks,
+- `demo-video.spec.ts` — thin orchestrator: cursor, mocks, event recorder,
   step calls in tour order, video publish.
 - `demo/steps.ts` — one exported function per tour section; reorder or
   add steps here without touching harness code.

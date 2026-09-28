@@ -34,6 +34,4 @@ export function initFilepath(): void {
         handleFilepathButtonClick(filetypes);
       });
     });
-
-  console.log('filepath.js loaded');
 }

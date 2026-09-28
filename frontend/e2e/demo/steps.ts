@@ -1,5 +1,5 @@
 import { expect, type Page } from '@playwright/test';
-import { vclick, vfill } from './actions';
+import { dismissAlert, vclick, vfill } from './actions';
 import { appEventCount, waitForAppEvent } from './events';
 
 // Selector contract (see e2e/README "Identifier conventions"):
@@ -67,6 +67,7 @@ export async function renameButtonStep(page: Page): Promise<void> {
   // no ?edit=true reload, and the renamed tile shows the new name.
   await waitForAppEvent(page, 'save:completed', saved);
   await waitForAppEvent(page, 'app:refreshed', saved);
+  await dismissAlert(page);
   await expect(page.locator('#edit-modal-container-e0X0')).not.toHaveCSS('display', 'block', {
     timeout: 15_000,
   });
@@ -105,6 +106,7 @@ export async function addButtonStep(page: Page): Promise<void> {
   await vclick(page, `${argsModal} [data-testid="add-args-save"]`);
   await waitForAppEvent(page, 'save:completed', saved);
   await waitForAppEvent(page, 'app:refreshed', saved);
+  await dismissAlert(page);
   await expect(page.locator('#EditorButtons')).toBeVisible({ timeout: 15_000 });
   // Slot 8 was the first void slot; the new tile lands there with the picked command.
   const tile = page.locator('#folder-index #button_e0X8');
@@ -134,6 +136,7 @@ export async function saveExitStep(page: Page): Promise<void> {
   await vclick(page, '#SaveExitEditorButton');
   await waitForAppEvent(page, 'save:completed', saved);
   await waitForAppEvent(page, 'app:refreshed', saved);
+  await dismissAlert(page);
   await expect(page.locator('#EditorButtons')).toBeHidden();
   await page.waitForTimeout(1000);
   await vclick(page, '#folder-index [data-message="/colorpicker lang:en"]');

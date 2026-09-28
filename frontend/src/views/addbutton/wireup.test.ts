@@ -1,5 +1,8 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { filterAddBrowser } from './wireup';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { initI18n } from '../../framework/i18n';
+import type { BootContext } from '../../framework/types';
+import type { AddModalContext } from './types';
+import { filterAddBrowser, wireAddModal } from './wireup';
 
 function mount(): HTMLElement {
   document.body.innerHTML = `
@@ -68,6 +71,52 @@ describe('filterAddBrowser', () => {
     filterAddBrowser(root, '  ');
     for (const el of document.querySelectorAll('.dropdown-btn, .addbutton-description')) {
       expect((el as HTMLElement).style.display).toBe('');
+    }
+  });
+});
+
+describe('add submit coalescing', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    document.body.innerHTML = '';
+  });
+
+  it('sends one save for rapid double submits', async () => {
+    initI18n({});
+    document.body.innerHTML = '<button id="t1_submit">save</button>';
+    const ctx = { config: { front: {}, settings: {} }, commands: {} } as unknown as BootContext;
+    const mctx: AddModalContext = {
+      argModalId: 't1',
+      category: 'c',
+      command: 'Copy',
+      parentCommand: '',
+      subId: 1,
+      commandValue: {},
+      commandId: '/copy',
+      buttonTitle: 'Copy',
+    };
+    wireAddModal(ctx, mctx);
+
+    const fetchMock = vi.fn(async (url: unknown) => {
+      if (String(url).includes('save_buttons_only')) {
+        return { ok: true, json: async () => ({ success: true }) };
+      }
+      return { ok: true, json: async () => ({ front: { buttons: {} } }) };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    vi.useFakeTimers();
+    try {
+      const submit = document.querySelector('#t1_submit') as HTMLElement;
+      submit.click();
+      submit.click();
+      await vi.advanceTimersByTimeAsync(1500);
+      const saves = fetchMock.mock.calls.filter(([url]) =>
+        String(url).includes('save_buttons_only')
+      );
+      expect(saves).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
     }
   });
 });

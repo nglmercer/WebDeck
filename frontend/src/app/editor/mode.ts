@@ -7,6 +7,7 @@ import { pageState } from '../state';
 import { emitAppEvent } from '../events';
 import { refreshApp } from '../refresh';
 import { showError } from '../toast';
+import { showAlert } from '../../components/dialog';
 import { showEditorPartially, swapButtonLabel, toggleEditorButtonsMode } from './display';
 import { editorUiState } from './state';
 import { swapEditorButtonFunction } from './swap';
@@ -92,9 +93,9 @@ export function SaveExitEditor(tempConfig: JsonObject): void {
       })
       .then(function (response: { success?: boolean }) {
         if (response.success) {
-          alert(text('settings_save_success'));
           emitAppEvent('save:completed', { flow: 'buttons' });
           void refreshApp();
+          void showAlert(text('settings_save_success'));
         } else {
           showError('Error :/');
         }

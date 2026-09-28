@@ -21,6 +21,7 @@ theme-author-github = Lenochxd
 @import "base/scrollbar.css";
 @import "components/range.css";
 @import "components/modal.css";
+@import "components/dialog.css";
 @import "components/settings.css";
 @import "components/collapse.css";
 @import "components/forms.css";

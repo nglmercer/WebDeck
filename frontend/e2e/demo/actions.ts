@@ -17,6 +17,12 @@ export async function vclick(page: Page, selector: string): Promise<void> {
   await page.mouse.click(x, y);
 }
 
+/** Dismiss the save-result alert (cursor glide reads on video). */
+export async function dismissAlert(page: Page): Promise<void> {
+  await vclick(page, '[data-testid="alert-ok"]');
+  await page.locator('[data-testid="alert-ok"]').waitFor({ state: 'detached' });
+}
+
 /** Glide the cursor to a field, then fill it (cursor stays on screen). */
 export async function vfill(page: Page, selector: string, value: string): Promise<void> {
   const loc = page.locator(selector).first();

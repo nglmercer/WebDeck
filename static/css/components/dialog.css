@@ -1,0 +1,86 @@
+/* Blocking alert/confirm dialogs (replaces window.alert/confirm).
+   Explicit solid colors (theme-proof like the editor bars): the card
+   stays readable even when a user theme redefines modal defaults. */
+
+.wd-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.wd-dialog {
+  width: 100%;
+  max-width: 420px;
+  background-color: #fbfbfd;
+  color: #16181d;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+}
+
+.wd-dialog-message {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+.wd-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.wd-dialog .button.wd-dialog-btn {
+  display: inline-flex;
+  align-items: center;
+  background-color: #e2e2e6;
+  color: #16181d;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background-color 150ms, border-color 150ms;
+}
+.wd-dialog .button.wd-dialog-btn:hover {
+  background-color: #d4d4d9;
+}
+.wd-dialog .button.wd-dialog-btn:active {
+  background-color: #c6c6cc;
+}
+.wd-dialog .button.wd-dialog-btn:focus-visible {
+  outline: 2px solid #6cb2f5;
+  outline-offset: 2px;
+}
+.wd-dialog .button.wd-dialog-primary {
+  background-color: #2e7d32;
+  border-color: #2e7d32;
+  color: #ffffff;
+}
+.wd-dialog .button.wd-dialog-primary:hover {
+  background-color: #388e3c;
+  border-color: #388e3c;
+}
+.wd-dialog .button.wd-dialog-primary:active {
+  background-color: #256b29;
+}
+.wd-dialog .button.wd-dialog-danger {
+  background-color: #b3261e;
+  border-color: #b3261e;
+}
+.wd-dialog .button.wd-dialog-danger:hover {
+  background-color: #c62828;
+  border-color: #c62828;
+}
+.wd-dialog .button.wd-dialog-danger:active {
+  background-color: #8f1d22;
+}

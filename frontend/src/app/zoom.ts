@@ -239,11 +239,9 @@ export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string, 
     // empty
   }
 
-  // NOTE: window-level resize listeners have no qdom equivalent
-  // (Q wraps elements only), so these stay native.
-  addEventListener('resize', () => {
-    // empty
-  });
+  // NOTE: window-level resize has no qdom equivalent (Q wraps elements
+  // only), so this stays native. Plain assignment, not addEventListener:
+  // wireZoomControls re-runs on every refresh and listeners would stack.
   onresize = () => {
     auto_resize();
   };

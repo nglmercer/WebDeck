@@ -13,6 +13,7 @@ import { applyHead } from '../views/shell';
 import { hydrateSvgs, resetSvgSlots } from '../views/svg';
 import { auto_resize } from '../app/zoom';
 import { installGlobals, wireApp } from '../app/wireup';
+import { pageState } from '../app/state';
 import { wireModalA11y } from '../components/studio/a11y';
 import { startUsageLoop } from '../app/usage';
 import App from './App.svelte';
@@ -33,6 +34,11 @@ export function renderApp(target: HTMLElement, ctx: BootContext): void {
   // never accumulate stale entries.
   resetSvgSlots();
   mountedApp = mount(App, { target, props: { ctx } }) as unknown as Record<string, never>;
+
+  // Editable copy (temp edits mutate this; never alias the render context).
+  // Seeded here so boot and refresh both get it synchronously from the
+  // boot payload — no extra /get_config round-trip after every render.
+  pageState.tempEditorConfig = JSON.parse(JSON.stringify(ctx.config)) as typeof ctx.config;
 
   installGlobals();
 

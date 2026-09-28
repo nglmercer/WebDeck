@@ -15,6 +15,7 @@ import { emitAppEvent } from '../app/events';
 import { hide_editbutton_modal } from '../app/modals';
 import { refreshApp } from '../app/refresh';
 import { iconFillStyle } from '../components/button-icons';
+import { showAlert } from '../components/dialog';
 import { wireKeyField } from '../components/keyfield';
 import { previewImageLink, type PreviewData } from '../components/preview';
 import { buildCommand, hasVisibleParams, registerShowArg, type ArgsPrefill } from './args';
@@ -195,6 +196,8 @@ export interface EditModalState {
   button: ButtonState;
   /** Resolved command id when the modal renders an arg form (message rebuild). */
   commandId?: string;
+  /** Submit coalescing: a delayed save is already scheduled/in flight. */
+  submitPending?: boolean;
 }
 
 const modalStates = new Map<string, EditModalState>();
@@ -291,6 +294,11 @@ export function wireEditModal(ctx: BootContext, editModalId: string, buttonSetti
   });
 
   byId(`${editModalId}_submit`).on('click', function (event) {
+    // The delayed save invites double-clicks (nothing happens for a
+    // second): ignore while one is already pending.
+    const pending = modalStates.get(editModalId);
+    if (pending?.submitPending) return;
+    if (pending) pending.submitPending = true;
     setTimeout(function () {
       buttonCommand(editModalId, event);
     }, 1000);
@@ -334,16 +342,20 @@ function buttonCommand(editModalID: string, event: Event): void {
     })
     .then(function (response: { success?: boolean }) {
       if (response.success) {
-        alert(text('settings_save_success'));
         emitAppEvent('save:completed', { flow: 'single' });
         hide_editbutton_modal(editModalID);
         void refreshApp();
+        void showAlert(text('settings_save_success'));
       } else {
         throw new Error(text('settings_save_error'));
       }
     })
     .catch(function (error: Error) {
-      alert(error.message);
+      void showAlert(error.message);
+    })
+    .finally(function () {
+      const pending = modalStates.get(editModalID);
+      if (pending) pending.submitPending = false;
     });
 
   console.log(state?.button);

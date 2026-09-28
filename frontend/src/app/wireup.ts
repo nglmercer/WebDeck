@@ -24,9 +24,10 @@ import { pageState, socketHolder, type AppSocket } from './state';
 import { emitAppEvent } from './events';
 import { refreshApp } from './refresh';
 import { showError } from './toast';
+import { showAlert } from '../components/dialog';
 import { updateUsageTiles } from './usage';
 import { auto_resize, wireZoomControls } from './zoom';
-import { loadConfig, send_data } from './send';
+import { send_data } from './send';
 
 /** Global helpers (top-level functions in the inline script). */
 export function installGlobals(): void {
@@ -174,18 +175,17 @@ function wireSubmits(transferMethod: string): void {
               })
               .then(function (response: { success?: boolean; message?: string }) {
                 if (response.success) {
-                  alert(text('settings_save_success'));
                   emitAppEvent('save:completed', { flow: 'config' });
                   // Re-render so grid size, language, theme, and background
                   // apply immediately (no manual reload needed).
                   void refreshApp();
+                  void showAlert(text('settings_save_success'));
                 } else {
+                  // Single notification per failure (was toast + alert together).
                   if (response.message && response.message !== '') {
-                    showError(response.message);
-                    alert(response.message);
+                    void showAlert(response.message);
                   } else {
-                    showError('Error :/');
-                    alert(text('settings_save_error'));
+                    void showAlert(text('settings_save_error'));
                   }
                 }
               })
@@ -300,13 +300,9 @@ function wireKeydown(): void {
 export function wireApp(ctx: BootContext): void {
   const transferMethod = asString(get(ctx.config, 'settings', 'data_transfer_method'));
 
-  loadConfig()
-    .then(function (configData) {
-      pageState.tempEditorConfig = configData;
-    })
-    .catch(function (error) {
-      console.error(error);
-    });
+  // NOTE: tempEditorConfig is seeded synchronously from the boot payload
+  // in renderApp (both boot and refresh) — no /get_config fetch here.
+  // Editor entry still takes its own fresh copy (toggleEditorMode).
 
   wireVideos();
   // NOTE: collapse persistence/link handling lives in Collapse.svelte

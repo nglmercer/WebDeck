@@ -8,6 +8,7 @@
 import { text } from '../../framework/i18n';
 import type { JsonObject } from '../../framework/types';
 import { q, byId } from '../../query';
+import { showConfirm } from '../../components/dialog';
 import { addPlusIcon } from '../../components/icons';
 import { pageState } from '../state';
 import { reloadEditorEvents } from './events';
@@ -99,28 +100,32 @@ function loadEditorConfigSync(config: JsonObject): JsonObject {
 
 export function deleteFolder(folderName: string): void {
   editorUiState.ifModif = 1;
-  const folderElement = byId('folder-' + folderName).get(0) ?? null;
-  if (folderElement) {
-    if (confirm(text('delete_folder_confirm'))) {
-      q(folderElement).remove();
+  if (!byId('folder-' + folderName).get(0)) return;
+  // Fire-and-forget: the string onclick caller cannot await; the removal
+  // runs once the user answers. Re-query inside: the DOM may have
+  // re-rendered while the prompt was open.
+  void showConfirm(text('delete_folder_confirm'), { danger: true }).then((confirmed) => {
+    if (!confirmed) return;
+    const folderElement = byId('folder-' + folderName).get(0) ?? null;
+    if (!folderElement) return;
+    q(folderElement).remove();
 
-      const folderButtons = q(`button[onclick="folder(\`${folderName}\`)"]`);
-      for (const btn of folderButtons.toArray()) {
-        if (q(btn).hasClass('wd_button')) {
-          createVoidButton(null, q(btn).parent().get(0) ?? null);
-        } else {
-          q(btn).remove();
-        }
+    const folderButtons = q(`button[onclick="folder(\`${folderName}\`)"]`);
+    for (const btn of folderButtons.toArray()) {
+      if (q(btn).hasClass('wd_button')) {
+        createVoidButton(null, q(btn).parent().get(0) ?? null);
+      } else {
+        q(btn).remove();
       }
-
-      const buttons = (
-        (pageState.tempEditorConfig['front'] as JsonObject | undefined)?.['buttons'] as
-          | Record<string, unknown>
-          | undefined
-      );
-      if (buttons) delete buttons[folderName];
     }
-  }
+
+    const buttons = (
+      (pageState.tempEditorConfig['front'] as JsonObject | undefined)?.['buttons'] as
+        | Record<string, unknown>
+        | undefined
+    );
+    if (buttons) delete buttons[folderName];
+  });
 }
 
 export function showAddConfirmation(_event: Event): void {
@@ -128,13 +133,17 @@ export function showAddConfirmation(_event: Event): void {
 }
 
 export function showDeleteConfirmation(event: Event): void {
-  // NOTE: upstream `|| force` references an undeclared global (throws only
-  // when Cancel is clicked, after confirm already returned false — net
-  // effect identical to falsy here).
+  if (pageState.editorMode !== 1) return;
+  // Upstream escape hatch: a `force` global skips the prompt. Otherwise
+  // the deletion runs once the user answers (the click caller can't await).
   const force = (window as unknown as Record<string, unknown>)['force'];
-  if (pageState.editorMode === 1 && (confirm(text('button_delete_confirmation')) || force)) {
+  if (force) {
     createVoidButton(event, null);
+    return;
   }
+  void showConfirm(text('button_delete_confirmation'), { danger: true }).then((confirmed) => {
+    if (confirmed) createVoidButton(event, null);
+  });
 }
 
 export function showEditWindow(_event: Event): void {

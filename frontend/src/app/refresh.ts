@@ -8,7 +8,6 @@ import { resetEditorUiState } from './editor/state';
 import { toggleEditorButtonsMode } from './editor/display';
 import { syncEditorButtonLabel } from './editor/mode';
 import { resetModalState } from './modals';
-import { pageState } from './state';
 
 // NOTE: this module and ./editor/mode import each other (save flows call
 // refreshApp; refreshApp syncs the editor label). Both edges are deferred
@@ -46,8 +45,6 @@ export async function refreshApp(): Promise<void> {
   window.history.replaceState({}, document.title, window.location.pathname);
 
   renderApp(mountEl, ctx);
-  // Editable copy (temp edits mutate this; never alias the render context).
-  pageState.tempEditorConfig = JSON.parse(JSON.stringify(ctx.config)) as typeof ctx.config;
 
   if (folder !== null && window.folder) {
     window.folder(folder);

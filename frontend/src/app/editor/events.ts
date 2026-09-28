@@ -13,7 +13,6 @@ import { swapButton, swapEditorButtonFunction } from './swap';
 import { showAddConfirmation, showDeleteConfirmation, showEditWindow } from './void';
 
 export function reloadEditorEvents(): void {
-  console.log('reloading editor events');
   for (const el of q('.add-button').toArray()) {
     q(el).on('click', showAddConfirmation);
   }

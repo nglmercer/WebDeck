@@ -204,5 +204,3 @@ export function initThemesSetting(): void {
       q(arrow).on('click', handleArrowClick);
     });
 }
-
-console.log('themes-setting.js loaded');

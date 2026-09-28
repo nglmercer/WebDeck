@@ -29,6 +29,4 @@ export function initFolderpath(): void {
         handleFolderpathButtonClick();
       });
     });
-
-  console.log('folderpath.js loaded');
 }

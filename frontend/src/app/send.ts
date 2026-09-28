@@ -1,5 +1,4 @@
 import { postJson } from '../framework/api';
-import type { JsonObject } from '../framework/types';
 import { showError } from './toast';
 
 // Port of send_data() (also exposed as window.send_data for inline onclick).
@@ -28,8 +27,4 @@ export function send_data(message: string): void {
       console.error(error);
       showError('Error :/');
     });
-}
-
-export async function loadConfig(): Promise<JsonObject> {
-  return postJson<JsonObject>('/get_config', {});
 }
