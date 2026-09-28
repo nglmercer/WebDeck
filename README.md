@@ -14,6 +14,8 @@ and more, with live CPU/RAM/GPU/disk tiles streaming back to the page.
 
 This is the Rust port of the original Python app (axum + Svelte SPA).
 
+<img width="960" height="540" alt="3d-tour" src="https://github.com/user-attachments/assets/77972bde-4662-4125-80be-3f8dff45234e" />
+
 ## Quickstart
 
 Download the latest `WebDeck-<os>-<arch>-portable.zip` from
