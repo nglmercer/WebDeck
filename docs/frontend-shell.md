@@ -1,0 +1,61 @@
+# Frontend — Shell
+
+Svelte + TypeScript SPA (`frontend/`). Zero-dependency custom framework plus
+a jQuery-like `query/` layer — a 1:1 port of the old Jinja/JS behavior.
+
+## Boot (`src/main.ts` → `views/app.ts`)
+
+1. Mount `#app`; show `LoadingScreen` (same visual sequence as Jinja).
+2. `GET /api/boot` → `BootContext` (`framework/types.ts`).
+3. `initI18n(ctx.lang)`; unmount loading; `renderApp(mountEl, ctx)`.
+4. On failure: inline error in `#app` and rethrow.
+
+`GET /` serves `frontend/dist/index.html`; without `npm run build` it returns
+a JSON error telling you to build. `/assets/*` serves the bundle.
+
+## Shell views
+
+- `App.svelte` / `app.ts` — root render + view switching.
+- `Grid.svelte` / `grid.ts` — button grid (`front.height × front.width`),
+  folder navigation (`/folder <name>`), zoom/auto-zoom, portrait rotation,
+  random background (`random_bg`), dark theme (`dark_theme` class).
+- `Shell.svelte` / `shell.ts` — chrome around the grid (top bar, config
+  entry, connection/reconnect screen when the server is unreachable).
+- `FoldersBar.svelte` — folder tabs above the grid.
+- `LoadingScreen.svelte` — boot splash (SVG preload avoids display flashes).
+- `Config.svelte` / `config.ts` — settings editor (sections, backgrounds,
+  themes, devices, danger zone); save flows POST to `/save_config`,
+  `/COMPLETE_save_config`, `/save_buttons_only`, `/save_single_button`.
+- `BackgroundsPanel.svelte` — add-background composer: Color/File tabs
+  (`StudioTabs`); panes stay mounted for legacy wiring.
+- `ThemesPanel.svelte` — theme manager (enable/order `.config/themes/*.css`).
+- `Preview.svelte` / `preview.ts`, `studio-preview.ts` — button/studio previews.
+
+## State & wireup
+
+- `framework/api.ts` — `getJson`/POST helpers (`/api/boot`, `/get_config`,
+  `/usage`, `/send-data`, save/upload endpoints).
+- `framework/i18n.ts` — `initI18n(langDict)` + `t(key)` lookups.
+- `framework/html.ts` — typed HTML builders for non-Svelte-rendered parts.
+- `query/` — `q`, `byId` DOM facade: `ajax`, `attributes`, `classes-css`,
+  `core`, `data`, `effects`, `events`, `factory`, `manipulate`, `traverse`,
+  `utils` (each with `*.test.ts`).
+- Button press → `POST /send-data {message}` (HTTP) or Socket.IO
+  `message_from_socket`; `data_transfer_method` selects the path.
+
+## Usage loop
+
+`Grid` polls `POST /usage` every `front.computer_usage_reload_time` ms
+(default 3000) and patches usage tiles in place; `/api/boot usage_example`
+provides the first-paint snapshot. `settings.optimized_usage_display`
+enables extra update skipping.
+
+## Framework + query tests
+
+`frontend/src/**/*.test.ts` run under vitest (`npm test`, 298 tests):
+per-view tests (`app`, `shell`, `grid`, `Config`, `editmodal`, `ArgsBlock`,
+`argschema`, `args`, `argvalues`, `getcommand`, `labels`, `svg`,
+`LoadingScreen`), per-component tests (fields, icons, preview,
+`CollapseSection`, `EditorStyleBlock`, `search-dropdown`), and per-module
+`query/` tests. `npm run typecheck` (svelte-check) and `npm run build`
+(vite) gate releases.
