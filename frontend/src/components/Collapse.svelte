@@ -5,6 +5,8 @@
 
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import type { SectionIconName } from './icons';
+  import SectionIcon from './SectionIcon.svelte';
   import SvgSlot from './SvgSlot.svelte';
 
   /**
@@ -24,6 +26,8 @@
     id: string;
     /** Already-translated section title. */
     title: string;
+    /** Distinct leading glyph; the toggle chevron stays last. */
+    icon?: SectionIconName | undefined;
     /** Markup default when nothing is persisted (default: closed). */
     open?: boolean | undefined;
     extraClass?: string | undefined;
@@ -31,7 +35,7 @@
     children?: Snippet | undefined;
   }
 
-  let { id, title, open = false, extraClass, info, children }: Props = $props();
+  let { id, title, icon, open = false, extraClass, info, children }: Props = $props();
   let detailsEl: HTMLDetailsElement | null = $state(null);
 
   $effect(() => {
@@ -74,6 +78,6 @@
   {open}
   bind:this={detailsEl}
 >
-  <summary class="wd-collapse-summary"><span class="wd-collapse-chevron" aria-hidden="true"></span><span class="wd-collapse-title">{title}</span>{#if info !== undefined}<a class="wd-collapse-info" href={info.href} target="_blank" title={info.title}><SvgSlot slot={info.iconSlot} /></a>{/if}</summary>
+  <summary class="wd-collapse-summary">{#if icon !== undefined}<span class="wd-collapse-icon" aria-hidden="true"><SectionIcon name={icon} /></span>{/if}<span class="wd-collapse-title">{title}</span>{#if info !== undefined}<a class="wd-collapse-info" href={info.href} target="_blank" title={info.title}><SvgSlot slot={info.iconSlot} /></a>{/if}<span class="wd-collapse-chevron" aria-hidden="true"></span></summary>
   <div class="wd-collapse-body">{#if children !== undefined}{@render children()}{/if}</div>
 </details>

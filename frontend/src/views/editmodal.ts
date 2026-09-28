@@ -239,9 +239,8 @@ export function wireEditModal(ctx: BootContext, editModalId: string, buttonSetti
 
   const image = byId<HTMLElement>(`button-image_${editModalId}`).get(0) ?? null;
   const imageSizeSlider = byId<HTMLInputElement>(`image-size-slider_${editModalId}`).get(0) ?? null;
-  const imageSizeValue = byId<HTMLInputElement>(`image-size-value_${editModalId}`).get(0) ?? null;
-  if (image && imageSizeSlider && imageSizeValue) {
-    updateImageSize(imageSizeSlider, imageSizeValue, image, button);
+  if (image && imageSizeSlider) {
+    updateImageSize(imageSizeSlider, image, button);
   }
 
   const buttonElement = byId<HTMLElement>(`button-element_${editModalId}`).get(0) ?? null;
@@ -265,7 +264,7 @@ export function wireEditModal(ctx: BootContext, editModalId: string, buttonSetti
         const swapped = swapPreviewImage(editModalId, input);
         if (!swapped) return;
         button['image_size'] = '70';
-        updateImageSize(swapped.slider, swapped.value, swapped.image, button);
+        updateImageSize(swapped.slider, swapped.image, button);
         button['image'] = '**uploaded/' + (input.files?.[0]?.name ?? '');
       },
       () => {

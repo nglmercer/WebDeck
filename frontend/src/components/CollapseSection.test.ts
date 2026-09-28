@@ -105,6 +105,15 @@ describe('Collapse', () => {
     expect(window.localStorage.getItem(`${COLLAPSE_STORAGE_PREFIX}general`)).toBe('0');
   });
 
+  it('renders a distinct leading icon with the chevron last', async () => {
+    const el = await render({ id: 'soundboard', title: 'Soundboard', icon: 'speaker' });
+    const summary = el.querySelector('summary')!;
+    expect(summary.querySelector('.wd-collapse-icon svg')).not.toBeNull();
+    const order = Array.from(summary.children).map((c) => c.className);
+    expect(order[0]).toContain('wd-collapse-icon');
+    expect(order[order.length - 1]).toContain('wd-collapse-chevron');
+  });
+
   it('renders an info link that opens without toggling', async () => {
     const el = await render({
       id: 'soundboard',

@@ -162,14 +162,18 @@ describe('studio components', () => {
     for (const id of [
       'image-input_e0X1',
       'image-size-slider_e0X1',
-      'image-size-value_e0X1',
       'background-color-input_e0X1',
       'background-color-hex_e0X1',
       'button-text-input_e0X1',
     ]) {
       expect(el.querySelector(`#${id}`), id).not.toBeNull();
     }
-    expect(el.querySelector('#size-pct_e0X1')?.textContent).toBe('75 %');
+    // Single size control: the value lives in the preview, not beside it.
+    expect(el.querySelector('#image-size-value_e0X1')).toBeNull();
+    expect(el.querySelector('#size-pct_e0X1')).toBeNull();
+    // One file row: action label + name, native input visually hidden.
+    expect(el.querySelector('.wd2-dropfile-label')).not.toBeNull();
+    expect(el.querySelector('#image-input_e0X1')?.className).toContain('wd2-dropfile-input');
   });
 });
 
@@ -193,15 +197,13 @@ describe('refreshStudioPreview', () => {
   it('mirrors size, color, and key into the sidebar readouts', () => {
     document.body.innerHTML = `
       <div id="edit-modal-container-e0X0">
-        <input id="image-size-value_e0X0" value="80">
+        <input id="image-size-slider_e0X0" value="80">
         <input id="background-color-hex_e0X0" value="#112233">
         <input id="key-input_e0X0" value="enter">
         <b id="meta-size_e0X0"></b><b id="meta-color_e0X0"></b><b id="meta-key_e0X0"></b>
-        <span id="size-pct_e0X0"></span>
       </div>`;
     refreshStudioPreview('e0X0');
     expect(document.querySelector('#meta-size_e0X0')?.textContent).toBe('80 %');
-    expect(document.querySelector('#size-pct_e0X0')?.textContent).toBe('80 %');
     expect(document.querySelector('#meta-color_e0X0')?.textContent).toBe('#112233');
     expect(document.querySelector('#meta-key_e0X0')?.textContent).toBe('enter');
   });

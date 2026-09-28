@@ -61,7 +61,6 @@ describe('EditorStyle', () => {
     for (const id of [
       'image-input_e0X1',
       'image-size-slider_e0X1',
-      'image-size-value_e0X1',
       'background-color-input_e0X1',
       'background-color-hex_e0X1',
       'button-text-input_e0X1',
@@ -69,9 +68,10 @@ describe('EditorStyle', () => {
       expect(el.querySelector(`#${id}`), id).not.toBeNull();
     }
     expect(el.innerHTML).toContain('Image size');
-    // Slider and number input share the default.
+    // The slider is the single size input — no number twin, no pct badge.
     expect((el.querySelector('#image-size-slider_e0X1') as HTMLInputElement).value).toBe('75');
-    expect((el.querySelector('#image-size-value_e0X1') as HTMLInputElement).value).toBe('75');
+    expect(el.querySelector('#image-size-value_e0X1')).toBeNull();
+    expect(el.querySelector('#size-pct_e0X1')).toBeNull();
   });
 
   it('normalizes the background color onto both inputs', () => {

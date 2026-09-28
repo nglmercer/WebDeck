@@ -10,10 +10,6 @@ div.choose-bg-element {
   justify-content: space-between;
   align-items: center;
 }
-div.choose-bg-element.dark-theme {
-  border: 1px solid #ccc!important;
-  box-shadow: 0 0 10px #ccc!important;
-}
 div.choose-bg-element-image > img,
 div.choose-bg-element-image > div.video-container video {
   border-radius: 15px;

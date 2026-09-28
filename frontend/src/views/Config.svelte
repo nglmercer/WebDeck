@@ -1,5 +1,6 @@
 <script lang="ts">
   import Collapse from '../components/Collapse.svelte';
+  import SectionIcon from '../components/SectionIcon.svelte';
   import ModalShell from '../components/studio/ModalShell.svelte';
   import ColorField from '../components/ColorField.svelte';
   import NumberField from '../components/NumberField.svelte';
@@ -80,22 +81,24 @@
       <div class="config-container {config.dark}" id="config-container" style="display: block;">
         <form id="config-form" class="config-form">
           <div class="wd2-config-body">
-            <div class="wd2-steps">
+            <div class="wd2-side">
               <StudioSteps {steps} selected={step} onSelect={(id) => (step = id)} />
-              <hr class="wd2-step-sep" />
-              <button type="button" class="wd2-step" onclick={() => openPanel('setting-themes')}>
-                <span class="n" aria-hidden="true">◫</span>
-                <span>{text('themes_menu_title')}</span>
-              </button>
-              <button type="button" class="wd2-step" onclick={() => openPanel('setting-background')}>
-                <span class="n" aria-hidden="true">▦</span>
-                <span>{text('random_bg_menu_title')}</span>
-              </button>
+              <div class="wd2-lib">
+                <h2 class="wd2-lib-title">{tx('studio_library', 'Themes & backgrounds')}</h2>
+                <button type="button" class="wd2-lib-btn" onclick={() => openPanel('setting-themes')}>
+                  <SectionIcon name="swatch" />
+                  <span>{text('themes_menu_title')}</span>
+                </button>
+                <button type="button" class="wd2-lib-btn" onclick={() => openPanel('setting-background')}>
+                  <SectionIcon name="image" />
+                  <span>{text('random_bg_menu_title')}</span>
+                </button>
+              </div>
             </div>
             <div class="wd2-config-main">
               <div class="setting-category settings {config.dark}" hidden={step !== 'settings'}>
                 <h1 class="config-title"> {text('settings')} </h1>
-                <Collapse id="settings-general" title={text('settings_group_general')} open={true}>
+                <Collapse id="settings-general" title={text('settings_group_general')} icon="sliders" open={true}>
                   <SelectField containerClass="language" id="language" name="settings.language" label={text('language')} options={config.langOptions} />
                   <SwitchField dark={config.dark} containerClass="windows-startup" label={text('config-windows_startup')} id="windows-startup" name="settings.windows_startup" checked={config.windowsStartup} extraClass={config.exeExtraClass} />
                   <SwitchField dark={config.dark} containerClass="auto-updates" label={text('auto_updates')} id="auto-updates" name="settings.auto_updates" checked={config.autoUpdates} extraClass={config.exeExtraClass} />
@@ -103,6 +106,7 @@
                 <Collapse
                   id="settings-soundboard"
                   title={text('soundboard')}
+                  icon="speaker"
                   info={{ href: text('link_soundboard'), title: text('soundboard_tutorial'), iconSlot: config.infoSlotId }}
                 >
                   <SwitchField dark={config.dark} containerClass="toggle-soundboard" label={text('toggle_soundboard')} id="toggle_soundboard" name="settings.soundboard.enabled" checked={config.soundboardEnabled} />
@@ -113,6 +117,7 @@
                 <Collapse
                   id="settings-spotify"
                   title={text('spotify_api')}
+                  icon="music"
                   info={{ href: text('link_spotify'), title: text('spotify_tutorial'), iconSlot: config.infoSlotId }}
                 >
                   <TextField dark={config.dark} cls="spotify-setting" label={text('username')} labelFor="spotify-username" id="spotify-username" name="settings.spotify_api.username" value={config.spotifyUsername} />
@@ -122,6 +127,7 @@
                 <Collapse
                   id="settings-obs"
                   title={text('obs_studio')}
+                  icon="video"
                   info={{ href: text('link_obs'), title: text('obs_tutorial'), iconSlot: config.infoSlotId }}
                 >
                   <TextField dark={config.dark} cls="obs-setting" label={text('host')} id="obs-HOST" name="settings.obs.host" value={config.obsHost} />
@@ -131,7 +137,7 @@
               </div>
               <div class="setting-category visuals {config.dark}" hidden={step !== 'visuals'}>
                 <h1 class="config-title"> {text('visuals')} </h1>
-                <Collapse id="visuals-grid" title={text('settings_group_grid_layout')} open={true}>
+                <Collapse id="visuals-grid" title={text('settings_group_grid_layout')} icon="grid" open={true}>
                   <div class="setting gridsize">
                     <p> {text('gridsize')} </p>
                     <div class="gridsize-container">
@@ -162,7 +168,7 @@
                     </div>
                   </div>
                 </Collapse>
-                <Collapse id="visuals-theme" title={text('settings_group_theme_background')}>
+                <Collapse id="visuals-theme" title={text('settings_group_theme_background')} icon="image">
                   <div class="setting themes">
                     <label for="themes"> {text('themes')} </label>
                     <button type="button" id="setting-themes" class={config.dark}>
@@ -178,7 +184,7 @@
                     <input type="text" name="front.background" id="choose-background-handler" class="invisible" value={config.bgRepr} />
                   </div>
                 </Collapse>
-                <Collapse id="visuals-appearance" title={text('settings_group_appearance')}>
+                <Collapse id="visuals-appearance" title={text('settings_group_appearance')} icon="eye">
                   <SwitchField dark={config.dark} containerClass={config.dark} label={text('dark_theme')} id="dark-theme" name="front.dark_theme" checked={config.darkTheme} />
                   <SwitchField dark={config.dark} containerClass="show-names" label={text('show_btn_names')} id="show-names" name="front.show_names" checked={config.showNames} />
                   <ColorField dark={config.dark} containerClass="names-color-input-container" colorClass="names-color-input" colorId="names-color-input" hexClass="names-color-setting" hexId="names-color-hex" hexName="front.names_color" placeholder="Button names color (HEX)" value={config.namesColor} />
@@ -188,14 +194,14 @@
               </div>
               <div class="setting-category experimental {config.dark}" hidden={step !== 'experimental'}>
                 <h1 class="config-title"> {text('experimental')} </h1>
-                <Collapse id="experimental-usage" title={text('settings_group_usage')} open={true}>
+                <Collapse id="experimental-usage" title={text('settings_group_usage')} icon="chart" open={true}>
                   <div class="setting usage-reload-time">
                     <NumberField dark={config.dark} id="usage-reload-time" name="front.computer_usage_reload_time" label={text('usage_btn_reload_time')} value={config.reloadTime} defaultValue="3000" min="0" required={true} />
                   </div>
                   <SelectField containerClass="gpu_method" id="gpu_method" name="settings.gpu_method" label={text('gpu_usage_method')} options={config.gpuOptions} />
                   <SwitchField dark={config.dark} containerClass="optimized-usage-display" label={text('optimized_usage_display')} id="optimized_usage_display" name="settings.optimized_usage_display" checked={config.optimizedUsage} />
                 </Collapse>
-                <Collapse id="experimental-advanced" title={text('settings_group_advanced')}>
+                <Collapse id="experimental-advanced" title={text('settings_group_advanced')} icon="flask">
                   <SwitchField dark={config.dark} containerClass="open-settings-in-integrated-browser" label={text('open_settings_in_integrated_browser')} id="open_settings_in_integrated_browser" name="settings.open_settings_in_integrated_browser" checked={config.openInBrowser} />
                   <SwitchField dark={config.dark} containerClass="show-console" label={text('show_console')} id="show_console" name="settings.show_console" checked={config.showConsole} />
                   <div class="setting automatic-firewall-bypass">

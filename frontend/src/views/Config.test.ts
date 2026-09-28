@@ -171,6 +171,37 @@ describe('Config', () => {
     expect(entries[2]?.querySelector('img')?.getAttribute('src')).toBe('.config/user_uploads/pic.png');
   });
 
+  it('gives every section a distinct icon and keeps library links out of the steps', async () => {
+    const el = await render();
+    const icons = Array.from(
+      el.querySelectorAll('details.wd-collapse .wd-collapse-icon svg')
+    ).map((svg) => svg.innerHTML);
+    expect(icons).toHaveLength(9);
+    expect(new Set(icons).size).toBe(9);
+    // Steps switch tabs; library shortcuts open panels — separate groups.
+    expect(el.querySelectorAll('nav.wd2-steps .wd2-step')).toHaveLength(3);
+    expect(el.querySelectorAll('.wd2-lib .wd2-lib-btn')).toHaveLength(2);
+    expect(el.querySelector('nav.wd2-steps .wd2-lib-btn')).toBeNull();
+  });
+
+  it('renders background cards with footer, label, and live count', async () => {
+    const el = await render();
+    expect(el.querySelector('#bg-count')?.textContent).toBe('3');
+    const entries = el.querySelectorAll('#choose-backgrounds-container .choose-bg-element');
+    for (const entry of Array.from(entries)) {
+      expect(entry.querySelector('.choose-bg-foot')).not.toBeNull();
+      expect(entry.querySelector('.choose-bg-label')?.textContent?.trim()).not.toBe('');
+      expect(entry.querySelector('.choose-bg-buttons')).not.toBeNull();
+    }
+    expect(entries[0]?.querySelector('.choose-bg-swatch')).not.toBeNull();
+    expect(entries[2]?.querySelector('.choose-bg-thumb img')).not.toBeNull();
+    // Activate is a real toggle button; upload uses the shared file row.
+    const toggle = entries[0]?.querySelector('.choose-bg-activate-button');
+    expect(toggle?.tagName).toBe('BUTTON');
+    expect(toggle?.getAttribute('aria-pressed')).toBe('true');
+    expect(el.querySelector('#create-image-bg.wd2-dropfile-input')).not.toBeNull();
+  });
+
   it('normalizes color settings and theme reprs', async () => {
     const el = await render();
     expect((el.querySelector('#names-color-hex') as HTMLInputElement).value).toBe('#ff0000');

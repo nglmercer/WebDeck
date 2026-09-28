@@ -28,3 +28,51 @@ export const TRASH_PATHS = [
 export function addPlusIcon(): Html {
   return html`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path d="${PLUS_PATH}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
+
+// Section glyphs: one distinct inline icon per settings group so collapsed
+// sections are scannable without opening them. 16x16 stroke set rendered
+// by `SectionIcon.svelte` (inner SVG only; the component owns the shell).
+
+export type SectionIconName =
+  | 'sliders'
+  | 'speaker'
+  | 'music'
+  | 'video'
+  | 'grid'
+  | 'image'
+  | 'eye'
+  | 'chart'
+  | 'flask'
+  | 'swatch'
+  | 'upload'
+  | 'check';
+
+export const SECTION_ICONS: Record<SectionIconName, string> = {
+  sliders:
+    '<path d="M2 4.5h12M2 8h12M2 11.5h12"/>' +
+    '<circle cx="10.5" cy="4.5" r="1.9"/><circle cx="5.5" cy="8" r="1.9"/><circle cx="11" cy="11.5" r="1.9"/>',
+  speaker:
+    '<path d="M2 6v4h2.5L8 13V3L4.5 6H2z"/>' + '<path d="M10 5.5a4 4 0 0 1 0 5M12 3.5a7 7 0 0 1 0 9"/>',
+  music:
+    '<circle cx="5" cy="11.8" r="2.4"/><circle cx="11" cy="10.8" r="2.4"/>' +
+    '<path d="M7.4 11.8V3.6l6-1.1v8.3"/>',
+  video:
+    '<rect x="1.5" y="4" width="9" height="8" rx="2"/>' + '<path d="M10.5 7.5l4-2.8v6.6l-4-2.8"/>',
+  grid:
+    '<rect x="2" y="2" width="5" height="5" rx="1.2"/><rect x="9" y="2" width="5" height="5" rx="1.2"/>' +
+    '<rect x="2" y="9" width="5" height="5" rx="1.2"/><rect x="9" y="9" width="5" height="5" rx="1.2"/>',
+  image:
+    '<rect x="2" y="2.5" width="12" height="11" rx="2"/>' +
+    '<circle cx="5.6" cy="6.4" r="1.3"/><path d="M2.5 11.5l3.4-3.4 2.4 2.4 2-2 3.2 3.2"/>',
+  eye: '<path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/>' + '<circle cx="8" cy="8" r="2"/>',
+  chart: '<path d="M2 2v11.5h12"/>' + '<path d="M5.5 11V7M8.5 11V4.5M11.5 11V8" stroke-width="2.4"/>',
+  flask:
+    '<path d="M6.5 2h3M7 2v4.5L3 12a1 1 0 0 0 .9 1.5h8.2A1 1 0 0 0 13 12L9 6.5V2"/>' +
+    '<path d="M5 10.5h6"/>',
+  swatch:
+    '<rect x="4.5" y="4.5" width="9" height="9" rx="2"/>' +
+    '<path d="M11.5 4.5v-1A1.5 1.5 0 0 0 10 2H3.5A1.5 1.5 0 0 0 2 3.5V10a1.5 1.5 0 0 0 1.5 1.5h1"/>',
+  upload:
+    '<path d="M8 10V2.5M5 5l3-3 3 3"/>' + '<path d="M2.5 10.5v2A1.5 1.5 0 0 0 4 14h8a1.5 1.5 0 0 0 1.5-1.5v-2"/>',
+  check: '<path d="M2.5 8.5l3.5 3.5 7.5-8"/>',
+};

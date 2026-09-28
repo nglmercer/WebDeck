@@ -3,12 +3,6 @@ button:focus, button:focus-visible {
   outline: none;
 }
 
-input.image-size-value {
-  border: 1px solid #ccc;
-  padding: 5px;
-  width: 60px;
-}
-
 form.args-form {
   display: flex;
   flex-direction: column;

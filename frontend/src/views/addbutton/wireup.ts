@@ -109,7 +109,7 @@ export function wireAddModal(ctx: BootContext, mctx: AddModalContext): void {
         const swapped = swapPreviewImage(id, input);
         if (!swapped) return;
         buttonState['image_size'] = '70';
-        updateImageSize(swapped.slider, swapped.value, swapped.image, buttonState);
+        updateImageSize(swapped.slider, swapped.image, buttonState);
         buttonState['image'] = '**uploaded/' + (input.files?.[0]?.name ?? '');
       },
       () => {
@@ -120,9 +120,8 @@ export function wireAddModal(ctx: BootContext, mctx: AddModalContext): void {
 
   const image = byId<HTMLElement>(`button-image_${id}`).get(0) ?? null;
   const imageSizeSlider = byId<HTMLInputElement>(`image-size-slider_${id}`).get(0) ?? null;
-  const imageSizeValue = byId<HTMLInputElement>(`image-size-value_${id}`).get(0) ?? null;
-  if (image && imageSizeSlider && imageSizeValue) {
-    updateImageSize(imageSizeSlider, imageSizeValue, image, buttonState);
+  if (image && imageSizeSlider) {
+    updateImageSize(imageSizeSlider, image, buttonState);
   }
 
   const buttonElement = byId<HTMLElement>(`button-element_${id}`).get(0) ?? null;

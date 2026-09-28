@@ -59,7 +59,7 @@ export interface ThemeEntry {
 
 export type BgEntry =
   | { kind: 'color'; bg: string; stripped: string; activateCls: string }
-  | { kind: 'video'; bg: string; src: string; activateCls: string }
+  | { kind: 'video'; bg: string; src: string; file: string; activateCls: string }
   | { kind: 'image'; bg: string; file: string; activateCls: string };
 
 export interface ConfigData {
@@ -160,6 +160,7 @@ function bgEntries(ctx: BootContext): BgEntry[] {
         kind: 'video',
         bg,
         src: '.config/user_uploads/' + rep(stripped, '**uploaded/', ''),
+        file: rep(stripped, '**uploaded/', ''),
         activateCls,
       };
     }

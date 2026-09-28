@@ -1,6 +1,7 @@
 <script lang="ts">
   import ColorField from './ColorField.svelte';
   import { normalizeHexColor } from './fields';
+  import FileField from './FileField.svelte';
   import Preview from './Preview.svelte';
   import type { PreviewData } from './preview';
   import StudioField from './studio/StudioField.svelte';
@@ -47,12 +48,6 @@
   }: Props = $props();
 
   const bg = $derived(normalizeHexColor(backgroundColor));
-  let fileName = $state('');
-
-  function onFileChange(event: Event): void {
-    const input = event.currentTarget as HTMLInputElement;
-    fileName = input.files?.[0]?.name ?? '';
-  }
 </script>
 
 {#snippet previewBlock()}
@@ -64,23 +59,15 @@
 {#snippet controlsBlock()}
   <div class="inputs_container">
     <StudioField label={text('image')} labelFor="image-input_{id}">
-      <div class="wd2-imgrow">
-        <div>
-          <label class="wd2-filebtn" for="image-input_{id}">{text('select_your_file')}</label>
-          <input
-            type="file"
-            id="image-input_{id}"
-            class={dark}
-            accept="image/*"
-            hidden
-            onchange={onFileChange}
-          />
-          <p class="wd2-filename">{fileName !== '' ? fileName : text('no_file_chosen')}</p>
-        </div>
-      </div>
+      <FileField
+        id="image-input_{id}"
+        accept="image/*"
+        browseLabel={text('select_your_file')}
+        emptyLabel={text('no_file_chosen')}
+      />
     </StudioField>
     <StudioField label={text('image_size')} labelFor="image-size-slider_{id}">
-      <div class="slider-container">
+      <div class="slider-container wd2-size-single">
         <input
           type="range"
           id="image-size-slider_{id}"
@@ -91,15 +78,6 @@
           value={defaultSize}
           step="1"
         />
-        <input
-          type="number"
-          id="image-size-value_{id}"
-          class="image-size-value {dark}"
-          min="0"
-          step="1"
-          value={defaultSize}
-        />
-        <span class="wd2-pct" id="size-pct_{id}">{defaultSize} %</span>
       </div>
     </StudioField>
     <StudioField label={text('background_color')} labelFor="background-color-hex_{id}">

@@ -19,9 +19,8 @@ function inputValue(id: string): string {
 
 /** One-shot refresh of every studio readout for one modal. */
 export function refreshStudioPreview(modalId: string): void {
-  const sizeRaw = inputValue(`image-size-value_${modalId}`).trim();
+  const sizeRaw = inputValue(`image-size-slider_${modalId}`).trim();
   const size = sizeRaw !== '' ? `${sizeRaw} %` : '—';
-  setText(`size-pct_${modalId}`, size);
   setText(`meta-size_${modalId}`, size);
 
   const color = inputValue(`background-color-hex_${modalId}`).trim();

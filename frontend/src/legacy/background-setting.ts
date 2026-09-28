@@ -34,6 +34,18 @@ function removeBackgroundFromArray(): string[] {
   return next;
 }
 
+function refreshBgCount(): void {
+  const container = byId('choose-backgrounds-container').get(0) ?? null;
+  const count = container
+    ? q(container)
+        .children()
+        .toArray()
+        .filter((el) => q(el).hasClass('choose-bg-element')).length
+    : 0;
+  const badge = byId('bg-count').get(0) ?? null;
+  if (badge) badge.textContent = String(count);
+}
+
 function deleteButtonEvent(event: Event): void {
   backgroundsArray = removeBackgroundFromArray();
   if (backgroundsArray.length !== 1) {
@@ -44,6 +56,7 @@ function deleteButtonEvent(event: Event): void {
     if ((divElement != null && filteredBackgrounds.length !== 1) || backgroundAttribute.startsWith('//')) {
       q(divElement).remove();
       backgroundsArray = removeBackgroundFromArray();
+      refreshBgCount();
     }
   }
 }
@@ -61,11 +74,13 @@ function activateButtonEvent(event: Event): void {
       // activate
       q(divElement).attr('background', backgroundAttribute.replace('//', ''));
       q(activateButton).addClass('choose-bg-activate-button-checked');
+      q(activateButton).attr('aria-pressed', 'true');
       backgroundsArray = removeBackgroundFromArray();
     } else if (filteredBackgrounds.length !== 1) {
       // desactivate
       q(divElement).attr('background', '//' + backgroundAttribute);
       q(activateButton).removeClass('choose-bg-activate-button-checked');
+      q(activateButton).attr('aria-pressed', 'false');
       backgroundsArray = removeBackgroundFromArray();
     }
   }
@@ -197,8 +212,12 @@ export function initBackgroundSetting(): void {
         ? q('div', container).attr('background_color_text') ?? ''
         : '';
 
-      divElement.text(background_color_text + ' : ' + colorHex);
       divElement.attr('background', colorHex);
+      divElement.append(q('<span>').addClass('choose-bg-swatch').css('backgroundColor', colorHex));
+      const foot = q('<div>').addClass('choose-bg-foot');
+      foot.append(
+        q('<span>').addClass('choose-bg-label').text(background_color_text + ' · ' + colorHex)
+      );
 
       byId('choose-backgrounds-container').append(divElement);
 
@@ -206,14 +225,17 @@ export function initBackgroundSetting(): void {
 
       const clonedChooseBgButtons = q('.choose-bg-buttons').clone().get(0);
       if (clonedChooseBgButtons) {
-        divElement.append(clonedChooseBgButtons);
+        foot.append(clonedChooseBgButtons);
         q(clonedChooseBgButtons)
           .find('.choose-bg-activate-button')
-          .addClass('choose-bg-activate-button-checked');
+          .addClass('choose-bg-activate-button-checked')
+          .attr('aria-pressed', 'true');
       }
+      divElement.append(foot);
 
       wireActivateButtons();
       wireDeleteButtons();
+      refreshBgCount();
 
       console.log(backgroundsArray.length + backgroundsArray.join(','));
     }
@@ -242,18 +264,19 @@ export function initBackgroundSetting(): void {
             divElement.addClass('dark-theme');
           }
 
+          const thumb = q('<div>').addClass('choose-bg-thumb');
           if (!imageFile.endsWith('.mp4')) {
-            divElement.append(
+            thumb.append(
               q('<div>').addClass('choose-bg-pseudo-element').css('backgroundImage', 'url("' + imageFile + '")')
             );
+            // Sharp image on top of the blurred fill (matches SSR cards).
+            thumb.append(q<HTMLImageElement>('<img>').attr('src', imageFile).attr('alt', ''));
           }
 
           backgroundsArray.push(fileName);
           divElement.attr('background', fileName);
 
           byId('choose-backgrounds-container').append(divElement);
-
-          let mediaElement: HTMLElement | undefined;
 
           if (imageFile.endsWith('.mp4')) {
             const videoElementBlurred = q<HTMLVideoElement>('<video>')
@@ -279,28 +302,27 @@ export function initBackgroundSetting(): void {
             const videoContainer = q('<div>').attr('class', 'video-container');
             videoContainer.append(videoElement);
 
-            divElement.append(videoContainerBlurred);
-            divElement.append(videoContainer);
-            console.log(mediaElement);
-          } else {
-            // NOTE: 1:1 upstream quirk — the img is built but never
-            // appended (only the blurred pseudo-element shows it).
-            const imgElement = q<HTMLImageElement>('<img>').attr('src', imageFile);
-            mediaElement = imgElement.get(0);
+            thumb.append(videoContainerBlurred);
+            thumb.append(videoContainer);
           }
-          void mediaElement;
+          divElement.append(thumb);
 
+          const foot = q('<div>').addClass('choose-bg-foot');
+          foot.append(q('<span>').addClass('choose-bg-label').text(firstFile?.name ?? ''));
           const clonedChooseBgButtons = q('.choose-bg-buttons').clone().get(0);
           if (clonedChooseBgButtons) {
-            divElement.append(clonedChooseBgButtons);
+            foot.append(clonedChooseBgButtons);
             q(clonedChooseBgButtons)
               .find('.choose-bg-activate-button')
-              .addClass('choose-bg-activate-button-checked');
+              .addClass('choose-bg-activate-button-checked')
+              .attr('aria-pressed', 'true');
           }
+          divElement.append(foot);
 
           wireActivateButtons();
           wireDeleteButtons();
           removeBackgroundFromArray();
+          refreshBgCount();
         },
         () => {
           console.error('Failed to download file.');
@@ -311,6 +333,7 @@ export function initBackgroundSetting(): void {
 
   wireDeleteButtons();
   wireActivateButtons();
+  refreshBgCount();
 }
 
 console.log('background-setting.js loaded');

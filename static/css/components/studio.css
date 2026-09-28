@@ -602,25 +602,13 @@ label.wd2-label,
   flex-wrap: wrap;
 }
 
-/* range + pct */
+/* range (the slider is the only size input; the value reads out in the preview) */
 .slider-container input[type="range"] {
   accent-color: var(--wd2-accent);
 }
-.wd2-pct {
-  font-size: 13px;
-  font-weight: 700;
-  background: var(--wd2-input);
-  border: 1px solid var(--wd2-border-soft);
-  border-radius: 7px;
-  padding: 5px 10px;
-  min-width: 62px;
-  text-align: center;
-  color: var(--wd2-text);
-  font-family: var(--wd2-mono);
-}
-input.image-size-value {
-  width: 70px;
-  padding: 6px 8px;
+.slider-container.wd2-size-single input[type="range"] {
+  width: 100%;
+  flex: 1 1 100%;
 }
 
 /* color rows */
@@ -653,46 +641,67 @@ input[type="text"].names-color-setting,
   font-family: var(--wd2-mono);
 }
 
-/* file buttons */
-.wd2-filebtn {
-  display: inline-block;
-  border: 1px solid var(--wd2-border-strong);
-  background: var(--wd2-panel);
-  color: var(--wd2-text);
-  border-radius: 8px;
-  padding: 8px 14px;
+/* file picker: one dashed drop row (action + name), native input hidden */
+.wd2-dropfile {
+  min-width: 0;
+}
+.wd2-dropfile-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+.wd2-dropfile-label {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border: 1.5px dashed var(--wd2-border-strong);
+  border-radius: 10px;
+  background: var(--wd2-input);
+  padding: 10px 14px;
+  cursor: pointer;
+  min-width: 0;
+}
+.wd2-dropfile-label:hover {
+  border-color: var(--wd2-focus);
+  background: var(--wd2-focus-soft);
+}
+.wd2-dropfile-input:focus-visible + .wd2-dropfile-label {
+  outline: 2px solid var(--wd2-focus);
+  outline-offset: 2px;
+}
+.wd2-dropfile-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--wd2-muted);
+}
+.wd2-dropfile-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.wd2-dropfile-action {
   font-size: 13.5px;
   font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
+  color: var(--wd2-text);
 }
-.wd2-filebtn:hover {
-  background: var(--wd2-border);
-}
-.wd2-filename {
+.wd2-dropfile-name {
   font-size: 12.5px;
   color: var(--wd2-muted);
-  margin: 6px 0 0;
-  word-break: break-all;
-}
-.wd2-imgrow {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-}
-.wd2-thumb {
-  width: 56px;
-  height: 56px;
-  border-radius: 10px;
-  background: var(--wd2-tile);
-  border: 1px solid var(--wd2-border-soft);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  color: var(--wd2-muted);
-  flex: none;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--wd2-mono);
+}
+.wd2-dropfile-name.chosen {
+  color: var(--wd2-accent);
+}
+.wd2-dropfile-hint {
+  font-size: 11.5px;
+  color: var(--wd2-muted);
+  letter-spacing: 0.02em;
 }
 div.filepath,
 div.folderpath {
@@ -1165,7 +1174,7 @@ a#version.dark-theme {
   min-height: 0;
   flex: 1;
 }
-.wd2-steps {
+.wd2-side {
   border-right: 1px solid var(--wd2-border);
   background: var(--wd2-panel);
   padding: 14px 10px;
@@ -1173,6 +1182,11 @@ a#version.dark-theme {
   flex-direction: column;
   gap: 4px;
   overflow-y: auto;
+}
+nav.wd2-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 .wd2-step {
   display: flex;
@@ -1217,16 +1231,51 @@ a#version.dark-theme {
   background: var(--wd2-accent);
   color: #fff;
 }
-.wd2-step-sep {
-  border: 0;
+/* Library shortcuts live below the steps in their own labeled group — they
+   open separate panels instead of switching the step tab. */
+.wd2-lib {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   border-top: 1px solid var(--wd2-border);
-  margin: 8px 6px;
+  margin-top: 8px;
+  padding-top: 10px;
 }
-.wd2-steps .wd2-steps {
-  border: 0;
-  padding: 0;
+.wd2-lib-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--wd2-muted);
+  margin: 0 0 2px;
+  padding: 0 12px;
+  font-weight: 700;
+}
+.wd2-lib-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
   background: transparent;
-  overflow: visible;
+  color: var(--wd2-text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.wd2-lib-btn:hover {
+  background: var(--wd2-border);
+  color: var(--wd2-text);
+}
+.wd2-lib-btn svg {
+  flex: none;
+  color: var(--wd2-muted);
+}
+.wd2-lib-btn:hover svg {
+  color: var(--wd2-accent);
 }
 .wd2-config-main {
   padding: 16px 20px 20px;
@@ -1292,6 +1341,14 @@ summary.wd-collapse-summary::-webkit-details-marker {
 summary.wd-collapse-summary:hover {
   background: var(--wd2-border);
 }
+.wd-collapse-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--wd2-muted);
+}
+details.wd-collapse[open] .wd-collapse-icon {
+  color: var(--wd2-accent);
+}
 .wd-collapse-chevron {
   width: 10px;
   height: 10px;
@@ -1300,7 +1357,7 @@ summary.wd-collapse-summary:hover {
   border-bottom: 2px solid var(--wd2-muted);
   transform: rotate(-45deg);
   transition: transform 0.15s ease;
-  margin-left: 2px;
+  margin-right: 2px;
 }
 details.wd-collapse[open] .wd-collapse-chevron {
   transform: rotate(45deg);
@@ -1395,60 +1452,181 @@ a.wd-collapse-info:hover {
   gap: 10px;
   align-items: center;
 }
-#choose-backgrounds-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+/* panel header: back button + title + count */
+.wd2-panel-head {
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
-.choose-bg-element {
+.wd2-panel-head .config-title {
+  flex: 1;
+  margin: 0;
+  font-size: 13px;
+}
+/* add-background composer: color row, divider, upload row */
+#create-bg-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   border: 1px solid var(--wd2-border);
   border-radius: 12px;
-  overflow: hidden;
   background: var(--wd2-panel);
-  min-height: 120px;
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 10px;
-  font-size: 12.5px;
-  color: var(--wd2-text-dim);
+  padding: 14px;
+  font-size: 13px;
+  color: var(--wd2-muted);
 }
-.choose-bg-element img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.choose-bg-buttons {
-  position: relative;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  background: var(--wd2-scrim);
-  border-radius: 8px;
-  padding: 4px 8px;
-}
-.choose-bg-activate-button,
-.choose-bg-activate-button-checked {
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  border: 2px solid var(--wd2-muted);
-  cursor: pointer;
-}
-.choose-bg-activate-button-checked {
-  border-color: var(--wd2-accent);
-  background: var(--wd2-accent);
-}
-#create-bg-choices {
+.wd2-bg-add-row {
   display: flex;
   gap: 10px;
   align-items: center;
   flex-wrap: wrap;
-  font-size: 13px;
+}
+.wd2-bg-add-row .background-color-input-container {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.wd2-bg-or {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.wd2-bg-or::before,
+.wd2-bg-or::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--wd2-border);
+}
+/* background cards: preview block + footer (label left, actions right) */
+#choose-backgrounds-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+div.choose-bg-element {
+  border: 1px solid var(--wd2-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--wd2-panel);
+  box-shadow: none;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  font-size: 12.5px;
+  color: var(--wd2-text-dim);
+}
+div.choose-bg-element-color {
+  background: var(--wd2-panel);
+}
+.choose-bg-swatch {
+  display: block;
+  height: 84px;
+}
+.choose-bg-thumb {
+  position: relative;
+  height: 110px;
+  overflow: hidden;
+  background: var(--wd2-tile);
+}
+.choose-bg-thumb > .choose-bg-pseudo-element {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(8px) brightness(0.7);
+  transform: scale(1.1);
+}
+.choose-bg-thumb > img,
+.choose-bg-thumb .video-container video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  margin: 0;
+  border-radius: 0;
+  object-fit: cover;
+  transform: none;
+  z-index: 1;
+}
+.choose-bg-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--wd2-surface);
+  border-top: 1px solid var(--wd2-border);
+  color: var(--wd2-text);
+  min-width: 0;
+}
+.choose-bg-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-family: var(--wd2-mono);
+  color: var(--wd2-text-dim);
+}
+.choose-bg-foot div.choose-bg-buttons {
+  position: static;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  height: auto;
+  z-index: auto;
+  flex: none;
+}
+.choose-bg-foot .choose-bg-activate-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin: 0;
+  padding: 0;
+  border-radius: 999px;
+  border: 2px solid var(--wd2-border-strong);
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+}
+.choose-bg-foot .choose-bg-activate-button:hover {
+  border-color: var(--wd2-accent);
+}
+.choose-bg-foot .choose-bg-activate-button-checked {
+  border-color: var(--wd2-accent);
+  background: var(--wd2-accent);
+  color: #fff;
+}
+.choose-bg-foot svg.choose-bg-delete-button {
+  width: 26px;
+  height: 26px;
+  margin: 0;
+  padding: 5px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  fill: currentColor;
   color: var(--wd2-muted);
+  cursor: pointer;
+}
+.choose-bg-foot svg.choose-bg-delete-button:hover {
+  color: var(--wd2-danger);
+  background: var(--wd2-panel);
+  border-color: var(--wd2-border);
 }
 #setting-themes,
 #setting-background,
@@ -1495,18 +1673,29 @@ a.wd-collapse-info:hover {
   .wd2-config-body {
     grid-template-columns: 1fr;
   }
-  .wd2-steps {
+  .wd2-side {
     border-right: 0;
     border-bottom: 1px solid var(--wd2-border);
+    padding: 10px;
+  }
+  nav.wd2-steps {
     flex-direction: row;
     overflow-x: auto;
-    padding: 10px;
   }
   .wd2-step {
     white-space: nowrap;
   }
-  .wd2-step-sep {
-    display: none;
+  .wd2-lib {
+    border-top: 0;
+    margin-top: 0;
+    padding-top: 6px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .wd2-lib-title {
+    padding: 0;
+    margin: 0;
   }
   #choose-themes-container,
   #choose-themes-titles {
@@ -1576,18 +1765,20 @@ form#config-form {
   min-width: 0;
 }
 .wd2-meta .mrow b,
-.wd2-filename,
+.wd2-dropfile-name,
 .wd2-hint,
 .theme-title,
 .theme-desc,
 .choose-bg-element,
+.choose-bg-label,
 .addbutton-description p {
   overflow-wrap: anywhere;
 }
 .wd2-foot,
 .wd2-actions,
 .wd2-version-row,
-.wd2-imgrow,
+.wd2-panel-head,
+.wd2-bg-add-row,
 .wd2-numrow {
   flex-wrap: wrap;
 }

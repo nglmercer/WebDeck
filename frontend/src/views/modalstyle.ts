@@ -13,20 +13,20 @@ function svgSizeExpandos(imageElement: HTMLElement, calculatedSize: number): voi
   (imageElement as unknown as Record<string, unknown>)['width'] = calculatedSize + 'px';
 }
 
-/** Studio `%` badge next to the slider (best-effort; absent pre-redesign). */
-function syncSizeBadge(sizeInput: HTMLInputElement, parsedValue: number): void {
-  const badgeId = sizeInput.id.replace('image-size-value_', 'size-pct_');
-  if (badgeId === sizeInput.id) return;
-  const badge = document.getElementById(badgeId);
-  if (badge) badge.textContent = `${parsedValue} %`;
-  const metaId = sizeInput.id.replace('image-size-value_', 'meta-size_');
-  const meta = document.getElementById(metaId);
+/**
+ * Studio sidebar `Size` readout (best-effort; absent outside split layout).
+ * The slider is the single size input — the live tile plus this readout
+ * replace the old slider + number + badge triplet.
+ */
+function syncSizeMeta(slider: HTMLInputElement, parsedValue: number): void {
+  const prefix = 'image-size-slider_';
+  if (!slider.id.startsWith(prefix)) return;
+  const meta = document.getElementById('meta-size_' + slider.id.slice(prefix.length));
   if (meta) meta.textContent = `${parsedValue} %`;
 }
 
 export function updateImageSize(
   imageSizeSlider: HTMLInputElement,
-  imageSizeValue: HTMLInputElement,
   imageElement: HTMLElement,
   button: ButtonState
 ): void {
@@ -42,39 +42,8 @@ export function updateImageSize(
       svgSizeExpandos(imageElement, calculatedSize);
     }
 
-    q(imageSizeValue).val(String(parsedValue));
-    syncSizeBadge(imageSizeValue, parsedValue);
+    syncSizeMeta(imageSizeSlider, parsedValue);
     button['image_size'] = `${parsedValue}%`;
-  });
-
-  q(imageSizeValue).on('input', function (event) {
-    const newValue = String(q(imageSizeValue).val() ?? '');
-    const parsedValue = parseInt(newValue);
-
-    if (!isNaN(parsedValue)) {
-      q(imageSizeSlider).val(String(parsedValue));
-
-      const calculatedSize = 112 * (parsedValue / 100) + 3;
-      q(imageElement).css('width', calculatedSize + 'px');
-
-      if (q(imageElement).is('svg')) {
-        q(imageElement).css('height', calculatedSize + 'px');
-        svgSizeExpandos(imageElement, calculatedSize);
-      }
-
-      syncSizeBadge(imageSizeValue, parsedValue);
-      button['image_size'] = `${parsedValue}%`;
-    }
-
-    event.preventDefault();
-  });
-
-  q(imageSizeValue).on('keypress', function (event) {
-    const charCode = event.which ? event.which : event.keyCode;
-
-    if (charCode < 48 || charCode > 57) {
-      event.preventDefault();
-    }
   });
 }
 
@@ -111,7 +80,7 @@ export function updateButtonBackgroundColor(
 export function swapPreviewImage(
   modalId: string,
   input: HTMLInputElement
-): { image: HTMLElement; slider: HTMLInputElement; value: HTMLInputElement } | null {
+): { image: HTMLElement; slider: HTMLInputElement } | null {
   const element = byId<HTMLElement>(`button-image_${modalId}`).get(0);
   if (!element) return null;
   const fileName = input.files?.[0]?.name ?? '';
@@ -133,12 +102,10 @@ export function swapPreviewImage(
   }
 
   const slider = byId<HTMLInputElement>(`image-size-slider_${modalId}`).get(0);
-  const value = byId<HTMLInputElement>(`image-size-value_${modalId}`).get(0);
-  if (!image || !slider || !value) return null;
+  if (!image || !slider) return null;
 
   q(slider).val('70');
-  q(value).val('70');
-  syncSizeBadge(value, 70);
+  syncSizeMeta(slider, 70);
   q(image).css('width', '81.4');
-  return { image, slider, value };
+  return { image, slider };
 }
