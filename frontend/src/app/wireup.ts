@@ -21,6 +21,8 @@ import {
 } from './modals';
 import { io } from 'socket.io-client';
 import { pageState, socketHolder, type AppSocket } from './state';
+import { emitAppEvent } from './events';
+import { refreshApp } from './refresh';
 import { showError } from './toast';
 import { updateUsageTiles } from './usage';
 import { auto_resize, wireZoomControls } from './zoom';
@@ -76,6 +78,11 @@ function wireVideos(): void {
 }
 
 function wireSocket(transferMethod: string): void {
+  // Re-render safe: drop the previous connection (if any) so refreshes
+  // never stack sockets, and a config change away from socket mode
+  // disconnects cleanly.
+  socketHolder.socket?.disconnect();
+  socketHolder.socket = null;
   if (transferMethod !== 'socket') return;
   const socket: AppSocket = io('http://' + document.domain + ':' + location.port);
   socketHolder.socket = socket;
@@ -168,6 +175,10 @@ function wireSubmits(transferMethod: string): void {
               .then(function (response: { success?: boolean; message?: string }) {
                 if (response.success) {
                   alert(text('settings_save_success'));
+                  emitAppEvent('save:completed', { flow: 'config' });
+                  // Re-render so grid size, language, theme, and background
+                  // apply immediately (no manual reload needed).
+                  void refreshApp();
                 } else {
                   if (response.message && response.message !== '') {
                     showError(response.message);
@@ -216,7 +227,13 @@ function wireSubmits(transferMethod: string): void {
     });
 }
 
+// The keydown listener binds <html>, which survives re-renders: wire it
+// exactly once, or every refresh would stack another toggle handler.
+let keydownWired = false;
+
 function wireKeydown(): void {
+  if (keydownWired) return;
+  keydownWired = true;
   // Keydowns bubble through <html>, like the document listener did.
   q('html').on('keydown', function (event) {
     // NOTE: opacity probes read the *inline* style; qdom's `.css()` getter

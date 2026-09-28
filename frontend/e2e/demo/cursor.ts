@@ -2,8 +2,8 @@ import type { Page } from '@playwright/test';
 
 // Playwright's video encoder does not capture the OS mouse pointer, so the
 // tour renders its own: a DOM cursor that follows real mousemove events
-// plus a click ripple. Injected via addInitScript so it survives the
-// tour's page reloads (editor saves navigate with ?edit=true).
+// plus a click ripple. Injected via addInitScript so it survives page
+// reloads (the /reload command still reloads).
 const CURSOR_SCRIPT = `(() => {
   const css = [
     '#demo-cursor{position:fixed;left:0;top:0;width:30px;height:30px;z-index:2147483647;pointer-events:none;transition:transform 70ms linear;}',

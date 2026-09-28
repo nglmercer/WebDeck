@@ -1,5 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import { vclick, vfill } from './actions';
+import { appEventCount, waitForAppEvent } from './events';
 
 // Selector contract (see e2e/README "Identifier conventions"):
 // - deck tiles: [data-testid="deck-tile"] + [data-message="<command>"]
@@ -10,6 +11,7 @@ import { vclick, vfill } from './actions';
 /** 1. Boot: loading screen -> grid, usage tiles fill in. */
 export async function bootStep(page: Page): Promise<void> {
   await page.goto('/');
+  await waitForAppEvent(page, 'boot:ready');
   await expect(page.locator('#button_e0X0')).toBeVisible();
   await expect(page.locator('#folder-index .usage-value').first()).not.toHaveText('-', {
     timeout: 15_000,
@@ -43,9 +45,11 @@ export async function configLibraryStep(page: Page): Promise<void> {
   await page.waitForTimeout(800);
 }
 
-/** 4. Editor mode, rename a button, save (reloads back into editor mode). */
+/** 4. Editor mode, rename a button, save in place (no reload). */
 export async function renameButtonStep(page: Page): Promise<void> {
+  const entered = await appEventCount(page);
   await page.keyboard.press('q');
+  await waitForAppEvent(page, 'editor:changed', entered);
   await expect(page.locator('#EditorButtons')).toBeVisible();
   await page.waitForTimeout(1000);
   await vclick(page, '.edit-button[edit_modal_ID="e0X0"]');
@@ -57,16 +61,27 @@ export async function renameButtonStep(page: Page): Promise<void> {
   await page.waitForTimeout(800);
   await vfill(page, '#button-text-input_e0X0', 'My Media Folder');
   await page.waitForTimeout(1000);
+  const saved = await appEventCount(page);
   await vclick(page, '#e0X0_submit');
-  await page.waitForURL('**/*edit=true*', { timeout: 15_000 });
+  // Save closes the modal and re-renders the grid in place: editor stays on,
+  // no ?edit=true reload, and the renamed tile shows the new name.
+  await waitForAppEvent(page, 'save:completed', saved);
+  await waitForAppEvent(page, 'app:refreshed', saved);
+  await expect(page.locator('#edit-modal-container-e0X0')).not.toHaveCSS('display', 'block', {
+    timeout: 15_000,
+  });
   await expect(page.locator('#EditorButtons')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('#folder-index form#e0X0').getByText('My Media Folder')).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page).not.toHaveURL(/edit=true/);
   await page.waitForTimeout(1000);
 }
 
 /**
  * 5. Add a new button: void slot -> search -> pick command -> save.
  * Slot 8 is empty in the fixtures, so it renders a plus tile in editor mode.
- * Submit reloads (?edit=true); the stateful mocks replay the saved grid.
+ * Submit re-renders in place; the stateful mocks replay the saved grid.
  */
 export async function addButtonStep(page: Page): Promise<void> {
   await vclick(page, '#folder-index [data-testid="add-slot"] >> nth=0');
@@ -86,7 +101,10 @@ export async function addButtonStep(page: Page): Promise<void> {
   await vclick(page, leaf);
   await expect(page.locator(argsModal)).toHaveCSS('display', 'block');
   await page.waitForTimeout(1200);
+  const saved = await appEventCount(page);
   await vclick(page, `${argsModal} [data-testid="add-args-save"]`);
+  await waitForAppEvent(page, 'save:completed', saved);
+  await waitForAppEvent(page, 'app:refreshed', saved);
   await expect(page.locator('#EditorButtons')).toBeVisible({ timeout: 15_000 });
   // Slot 8 was the first void slot; the new tile lands there with the picked command.
   const tile = page.locator('#folder-index #button_e0X8');
@@ -112,11 +130,14 @@ export async function swapStep(page: Page): Promise<void> {
 
 /** 7. Save & exit the editor, then press a command button. */
 export async function saveExitStep(page: Page): Promise<void> {
+  const saved = await appEventCount(page);
   await vclick(page, '#SaveExitEditorButton');
+  await waitForAppEvent(page, 'save:completed', saved);
+  await waitForAppEvent(page, 'app:refreshed', saved);
   await expect(page.locator('#EditorButtons')).toBeHidden();
   await page.waitForTimeout(1000);
   await vclick(page, '#folder-index [data-message="/colorpicker lang:en"]');
-  // Let the usage poll repopulate the tiles (reload restarted it) before closing.
+  // Let the usage poll repopulate the tiles (refresh restarted it) before closing.
   await expect(page.locator('#folder-index .usage-value').first()).not.toHaveText('-', {
     timeout: 15_000,
   });

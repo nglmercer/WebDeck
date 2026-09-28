@@ -2,6 +2,7 @@
 // the full page context, then render views and wire up behavior.
 
 import { mount, unmount } from 'svelte';
+import { emitAppEvent } from './app/events';
 import { getJson } from './framework/api';
 import { initI18n } from './framework/i18n';
 import type { BootContext } from './framework/types';
@@ -24,6 +25,7 @@ async function boot(): Promise<void> {
     initI18n(ctx.lang);
     void unmount(loading);
     renderApp(mountEl, ctx);
+    emitAppEvent('boot:ready', ctx);
   } catch (error) {
     void unmount(loading);
     q(mountEl).html(`<p style="color:white">Failed to load WebDeck: ${String(error)}</p>`);

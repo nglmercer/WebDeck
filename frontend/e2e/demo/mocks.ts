@@ -24,7 +24,7 @@ function ok(body: unknown) {
  *
  * The mocks are stateful: button saves capture the posted grid and later
  * /api/boot + /get_config calls replay it, so added/renamed/swapped
- * buttons persist across the tour's reloads like a real server.
+ * buttons persist across the tour's in-place refreshes like a real server.
  */
 export async function setupDemoMocks(page: Page): Promise<void> {
   if (LIVE) return;
@@ -60,12 +60,26 @@ export async function setupDemoMocks(page: Page): Promise<void> {
       return route.fulfill(ok({ success: true, message: 'demo mode' }));
     });
   }
-  for (const endpoint of [
-    '**/send-data',
-    '**/COMPLETE_save_config',
-    '**/save_single_button',
-    '**/create_folder',
-  ]) {
+  // Single-button saves patch one slot (folder addressed by index, like the server).
+  await page.route('**/save_single_button', (route) => {
+    try {
+      const body = route.request().postDataJSON() as {
+        location_Folder?: number | string;
+        location_Id?: number | string;
+        content?: unknown;
+      } | null;
+      const grid = liveButtons as Record<string, unknown[]> | undefined;
+      const folder = grid ? Object.keys(grid)[Number(body?.location_Folder)] : undefined;
+      const slot = Number(body?.location_Id);
+      if (grid && folder !== undefined && body?.content !== undefined && Number.isInteger(slot)) {
+        grid[folder]![slot] = body.content;
+      }
+    } catch {
+      // Non-JSON save body: keep the previous grid.
+    }
+    return route.fulfill(ok({ success: true, message: 'demo mode' }));
+  });
+  for (const endpoint of ['**/send-data', '**/COMPLETE_save_config', '**/create_folder']) {
     await page.route(endpoint, (route) =>
       route.fulfill(ok({ success: true, message: 'demo mode' }))
     );

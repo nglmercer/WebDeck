@@ -11,6 +11,9 @@ import {
   type BootContext,
 } from '../../framework/types';
 import { q, byId, post } from '../../query';
+import { emitAppEvent } from '../../app/events';
+import { hide_addbutton_args_modal, hide_addbutton_modal } from '../../app/modals';
+import { refreshApp } from '../../app/refresh';
 import { seedPresetButtonState } from '../../components/button-icons';
 import { wireKeyField } from '../../components/keyfield';
 import { buildCommand, catKey, cmdKey, registerShowArg } from '../args';
@@ -314,7 +317,10 @@ function buttonCommandAdd(argModalId: string, command: string): void {
     .then(function (response: { success?: boolean }) {
       if (response.success) {
         alert(text('settings_save_success'));
-        window.location.href = window.location.href + '?edit=true';
+        emitAppEvent('save:completed', { flow: 'add' });
+        hide_addbutton_args_modal();
+        hide_addbutton_modal();
+        void refreshApp();
       } else {
         throw new Error(text('settings_save_error'));
       }

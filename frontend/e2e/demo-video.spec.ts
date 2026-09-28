@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { injectCursor } from './demo/cursor';
+import { installEventRecorder } from './demo/events';
 import { setupDemoMocks } from './demo/mocks';
 import {
   addButtonStep,
@@ -27,6 +28,7 @@ test('webdeck demo tour', async ({ page }) => {
   // Save flows use alert()/confirm(); accept so the tour never stalls.
   page.on('dialog', (dialog) => void dialog.accept());
   await injectCursor(page);
+  await installEventRecorder(page);
   await setupDemoMocks(page);
 
   await bootStep(page);

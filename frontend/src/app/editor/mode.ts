@@ -4,20 +4,28 @@ import { text } from '../../framework/i18n';
 import type { JsonObject } from '../../framework/types';
 import { byId, q } from '../../query';
 import { pageState } from '../state';
+import { emitAppEvent } from '../events';
+import { refreshApp } from '../refresh';
 import { showError } from '../toast';
 import { showEditorPartially, swapButtonLabel, toggleEditorButtonsMode } from './display';
 import { editorUiState } from './state';
 import { swapEditorButtonFunction } from './swap';
 
-export function toggleEditorMode(): void {
-  pageState.editorMode = pageState.editorMode === 0 ? 1 : 0;
-  toggleEditorButtonsMode();
+/** Sync the config-modal editor button label with the current mode. */
+export function syncEditorButtonLabel(): void {
   const editorButton = byId('editorButton').get(0) ?? null;
   if (editorButton) {
     q(editorButton).text(
       pageState.editorMode === 0 ? `[Q] ${text('enter_editor_mode')}` : `[Q] ${text('exit_editor_mode')}`
     );
   }
+}
+
+export function toggleEditorMode(): void {
+  pageState.editorMode = pageState.editorMode === 0 ? 1 : 0;
+  toggleEditorButtonsMode();
+  syncEditorButtonLabel();
+  emitAppEvent('editor:changed', { mode: pageState.editorMode });
   console.log('La valeur de editorMode a été modifiée :', pageState.editorMode);
 
   if (pageState.editorMode === 1) {
@@ -38,17 +46,16 @@ export function toggleEditorMode(): void {
       });
   } else {
     if (editorUiState.ifModif === 1) {
+      // Discard unposted temp edits by re-rendering from the server
+      // (same net effect as the old location.reload()).
       console.log(`swapChanges ${editorUiState.swapChanges}`);
-      location.reload();
+      void refreshApp();
+      return;
     }
     swapEditorButtonFunction();
     pageState.editorMode = 0;
     toggleEditorButtonsMode();
-    if (editorButton) {
-      q(editorButton).text(
-        pageState.editorMode === 0 ? `[Q] ${text('enter_editor_mode')}` : `[Q] ${text('exit_editor_mode')}`
-      );
-    }
+    syncEditorButtonLabel();
     console.log('La valeur de editorMode a été modifiée :', pageState.editorMode);
   }
 }
@@ -85,7 +92,8 @@ export function SaveExitEditor(tempConfig: JsonObject): void {
       .then(function (response: { success?: boolean }) {
         if (response.success) {
           alert(text('settings_save_success'));
-          location.reload();
+          emitAppEvent('save:completed', { flow: 'buttons' });
+          void refreshApp();
         } else {
           showError('Error :/');
         }

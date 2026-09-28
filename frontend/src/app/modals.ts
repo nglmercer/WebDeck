@@ -21,6 +21,14 @@ export function isEditbuttonModalOpened(): number {
   return modalFlags.is_editbutton_modal_opened;
 }
 
+/** Reset transient modal state (what a page reload used to clear). */
+export function resetModalState(): void {
+  lastModals.length = 0;
+  modalFlags.is_addbutton_modal_opened = 0;
+  modalFlags.is_addbutton_args_modal_opened = 0;
+  modalFlags.is_editbutton_modal_opened = 0;
+}
+
 function modal(): Element | null {
   return q('.modal-container').get(0) ?? null;
 }

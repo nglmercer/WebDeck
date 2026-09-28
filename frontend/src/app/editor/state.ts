@@ -26,3 +26,15 @@ export const editorUiState: {
 export function isSwapMode(): boolean {
   return editorUiState.swapMode === 1;
 }
+
+/** Reset transient editor UI state (what a page reload used to clear). */
+export function resetEditorUiState(): void {
+  editorUiState.ifModif = 0;
+  editorUiState.swapMode = 0;
+  editorUiState.savedOnClicks = {};
+  editorUiState.swapChanges = [];
+  editorUiState.swapUNChanges = [];
+  editorUiState.swapFirstBtn = 0;
+  editorUiState.swapSecondBtn = 0;
+  editorUiState.isMouseOverOpenFolder = false;
+}

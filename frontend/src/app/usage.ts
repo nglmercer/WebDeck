@@ -1,5 +1,6 @@
 import type { JsonObject } from '../framework/types';
 import { q, byId } from '../query';
+import { emitAppEvent } from './events';
 import { pageState } from './state';
 
 // Usage polling (index.jinja window-load block). Shared tile updater is used
@@ -80,15 +81,18 @@ export function pollUsageOnce(): void {
         if (pageState.disconnectCount > 0) {
           byId('loading-screen').addClass('hidden');
           pageState.disconnectCount = 0;
+          emitAppEvent('server:reconnected', {});
         }
         // NOTE: upstream repeats this update once per form (identical
         // result); a single pass is equivalent.
         updateUsageTiles(usage_dict);
+        emitAppEvent('usage:updated', usage_dict);
       })
       .catch(function () {
         pageState.disconnectCount++;
-        if (pageState.disconnectCount > 3) {
+        if (pageState.disconnectCount === 4) {
           byId('loading-screen').removeClass('hidden');
+          emitAppEvent('server:disconnected', { failures: pageState.disconnectCount });
         }
       });
   } catch (e) {
@@ -96,9 +100,26 @@ export function pollUsageOnce(): void {
   }
 }
 
-/** Starts the usage poll after first paint (window-load equivalent). */
+let usageIntervalId: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * Starts the usage poll after first paint (window-load equivalent).
+ * Re-render safe: a previous interval is cleared first so refreshes
+ * never stack duplicate polls.
+ */
 export function startUsageLoop(reloadMs: number): void {
-  setInterval(function () {
+  if (usageIntervalId !== null) {
+    clearInterval(usageIntervalId);
+  }
+  usageIntervalId = setInterval(function () {
     pollUsageOnce();
   }, reloadMs);
+}
+
+/** Stop the usage poll (test teardown). */
+export function stopUsageLoop(): void {
+  if (usageIntervalId !== null) {
+    clearInterval(usageIntervalId);
+    usageIntervalId = null;
+  }
 }

@@ -48,7 +48,15 @@ a JSON error telling you to build. `/assets/*` serves the bundle.
 `Grid` polls `POST /usage` every `front.computer_usage_reload_time` ms
 (default 3000) and patches usage tiles in place; `/api/boot usage_example`
 provides the first-paint snapshot. `settings.optimized_usage_display`
-enables extra update skipping.
+enables extra update skipping. Each applied poll emits `usage:updated`.
+
+## App events
+
+Lifecycle moments are exposed as `window` CustomEvents (`webdeck:<name>`,
+see `src/app/events.ts`): `boot:ready`, `app:refreshed`, `usage:updated`,
+`editor:changed`, `save:completed`, `server:disconnected`,
+`server:reconnected`. In-app modules subscribe via `onAppEvent`; external
+consumers (Playwright, user scripts) listen on `window` directly.
 
 ## Framework + query tests
 

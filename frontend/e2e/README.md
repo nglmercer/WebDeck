@@ -15,7 +15,7 @@ Output: `frontend/demo/webdeck-demo-720p.mp4` (H.264 when `ffmpeg` is on
 1. Boot: loading screen → grid, usage tiles fill in.
 2. Folder navigation: index → spotify → index.
 3. Config modal: Themes & backgrounds library tabs (backgrounds, themes).
-4. Editor mode: rename a button via the Appearance tab, save (reloads into editor).
+4. Editor mode: rename a button via the Appearance tab, save in place (no reload).
 5. Add a button: void slot → live search (`lock`) → System › Lock session → save.
 6. Swap mode: pick two tiles, trade places, exit swap mode.
 7. Save & exit, press a command button, usage tiles repopulate.
@@ -29,7 +29,19 @@ Output: `frontend/demo/webdeck-demo-720p.mp4` (H.264 when `ffmpeg` is on
 - `demo/mocks.ts` — fixture loading, route stubs, stateful grid replay.
 - `demo/actions.ts` — `vclick`/`vfill`: glide the rendered cursor, then act.
 - `demo/cursor.ts` — rendered pointer (arrow + click ripple) injection.
+- `demo/events.ts` — recorder for the app lifecycle events plus
+  `waitForAppEvent`: steps wait on real transitions (save finished,
+  refresh rendered) instead of fixed sleeps.
 - `fixtures/` — `boot.json`, `usage.json` backend snapshots.
+
+## App events
+
+The app emits lifecycle events on `window` as `webdeck:<name>`
+(see `src/app/events.ts`): `boot:ready`, `app:refreshed`,
+`usage:updated`, `editor:changed`, `save:completed`,
+`server:disconnected`, `server:reconnected`. The tour records them via
+`addInitScript` and waits with `waitForAppEvent(page, name, fromIndex)`.
+DOM assertions stay as the final proof; events carry the causal wait.
 
 ## How it works
 
@@ -40,11 +52,11 @@ Output: `frontend/demo/webdeck-demo-720p.mp4` (H.264 when `ffmpeg` is on
   deterministic and triggers no real button actions on the host.
 - The mocks are stateful: `/save_buttons_only` and `/save_config` capture
   the posted grid and later `/api/boot` + `/get_config` calls replay it,
-  so added/renamed/swapped buttons persist across the tour's reloads like
-  a real server.
+  so added/renamed/swapped buttons persist across the tour's in-place
+  refreshes like a real server.
 - Playwright's encoder does not capture the OS pointer, so the spec
   injects a rendered cursor (arrow + click ripple) via `addInitScript`,
-  which survives the tour's reloads. Clicks glide to their target
+  which survives page reloads (the `/reload` command still reloads). Clicks glide to their target
   (`vclick`/`vfill` helpers) so pointer motion reads on video.
 
 ## Identifier conventions

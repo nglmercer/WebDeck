@@ -11,6 +11,9 @@ import {
   type JsonValue,
 } from '../framework/types';
 import { q, byId, post } from '../query';
+import { emitAppEvent } from '../app/events';
+import { hide_editbutton_modal } from '../app/modals';
+import { refreshApp } from '../app/refresh';
 import { iconFillStyle } from '../components/button-icons';
 import { wireKeyField } from '../components/keyfield';
 import { previewImageLink, type PreviewData } from '../components/preview';
@@ -332,7 +335,9 @@ function buttonCommand(editModalID: string, event: Event): void {
     .then(function (response: { success?: boolean }) {
       if (response.success) {
         alert(text('settings_save_success'));
-        window.location.href = window.location.href + '?edit=true';
+        emitAppEvent('save:completed', { flow: 'single' });
+        hide_editbutton_modal(editModalID);
+        void refreshApp();
       } else {
         throw new Error(text('settings_save_error'));
       }
