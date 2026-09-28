@@ -32,7 +32,9 @@ body {
 
 #deck-scale {
   width: 100%;
-  transform-origin: center !important;
+  /* Top-center: scale-up grows downward only (a centered origin pushes
+     the top row above the viewport); applyFit() sets the same inline. */
+  transform-origin: top center;
 }
 
 #loading-screen {

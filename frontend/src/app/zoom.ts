@@ -59,6 +59,12 @@ function applyFit(scaler: HTMLElement, s: number, tx: number, ty: number): void 
   fitState = { s, tx, ty };
   // NOTE: translate() on #deck-scale is conflictive — commented out, scale only.
   // Original: transform: `translate(${tx}px, ${ty}px) scale(${s})`
+  // Scale about the top-center: horizontal centering stays exact (same as
+  // the old tx compensation for CSS-centered content) and scale-up grows
+  // downward only, so the top row can never leave the viewport.
+  // Important-priority: pre-fix stylesheets pinned `center !important`,
+  // and a cached copy would otherwise keep beating this inline value.
+  scaler.style.setProperty('transform-origin', '50% 0', 'important');
   q(scaler).css({ transform: `scale(${s})` });
 }
 
@@ -76,9 +82,21 @@ export function auto_resize(): void {
   if (!content) return;
   // Reset so the measurement is unscaled. getBoundingClientRect is the
   // transformed bbox, so a portrait-rotated grid measures rotated
-  // (possibly with negative offsets) and the fit below compensates.
+  // (possibly with negative offsets); the compensation below pulls it
+  // back on-screen before the fit is computed.
   q(scaler).css('transform', 'none');
-  const rect = content.getBoundingClientRect();
+  // Clear any previous compensation, then measure raw.
+  q(div).css({ position: '', top: '' });
+  let rect = content.getBoundingClientRect();
+  if (rect.top < 0 && window.matchMedia('(orientation: portrait)').matches) {
+    // Portrait rotation overhangs the top; rigid-shift the inner box down
+    // and re-measure. Relative positioning creates no containing block,
+    // so the fixed modals inside the grid are unaffected. Landscape never
+    // triggers (normal-flow top is >= 0); the media guard makes that
+    // structural rather than incidental.
+    q(div).css({ position: 'relative', top: `${-rect.top}px` });
+    rect = content.getBoundingClientRect();
+  }
   const w = rect.width;
   const h = rect.height;
   if (!(w > 0) || !(h > 0)) return;
