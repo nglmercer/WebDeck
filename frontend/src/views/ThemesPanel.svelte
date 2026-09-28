@@ -17,22 +17,16 @@
   }
 </script>
 
-<div class="config-container choose-themes {dark}" id="choose-themes" style="display: none;">
-  <div>
-    <button type="button" id="setting-themes-back" class="button {dark}">
-      ← {text('back')}
-    </button>
-  </div>
-  <div id="themes-tutorial-container">
-    <a href={text('link_themes')} target="_blank" title={text('themes_tutorial')}>
+<div class="config-container choose-themes {dark}" id="choose-themes">
+  <div class="wd2-panel-head">
+    <h1 class="config-title"> {text('themes_menu_title')} </h1>
+    <a class="wd2-tutorial" href={text('link_themes')} target="_blank" title={text('themes_tutorial')}>
       <SvgSlot slot={infoSlot} />
     </a>
     <button type="button" onclick={openThemesFolder} class="button" id="open-themes-folder">
       {text('open_themes_folder')}
     </button>
   </div>
-  <h1 class="config-title"> {text('themes_menu_title')} </h1>
-  <div class="editorStyle-bar {dark}"></div>
   <div id="choose-themes-titles">
     <h2 class="disabled-themes-title"> {text('disabled_themes')} </h2>
     <h2 class="enabled-themes-title"> {text('enabled_themes')} </h2>

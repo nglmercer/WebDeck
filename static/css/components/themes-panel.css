@@ -137,12 +137,3 @@ div#enabled-themes {
   margin-top: -18px;
 }
 
-div#themes-tutorial-container > a > svg {
-  margin-top: 0;
-}
-div#themes-tutorial-container {
-  float: right;
-  display: flex;
-}
-
-

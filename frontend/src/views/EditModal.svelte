@@ -25,14 +25,14 @@
   const modal = editModalData(ctx, editModalId, entry, message);
 
   const cmdBadge = modal.args !== null ? asString(modal.args.commandValue['command']) : '';
-  const tabs = modal.args !== null
+  const tabs = modal.hasParams
     ? [
         { id: 'args', label: tx('studio_tab_params', 'Parameters') },
         { id: 'look', label: tx('studio_tab_appearance', 'Appearance') },
       ]
     : [{ id: 'look', label: tx('studio_tab_appearance', 'Appearance') }];
   let selectedTab = $state('args');
-  const activeTab = $derived(modal.args !== null ? selectedTab : 'look');
+  const activeTab = $derived(modal.hasParams ? selectedTab : 'look');
 </script>
 
 <ModalShell
@@ -79,7 +79,7 @@
               idPrefix="edit-{modal.modalId}"
             />
             <div class="wd2-panes">
-              {#if modal.args !== null}
+              {#if modal.hasParams && modal.args !== null}
                 <div
                   class="wd2-pane"
                   role="tabpanel"

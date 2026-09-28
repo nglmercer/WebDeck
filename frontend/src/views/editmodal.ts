@@ -13,7 +13,7 @@ import {
 import { q, byId, post } from '../query';
 import { wireKeyField } from '../components/keyfield';
 import { previewImageLink, type PreviewData } from '../components/preview';
-import { buildCommand, registerShowArg, type ArgsPrefill } from './args';
+import { buildCommand, hasVisibleParams, registerShowArg, type ArgsPrefill } from './args';
 import { resolveButtonCommand } from './argvalues';
 import { wireFoldernameForm } from './addbutton';
 import { swapPreviewImage, updateButtonBackgroundColor, updateImageSize, type ButtonState } from './modalstyle';
@@ -41,6 +41,8 @@ export interface EditModalData {
   dark: string;
   modalId: string;
   args: EditModalArgs | null;
+  /** Resolved command with at least one visible Parameters field. */
+  hasParams: boolean;
   preview: PreviewData;
   defaultSize: string;
   backgroundColor: string;
@@ -92,6 +94,7 @@ export function editModalData(
           prefill: resolved.prefill,
         }
       : null,
+    hasParams: resolved ? hasVisibleParams(resolved.commandValue) : false,
     preview,
     defaultSize,
     backgroundColor: asString(buttonSettings['background_color']),

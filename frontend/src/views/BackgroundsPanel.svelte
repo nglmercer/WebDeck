@@ -32,11 +32,8 @@
   </div>
 {/snippet}
 
-<div class="config-container choose-background {dark}" id="choose-background" style="display: none;">
+<div class="config-container choose-background {dark}" id="choose-background">
   <div class="wd2-panel-head">
-    <button type="button" id="setting-background-back" class="button {dark}">
-      ← {text('back')}
-    </button>
     <h1 class="config-title"> {text('random_bg_menu_title')} </h1>
     <span class="wd2-count" id="bg-count">{backgrounds.length}</span>
   </div>

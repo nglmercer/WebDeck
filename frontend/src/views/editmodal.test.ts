@@ -46,6 +46,11 @@ const COMMANDS = {
   },
   Webdeck: {
     'Open a folder': { command: '/folder', args: [{ TYPE: 'input webdeck_foldername' }] },
+    Fullscreen: {
+      command: '/fullscreen',
+      args: [],
+      style: { image: 'fullscreen2.png', image_size: '50%' },
+    },
   },
 } as unknown as JsonObject;
 
@@ -141,6 +146,17 @@ describe('edit modal arg form', () => {
     expect((panes[1]!.querySelector('input[type="text"]') as HTMLInputElement).value).toBe('hi');
     expect(panes[0]!.style.display).toBe('none');
     expect(panes[0]!.getAttribute('arg_id')).toBe('0');
+  });
+
+  it('hides the Parameters tab for resolved commands without visible params', async () => {
+    const el = await mountEdit(testCtx(), 'e0X0', '/fullscreen');
+    const tabs = el.querySelectorAll('[role="tab"]');
+    expect(tabs).toHaveLength(1);
+    expect(tabs[0]?.textContent?.trim()).toBe('Appearance');
+    expect(el.querySelector('#edit-e0X0-pane-args')).toBeNull();
+    expect(el.querySelector('#edit-e0X0-pane-look')?.hasAttribute('hidden')).toBe(false);
+    // The command badge still identifies the button action.
+    expect(el.querySelector('.wd2-cmd')?.textContent).toBe('/fullscreen');
   });
 
   it('stays form-less for unresolvable messages', async () => {

@@ -8,6 +8,7 @@
   import SwitchField from '../components/SwitchField.svelte';
   import TextField from '../components/TextField.svelte';
   import StudioSteps from '../components/studio/StudioSteps.svelte';
+  import StudioTabs from '../components/studio/StudioTabs.svelte';
   import { tx } from '../components/studio/labels';
   import { hide_modal } from '../app/modals';
   import { text } from '../framework/i18n';
@@ -36,6 +37,13 @@
     { id: 'experimental', label: text('experimental') },
   ];
   let step = $state('settings');
+  let libTab = $state('themes');
+
+  // svelte-ignore state_referenced_locally
+  const libTabs = [
+    { id: 'themes', label: text('themes_menu_title') },
+    { id: 'backgrounds', label: text('random_bg_menu_title') },
+  ];
 
   function rotatePortrait(value: string): void {
     const input = document.getElementById('portrait-rotate');
@@ -46,9 +54,10 @@
     window.send_data?.('/bypass-windows-firewall');
   }
 
-  /** Reuse the legacy panel openers so themes/backgrounds keep working. */
-  function openPanel(buttonId: string): void {
-    document.getElementById(buttonId)?.click();
+  /** Library panels live in the main column — no back-button navigation. */
+  function openLibrary(tab: string): void {
+    step = 'library';
+    libTab = tab;
   }
 </script>
 
@@ -76,8 +85,6 @@
       <button class="button modal-button" id="editorButton"> [Q] {text('enter_editor_mode')} </button>
     </div>
     <div class="modal-main">
-      <ThemesPanel dark={config.dark} disabled={config.disabledThemes} enabled={config.enabledThemes} infoSlot={config.infoSlotId} />
-      <BackgroundsPanel dark={config.dark} backgrounds={config.backgrounds} trashTitle={config.trashTitle} />
       <div class="config-container {config.dark}" id="config-container" style="display: block;">
         <form id="config-form" class="config-form">
           <div class="wd2-config-body">
@@ -85,11 +92,21 @@
               <StudioSteps {steps} selected={step} onSelect={(id) => (step = id)} />
               <div class="wd2-lib">
                 <h2 class="wd2-lib-title">{tx('studio_library', 'Themes & backgrounds')}</h2>
-                <button type="button" class="wd2-lib-btn" onclick={() => openPanel('setting-themes')}>
+                <button
+                  type="button"
+                  class="wd2-lib-btn"
+                  aria-current={step === 'library' && libTab === 'themes' ? 'true' : 'false'}
+                  onclick={() => openLibrary('themes')}
+                >
                   <SectionIcon name="swatch" />
                   <span>{text('themes_menu_title')}</span>
                 </button>
-                <button type="button" class="wd2-lib-btn" onclick={() => openPanel('setting-background')}>
+                <button
+                  type="button"
+                  class="wd2-lib-btn"
+                  aria-current={step === 'library' && libTab === 'backgrounds' ? 'true' : 'false'}
+                  onclick={() => openLibrary('backgrounds')}
+                >
                   <SectionIcon name="image" />
                   <span>{text('random_bg_menu_title')}</span>
                 </button>
@@ -171,14 +188,14 @@
                 <Collapse id="visuals-theme" title={text('settings_group_theme_background')} icon="image">
                   <div class="setting themes">
                     <label for="themes"> {text('themes')} </label>
-                    <button type="button" id="setting-themes" class={config.dark}>
+                    <button type="button" id="setting-themes" class={config.dark} onclick={() => openLibrary('themes')}>
                       {text('open_theme_menu')}
                     </button>
                     <input type="text" name="front.themes" id="choose-themes-handler" class="invisible" value={config.themesRepr} />
                   </div>
                   <div class="setting background">
                     <label for="background"> {text('backgrounds')} </label>
-                    <button type="button" id="setting-background" class={config.dark}>
+                    <button type="button" id="setting-background" class={config.dark} onclick={() => openLibrary('backgrounds')}>
                       {text('open_background_image_menu')}
                     </button>
                     <input type="text" name="front.background" id="choose-background-handler" class="invisible" value={config.bgRepr} />
@@ -213,6 +230,34 @@
                   <SwitchField dark={config.dark} containerClass="fix-stop-soundboard" label={text('fix_stop_soundboard')} id="fix_stop_soundboard" name="settings.fix_stop_soundboard" checked={config.fixSoundboard} />
                   <SwitchField dark={config.dark} containerClass="dev-mode" label={text('dev_mode')} id="dev_mode" name="settings.dev_mode" checked={config.devMode} />
                 </Collapse>
+              </div>
+              <div class="setting-category library {config.dark}" hidden={step !== 'library'}>
+                <div class="wd2-lib-tabs">
+                  <StudioTabs
+                    tabs={libTabs}
+                    selected={libTab}
+                    onSelect={(id) => (libTab = id)}
+                    idPrefix="config-lib"
+                  />
+                </div>
+                <div class="wd2-lib-panes">
+                  <div
+                    role="tabpanel"
+                    id="config-lib-pane-themes"
+                    aria-labelledby="config-lib-tab-themes"
+                    hidden={libTab !== 'themes'}
+                  >
+                    <ThemesPanel dark={config.dark} disabled={config.disabledThemes} enabled={config.enabledThemes} infoSlot={config.infoSlotId} />
+                  </div>
+                  <div
+                    role="tabpanel"
+                    id="config-lib-pane-backgrounds"
+                    aria-labelledby="config-lib-tab-backgrounds"
+                    hidden={libTab !== 'backgrounds'}
+                  >
+                    <BackgroundsPanel dark={config.dark} backgrounds={config.backgrounds} trashTitle={config.trashTitle} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

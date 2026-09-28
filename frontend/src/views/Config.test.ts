@@ -184,6 +184,45 @@ describe('Config', () => {
     expect(el.querySelector('nav.wd2-steps .wd2-lib-btn')).toBeNull();
   });
 
+  it('switches the library tabs without back-button navigation', async () => {
+    const el = await render();
+    // No back buttons; panels are tab panes inside the form.
+    expect(el.querySelector('#setting-themes-back')).toBeNull();
+    expect(el.querySelector('#setting-background-back')).toBeNull();
+    expect((el.querySelector('#choose-themes') as HTMLElement).style.display).not.toBe('none');
+    expect(el.querySelector('.setting-category.library')?.hasAttribute('hidden')).toBe(true);
+
+    const libBtns = el.querySelectorAll('.wd2-lib-btn') as NodeListOf<HTMLButtonElement>;
+    libBtns[1]!.click();
+    await tick();
+    expect(el.querySelector('.setting-category.library')?.hasAttribute('hidden')).toBe(false);
+    expect(el.querySelector('.setting-category.settings')?.hasAttribute('hidden')).toBe(true);
+    expect(el.querySelector('#config-lib-pane-backgrounds')?.hasAttribute('hidden')).toBe(false);
+    expect(el.querySelector('#config-lib-pane-themes')?.hasAttribute('hidden')).toBe(true);
+    expect(libBtns[1]!.getAttribute('aria-current')).toBe('true');
+
+    // Same-style tab strip switches panes in place.
+    expect(el.querySelectorAll('[role="tab"]')).toHaveLength(2);
+    (el.querySelector('#config-lib-tab-themes') as HTMLButtonElement).click();
+    await tick();
+    expect(el.querySelector('#config-lib-pane-themes')?.hasAttribute('hidden')).toBe(false);
+    expect(el.querySelector('#config-lib-pane-backgrounds')?.hasAttribute('hidden')).toBe(true);
+
+    // Steps lead back to settings.
+    (el.querySelector('nav.wd2-steps .wd2-step') as HTMLButtonElement).click();
+    await tick();
+    expect(el.querySelector('.setting-category.library')?.hasAttribute('hidden')).toBe(true);
+    expect(el.querySelector('.setting-category.settings')?.hasAttribute('hidden')).toBe(false);
+  });
+
+  it('opens the library from the visuals shortcuts', async () => {
+    const el = await render();
+    (el.querySelector('#setting-themes') as HTMLButtonElement).click();
+    await tick();
+    expect(el.querySelector('#config-lib-pane-themes')?.hasAttribute('hidden')).toBe(false);
+    expect(el.querySelector('#config-lib-pane-backgrounds')?.hasAttribute('hidden')).toBe(true);
+  });
+
   it('renders background cards with footer, label, and live count', async () => {
     const el = await render();
     expect(el.querySelector('#bg-count')?.textContent).toBe('3');

@@ -1,14 +1,9 @@
 // One args modal (extracted from addbutton.ts). Markup in `AddArgsModal.svelte`.
 
 import { text } from '../../framework/i18n';
-import {
-  asArray,
-  asObject,
-  asString,
-  type BootContext,
-} from '../../framework/types';
+import { asObject, asString, type BootContext } from '../../framework/types';
 import type { PreviewData } from '../../components/preview';
-import { catKey, cmdKey } from '../args';
+import { catKey, cmdKey, hasVisibleParams } from '../args';
 import { addPreviewData } from './preview';
 import type { AddModalContext } from './types';
 
@@ -26,7 +21,6 @@ export interface AddArgsData {
 export function addArgsData(ctx: BootContext, mctx: AddModalContext): AddArgsData {
   const dark = ctx.dark_theme;
   const { argModalId: id, commandValue } = mctx;
-  const args = asArray(commandValue['args']);
 
   const style = asObject(commandValue['style']);
   const hasStyle = Object.keys(commandValue).includes('style') && Object.keys(style).length > 0;
@@ -42,7 +36,7 @@ export function addArgsData(ctx: BootContext, mctx: AddModalContext): AddArgsDat
     dark,
     id,
     buttonTitle: mctx.buttonTitle,
-    hasArgs: args.length > 0,
+    hasArgs: hasVisibleParams(commandValue),
     defaultSize,
     buttonName,
     preview: addPreviewData(ctx, mctx, buttonName),

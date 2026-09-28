@@ -1,6 +1,7 @@
 import { mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { defineKeyField } from '../components/keyfield';
+import { hasVisibleParams } from './args';
 import { initI18n } from '../framework/i18n';
 import type { BootContext, JsonObject } from '../framework/types';
 import type { AddModalContext } from './addbutton';
@@ -184,5 +185,41 @@ describe('arg labels', () => {
     expect(el.innerHTML).toContain('>Copiar (ctrl+c)<');
     expect(el.innerHTML).toContain('>Copiar texto<');
     expect(el.innerHTML).not.toContain('TEXT_copy_arg_');
+  });
+});
+
+describe('hasVisibleParams', () => {
+  it('ignores empty, hidden-only, and unknown args', () => {
+    expect(hasVisibleParams({ command: '/fullscreen', args: [] })).toBe(false);
+    expect(hasVisibleParams({ command: '/x', args: [{ TYPE: 'text', value: 'v' }] })).toBe(false);
+    expect(hasVisibleParams({ command: '/x', args: [{ TYPE: 'bogus' }] })).toBe(false);
+    expect(hasVisibleParams({ command: '/x' })).toBe(false);
+  });
+
+  it('detects input and choice args', () => {
+    expect(hasVisibleParams({ command: '/x', args: [{ TYPE: 'input text' }] })).toBe(true);
+    expect(
+      hasVisibleParams({ command: '/x', args: [{ TYPE: 'choice', options: [] }] })
+    ).toBe(true);
+    expect(
+      hasVisibleParams({
+        command: '/x',
+        args: [{ TYPE: 'text', value: 'v' }, { TYPE: 'input key' }],
+      })
+    ).toBe(true);
+  });
+
+  it('hides the Parameters tab when nothing visible would render', async () => {
+    initI18n({ ...editorKeys });
+    const el = await renderModal(testCtx(), 'Webdeck', 'Fullscreen', {
+      command: '/fullscreen',
+      args: [],
+      style: { image: 'fullscreen2.png', image_size: '50%' },
+    });
+    const tabs = el.querySelectorAll('[role="tab"]');
+    expect(tabs).toHaveLength(1);
+    expect(tabs[0]?.textContent?.trim()).toBe('Appearance');
+    expect(el.querySelector('#add-9X9-pane-args')).toBeNull();
+    expect(el.querySelector('#add-9X9-pane-look')?.hasAttribute('hidden')).toBe(false);
   });
 });

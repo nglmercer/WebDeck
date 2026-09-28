@@ -131,23 +131,8 @@ function wireDeleteButtons(): void {
 }
 
 export function initBackgroundSetting(): void {
-  function toggleDisplay(): void {
-    const chooseBackgroundElement = byId<HTMLElement>('choose-background').get(0) ?? null;
-    const configContainer = byId<HTMLElement>('config-container').get(0) ?? null;
-    if (!chooseBackgroundElement || !configContainer) return;
-
-    // NOTE: inline-style probe; qdom's `.css()` getter is computed-only.
-    if (chooseBackgroundElement.style.display === 'none') {
-      q(chooseBackgroundElement).css('display', 'block');
-      q(configContainer).css('display', 'none');
-    } else {
-      q(chooseBackgroundElement).css('display', 'none');
-      q(configContainer).css('display', 'block');
-    }
-  }
-  byId('setting-background').on('click', toggleDisplay);
-  byId('setting-background-back').on('click', toggleDisplay);
-
+  // NOTE: panel visibility is owned by the config tab state — no
+  // back-button navigation. Only picker wiring below.
   q('.choose-bg-element-pageload')
     .toArray()
     .forEach(function (element) {

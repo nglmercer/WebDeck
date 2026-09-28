@@ -114,6 +114,18 @@ export function buildCommand(commandId: string, container: Element): string {
 }
 
 /**
+ * True when the command renders at least one visible Parameters field.
+ * Pure-`text` (hidden) and unknown args produce no visible chrome, so a
+ * non-empty `args` array alone must not force an empty tab.
+ */
+export function hasVisibleParams(commandValue: JsonObject): boolean {
+  return asArray(commandValue['args']).some((argValue) => {
+    const kind = parseArg(asObject(argValue)).kind;
+    return kind === 'input' || kind === 'choice';
+  });
+}
+
+/**
  * Args data model: one parsed field with its render-order prefill resolved.
  * Built by a single traversal (`argsData`) so the string renderer and
  * `ArgsBlock.svelte` share numbering/cursor semantics exactly.

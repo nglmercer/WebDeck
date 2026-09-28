@@ -295,7 +295,7 @@ form.args-form {
   gap: 14px;
   overflow-y: auto;
 }
-.wd2-pane-title {
+.wd2-preview .wd2-pane-title {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -1241,7 +1241,7 @@ nav.wd2-steps {
   margin-top: 8px;
   padding-top: 10px;
 }
-.wd2-lib-title {
+.wd2-side .wd2-lib-title {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -1269,6 +1269,14 @@ nav.wd2-steps {
 .wd2-lib-btn:hover {
   background: var(--wd2-border);
   color: var(--wd2-text);
+}
+.wd2-lib-btn[aria-current="true"] {
+  background: var(--wd2-surface);
+  border-color: var(--wd2-border-soft);
+  color: var(--wd2-text);
+}
+.wd2-lib-btn[aria-current="true"] svg {
+  color: var(--wd2-accent);
 }
 .wd2-lib-btn svg {
   flex: none;
@@ -1447,10 +1455,28 @@ a.wd-collapse-info:hover {
   font-size: 12.5px;
   color: var(--wd2-muted);
 }
-#themes-tutorial-container {
-  display: flex;
-  gap: 10px;
-  align-items: center;
+/* library tab strip reuses the modal tab style, without its modal padding */
+.wd2-lib-tabs .wd2-tabs {
+  padding: 0;
+}
+.wd2-lib-panes [role="tabpanel"][hidden] {
+  display: none;
+}
+.wd2-lib-panes .config-container.choose-themes,
+.wd2-lib-panes .config-container.choose-background {
+  padding: 12px 0 4px;
+}
+.wd2-tutorial {
+  display: inline-flex;
+  color: var(--wd2-muted);
+  flex: none;
+}
+.wd2-tutorial:hover {
+  color: var(--wd2-focus);
+}
+.wd2-tutorial .info-icon {
+  margin: 0;
+  height: 20px;
 }
 /* panel header: back button + title + count */
 .wd2-panel-head {
@@ -1693,7 +1719,7 @@ div.choose-bg-element-color {
     flex-wrap: wrap;
     align-items: center;
   }
-  .wd2-lib-title {
+  .wd2-side .wd2-lib-title {
     padding: 0;
     margin: 0;
   }

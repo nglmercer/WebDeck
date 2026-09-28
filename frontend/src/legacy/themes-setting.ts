@@ -1,21 +1,6 @@
 // Port of static/js/themes-setting.js. Runs after render.
 import { contains, q, byId } from '../query';
 
-function toggleDisplay(): void {
-  const chooseBackgroundElement = byId<HTMLElement>('choose-themes').get(0) ?? null;
-  const configContainer = byId<HTMLElement>('config-container').get(0) ?? null;
-  if (!chooseBackgroundElement || !configContainer) return;
-
-  // NOTE: inline-style probe; qdom's `.css()` getter is computed-only.
-  if (chooseBackgroundElement.style.display === 'none') {
-    q(chooseBackgroundElement).css('display', 'block');
-    q(configContainer).css('display', 'none');
-  } else {
-    q(chooseBackgroundElement).css('display', 'none');
-    q(configContainer).css('display', 'block');
-  }
-}
-
 function getThemesArray(): string[] {
   const themesArrayString = String(byId<HTMLInputElement>('choose-themes-handler').val() ?? '[]').replace(
     /'/g,
@@ -111,9 +96,8 @@ function handleArrowClick(this: Element, event: Event): void {
 }
 
 export function initThemesSetting(): void {
-  byId('setting-themes').on('click', toggleDisplay);
-  byId('setting-themes-back').on('click', toggleDisplay);
-
+  // NOTE: panel visibility is owned by the config tab state — no
+  // back-button navigation. Only enable/disable/reorder wiring below.
   q('.theme-container')
     .toArray()
     .forEach((container) => {
