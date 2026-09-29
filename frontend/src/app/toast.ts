@@ -2,7 +2,7 @@
 import Toastify from 'toastify-js';
 import 'toastify-js/src/toastify.css';
 
-export function showToast(kind: number, message: string): void {
+function showToast(kind: number, message: string): void {
   let bg: string;
   let duration: number;
   if (kind === 0) {

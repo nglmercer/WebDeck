@@ -34,7 +34,7 @@ path = "src/lib.rs"
 tokio = { version = "1", features = ["full"] }
 libc = "0.2"
 axum = { version = "0.8", features = ["multipart"] }
-tower = "0.5"
+# tower (ServiceExt/oneshot) is test-only → [dev-dependencies] below.
 tower-http = { version = "0.6", features = ["fs"] }
 serde = { version = "1", features = ["derive"] }
 # preserve_order keeps config key order (Python dicts are insertion-ordered;
@@ -51,10 +51,6 @@ arboard = "3.6.1"
 enigo = "0.6.1"
 notify-rust = "4.18.0"
 rhai = { version = "1.26.1", features = ["sync"] }
-libloading = "0.9.0"
-symphonia = "0.6.1"
-hound = "3.5.1"
-ffmpeg-sidecar = "2.5.2"
 nvml-wrapper = "0.13.0"
 cpal = "0.18.2"
 rodio = "0.22.2"
@@ -62,7 +58,6 @@ socketioxide = "0.18.7"
 rspotify = { version = "0.16.1", features = ["cli"] }
 obws = "0.15.0"
 rfd = { version = "0.17.2", default-features = false, features = ["common-controls-v6", "xdg-portal"] }
-base64 = "0.23.1"
 
 [target.'cfg(windows)'.dependencies]
 # GUI stack (tray + config/QR/port windows).

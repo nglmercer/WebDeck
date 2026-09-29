@@ -28,7 +28,7 @@ export type BrowserRowIcon =
   | { kind: 'glyph'; name: SectionIconName };
 
 /** Row art edge, in px (rendered inside the light icon well). */
-export const ROW_ICON_PX = 20;
+const ROW_ICON_PX = 20;
 
 function toRowIcon(icon: RowIcon): BrowserRowIcon {
   if (icon.kind === 'glyph' || icon.image === '') {

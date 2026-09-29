@@ -8,7 +8,7 @@ import { showError } from './toast';
 
 let scale = 1;
 
-export function goFullscreen(): void {
+function goFullscreen(): void {
   const doc = document as Document & {
     mozFullScreenElement?: Element;
     webkitFullscreenElement?: Element;

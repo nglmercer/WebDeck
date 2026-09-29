@@ -285,7 +285,7 @@ export function fieldData(
 }
 
 /** Resolve one arg's branch chrome (consumes prefill in collection order). */
-export function branchData(
+function branchData(
   rctx: ArgsRenderContext,
   arg: JsonObject,
   argIndex: number,

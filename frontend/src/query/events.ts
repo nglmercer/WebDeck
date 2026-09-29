@@ -39,7 +39,7 @@ export interface ListenerOptions {
 }
 
 /** Register `handler` for each space-separated type (namespace-aware). */
-export function addListener(
+function addListener(
   el: Element,
   type: string,
   selector: string | undefined,

@@ -142,7 +142,7 @@ function resolveButtonName(buttonSettings: JsonObject, commandStyleName: JsonVal
 }
 
 /** Shared-preview data for the edit tile (never a usage overlay). */
-export function editPreviewData(
+function editPreviewData(
   editModalId: string,
   buttonSettings: JsonObject,
   fill: string,
@@ -210,10 +210,6 @@ export interface EditModalState {
 }
 
 const modalStates = new Map<string, EditModalState>();
-
-export function editModalState(editModalId: string): EditModalState | undefined {
-  return modalStates.get(editModalId);
-}
 
 export interface EditModalTarget {
   editModalId: string;

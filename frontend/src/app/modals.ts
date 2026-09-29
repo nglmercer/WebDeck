@@ -89,7 +89,7 @@ export function hide_addbutton_modal(): void {
   modalFlags.is_addbutton_modal_opened = 0;
 }
 
-export function show_addbutton_args_modal(modalId: string): void {
+function show_addbutton_args_modal(modalId: string): void {
   lastModals.push('addbuttonArgs-modal');
   const el = byId('modal-container-' + modalId).get(0) ?? null;
   if (el) {
@@ -125,7 +125,7 @@ export function hide_addbutton_args_modal(): void {
   modalFlags.is_addbutton_args_modal_opened = 0;
 }
 
-export function show_editbutton_modal(modalId: string): void {
+function show_editbutton_modal(modalId: string): void {
   lastModals.push('editbutton-modal');
   const el = byId('edit-modal-container-' + modalId).get(0) ?? null;
   if (el) {

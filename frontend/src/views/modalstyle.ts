@@ -47,7 +47,7 @@ export function updateImageSize(
   });
 }
 
-export function updateButtonBackgroundColor(
+function updateButtonBackgroundColor(
   buttonElement: HTMLElement,
   buttonBackgroundColorInput: HTMLInputElement,
   buttonBackgroundColorHex: HTMLInputElement,

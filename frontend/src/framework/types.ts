@@ -26,15 +26,6 @@ export function asString(value: JsonValue | undefined, fallback = ''): string {
   return fallback;
 }
 
-export function asNumber(value: JsonValue | undefined, fallback = 0): number {
-  if (typeof value === 'number') return value;
-  if (typeof value === 'string') {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : fallback;
-  }
-  return fallback;
-}
-
 export function asBool(value: JsonValue | undefined): boolean {
   return value === true || value === 'true' || value === 1;
 }
