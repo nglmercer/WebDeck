@@ -69,7 +69,7 @@ pub fn check_files() {
                 let (file_to_delete, update_limit) = match file_entry {
                     Value::String(name) => (name.clone(), "99.99.99".to_string()),
                     Value::Array(pair) => (
-                        pair.get(0)
+                        pair.first()
                             .and_then(|v| v.as_str())
                             .unwrap_or_default()
                             .to_string(),
@@ -109,7 +109,7 @@ pub fn check_files() {
             let Some(pair) = entry.as_array() else {
                 continue;
             };
-            let source = wd_dir.join(pair.get(0).and_then(|v| v.as_str()).unwrap_or_default());
+            let source = wd_dir.join(pair.first().and_then(|v| v.as_str()).unwrap_or_default());
             let destination = wd_dir.join(pair.get(1).and_then(|v| v.as_str()).unwrap_or_default());
             let update_limit = pair.get(2).and_then(|v| v.as_str()).unwrap_or("99.99.99");
             if compare_versions(update_limit, &current_version) > 0 {

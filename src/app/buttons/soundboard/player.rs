@@ -96,13 +96,9 @@ fn ensure_reaper() {
 /// Resolve a live output device by the exact name [`get_device`] returned.
 fn find_output_device(name: &str) -> Option<rodio::Device> {
     let host = rodio::cpal::default_host();
-    let devices = host.output_devices().ok()?;
-    for device in devices {
-        if device.description().ok().is_some_and(|d| d.name() == name) {
-            return Some(device);
-        }
-    }
-    None
+    host.output_devices()
+        .ok()?
+        .find(|device| device.description().ok().is_some_and(|d| d.name() == name))
 }
 
 /// Open a rodio stream on `device_name` (`None` = default device) and start
@@ -157,20 +153,11 @@ pub fn get_params(msg: &str) -> SoundParams {
         None => message.clone(),
     };
 
+    // `message` already had the command prefixes stripped above, so only
+    // the percentage token is removed (all occurrences, like Python).
     let (sound_file, sound_volume) = match percentage.parse::<f32>() {
-        Ok(volume) => (
-            message
-                .replace("/playsound ", "")
-                .replace("/playlocalsound ", "")
-                .replace(&percentage, ""),
-            volume / 100.0,
-        ),
-        Err(_) => (
-            message
-                .replace("/playsound ", "")
-                .replace("/playlocalsound ", ""),
-            50.0 / 100.0, // mid volume (default)
-        ),
+        Ok(volume) => (message.replace(&percentage, ""), volume / 100.0),
+        Err(_) => (message, 50.0 / 100.0), // mid volume (default)
     };
 
     let mut sound_file = sound_file;
@@ -210,12 +197,7 @@ pub fn playsound(
     localonly: bool,
 ) -> Value {
     let config = get_config(false, false);
-    let method = config
-        .get("settings")
-        .and_then(|s| s.get("soundboard"))
-        .and_then(|s| s.get("audio_method"))
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
+    let method = soundboard_setting(&config, "audio_method").unwrap_or_default();
 
     if method == "vlc" {
         return playsound_vlc(file_path, sound_volume, ear_soundboard, localonly);
@@ -368,7 +350,7 @@ fn restart_side(side: Option<&SlotSink>) {
 pub fn stopsound() -> Value {
     // NAVA (`nava.stop_all()`): always, before the device gate.
     if let Some(mut nava) = lock_nava() {
-        for (_, sink) in nava.iter() {
+        for sink in nava.values() {
             sink.player.stop();
         }
         nava.clear();
@@ -387,12 +369,7 @@ pub fn stopsound() -> Value {
     };
     if map.is_empty() {
         log().notice("There are no sounds actually playing");
-        let method = config
-            .get("settings")
-            .and_then(|s| s.get("soundboard"))
-            .and_then(|s| s.get("audio_method"))
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+        let method = soundboard_setting(&config, "audio_method").unwrap_or_default();
         if method != "nava" {
             return json!({"success": true, "message": "There are no sounds actually playing"});
         }
@@ -406,7 +383,7 @@ pub fn stopsound() -> Value {
             || slot.local.as_ref().is_some_and(|s| !s.player.empty())
     });
     if last_playing {
-        for (_, slot) in map.iter() {
+        for slot in map.values() {
             if let Some(sink) = &slot.vbcable {
                 sink.player.stop();
             }

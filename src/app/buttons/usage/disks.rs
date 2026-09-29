@@ -56,7 +56,7 @@ pub(crate) fn collect_disks(get_all: bool, asked_devices: &[Vec<String>]) -> Val
     for disk in Disks::new_with_refreshed_list().iter() {
         // Per-disk errors are swallowed like Python's try/except/pass.
         let raw_name = disk.name().to_string_lossy();
-        let disk_name = raw_name.replace('\\', "").replace(':', "");
+        let disk_name = raw_name.replace(['\\', ':'], "");
         // Linux-only: device paths are not valid JS eval paths, so the
         // basename alias is exposed (and matchable) alongside the 1:1 key.
         #[cfg(target_os = "linux")]

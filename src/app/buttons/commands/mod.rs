@@ -66,12 +66,7 @@ pub fn handle_command(message: &str) -> Value {
         fix_firewall_permission();
     }
 
-    if !message
-        .trim()
-        .replace('\n', "")
-        .replace('\r', "")
-        .is_empty()
-    {
+    if !message.trim().replace(['\n', '\r'], "").is_empty() {
         log().info(&format!("Command received: {message}"));
     }
 

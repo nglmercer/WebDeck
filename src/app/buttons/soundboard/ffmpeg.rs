@@ -88,7 +88,7 @@ pub fn install_ffmpeg() -> Option<String> {
         log().error(
             "FFMPEG: not found. Install it with your package manager (e.g. `pacman -S ffmpeg` / `apt install ffmpeg`).",
         );
-        return None;
+        None
     }
 
     #[cfg(windows)]
@@ -275,7 +275,7 @@ pub fn replace_last_element(string: &str, old_element: &str, new_element: &str) 
             format!(
                 "{}{}{}",
                 &string[..last_index],
-                &string[last_index..].replacen(old_element, new_element, 1),
+                string[last_index..].replacen(old_element, new_element, 1),
                 ""
             )
         }
@@ -381,9 +381,7 @@ pub fn to_wav(input_file: &str, output_file: Option<&str>, volume: f32) -> Optio
         );
         return None;
     }
-    let Some(bin) = bin else {
-        return None;
-    };
+    let bin = bin?;
 
     // pydub `audio + volume * 10` dB, exported as WAV.
     let gain = format!("volume={:.1}dB", volume * 10.0);

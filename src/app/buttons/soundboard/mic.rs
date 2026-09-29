@@ -150,7 +150,7 @@ pub fn soundboard() {
     // overflow instead of blocking the capture callback).
     let (tx, rx) = mpsc::sync_channel::<Vec<i16>>(16);
     let stream_in = match mic.build_input_stream(
-        stream_config.clone(),
+        stream_config,
         move |data: &[i16], _| {
             let _ = tx.try_send(data.to_vec());
         },

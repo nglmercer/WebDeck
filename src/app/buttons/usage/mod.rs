@@ -1,8 +1,8 @@
 //! Port of `app/buttons/usage/`.
 
 pub mod asked_devices;
-pub mod get_usage;
 mod disks;
+pub mod get_usage;
 pub(crate) mod gpu;
 pub(crate) mod gpu_amd;
 

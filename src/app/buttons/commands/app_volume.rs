@@ -13,14 +13,8 @@ use crate::app::utils::logger::log;
 /// untouched via the same fall-through).
 fn app_volume_target(command0: &str, old_percent: i32) -> Option<i32> {
     if command0.starts_with("set") {
-        let mut target = command0.replace("set", "").parse::<i32>().ok()?;
-        if target > 100 {
-            target = 100;
-        }
-        if target < 0 {
-            target = 0;
-        }
-        Some(target)
+        let target = command0.replace("set", "").parse::<i32>().ok()?;
+        Some(target.clamp(0, 100))
     } else if command0.starts_with('+') {
         let rest = command0.replace('+', "");
         if rest.is_empty() {

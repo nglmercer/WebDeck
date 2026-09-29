@@ -45,7 +45,7 @@ fn restart_inner() -> Result<(), String> {
         let exe = std::env::current_exe().map_err(|e| format!("Cannot locate executable: {e}"))?;
         let args: Vec<String> = std::env::args().skip(1).collect();
         let err = std::process::Command::new(exe).args(args).exec();
-        return Err(format!("Cannot re-exec process: {err}"));
+        Err(format!("Cannot re-exec process: {err}"))
     }
 
     #[cfg(windows)]

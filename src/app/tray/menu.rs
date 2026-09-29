@@ -3,8 +3,8 @@
 use tray_icon::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
 
 use super::state::update_language;
-use super::ServerState;
 use super::windows::{change_port_prompt, open_config, show_qrcode};
+use super::ServerState;
 use crate::app::buttons::system::openfile::openfile;
 use crate::app::utils::exit::exit_program;
 use crate::app::utils::firewall::fix_firewall_permission;
@@ -35,7 +35,7 @@ pub(crate) fn generate_menu(language: &str, server_status: ServerState) -> Menu 
     let lang_menu = Submenu::new(text(Some("language"), lang), true);
     let resolved = get_language(Some(language));
     let mut infos = get_languages_info();
-    infos.sort_by(|a, b| a.misc.cmp(&b.misc));
+    infos.sort_by_key(|a| a.misc);
     let mut with_separator = false;
     for info in &infos {
         if info.misc && !with_separator {

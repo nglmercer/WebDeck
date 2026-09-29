@@ -122,7 +122,9 @@ pub(crate) async fn upload_file(mut multipart: Multipart) -> Response {
 }
 
 /// Port of `get_config_file` (`GET /.config/<directory>/<filename>`).
-pub(crate) async fn get_config_file(Path((directory, filename)): Path<(String, String)>) -> Response {
+pub(crate) async fn get_config_file(
+    Path((directory, filename)): Path<(String, String)>,
+) -> Response {
     if directory != "user_uploads" && directory != "themes" {
         return (StatusCode::UNAUTHORIZED, "Unauthorized").into_response();
     }

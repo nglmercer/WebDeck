@@ -1,5 +1,6 @@
 //! Port of `app/utils/debug/timers.py`.
 
+use std::cmp::Reverse;
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
@@ -130,7 +131,7 @@ impl Timer {
             return Vec::new();
         }
         let mut sorted = snapshot;
-        sorted.sort_by(|a, b| b.1.cmp(&a.1));
+        sorted.sort_by_key(|entry| Reverse(entry.1));
         sorted
             .into_iter()
             .take(count)

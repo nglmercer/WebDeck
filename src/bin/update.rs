@@ -8,7 +8,7 @@
 
 #![allow(dead_code)]
 
-use webdeck::app::updater::updater as updater_mod;
+use webdeck::app::updater;
 use webdeck::app::utils::{args, logger::log, working_dir};
 
 #[tokio::main]
@@ -36,11 +36,11 @@ async fn main() {
     if !in_update_dir {
         log().info("Preparing update directory...");
 
-        if updater_mod::needs_admin_permissions() {
-            updater_mod::request_admin_permissions();
+        if updater::needs_admin_permissions() {
+            updater::request_admin_permissions();
         }
 
-        updater_mod::prepare_update_directory();
+        updater::prepare_update_directory();
         log().info("Launching update binary...");
 
         #[cfg(windows)]
@@ -64,8 +64,8 @@ async fn main() {
         return;
     }
 
-    if updater_mod::needs_admin_permissions() {
-        updater_mod::request_admin_permissions();
+    if updater::needs_admin_permissions() {
+        updater::request_admin_permissions();
     }
 
     let version_path = wd_dir.join("webdeck").join("version.json");
@@ -81,6 +81,6 @@ async fn main() {
         })
         .unwrap_or_else(|| "0.0.0".to_string());
 
-    updater_mod::check_files();
-    updater_mod::check_updates(&current_version).await;
+    updater::check_files();
+    updater::check_updates(&current_version).await;
 }

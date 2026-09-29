@@ -121,8 +121,8 @@ pub fn handle_command(message: &str) {
         } else if parts.len() == 1 {
             typestocopy_final
                 .values()
-                .cloned()
                 .next()
+                .cloned()
                 .unwrap_or_default()
         } else {
             typestocopy_final

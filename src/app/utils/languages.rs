@@ -96,7 +96,10 @@ fn negotiate_language(requested: &str, available: &[String]) -> Option<String> {
     if req.is_empty() {
         return None;
     }
-    if let Some(hit) = available.iter().find(|code| code.eq_ignore_ascii_case(&req)) {
+    if let Some(hit) = available
+        .iter()
+        .find(|code| code.eq_ignore_ascii_case(&req))
+    {
         return Some(hit.clone());
     }
     let req_lower = req.to_lowercase();
@@ -422,7 +425,10 @@ mod tests {
             negotiate_language("ES_es", &available).as_deref(),
             Some("es_ES")
         );
-        assert_eq!(negotiate_language("es", &available).as_deref(), Some("es_ES"));
+        assert_eq!(
+            negotiate_language("es", &available).as_deref(),
+            Some("es_ES")
+        );
         // Region variant falls back to the same-language sibling.
         assert_eq!(
             negotiate_language("es_PE", &available).as_deref(),

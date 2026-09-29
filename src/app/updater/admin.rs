@@ -1,9 +1,9 @@
 //! Updater staging + elevation (extracted from `updater.rs`).
 
-use crate::app::utils::{logger::updater_log, working_dir::get_base_dir};
 use crate::app::utils::args::get_args;
 #[cfg(windows)]
 use crate::app::utils::args::raw_args;
+use crate::app::utils::{logger::updater_log, working_dir::get_base_dir};
 
 /// Port of `prepare_update_directory` — stages the updater binary into
 /// `<base>/update/` so `check_for_updates` can relaunch from there.

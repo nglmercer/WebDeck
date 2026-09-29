@@ -139,7 +139,7 @@ pub fn get_usage(get_all: Option<bool>, asked_devices: &[Vec<String>]) -> Value 
     if get_all || asked_main(asked_devices, "network") {
         let mut bytes_sent: u64 = 0;
         let mut bytes_recv: u64 = 0;
-        for (_, data) in Networks::new_with_refreshed_list().iter() {
+        for data in Networks::new_with_refreshed_list().values() {
             // NOTE: psutil reports lifetime totals; sysinfo's
             // transmitted()/received() are since-last-refresh (0 here).
             bytes_sent += data.total_transmitted();

@@ -9,31 +9,13 @@ use crate::app::utils::{logger::log, settings::get_config::config_dir, working_d
 pub fn check_config_update(config: Value) -> Value {
     let mut config = check_config_hyphen_case(config);
 
-    // Rename 'black_theme' to 'dark_theme'.
-    if config
-        .get("front")
-        .and_then(|f| f.get("black_theme"))
-        .is_some()
-    {
-        if let Some(front) = config.get_mut("front").and_then(|f| f.as_object_mut()) {
-            if let Some(value) = front.remove("black_theme") {
-                front.insert("dark_theme".to_string(), value);
-            }
-        }
-    }
-
-    // Rename 'open_settings_in_browser' to 'open_settings_in_integrated_browser'.
-    if config
-        .get("settings")
-        .and_then(|s| s.get("open_settings_in_browser"))
-        .is_some()
-    {
-        if let Some(settings) = config.get_mut("settings").and_then(|s| s.as_object_mut()) {
-            if let Some(value) = settings.remove("open_settings_in_browser") {
-                settings.insert("open_settings_in_integrated_browser".to_string(), value);
-            }
-        }
-    }
+    rename_key(&mut config, "front", "black_theme", "dark_theme");
+    rename_key(
+        &mut config,
+        "settings",
+        "open_settings_in_browser",
+        "open_settings_in_integrated_browser",
+    );
 
     // Canonicalize legacy Python-era `gpu_method` values (`pynvml`/`GPUtil`
     // were the old NVML bindings); the UI saves the NVML names now.
@@ -105,6 +87,20 @@ pub fn check_config_update(config: Value) -> Value {
 
     let config = check_config_booleans(config);
     check_config_themes(config)
+}
+
+/// Rename `old` to `new` inside `config[section]` when present
+/// (config migration; missing sections and non-object sections are left
+/// untouched, like the Python `if old in config[section]` guards).
+fn rename_key(config: &mut Value, section: &str, old: &str, new: &str) {
+    if config.get(section).and_then(|s| s.get(old)).is_none() {
+        return;
+    }
+    if let Some(map) = config.get_mut(section).and_then(|s| s.as_object_mut()) {
+        if let Some(value) = map.remove(old) {
+            map.insert(new.to_string(), value);
+        }
+    }
 }
 
 /// Port of the nested `update_config_with_defaults` in `check_config_update`.

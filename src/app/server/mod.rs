@@ -198,6 +198,10 @@ mod tests {
 
     /// `/get_config` serves both methods the frontend uses (boot + editor
     /// config loads POST, editor save flows GET). Regression: POST 405'd.
+    // The guard serializes tests sharing the global config; it must span
+    // the whole test (the route under test never takes this lock, so no
+    // deadlock — clippy's await_holding_lock does not apply here).
+    #[allow(clippy::await_holding_lock)]
     #[tokio::test]
     async fn get_config_accepts_get_and_post() {
         let _guard = config_guard();

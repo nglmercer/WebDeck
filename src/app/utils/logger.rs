@@ -53,14 +53,14 @@ fn now_local_parts() -> Option<(i32, u32, u32, u32, u32, u32)> {
             return None;
         }
         let broken = unsafe { broken.assume_init() };
-        return Some((
+        Some((
             broken.tm_year + 1900,
             (broken.tm_mon + 1) as u32,
             broken.tm_mday as u32,
             broken.tm_hour as u32,
             broken.tm_min as u32,
             broken.tm_sec as u32,
-        ));
+        ))
     }
     #[cfg(windows)]
     {

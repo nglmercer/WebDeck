@@ -279,9 +279,7 @@ pub fn handle_startup_arguments() {
 
     // --fake-error
     if args.fake_error {
-        let result: Result<(), _> = (|| -> Result<(), String> {
-            Err("division by zero".to_string()) // 1 / 0 equivalent
-        })();
+        let result: Result<(), _> = Err("division by zero".to_string());
         if let Err(e) = result {
             languages::init(
                 "webdeck/translations",

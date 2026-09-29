@@ -284,8 +284,8 @@ fn run_window_inner<F>(
     }
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
-        match event {
-            Event::WindowEvent { event, .. } => match event {
+        if let Event::WindowEvent { event, .. } = event {
+            match event {
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 WindowEvent::KeyboardInput { event, .. } => {
                     if event.state != ElementState::Pressed {
@@ -299,8 +299,7 @@ fn run_window_inner<F>(
                     }
                 }
                 _ => {}
-            },
-            _ => {}
+            }
         }
     });
 }

@@ -182,8 +182,7 @@ pub(crate) fn parse_percent(output: &str) -> Option<i32> {
     let idx = output.find('%')?;
     output[..idx]
         .split(|c: char| !c.is_ascii_digit())
-        .filter(|s| !s.is_empty())
-        .next_back()?
+        .rfind(|s| !s.is_empty())?
         .parse::<i32>()
         .ok()
 }

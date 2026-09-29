@@ -368,6 +368,25 @@ fn load_rhai_plugin(
     Ok((name, doc_json, funcs))
 }
 
+fn walk_files(root: &str) -> std::io::Result<Vec<std::path::PathBuf>> {
+    let mut files = Vec::new();
+    let mut stack = vec![std::path::PathBuf::from(root)];
+    while let Some(dir) = stack.pop() {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                stack.push(path);
+            } else {
+                files.push(path);
+            }
+        }
+    }
+    Ok(files)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -473,23 +492,4 @@ mod tests {
         let value = dynamic_to_json(Dynamic::from(map));
         assert_eq!(value, serde_json::json!({"n": 3, "s": "x"}));
     }
-}
-
-fn walk_files(root: &str) -> std::io::Result<Vec<std::path::PathBuf>> {
-    let mut files = Vec::new();
-    let mut stack = vec![std::path::PathBuf::from(root)];
-    while let Some(dir) = stack.pop() {
-        let Ok(entries) = std::fs::read_dir(&dir) else {
-            continue;
-        };
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                stack.push(path);
-            } else {
-                files.push(path);
-            }
-        }
-    }
-    Ok(files)
 }

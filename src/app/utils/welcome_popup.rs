@@ -37,8 +37,8 @@ pub fn show_popup() {
     let dont_show = text(Some("welcome_message_button_dont_show_again"), None);
     let ok = text(Some("welcome_message_button_ok"), None);
     let result = rfd::MessageDialog::new()
-        .set_title(&text(Some("welcome_message_window_title"), None))
-        .set_description(&format!(
+        .set_title(text(Some("welcome_message_window_title"), None))
+        .set_description(format!(
             "{}\n{}",
             text(Some("welcome_message_label_1"), None),
             text(Some("welcome_message_label_2"), None),

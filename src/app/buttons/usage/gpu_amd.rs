@@ -4,10 +4,10 @@
 //! Python (which has no AMD path at all).
 
 #[cfg(target_os = "linux")]
+use super::get_usage::round2;
+#[cfg(target_os = "linux")]
 use serde_json::json;
 use serde_json::Value;
-#[cfg(target_os = "linux")]
-use super::get_usage::round2;
 
 use crate::app::utils::logger::log;
 
@@ -25,10 +25,7 @@ pub(crate) fn amd_gpu_entries() -> Vec<(String, Value)> {
                 if let (Some(used), Some(total)) = (device.used_mb, device.total_mb) {
                     entry.insert("used_mb".to_string(), json!(round2(used)));
                     entry.insert("total_mb".to_string(), json!(round2(total)));
-                    entry.insert(
-                        "available_mb".to_string(),
-                        json!(round2(total - used)),
-                    );
+                    entry.insert("available_mb".to_string(), json!(round2(total - used)));
                 }
                 if let Some(pct) = device.usage_percent {
                     entry.insert("usage_percent".to_string(), json!(pct));
@@ -52,23 +49,31 @@ pub(crate) fn amd_gpu_entries() -> Vec<(String, Value)> {
     Vec::new()
 }
 
+/// `cardN` DRM entries driven by amdgpu (sorted) — the shared
+/// card-discovery behind [`has_amdgpu_card`] and [`amd_devices`].
+#[cfg(target_os = "linux")]
+fn amdgpu_cards() -> Result<Vec<String>, String> {
+    let mut cards: Vec<String> = std::fs::read_dir("/sys/class/drm")
+        .map_err(|e| e.to_string())?
+        .flatten()
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .filter(|n| {
+            n.strip_prefix("card")
+                .is_some_and(|rest| !rest.is_empty() && rest.chars().all(|c| c.is_ascii_digit()))
+                && std::fs::read_link(format!("/sys/class/drm/{n}/device/driver"))
+                    .map(|p| p.to_string_lossy().ends_with("amdgpu"))
+                    .unwrap_or(false)
+        })
+        .collect();
+    cards.sort();
+    Ok(cards)
+}
+
 /// Whether an amdgpu-driven card exists (Linux sysfs probe, no metrics
 /// read). Used by startup recovery to pick a working `gpu_method`.
 #[cfg(target_os = "linux")]
 pub(crate) fn has_amdgpu_card() -> bool {
-    let Ok(entries) = std::fs::read_dir("/sys/class/drm") else {
-        return false;
-    };
-    entries.flatten().any(|e| {
-        let n = e.file_name().to_string_lossy().into_owned();
-        let is_card = n
-            .strip_prefix("card")
-            .is_some_and(|rest| !rest.is_empty() && rest.chars().all(|c| c.is_ascii_digit()));
-        is_card
-            && std::fs::read_link(format!("/sys/class/drm/{n}/device/driver"))
-                .map(|p| p.to_string_lossy().ends_with("amdgpu"))
-                .unwrap_or(false)
-    })
+    amdgpu_cards().is_ok_and(|cards| !cards.is_empty())
 }
 
 #[cfg(not(target_os = "linux"))]
@@ -87,25 +92,10 @@ struct AmdDeviceInfo {
 #[cfg(target_os = "linux")]
 fn amd_devices() -> Result<Vec<AmdDeviceInfo>, String> {
     let mut devices = Vec::new();
-    let mut cards: Vec<String> = std::fs::read_dir("/sys/class/drm")
-        .map_err(|e| e.to_string())?
-        .flatten()
-        .map(|e| e.file_name().to_string_lossy().into_owned())
-        .filter(|n| {
-            n.strip_prefix("card")
-                .is_some_and(|rest| !rest.is_empty() && rest.chars().all(|c| c.is_ascii_digit()))
-        })
-        .collect();
-    cards.sort();
+    // Already amdgpu-only (skips Intel iGD, virtio, ...).
+    let cards = amdgpu_cards()?;
     for card in &cards {
         let dev = format!("/sys/class/drm/{card}/device");
-        // Only amdgpu-driven cards (skips Intel iGD, virtio, ...).
-        let driver = std::fs::read_link(format!("{dev}/driver"))
-            .map(|p| p.to_string_lossy().into_owned())
-            .unwrap_or_default();
-        if !driver.ends_with("amdgpu") {
-            continue;
-        }
         let metrics = std::fs::read(format!("{dev}/gpu_metrics"))
             .ok()
             .and_then(|b| parse_gpu_metrics(&b));
@@ -180,7 +170,7 @@ fn parse_gpu_metrics(buf: &[u8]) -> Option<AmdMetrics> {
     let temperature_c = if centi {
         (raw_temp > 0 && raw_temp < 15_000).then(|| raw_temp as f64 / 100.0)
     } else {
-        (raw_temp > 0 && raw_temp < 150).then(|| raw_temp as f64)
+        (raw_temp > 0 && raw_temp < 150).then_some(raw_temp as f64)
     };
     Some(AmdMetrics {
         gfx_activity,

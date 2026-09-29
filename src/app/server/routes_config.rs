@@ -132,13 +132,12 @@ pub(crate) async fn saveconfig(
 
     if soundboard_stop {
         soundboard::mic::stop();
-    } else if soundboard_restart || soundboard_start {
-        if config["settings"]["soundboard"]["enabled"]
+    } else if (soundboard_restart || soundboard_start)
+        && config["settings"]["soundboard"]["enabled"]
             .as_bool()
             .unwrap_or(false)
-        {
-            soundboard::mic::restart();
-        }
+    {
+        soundboard::mic::restart();
     }
 
     log().success("Config saved successfully");

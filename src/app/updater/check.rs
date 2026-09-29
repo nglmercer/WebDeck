@@ -6,9 +6,7 @@
 
 use serde_json::Value;
 
-use crate::app::updater::updater::{
-    compare_versions, fetch_latest_release, prepare_update_directory,
-};
+use crate::app::updater::{compare_versions, fetch_latest_release, prepare_update_directory};
 use crate::app::utils::{
     args::{get_args, raw_args},
     exit::exit_program,

@@ -70,7 +70,7 @@ pub fn validate_port_value(value: &str, current: u16) -> bool {
         return false;
     }
     match trimmed.parse::<u32>() {
-        Ok(n) => n >= 1 && n <= 65535 && n != current as u32,
+        Ok(n) => (1..=65535).contains(&n) && n != current as u32,
         Err(_) => false,
     }
 }

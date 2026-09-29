@@ -2,7 +2,7 @@
 
 use serde_json::Value;
 
-use crate::app::updater::{check::check_for_updates, updater::check_files};
+use crate::app::updater::{check_files, check_for_updates};
 use crate::app::utils::{
     args::get_args,
     get_local_ip::get_local_ip,
@@ -26,28 +26,15 @@ pub fn color_distance(color1: &str, color2: &str) -> f64 {
 /// Same nearest-neighbor ordering; the Gist fallback uses `reqwest`
 /// (async — hence `on_start` is async in Rust).
 pub async fn sort_colorsjson() {
-    let mut data: Value = match std::fs::read_to_string("webdeck/colors.json") {
-        Ok(content) => match serde_json::from_str(&content) {
-            Ok(data) => data,
-            Err(e) => {
-                log().exception(&e, Some("Failed to load colors.json"), true, true, true);
-                match fetch_colors_fallback().await {
-                    Some(data) => data,
-                    None => return,
-                }
-            }
+    let mut data: Value = match read_colors_db() {
+        Some(data) => data,
+        None => match fetch_colors_fallback().await {
+            Some(data) => data,
+            None => return,
         },
-        Err(e) => {
-            log().exception(&e, Some("Failed to load colors.json"), true, true, true);
-            match fetch_colors_fallback().await {
-                Some(data) => data,
-                None => return,
-            }
-        }
     };
 
-    let empty = Vec::new();
-    let mut remaining = data.as_array().cloned().unwrap_or(empty);
+    let mut remaining = data.as_array().cloned().unwrap_or_default();
     if remaining.is_empty() {
         return;
     }
@@ -84,6 +71,16 @@ pub async fn sort_colorsjson() {
     {
         log().error("Failed to write sorted webdeck/colors.json");
     }
+}
+
+/// Read + parse `webdeck/colors.json`, logging (but tolerating) failures.
+fn read_colors_db() -> Option<Value> {
+    let content = std::fs::read_to_string("webdeck/colors.json")
+        .map_err(|e| log().exception(&e, Some("Failed to load colors.json"), true, true, true))
+        .ok()?;
+    serde_json::from_str(&content)
+        .map_err(|e| log().exception(&e, Some("Failed to load colors.json"), true, true, true))
+        .ok()
 }
 
 async fn fetch_colors_fallback() -> Option<Value> {
@@ -261,10 +258,7 @@ pub fn get_gpu_method() -> Value {
     }
     fn set_method(config: &mut Value, method: &str) {
         if let Some(settings) = config.get_mut("settings").and_then(|s| s.as_object_mut()) {
-            settings.insert(
-                "gpu_method".to_string(),
-                Value::String(method.to_string()),
-            );
+            settings.insert("gpu_method".to_string(), Value::String(method.to_string()));
         }
     }
 
@@ -421,9 +415,7 @@ mod tests {
     #[test]
     fn stuck_none_method_recovers_to_working_backend() {
         use crate::app::buttons::usage::gpu_amd::has_amdgpu_card;
-        use crate::app::utils::settings::get_config::test_support::{
-            config_guard, seed_config,
-        };
+        use crate::app::utils::settings::get_config::test_support::{config_guard, seed_config};
         let _guard = config_guard();
         seed_config(&serde_json::json!({
             "url": {"port": 5000},
