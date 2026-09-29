@@ -10,7 +10,7 @@ import {
   rep,
   type BootContext,
 } from '../../framework/types';
-import { q, byId, post } from '../../query';
+import { q, byId } from '../../query';
 import { emitAppEvent } from '../../app/events';
 import { hide_addbutton_args_modal, hide_addbutton_modal } from '../../app/modals';
 import { refreshApp } from '../../app/refresh';
@@ -18,7 +18,15 @@ import { seedPresetButtonState } from '../../components/button-icons';
 import { showAlert } from '../../components/dialog';
 import { wireKeyField } from '../../components/keyfield';
 import { buildCommand, catKey, cmdKey, registerShowArg } from '../args';
-import { swapPreviewImage, updateButtonBackgroundColor, updateImageSize, type ButtonState } from '../modalstyle';
+import { wireButtonImageUpload } from '../button-upload';
+import {
+  beginModalSubmit,
+  endModalSubmit,
+  wireButtonNameSync,
+  wireDevCommandSync,
+  wirePreviewControls,
+  type ButtonState,
+} from '../modalstyle';
 import { wireStudioPreview } from '../studio-preview';
 import { addButtonName } from './argsmodal';
 import type { AddModalContext } from './types';
@@ -106,66 +114,19 @@ export function wireAddModal(ctx: BootContext, mctx: AddModalContext): void {
   wireKeyField(id);
   wireStudioPreview(id);
 
-  byId(`image-input_${id}`).on('change', function () {
-    const input = this as unknown as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('file', file);
-
-    void post('/upload_file', formData).then(
-      () => {
-        const swapped = swapPreviewImage(id, input);
-        if (!swapped) return;
-        buttonState['image_size'] = '70';
-        updateImageSize(swapped.slider, swapped.image, buttonState);
-        buttonState['image'] = '**uploaded/' + (input.files?.[0]?.name ?? '');
-      },
-      () => {
-        console.error('Failed to download file.');
-      }
-    );
-  });
-
-  const image = byId<HTMLElement>(`button-image_${id}`).get(0) ?? null;
-  const imageSizeSlider = byId<HTMLInputElement>(`image-size-slider_${id}`).get(0) ?? null;
-  if (image && imageSizeSlider) {
-    updateImageSize(imageSizeSlider, image, buttonState);
-  }
-
-  const buttonElement = byId<HTMLElement>(`button-element_${id}`).get(0) ?? null;
-  const bgInput = byId<HTMLInputElement>(`background-color-input_${id}`).get(0) ?? null;
-  const bgHex = byId<HTMLInputElement>(`background-color-hex_${id}`).get(0) ?? null;
-  if (buttonElement && bgInput && bgHex) {
-    updateButtonBackgroundColor(buttonElement, bgInput, bgHex, buttonState);
-  }
-
+  wireButtonImageUpload(id, buttonState);
+  wirePreviewControls(id, buttonState);
   if (devMode) {
-    byId(`command_${id}`).on('input', function () {
-      buttonState['message'] = String(q(this).val() ?? '');
-    });
+    wireDevCommandSync(id, buttonState);
   }
-
-  const buttonText = byId<HTMLInputElement>(`button-text-input_${id}`).get(0) ?? null;
-  const buttonPreview = byId(`button-text-preview_${id}`).get(0) ?? null;
-  q(buttonText).on('input', function () {
-    const textValue = String(q(buttonText).val() ?? '');
-    if (buttonPreview) q(buttonPreview).text(textValue);
-    buttonState['name'] = textValue;
-  });
+  wireButtonNameSync(id, buttonState);
 
   byId(`${id}_submit`).on('click', function (event) {
     if (id !== 'NONE') {
       event.preventDefault();
     }
-    // The delayed save invites double-clicks (nothing happens for a
-    // second): ignore while one is already pending.
-    const pending = addModalStates.get(id);
-    if (pending?.submitPending) return;
-    if (pending) pending.submitPending = true;
-    setTimeout(function () {
-      buttonCommandAdd(id, mctx.commandId);
-    }, 1000);
+    if (!beginModalSubmit(addModalStates.get(id), id)) return;
+    buttonCommandAdd(id, mctx.commandId);
   });
 }
 
@@ -327,11 +288,9 @@ function buttonCommandAdd(argModalId: string, command: string): void {
     })
     .catch(function (error: Error) {
       void showAlert(error.message);
-      throw new Error(error.message);
     })
     .finally(function () {
-      const pending = addModalStates.get(argModalId);
-      if (pending) pending.submitPending = false;
+      endModalSubmit(addModalStates.get(argModalId), argModalId);
     });
 
   q(element).removeAttr('add_ID');

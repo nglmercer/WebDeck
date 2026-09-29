@@ -77,17 +77,16 @@ describe('filterAddBrowser', () => {
 
 describe('add submit coalescing', () => {
   afterEach(() => {
-    vi.useRealTimers();
     vi.unstubAllGlobals();
     document.body.innerHTML = '';
   });
 
-  it('sends one save for rapid double submits', async () => {
+  function wireAdd(modalId: string): void {
     initI18n({});
-    document.body.innerHTML = '<button id="t1_submit">save</button>';
+    document.body.innerHTML = `<button id="${modalId}_submit">save</button>`;
     const ctx = { config: { front: {}, settings: {} }, commands: {} } as unknown as BootContext;
     const mctx: AddModalContext = {
-      argModalId: 't1',
+      argModalId: modalId,
       category: 'c',
       command: 'Copy',
       parentCommand: '',
@@ -97,26 +96,68 @@ describe('add submit coalescing', () => {
       buttonTitle: 'Copy',
     };
     wireAddModal(ctx, mctx);
+  }
 
+  function saveCalls(fetchMock: ReturnType<typeof vi.fn>): unknown[][] {
+    return fetchMock.mock.calls.filter(([url]) => String(url).includes('save_buttons_only'));
+  }
+
+  /** Dismiss the queued alert dialog (keeps the dialog queue usable). */
+  async function dismissAlert(): Promise<void> {
+    await vi.waitFor(() => expect(document.querySelector('[data-testid="alert-ok"]')).not.toBeNull());
+    (document.querySelector('[data-testid="alert-ok"]') as HTMLElement).click();
+    await vi.waitFor(() => expect(document.querySelector('[role="alertdialog"]')).toBeNull());
+  }
+
+  it('sends one save for rapid double submits', async () => {
+    wireAdd('t1');
     const fetchMock = vi.fn(async (url: unknown) => {
       if (String(url).includes('save_buttons_only')) {
-        return { ok: true, json: async () => ({ success: true }) };
+        // Failure response: the save is still sent (what this counts),
+        // but no modal-hide timers outlive the test environment.
+        return { ok: true, json: async () => ({ success: false }) };
       }
       return { ok: true, json: async () => ({ front: { buttons: {} } }) };
     });
     vi.stubGlobal('fetch', fetchMock);
-    vi.useFakeTimers();
-    try {
-      const submit = document.querySelector('#t1_submit') as HTMLElement;
-      submit.click();
-      submit.click();
-      await vi.advanceTimersByTimeAsync(1500);
-      const saves = fetchMock.mock.calls.filter(([url]) =>
-        String(url).includes('save_buttons_only')
-      );
-      expect(saves).toHaveLength(1);
-    } finally {
-      vi.useRealTimers();
-    }
+
+    const submit = document.querySelector('#t1_submit') as HTMLButtonElement;
+    submit.click();
+    submit.click();
+    await vi.waitFor(() => expect(saveCalls(fetchMock)).toHaveLength(1));
+    // Settled saves stay at one (no delayed duplicate).
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(saveCalls(fetchMock)).toHaveLength(1);
+    await dismissAlert();
+  });
+
+  it('disables the submit control in flight and allows retry after failure', async () => {
+    wireAdd('t2');
+    let rejectSave!: (error: unknown) => void;
+    const gate = new Promise<never>((_resolve, reject) => {
+      rejectSave = reject;
+    });
+    const fetchMock = vi.fn((url: unknown) => {
+      if (String(url).includes('save_buttons_only')) return gate;
+      return Promise.resolve({ ok: true, json: async () => ({ front: { buttons: {} } }) });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const submit = document.querySelector('#t2_submit') as HTMLButtonElement;
+    submit.click();
+    await vi.waitFor(() => expect(saveCalls(fetchMock)).toHaveLength(1));
+    expect(submit.disabled).toBe(true);
+
+    rejectSave(new Error('boom'));
+    await vi.waitFor(() => expect(submit.disabled).toBe(false));
+    // The failure stays visible (no false success).
+    await vi.waitFor(() =>
+      expect(document.querySelector('#wd-dialog-message')?.textContent).toBe('boom')
+    );
+    await dismissAlert();
+
+    submit.click();
+    await vi.waitFor(() => expect(saveCalls(fetchMock)).toHaveLength(2));
+    await dismissAlert();
   });
 });

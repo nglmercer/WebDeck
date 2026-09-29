@@ -1,8 +1,8 @@
 import { normalizeHexValue } from '../legacy/colors';
 import { q, byId } from '../query';
 
-// Shared by add/edit button modals: the per-modal preview wiring
-// (updateImageSize / updateButtonBackgroundColor), parameterized by id.
+// Shared by add/edit button modals: the per-modal preview wiring,
+// field synchronization, and submit coalescing — parameterized by id.
 
 export type ButtonState = Record<string, unknown>;
 
@@ -74,6 +74,68 @@ export function updateButtonBackgroundColor(
 
     q(buttonElement).css({ backgroundColor: normalizedHexValue, boxShadow: '0 0 5px ' + normalizedHexValue });
   });
+}
+
+/** Image-size slider + background-color inputs shared by both modals. */
+export function wirePreviewControls(modalId: string, button: ButtonState): void {
+  const image = byId<HTMLElement>(`button-image_${modalId}`).get(0) ?? null;
+  const imageSizeSlider = byId<HTMLInputElement>(`image-size-slider_${modalId}`).get(0) ?? null;
+  if (image && imageSizeSlider) {
+    updateImageSize(imageSizeSlider, image, button);
+  }
+
+  const buttonElement = byId<HTMLElement>(`button-element_${modalId}`).get(0) ?? null;
+  const bgInput = byId<HTMLInputElement>(`background-color-input_${modalId}`).get(0) ?? null;
+  const bgHex = byId<HTMLInputElement>(`background-color-hex_${modalId}`).get(0) ?? null;
+  if (buttonElement && bgInput && bgHex) {
+    updateButtonBackgroundColor(buttonElement, bgInput, bgHex, button);
+  }
+}
+
+/** Button-name text input <-> preview <-> state sync shared by both modals. */
+export function wireButtonNameSync(modalId: string, button: ButtonState): void {
+  const buttonText = byId<HTMLInputElement>(`button-text-input_${modalId}`).get(0) ?? null;
+  const buttonPreview = byId(`button-text-preview_${modalId}`).get(0) ?? null;
+  q(buttonText).on('input', function () {
+    const textValue = String(q(buttonText).val() ?? '');
+    if (buttonPreview) q(buttonPreview).text(textValue);
+    button['name'] = textValue;
+  });
+}
+
+/** Dev-mode raw command input -> state sync shared by both modals. */
+export function wireDevCommandSync(modalId: string, button: ButtonState): void {
+  byId(`command_${modalId}`).on('input', function () {
+    button['message'] = String(q(this).val() ?? '');
+  });
+}
+
+/** Per-modal save state for submit coalescing (both flows match this shape). */
+export interface ModalSubmitState {
+  submitPending?: boolean;
+}
+
+/**
+ * Guard a modal save against double-clicks: reject while a save is in
+ * flight, otherwise mark pending and disable the submit control until
+ * `endModalSubmit` runs (after success or failure).
+ */
+export function beginModalSubmit(
+  state: ModalSubmitState | undefined,
+  modalId: string
+): boolean {
+  if (!state || state.submitPending) return false;
+  state.submitPending = true;
+  const submit = byId<HTMLInputElement>(`${modalId}_submit`).get(0) ?? null;
+  if (submit) submit.disabled = true;
+  return true;
+}
+
+/** Release a coalesced save: clear the flag, re-enable the submit control. */
+export function endModalSubmit(state: ModalSubmitState | undefined, modalId: string): void {
+  if (state) state.submitPending = false;
+  const submit = byId<HTMLInputElement>(`${modalId}_submit`).get(0) ?? null;
+  if (submit) submit.disabled = false;
 }
 
 /** Shared image-upload swap used by both modals' image-input handlers. */

@@ -10,7 +10,7 @@ import {
   type JsonObject,
   type JsonValue,
 } from '../framework/types';
-import { q, byId, post } from '../query';
+import { q, byId } from '../query';
 import { emitAppEvent } from '../app/events';
 import { hide_editbutton_modal } from '../app/modals';
 import { refreshApp } from '../app/refresh';
@@ -21,7 +21,15 @@ import { previewImageLink, type PreviewData } from '../components/preview';
 import { buildCommand, hasVisibleParams, registerShowArg, type ArgsPrefill } from './args';
 import { resolveButtonCommand } from './argvalues';
 import { wireFoldernameForm } from './addbutton';
-import { swapPreviewImage, updateButtonBackgroundColor, updateImageSize, type ButtonState } from './modalstyle';
+import { wireButtonImageUpload } from './button-upload';
+import {
+  beginModalSubmit,
+  endModalSubmit,
+  wireButtonNameSync,
+  wireDevCommandSync,
+  wirePreviewControls,
+  type ButtonState,
+} from './modalstyle';
 import { wireStudioPreview } from './studio-preview';
 import { svgSlotId } from './svg';
 
@@ -196,7 +204,7 @@ export interface EditModalState {
   button: ButtonState;
   /** Resolved command id when the modal renders an arg form (message rebuild). */
   commandId?: string;
-  /** Submit coalescing: a delayed save is already scheduled/in flight. */
+  /** Submit coalescing: a save is already in flight. */
   submitPending?: boolean;
 }
 
@@ -243,71 +251,23 @@ export function wireEditModal(ctx: BootContext, editModalId: string, buttonSetti
   wireKeyField(editModalId);
   wireStudioPreview(editModalId);
 
-  const image = byId<HTMLElement>(`button-image_${editModalId}`).get(0) ?? null;
-  const imageSizeSlider = byId<HTMLInputElement>(`image-size-slider_${editModalId}`).get(0) ?? null;
-  if (image && imageSizeSlider) {
-    updateImageSize(imageSizeSlider, image, button);
-  }
-
-  const buttonElement = byId<HTMLElement>(`button-element_${editModalId}`).get(0) ?? null;
-  const bgInput = byId<HTMLInputElement>(`background-color-input_${editModalId}`).get(0) ?? null;
-  const bgHex = byId<HTMLInputElement>(`background-color-hex_${editModalId}`).get(0) ?? null;
-  if (buttonElement && bgInput && bgHex) {
-    updateButtonBackgroundColor(buttonElement, bgInput, bgHex, button);
-  }
-
-  byId(`image-input_${editModalId}`).on('change', function () {
-    const input = this as unknown as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('file', file);
-
-    void post('/upload_file', formData).then(
-      () => {
-        const swapped = swapPreviewImage(editModalId, input);
-        if (!swapped) return;
-        button['image_size'] = '70';
-        updateImageSize(swapped.slider, swapped.image, button);
-        button['image'] = '**uploaded/' + (input.files?.[0]?.name ?? '');
-      },
-      () => {
-        console.error('Failed to download file.');
-      }
-    );
-  });
-
+  wirePreviewControls(editModalId, button);
+  wireButtonImageUpload(editModalId, button);
   if (devMode) {
-    byId(`command_${editModalId}`).on('input', function () {
-      button['message'] = String(q(this).val() ?? '');
-    });
+    wireDevCommandSync(editModalId, button);
   }
-
-  const buttonText = byId<HTMLInputElement>(`button-text-input_${editModalId}`).get(0) ?? null;
-  const buttonPreview = byId(`button-text-preview_${editModalId}`).get(0) ?? null;
-  q(buttonText).on('input', function () {
-    const textValue = String(q(buttonText).val() ?? '');
-    if (buttonPreview) q(buttonPreview).text(textValue);
-    button['name'] = textValue;
-  });
+  wireButtonNameSync(editModalId, button);
 
   byId(`${editModalId}_submit`).on('click', function (event) {
-    // The delayed save invites double-clicks (nothing happens for a
-    // second): ignore while one is already pending.
-    const pending = modalStates.get(editModalId);
-    if (pending?.submitPending) return;
-    if (pending) pending.submitPending = true;
-    setTimeout(function () {
-      buttonCommand(editModalId, event);
-    }, 1000);
+    if (editModalId !== 'NONE') {
+      event.preventDefault();
+    }
+    if (!beginModalSubmit(modalStates.get(editModalId), editModalId)) return;
+    buttonCommand(editModalId);
   });
 }
 
-function buttonCommand(editModalID: string, event: Event): void {
-  if (editModalID !== 'NONE') {
-    event.preventDefault();
-  }
-
+function buttonCommand(editModalID: string): void {
   const state = modalStates.get(editModalID);
   if (state && state.commandId !== undefined) {
     const container = q(`form[edit_modal_ID="${editModalID}"] .args-container`).get(0) ?? null;
@@ -350,7 +310,6 @@ function buttonCommand(editModalID: string, event: Event): void {
       void showAlert(error.message);
     })
     .finally(function () {
-      const pending = modalStates.get(editModalID);
-      if (pending) pending.submitPending = false;
+      endModalSubmit(modalStates.get(editModalID), editModalID);
     });
 }
