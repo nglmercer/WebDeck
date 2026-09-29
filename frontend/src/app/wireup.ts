@@ -1,3 +1,5 @@
+import { saveConfig } from '../api/config';
+import { fetchUsage } from '../api/usage';
 import { text } from '../framework/i18n';
 import { asString, get, type BootContext } from '../framework/types';
 import { q, byId } from '../query';
@@ -149,21 +151,8 @@ function wireSubmits(transferMethod: string): void {
               }
             }
 
-            fetch('/save_config', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(config_data),
-            })
+            saveConfig(config_data)
               .then(function (response) {
-                if (response.ok) {
-                  return response.json();
-                } else {
-                  throw new Error(text('settings_save_error'));
-                }
-              })
-              .then(function (response: { success?: boolean; message?: string }) {
                 if (response.success) {
                   emitAppEvent('save:completed', { flow: 'config' });
                   // Re-render so grid size, language, theme, and background
@@ -198,14 +187,7 @@ function wireSubmits(transferMethod: string): void {
           } else if (message.startsWith('/reload') && !isSwapMode()) {
             location.reload();
           } else {
-            fetch('/usage', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ message }),
-            })
-              .then((response) => response.json())
+            fetchUsage({ message })
               .then((usage_dict) => {
                 updateUsageTiles(usage_dict);
               })

@@ -1,5 +1,6 @@
 // Port of static/js/upload_file.js. Runs after render.
-import { q, post } from '../query';
+import { uploadFile } from '../api/uploads';
+import { q } from '../query';
 
 export function upload_file(element: HTMLInputElement): void {
   const file = element.files?.[0];
@@ -7,7 +8,7 @@ export function upload_file(element: HTMLInputElement): void {
   const formData = new FormData();
   formData.append('file', file);
 
-  void post('/upload_file', formData).then(undefined, () => {
+  void uploadFile(formData).then(undefined, () => {
     console.error('Failed to download file.');
   });
 }

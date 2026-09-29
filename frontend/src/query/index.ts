@@ -13,7 +13,6 @@ import './traverse';
 
 export { Q, type Content, type ElementPredicate } from './core';
 export { q, byId, ready, type QueryContext } from './factory';
-export { ajax, get, getJSON, post, HttpError, type AjaxOptions } from './ajax';
 export { each, map, extend, contains } from './utils';
 export type { EffectOptions } from './effects';
 export type { EventHandler } from './events';

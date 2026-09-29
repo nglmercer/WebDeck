@@ -1,6 +1,5 @@
-import { getJson } from '../framework/api';
+import { fetchBoot } from '../api/config';
 import { initI18n } from '../framework/i18n';
-import type { BootContext } from '../framework/types';
 import { byId, q } from '../query';
 import { renderApp } from '../views/app';
 import { emitAppEvent } from './events';
@@ -36,7 +35,7 @@ export async function refreshApp(): Promise<void> {
   if (!mountEl) return;
   const folder = currentFolderId();
 
-  const ctx = await getJson<BootContext>('/api/boot');
+  const ctx = await fetchBoot();
   initI18n(ctx.lang);
 
   resetEditorUiState();

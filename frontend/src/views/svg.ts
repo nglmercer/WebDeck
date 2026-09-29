@@ -1,3 +1,4 @@
+import { getText } from '../api/client';
 import { q } from '../query';
 
 // Replaces `open(path).read()` SVG inlining: the markup renders a
@@ -31,9 +32,7 @@ async function fetchSvg(path: string): Promise<string | null> {
   if (!pending) {
     pending = (async () => {
       try {
-        const response = await fetch(path);
-        if (!response.ok) return null; // mirrors {% if isfile(...) %} guards
-        const svg = await response.text();
+        const svg = await getText(path);
         return svg.includes('<svg') ? svg : null;
       } catch {
         // Missing file renders nothing, like the isfile guards.

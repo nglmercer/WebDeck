@@ -10,6 +10,7 @@ import {
   type JsonObject,
   type JsonValue,
 } from '../framework/types';
+import { saveSingleButton } from '../api/buttons';
 import { q, byId } from '../query';
 import { emitAppEvent } from '../app/events';
 import { hide_editbutton_modal } from '../app/modals';
@@ -282,29 +283,12 @@ function buttonCommand(editModalID: string): void {
     content: state?.button ?? {},
   };
 
-  fetch('/save_single_button', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(final_button),
-  })
-    .then(function (response) {
-      if (response.ok) {
-        return response.json();
-      } else {
-        throw new Error(text('settings_save_error'));
-      }
-    })
-    .then(function (response: { success?: boolean }) {
-      if (response.success) {
-        emitAppEvent('save:completed', { flow: 'single' });
-        hide_editbutton_modal(editModalID);
-        void refreshApp();
-        void showAlert(text('settings_save_success'));
-      } else {
-        throw new Error(text('settings_save_error'));
-      }
+  saveSingleButton(final_button)
+    .then(function () {
+      emitAppEvent('save:completed', { flow: 'single' });
+      hide_editbutton_modal(editModalID);
+      void refreshApp();
+      void showAlert(text('settings_save_success'));
     })
     .catch(function (error: Error) {
       void showAlert(error.message);

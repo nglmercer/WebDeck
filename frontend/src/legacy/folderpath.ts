@@ -1,15 +1,9 @@
 // Port of static/js/folderpath.js. Runs after render.
+import { pickFolderPath } from '../api/uploads';
 import { q } from '../query';
 
 function handleFolderpathButtonClick(): void {
-  fetch('/upload_folderpath', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({}),
-  })
-    .then((response) => response.text())
+  pickFolderPath()
     .then((folderPath) => {
       if (folderPath !== '') {
         q('input.folderpath').val(folderPath);

@@ -5,13 +5,14 @@ with generic element typing, typed events, Promise-based effects, and no
 silent footguns.
 
 ```ts
+import { sendCommand } from '../api/buttons';
 import { q, ready } from '../query';
 
 ready(() => {
   // q('input') is Q<HTMLInputElement>: .val() and .prop() are checked.
   q('#save').on('click', () => {
     const name = q('#name').val() ?? '';
-    q.post('/send-data', { message: name }).catch(console.error);
+    sendCommand(name).catch(console.error);
   });
 
   // Delegation keeps `this` typed as the matched descendant.
@@ -35,7 +36,7 @@ ready(() => {
 | Timer-based fx queue, string easings | Native WAAPI, `Promise<void>`, honors `prefers-reduced-motion` |
 | Inserted `<script>` executes | Inserted HTML never executes scripts |
 | `$.extend` pollutes prototypes | `__proto__`/`constructor`/`prototype` keys are skipped |
-| XHR callbacks | `fetch` + typed `HttpError`, timeouts, abort signals |
+| XHR callbacks | `src/api` (`fetch` + typed `HttpError`, timeouts, abort signals) |
 
 ## API
 
@@ -76,11 +77,10 @@ delegation), `off` (omitted criteria are wildcards), `trigger` (bubbling
 `slideDown/slideUp/slideToggle`, `animate(keyframes, duration|options)`,
 `stop(gotoEnd?)`.
 
-**Ajax:** `ajax<T>(url, options?)`, `get/getJSON/post`, typed `HttpError`
-(`status`, `statusText`, `url`); plain bodies JSON-encode; `timeout`
-rejects with `HttpError(0, 'timeout')`; caller `signal` composes.
-
 **Utils:** `each`, `map`, `extend` (shallow/deep), `contains`.
+
+HTTP lives in `src/api` (typed `HttpError`, timeouts, abort signals),
+not in this DOM library.
 
 ## Deliberate deviations from jQuery
 

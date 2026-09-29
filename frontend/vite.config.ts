@@ -47,6 +47,6 @@ export default defineConfig({
   },
   test: {
     environment: 'happy-dom',
-    include: ['src/query/**/*.test.ts', 'src/components/**/*.test.ts', 'src/views/**/*.test.ts', 'src/app/**/*.test.ts'],
+    include: ['src/**/*.test.ts'],
   },
 });

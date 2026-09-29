@@ -1,4 +1,5 @@
-import { byId, post } from '../query';
+import { uploadFile } from '../api/uploads';
+import { byId } from '../query';
 import { swapPreviewImage, updateImageSize, type ButtonState } from './modalstyle';
 
 /**
@@ -17,7 +18,7 @@ export async function uploadButtonImage(
   const formData = new FormData();
   formData.append('file', file);
   try {
-    await post('/upload_file', formData);
+    await uploadFile(formData);
   } catch {
     console.error('Failed to download file.');
     return;

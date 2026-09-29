@@ -33,11 +33,14 @@ a JSON error telling you to build. `/assets/*` serves the bundle.
 
 ## State & wireup
 
-- `framework/api.ts` — `getJson`/POST helpers (`/api/boot`, `/get_config`,
-  `/usage`, `/send-data`, save/upload endpoints).
+- `api/` — one HTTP layer: `client.ts` transport (`getJson`/`postJson`/
+  text/form, typed `HttpError`, timeout/abort) plus `config.ts`
+  (`/api/boot`, `/get_config`, `/save_config`), `buttons.ts`
+  (`/save_buttons_only`, `/save_single_button`, `/create_folder`,
+  `/send-data`), `uploads.ts`, `usage.ts`.
 - `framework/i18n.ts` — `initI18n(langDict)` + `t(key)` lookups.
 - `framework/html.ts` — typed HTML builders for non-Svelte-rendered parts.
-- `query/` — `q`, `byId` DOM facade: `ajax`, `attributes`, `classes-css`,
+- `query/` — `q`, `byId` DOM facade: `attributes`, `classes-css`,
   `core`, `data`, `effects`, `events`, `factory`, `manipulate`, `traverse`,
   `utils` (each with `*.test.ts`).
 - Button press → `POST /send-data {message}` (HTTP) or Socket.IO

@@ -385,9 +385,10 @@ describe('edit submit coalescing', () => {
 
       rejectSave(new Error('boom'));
       await vi.waitFor(() => expect(submit.disabled).toBe(false));
-      // The failure stays visible (no false success).
+      // The failure stays visible (no false success): transport errors map
+      // to the localized save error (unstubbed key here).
       await vi.waitFor(() =>
-        expect(document.querySelector('#wd-dialog-message')?.textContent).toBe('boom')
+        expect(document.querySelector('#wd-dialog-message')?.textContent).toBe('settings_save_error')
       );
       await dismissAlert();
 

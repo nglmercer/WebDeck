@@ -1,4 +1,5 @@
-import { q, byId, post } from '../query';
+import { uploadFile } from '../api/uploads';
+import { q, byId } from '../query';
 import { calculateBrightness, normalizeHexValue } from './colors';
 
 // Port of static/js/background-setting.js. Runs after render (replaces the
@@ -232,7 +233,7 @@ export function initBackgroundSetting(): void {
       formData.append('file', file);
       formData.append('info', 'background_image');
 
-      void post('/upload_file', formData).then(
+      void uploadFile(formData).then(
         () => {
           const firstFile = input.files?.[0];
           const fileName = '**uploaded/' + (firstFile?.name ?? '');

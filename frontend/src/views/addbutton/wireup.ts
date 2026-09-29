@@ -10,6 +10,9 @@ import {
   rep,
   type BootContext,
 } from '../../framework/types';
+import { createFolder, saveButtonsOnly } from '../../api/buttons';
+import { HttpError } from '../../api/client';
+import { fetchConfig } from '../../api/config';
 import { q, byId } from '../../query';
 import { emitAppEvent } from '../../app/events';
 import { hide_addbutton_args_modal, hide_addbutton_modal } from '../../app/modals';
@@ -142,44 +145,33 @@ export function wireFoldernameForm(modalId: string): void {
         name: folderName.replace(/"/g, ''),
         parent_folder: parentFolder,
       };
-      fetch('/create_folder', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      })
-        .then(function (response) {
-          if (response.ok) {
-            return response.json();
-          } else {
-            console.error("Une erreur s'est produite lors de la création du dossier.");
-          }
-        })
-        .then(function (data: { success?: boolean } | undefined) {
-          if (data && data.hasOwnProperty('success')) {
-            if (data.success) {
-              q('.webdeck_foldername_ALL')
-                .toArray()
-                .forEach(function (div) {
-                  const newDiv = q('<div>').attr('class', 'webdeck_foldername');
-                  const input = q<HTMLInputElement>('<input>').attr({
-                    type: 'radio',
-                    name: 'file',
-                    value: folderName,
-                    required: '',
-                  });
-                  const label = q('<label>').attr('for', folderName).text(folderName);
-                  newDiv.append(input).append(label);
-                  q(div).append(newDiv);
+      createFolder(data)
+        .then(function (result) {
+          if (result.success) {
+            q('.webdeck_foldername_ALL')
+              .toArray()
+              .forEach(function (div) {
+                const newDiv = q('<div>').attr('class', 'webdeck_foldername');
+                const input = q<HTMLInputElement>('<input>').attr({
+                  type: 'radio',
+                  name: 'file',
+                  value: folderName,
+                  required: '',
                 });
-            } else {
+                const label = q('<label>').attr('for', folderName).text(folderName);
+                newDiv.append(input).append(label);
+                q(div).append(newDiv);
+              });
+          } else {
               console.error('Folder creation failed because the folder already exists.');
             }
-          }
         })
-        .catch(function (error) {
-          console.error('Erreur : ' + error);
+        .catch(function (error: unknown) {
+          if (error instanceof HttpError) {
+            console.error("Une erreur s'est produite lors de la création du dossier.");
+          } else {
+            console.error('Erreur : ' + String(error));
+          }
         });
     }
   });
@@ -247,44 +239,20 @@ function buttonCommandAdd(argModalId: string, command: string): void {
   const locationFolder = q(element).attr('add_FOLDER') ?? '';
   const locationId = q(element).attr('add_ID') ?? '';
 
-  fetch('/get_config')
-    .then(function (response) {
-      if (response.ok) {
-        return response.json();
-      } else {
-        throw new Error(text('settings_load_error'));
-      }
-    })
-    .then(function (configData: Record<string, unknown>) {
+  fetchConfig()
+    .then(function (configData) {
       const front = (configData['front'] as Record<string, unknown> | undefined) ?? {};
       const buttons = (front['buttons'] as Record<string, unknown[]> | undefined) ?? {};
       const folder = buttons[locationFolder];
       if (folder) folder[Number(locationId)] = state.button as unknown as never;
-      return fetch('/save_buttons_only', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(configData),
-      });
+      return saveButtonsOnly(configData);
     })
-    .then(function (response) {
-      if (response.ok) {
-        return response.json();
-      } else {
-        throw new Error(text('settings_save_error'));
-      }
-    })
-    .then(function (response: { success?: boolean }) {
-      if (response.success) {
-        emitAppEvent('save:completed', { flow: 'add' });
-        hide_addbutton_args_modal();
-        hide_addbutton_modal();
-        void refreshApp();
-        void showAlert(text('settings_save_success'));
-      } else {
-        throw new Error(text('settings_save_error'));
-      }
+    .then(function () {
+      emitAppEvent('save:completed', { flow: 'add' });
+      hide_addbutton_args_modal();
+      hide_addbutton_modal();
+      void refreshApp();
+      void showAlert(text('settings_save_success'));
     })
     .catch(function (error: Error) {
       void showAlert(error.message);

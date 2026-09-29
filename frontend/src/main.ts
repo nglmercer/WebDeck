@@ -2,10 +2,9 @@
 // the full page context, then render views and wire up behavior.
 
 import { mount, unmount } from 'svelte';
+import { fetchBoot } from './api/config';
 import { emitAppEvent } from './app/events';
-import { getJson } from './framework/api';
 import { initI18n } from './framework/i18n';
-import type { BootContext } from './framework/types';
 import { q, byId } from './query';
 import { renderApp } from './views/app';
 import LoadingScreen from './views/LoadingScreen.svelte';
@@ -21,7 +20,7 @@ async function boot(): Promise<void> {
   >;
 
   try {
-    const ctx = await getJson<BootContext>('/api/boot');
+    const ctx = await fetchBoot();
     initI18n(ctx.lang);
     void unmount(loading);
     renderApp(mountEl, ctx);

@@ -1,5 +1,7 @@
 // Editor mode enter/exit + save (extracted from editor.ts).
 
+import { saveButtonsOnly } from '../../api/buttons';
+import { fetchConfig } from '../../api/config';
 import { text } from '../../framework/i18n';
 import type { JsonObject } from '../../framework/types';
 import { byId, q } from '../../query';
@@ -29,15 +31,9 @@ export function toggleEditorMode(): void {
   emitAppEvent('editor:changed', { mode: pageState.editorMode });
 
   if (pageState.editorMode === 1) {
-    fetch('/get_config')
-      .then(function (response) {
-        pageState.tempEditorConfig = {};
-        if (response.ok) {
-          return response.json();
-        } else {
-          throw new Error(text('settings_load_error'));
-        }
-      })
+    // NOTE: /get_config always answers 200 — a failure leaves the seeded
+    // config untouched (same as before: only a response reset it).
+    fetchConfig()
       .then(function (configData: JsonObject) {
         pageState.tempEditorConfig = configData;
       })
@@ -73,30 +69,15 @@ export function SaveExitEditor(tempConfig: JsonObject): void {
   editorUiState.swapChanges = [];
   toggleEditorButtonsMode();
   if (editorUiState.ifModif === 1 || editorUiState.swapChanges.length !== 0) {
-    fetch('/save_buttons_only', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(tempConfig),
-    })
-      .then(function (response) {
-        if (response.ok) {
-          return response.json();
-        } else {
-          throw new Error(text('settings_save_error'));
-        }
-      })
-      .then(function (response: { success?: boolean }) {
-        if (response.success) {
-          emitAppEvent('save:completed', { flow: 'buttons' });
-          void refreshApp();
-          void showAlert(text('settings_save_success'));
-        } else {
-          showError('Error :/');
-        }
+    saveButtonsOnly(tempConfig)
+      .then(function () {
+        emitAppEvent('save:completed', { flow: 'buttons' });
+        void refreshApp();
+        void showAlert(text('settings_save_success'));
       })
       .catch(function (error: Error) {
+        // NOTE: success:false answers land here too (as the localized
+        // save error instead of the old generic toast).
         showError(error.message);
       });
   }

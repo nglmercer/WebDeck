@@ -1,19 +1,9 @@
 // Port of static/js/filepath.js. Runs after render.
+import { pickFilePath } from '../api/uploads';
 import { q } from '../query';
 
 function handleFilepathButtonClick(filetypes: string | null): void {
-  let filetypesString = '';
-  if (filetypes != null && filetypes.length > 0) {
-    filetypesString = `?filetypes=${filetypes}`;
-  }
-  fetch(`/upload_filepath${filetypesString}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({}),
-  })
-    .then((response) => response.text())
+  pickFilePath(filetypes)
     .then((filePath) => {
       if (filePath !== '') {
         q('input.filepath').val(filePath);

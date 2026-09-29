@@ -1,4 +1,5 @@
 import type { JsonObject } from '../framework/types';
+import { fetchUsage } from '../api/usage';
 import { q, byId } from '../query';
 import { emitAppEvent } from './events';
 import { pageState } from './state';
@@ -68,36 +69,25 @@ export function pollUsageOnce(): void {
       }
     });
 
-  try {
-    fetch('/usage', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ messages }),
+  fetchUsage({ messages })
+    .then((usage_dict: JsonObject) => {
+      if (pageState.disconnectCount > 0) {
+        byId('loading-screen').addClass('hidden');
+        pageState.disconnectCount = 0;
+        emitAppEvent('server:reconnected', {});
+      }
+      // NOTE: upstream repeats this update once per form (identical
+      // result); a single pass is equivalent.
+      updateUsageTiles(usage_dict);
+      emitAppEvent('usage:updated', usage_dict);
     })
-      .then((response) => response.json())
-      .then((usage_dict: JsonObject) => {
-        if (pageState.disconnectCount > 0) {
-          byId('loading-screen').addClass('hidden');
-          pageState.disconnectCount = 0;
-          emitAppEvent('server:reconnected', {});
-        }
-        // NOTE: upstream repeats this update once per form (identical
-        // result); a single pass is equivalent.
-        updateUsageTiles(usage_dict);
-        emitAppEvent('usage:updated', usage_dict);
-      })
-      .catch(function () {
-        pageState.disconnectCount++;
-        if (pageState.disconnectCount === 4) {
-          byId('loading-screen').removeClass('hidden');
-          emitAppEvent('server:disconnected', { failures: pageState.disconnectCount });
-        }
-      });
-  } catch (e) {
-    console.error((e as Error).message);
-  }
+    .catch(function () {
+      pageState.disconnectCount++;
+      if (pageState.disconnectCount === 4) {
+        byId('loading-screen').removeClass('hidden');
+        emitAppEvent('server:disconnected', { failures: pageState.disconnectCount });
+      }
+    });
 }
 
 let usageIntervalId: ReturnType<typeof setInterval> | null = null;
