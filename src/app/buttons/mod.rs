@@ -8,6 +8,7 @@ pub mod audio;
 pub mod color_picker;
 pub mod commands;
 pub mod exec;
+pub mod fetch;
 pub mod obs;
 pub mod soundboard;
 pub mod spotify;

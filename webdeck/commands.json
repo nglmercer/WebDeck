@@ -1005,5 +1005,82 @@
       "command": "/spotify unfollow_artist",
       "args": []
     }
+  },
+  "Integrations": {
+    "Fetch URL": {
+      "command": "/fetch",
+      "args": [
+        {
+          "TYPE": "text",
+          "value": "method:"
+        },
+        {
+          "TYPE": "input dropdown",
+          "options": [
+            {
+              "ID": "GET",
+              "label": "GET"
+            },
+            {
+              "ID": "POST",
+              "label": "POST"
+            },
+            {
+              "ID": "PUT",
+              "label": "PUT"
+            },
+            {
+              "ID": "PATCH",
+              "label": "PATCH"
+            },
+            {
+              "ID": "DELETE",
+              "label": "DELETE"
+            },
+            {
+              "ID": "HEAD",
+              "label": "HEAD"
+            },
+            {
+              "ID": "OPTIONS",
+              "label": "OPTIONS"
+            }
+          ]
+        },
+        {
+          "TYPE": "text",
+          "value": "url:"
+        },
+        {
+          "TYPE": "input url"
+        },
+        {
+          "TYPE": "text",
+          "value": "headers:"
+        },
+        {
+          "TYPE": "input longtext"
+        },
+        {
+          "TYPE": "text",
+          "value": "body:"
+        },
+        {
+          "TYPE": "input longtext"
+        },
+        {
+          "TYPE": "text",
+          "value": "timeout:"
+        },
+        {
+          "TYPE": "input number['1','120']",
+          "placeholder": "10"
+        }
+      ],
+      "style": {
+        "image": "network.svg",
+        "image_size": "70%"
+      }
+    }
   }
 }

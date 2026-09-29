@@ -4,7 +4,7 @@ Dispatcher: `handle_command(message)` in `src/app/buttons/commands/mod.rs`,
 called by `POST /send-data` and Socket.IO `message_from_socket`. Ported 1:1
 including branch order. `<|§|>` is replaced with a space before matching;
 non-empty commands are logged. Most branches return `{success:true}`;
-`/volume`, `/spotify`, `/obs`, `/exec`, `/batch`, `/usage`, soundboard, and
+`/volume`, `/spotify`, `/obs`, `/exec`, `/batch`, `/fetch`, `/usage`, soundboard, and
 `/firstplan`-not-found return their own payloads.
 
 `/bypass-windows-firewall` runs first (firewall fix) without consuming the
@@ -44,6 +44,7 @@ message. `/debug-send <json-ish>` only logs the parsed payload.
 | `/openfolder`, `/opendir`, `/openfile`, `/start …` | Open path/URL (`system::handle_command`) |
 | `/exec …` | Run Python code/file (`exec::python`) |
 | `/batch …` | Run batch/shell code (`exec::batch`) |
+| `/fetch …` | HTTP request to another app (`fetch::fetch`; see integrations) |
 | `/<plugin-command> …` | rhai plugin commands (`plugin_commands()` registry) |
 
 OS actions map: `subprocess.Popen(shell=True)` → `spawn_shell` (fire-and-forget,

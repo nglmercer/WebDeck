@@ -694,3 +694,13 @@ settings_group_advanced=Дополнительно
 key_capture=Захватить
 key_capture_prompt=Нажмите клавишу… (Esc — отмена)
 key_search_keys=Поиск клавиш…
+// Integrations (/fetch) — English fallback until translated
+INTEGRATIONS_CATEGORY_NAME=Integrations
+INTEGRATIONS_fetch_url__btn_name=Fetch URL
+INTEGRATIONS_fetch_url__btn_default_display_name=
+INTEGRATIONS_fetch_url__btn_description=Send an HTTP request to another app (webhook or REST API)
+INTEGRATIONS_fetch_url__arg_1_name=Method
+INTEGRATIONS_fetch_url__arg_2_name=URL
+INTEGRATIONS_fetch_url__arg_3_name=Headers (one 'Name: value' per line, optional)
+INTEGRATIONS_fetch_url__arg_4_name=Body (optional)
+INTEGRATIONS_fetch_url__arg_5_name=Timeout in seconds (1-120)

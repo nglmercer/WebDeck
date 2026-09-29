@@ -18,7 +18,7 @@ mod input;
 use serde_json::{json, Value};
 
 use crate::app::buttons::{
-    audio, color_picker, exec, obs, soundboard, spotify, system, usage, window,
+    audio, color_picker, exec, fetch, obs, soundboard, spotify, system, usage, window,
 };
 #[cfg(windows)]
 use crate::app::utils::kill_nircmd::kill_nircmd;
@@ -408,6 +408,10 @@ pub fn handle_command(message: &str) -> Value {
         if let Err(message) = exec::batch(&message) {
             return failure(&message);
         }
+    } else if message.starts_with("/fetch") {
+        // Raw message: arg boundaries are `<|§|>` (the form drops empty
+        // values, so the normalized space-joined text is unparseable).
+        return fetch::fetch(&command_arguments);
     } else {
         // Plugin commands (port of the all_func loop; arity inspection is
         // replaced by the PluginFn(&[String]) adapter convention).

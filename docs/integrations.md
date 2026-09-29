@@ -55,6 +55,23 @@ name, focused-handle query, foreground, close. Used by `/kill`-family,
 - `/batch …` → `batch(...)`: run batch/shell code.
 - Errors return `{success:false, message}` instead of success.
 
+## HTTP fetch (`src/app/buttons/fetch.rs`)
+
+`/fetch …` → `fetch(...)`: send an HTTP request to another app (webhook,
+REST API) from a button. The `Integrations → Fetch URL` entry in
+`webdeck/commands.json` renders the form (method dropdown, URL, headers,
+body, timeout); each field is preceded by a hidden `text` marker
+(`method:`, `url:`, …) because the form drops empty values, so the
+backend pairs markers — not positions — with values (same convention as
+`/exec`'s `type:` markers). A manual `/fetch https://host/hook` form sends
+a bare GET with defaults (10 s timeout).
+
+Methods: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS. Headers are
+`Name: value` lines; the timeout clamps to 1–120 s. Transport errors and
+non-2xx statuses return `{success:false}` (with `status` + truncated
+`body` echoed back); 2xx returns `{success:true, status, body}`. Header
+and body values are never logged, and response reads cap at 1 MiB.
+
 ## Plugins (rhai)
 
 `src/app/utils/plugins/load_plugins.rs`: `.config/plugins/` scripts extend
