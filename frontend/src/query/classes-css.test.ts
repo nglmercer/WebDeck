@@ -51,38 +51,3 @@ describe('css', () => {
     expect(style.getPropertyValue('--brand')).toBe('blue');
   });
 });
-
-describe('visibility', () => {
-  it('hides and restores display', () => {
-    const a = document.getElementById('a') as HTMLElement;
-    q('#a').hide();
-    expect(a.style.display).toBe('none');
-    q('#a').show();
-    expect(a.style.display).toBe('');
-  });
-
-  it('restores a non-default pre-hide display', () => {
-    const a = document.getElementById('a') as HTMLElement;
-    a.style.display = 'inline-block';
-    q('#a').hide().show();
-    expect(a.style.display).toBe('inline-block');
-  });
-
-  it('shows elements hidden by stylesheets', () => {
-    const b = document.getElementById('b') as HTMLElement;
-    expect(getComputedStyle(b).display).toBe('none');
-    q('#b').show();
-    expect(getComputedStyle(b).display).not.toBe('none');
-  });
-
-  it('toggles with optional force', () => {
-    q('#a').toggle();
-    expect((document.getElementById('a') as HTMLElement).style.display).toBe('none');
-    q('#a').toggle();
-    expect((document.getElementById('a') as HTMLElement).style.display).toBe('');
-    q('#a').toggle(true);
-    expect((document.getElementById('a') as HTMLElement).style.display).toBe('');
-    q('#a').toggle(false);
-    expect((document.getElementById('a') as HTMLElement).style.display).toBe('none');
-  });
-});

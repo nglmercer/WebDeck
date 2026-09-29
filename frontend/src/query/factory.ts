@@ -1,4 +1,4 @@
-// Q factory: q/byId/ready (extracted from core.ts).
+// Q factory: q/byId (extracted from core.ts).
 
 import { Q, unique } from './core';
 
@@ -64,13 +64,4 @@ export function q(
 export function byId<T extends Element = Element>(id: string): Q<T> {
   const el = document.getElementById(id);
   return new Q(el === null ? [] : [el as unknown as T]);
-}
-
-/** Run `fn` once the DOM is ready (async even when already loaded). */
-export function ready(fn: () => void): void {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', fn, { once: true });
-  } else {
-    queueMicrotask(fn);
-  }
 }

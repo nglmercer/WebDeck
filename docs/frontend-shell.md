@@ -44,8 +44,9 @@ a JSON error telling you to build. `/assets/*` serves the bundle.
 - `framework/i18n.ts` — `initI18n(langDict)` + `t(key)` lookups.
 - `framework/html.ts` — typed HTML builders for non-Svelte-rendered parts.
 - `query/` — `q`, `byId` DOM facade: `attributes`, `classes-css`,
-  `core`, `data`, `effects`, `events`, `factory`, `manipulate`, `traverse`,
-  `utils` (each with `*.test.ts`).
+  `core`, `events`, `factory`, `manipulate`, `traverse` (each with
+  `*.test.ts`). Unused jQuery-isms (effects, `data`, static utils,
+  `off`/`one`/`trigger`, extra traversals/insertions) were removed.
 - Button press → `POST /send-data {message}` (HTTP) or Socket.IO
   `message_from_socket`; `data_transfer_method` selects the path.
 

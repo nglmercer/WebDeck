@@ -1,14 +1,6 @@
-// Q class/style/visibility methods (extracted from core.ts).
+// Q class/style methods (extracted from core.ts).
 
 import { Q } from './core';
-import {
-  animateShowHide,
-  hideInstant,
-  isHidden,
-  normalizeEffectOptions,
-  showInstant,
-} from './effects';
-import type { EffectOptions } from './effects';
 
 declare module './core' {
   interface Q<T extends Element> {
@@ -31,18 +23,6 @@ declare module './core' {
     css(property: string, value: string | number): this;
     /** Set several style properties at once. */
     css(values: Record<string, string | number>): this;
-    /** Show every element (restores the pre-hide display). */
-    show(): this;
-    /** Animated show (opacity). Resolves when done. */
-    show(duration: number | EffectOptions): Promise<void>;
-    /** Hide every element (caches display for show()). */
-    hide(): this;
-    /** Animated hide (opacity, then display:none). Resolves when done. */
-    hide(duration: number | EffectOptions): Promise<void>;
-    /** Toggle visibility instantly (`force` pins the outcome). */
-    toggle(force?: boolean): this;
-    /** Animated toggle. Resolves when done. */
-    toggle(duration: number | EffectOptions): Promise<void>;
   }
 }
 
@@ -179,45 +159,3 @@ function cssImpl<T extends Element>(
 }
 
 Q.prototype.css = cssImpl as Q<Element>['css'];
-
-function showImpl<T extends Element>(this: Q<T>, duration?: number | EffectOptions): Q<T> | Promise<void> {
-  if (duration === undefined) {
-    for (const el of this.els) showInstant(el);
-    return this;
-  }
-  const options = normalizeEffectOptions(duration);
-  return Promise.all(this.els.map((el) => animateShowHide(el, true, options))).then(() => undefined);
-}
-
-Q.prototype.show = showImpl as Q<Element>['show'];
-
-function hideImpl<T extends Element>(this: Q<T>, duration?: number | EffectOptions): Q<T> | Promise<void> {
-  if (duration === undefined) {
-    for (const el of this.els) hideInstant(el);
-    return this;
-  }
-  const options = normalizeEffectOptions(duration);
-  return Promise.all(this.els.map((el) => animateShowHide(el, false, options))).then(() => undefined);
-}
-
-Q.prototype.hide = hideImpl as Q<Element>['hide'];
-
-function toggleImpl<T extends Element>(
-  this: Q<T>,
-  forceOrDuration?: boolean | number | EffectOptions
-): Q<T> | Promise<void> {
-  if (typeof forceOrDuration === 'number' || typeof forceOrDuration === 'object') {
-    const options = normalizeEffectOptions(forceOrDuration);
-    return Promise.all(
-      this.els.map((el) => animateShowHide(el, isHidden(el), options))
-    ).then(() => undefined);
-  }
-  for (const el of this.els) {
-    const show = forceOrDuration ?? isHidden(el);
-    if (show) showInstant(el);
-    else hideInstant(el);
-  }
-  return this;
-}
-
-Q.prototype.toggle = toggleImpl as Q<Element>['toggle'];

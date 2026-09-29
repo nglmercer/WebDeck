@@ -61,32 +61,3 @@ describe('values', () => {
     expect((document.getElementById('name') as HTMLInputElement).value).toBe('');
   });
 });
-
-describe('data', () => {
-  it('stores, reads, and removes values', () => {
-    q('#name').data('k', { deep: [1] });
-    expect(q('#name').data<{ deep: number[] }>('k')).toEqual({ deep: [1] });
-    q('#name').data({ a: 1, b: 2 });
-    expect(q('#name').data<number>('a')).toBe(1);
-    q('#name').removeData('a');
-    expect(q('#name').data('a')).toBeUndefined();
-    q('#name').removeData();
-    expect(q('#name').data('k')).toBeUndefined();
-  });
-
-  it('coerces data-* attributes like jQuery', () => {
-    expect(q('#name').data<string>('role')).toBe('admin');
-    expect(q('#name').data<number>('count')).toBe(3);
-    expect(q('#name').data<boolean>('flag')).toBe(true);
-    expect(q('#name').data<{ a: number }>('opts')).toEqual({ a: 1 });
-    expect(q('#name').data('missing')).toBeUndefined();
-    const all = q('#name').data();
-    expect(all['role']).toBe('admin');
-    expect(all['count']).toBe(3);
-  });
-
-  it('prefers stored values over attributes', () => {
-    q('#name').data('count', 99);
-    expect(q('#name').data<number>('count')).toBe(99);
-  });
-});

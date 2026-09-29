@@ -19,15 +19,9 @@ describe('traversal', () => {
     expect(q('ul, p').find('.deep').length).toBe(1);
   });
 
-  it('children()/parent()/parents() walk one or all levels', () => {
-    expect(q('#list').children().length).toBe(3);
-    expect(q('#list').children('.special').length).toBe(1);
+  it('parent() takes the immediate parent when it matches', () => {
     expect(q('#a').parent().get(0)?.id).toBe('list');
     expect(q('#a').parent('.missing').length).toBe(0);
-    const ids = q('#a').parents().map((_index, el) => el.id);
-    expect(ids).toContain('list');
-    expect(ids).toContain('root');
-    expect(q('#a').parents('ul').length).toBe(1);
   });
 
   it('closest() finds self or ancestors', () => {
@@ -36,34 +30,8 @@ describe('traversal', () => {
     expect(q('#a').closest('.missing').length).toBe(0);
   });
 
-  it('siblings() excludes self', () => {
-    expect(q('#b').siblings().length).toBe(2);
-    expect(q('#b').siblings('.special').length).toBe(1);
-  });
-
-  it('next()/prev() take the immediate sibling when it matches', () => {
+  it('next() takes the immediate sibling when it matches', () => {
     expect(q('#a').next().get(0)?.id).toBe('b');
     expect(q('#a').next('.special').length).toBe(0);
-    expect(q('#c').prev().get(0)?.id).toBe('b');
-    expect(q('#a').prev().length).toBe(0);
-  });
-
-  it('filter()/not() narrow by selector, element, set, predicate', () => {
-    const items = q('.item');
-    expect(items.filter('.special').length).toBe(1);
-    expect(items.not('.special').length).toBe(2);
-    const b = document.getElementById('b');
-    expect(b ? items.filter(b).length : 0).toBe(1);
-    expect(b ? items.not(b).length : 0).toBe(2);
-    expect(items.filter(q('.special')).length).toBe(1);
-    expect(items.filter(function () { return this.id === 'c'; }).length).toBe(1);
-    expect(items.not(function () { return this.id === 'c'; }).length).toBe(2);
-  });
-
-  it('has() keeps elements containing a match', () => {
-    expect(q('li').has('.deep').length).toBe(1);
-    const deep = document.querySelector('.deep');
-    expect(deep ? q('li').has(deep).length : 0).toBe(1);
-    expect(q('li').has('.missing').length).toBe(0);
   });
 });

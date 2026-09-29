@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { Q, byId, q, ready } from './index';
+import { Q, byId, q } from './index';
 
 beforeEach(() => {
   document.body.innerHTML = `
@@ -96,42 +96,8 @@ describe('core set operations', () => {
     expect(notes.toArray()).toHaveLength(2);
   });
 
-  it('each() iterates with this-binding and false breaks', () => {
-    const seen: string[] = [];
-    const ret = q('.note').each(function () {
-      seen.push(this.tagName);
-    });
-    expect(seen).toEqual(['P', 'P']);
-    expect(ret.length).toBe(2);
-    let count = 0;
-    q('.note').each(() => {
-      count++;
-      return false;
-    });
-    expect(count).toBe(1);
-  });
-
-  it('map() collects without flattening', () => {
-    expect(
-      q('.note').map((_index, el) => el.textContent)
-    ).toEqual(['one', 'two']);
-    expect(
-      q('.note').map((_index, el) => [el.textContent])
-    ).toEqual([['one'], ['two']]);
-  });
-
-  it('eq/first/last/slice narrow the set', () => {
-    const notes = q('.note');
-    expect(notes.eq(1).get(0)?.textContent).toBe('two');
-    expect(notes.eq(-1).get(0)?.textContent).toBe('two');
-    expect(notes.eq(9).length).toBe(0);
-    expect(notes.first().get(0)?.textContent).toBe('one');
-    expect(notes.last().get(0)?.textContent).toBe('two');
-    expect(notes.slice(1).length).toBe(1);
-  });
-
   it('is() tests selector, element, set, and predicate', () => {
-    const first = q('.note').first();
+    const first = q(q('.note').get(0) ?? null);
     expect(first.is('.note')).toBe(true);
     expect(first.is('.missing')).toBe(false);
     const el = document.querySelector('.note');
@@ -139,18 +105,5 @@ describe('core set operations', () => {
     expect(first.is(q('.note'))).toBe(true);
     expect(first.is(function () { return this.tagName === 'P'; })).toBe(true);
     expect(q('.missing').is('.note')).toBe(false);
-  });
-});
-
-describe('ready', () => {
-  it('fires async even when already loaded', async () => {
-    let order = '';
-    ready(() => {
-      order += 'ready';
-    });
-    order += 'sync';
-    expect(order).toBe('sync');
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    expect(order).toBe('syncready');
   });
 });
