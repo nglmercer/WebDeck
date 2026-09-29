@@ -22,6 +22,8 @@ catalog schema.
 - `views/getcommand.test.ts` — `buildCommand` protocol coverage.
 - `components/` — field widgets: `TextField`, `NumberField`, `ColorField`,
   `FileField` (upload → `**uploaded/` URI), `SelectField`, `SwitchField`,
+  `KeyValueEditor` (name/value rows → joined lines via a hidden carrier;
+  row inputs carry `data-nocollect` so collection skips them),
   `KeyFieldView`, `SearchDropdownView`, `Preview`, `EditorStyle`,
   `Collapse`, icons (`button-icons.ts`, `icons.ts`).
 
@@ -38,6 +40,20 @@ the backend expects splittable args, e.g. plugin commands).
 
 `{TYPE:"multiple", commands:[…]}` catalog entries render as stacked
 sub-commands sharing one tile (e.g. combined usage tiles).
+
+Two newer schema features (introduced for `Integrations → Fetch URL`):
+
+- `input headers` renders the `KeyValueEditor` row widget instead of a
+  textarea; the stored message keeps the plain `Name: value` lines format.
+- `visibleWhen: {arg, in? | notIn?}` hides an arg unless the referenced
+  field (raw args-array index, the stamped `arg_id`) holds a listed value.
+  Hidden branches submit nothing, like hidden choice panes (the fetch body
+  hides for `GET`/`HEAD`).
+
+Sparse marker forms (empty middle values dropped on save) stay editable:
+`alignArgs` treats a visible field whose next segment is an emitted marker
+as empty (placeholder keeps render alignment), falling back to greedy
+consume so values that literally equal a marker still match.
 
 ## Save flows
 

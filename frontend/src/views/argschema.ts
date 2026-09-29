@@ -38,6 +38,7 @@ export type ArgSchema =
   | { kind: 'usageTitle'; value: string }
   | { kind: 'longtext' }
   | { kind: 'url' }
+  | { kind: 'headers' }
   | { kind: 'key'; value: string }
   | { kind: 'number'; ranges: Array<{ min: string; max: string }>; placeholder: string }
   | { kind: 'filetype'; accepts: string[][] }
@@ -111,6 +112,11 @@ export function parseField(arg: JsonObject): ArgSchema {
   }
   if (type.includes('url')) {
     return { kind: 'url' };
+  }
+  // New (non-legacy) kind: no precedence interaction — no legacy TYPE
+  // contains 'headers', and 'headers' matches no earlier branch.
+  if (type.includes('headers')) {
+    return { kind: 'headers' };
   }
   if (type.includes('key')) {
     return { kind: 'key', value: asString(arg['value']) };

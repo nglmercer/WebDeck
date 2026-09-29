@@ -1,5 +1,6 @@
 <script lang="ts">
   import { pickFilePath, pickFolderPath, uploadFile } from '../api/uploads';
+  import KeyValueEditor from '../components/KeyValueEditor.svelte';
   import { stringAttrs } from '../components/string-attrs';
   import { text } from '../framework/i18n';
   import type { BootContext, JsonObject } from '../framework/types';
@@ -10,6 +11,7 @@
     type FieldData,
     type ModalIdAttr,
     type ArgsPrefill,
+    type VisibleWhen,
   } from './args';
 
   /**
@@ -60,6 +62,48 @@
 
   $effect(() => {
     registerShowArg(modalId, idAttr);
+  });
+
+  let root: HTMLElement | undefined = $state();
+  let hiddenArgs = $state<Set<number>>(new Set());
+
+  /** Controller value for a `visibleWhen` rule (fail-open: undefined). */
+  function controllerValue(argIndex: number): string | undefined {
+    const container = root?.querySelector(`[data-branch="input"][arg_id="${argIndex}"]`);
+    const field = container?.querySelector('select, input, textarea');
+    if (field instanceof HTMLSelectElement) return field.value;
+    if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) {
+      return field.value;
+    }
+    return undefined;
+  }
+
+  function ruleVisible(rule: VisibleWhen): boolean {
+    const value = controllerValue(rule.arg);
+    if (value === undefined) return true;
+    if (rule.in !== undefined && !rule.in.includes(value)) return false;
+    if (rule.notIn !== undefined && rule.notIn.includes(value)) return false;
+    return true;
+  }
+
+  /** Re-evaluate conditional branches (mount + any field change). Hidden
+   * branches submit nothing: collection already skips `display: none`. */
+  function refreshVisibility(): void {
+    const hidden = new Set<number>();
+    for (const branch of data.branches) {
+      if (
+        branch.kind === 'input' &&
+        branch.visibleWhen !== undefined &&
+        !ruleVisible(branch.visibleWhen)
+      ) {
+        hidden.add(branch.argIndex);
+      }
+    }
+    hiddenArgs = hidden;
+  }
+
+  $effect(() => {
+    refreshVisibility();
   });
 
   /** Dynamic modal-id attribute (`arg_modal_ID` vs `edit_modal_ID`). */
@@ -248,6 +292,8 @@
     {/each}
   {:else if field.kind === 'longtext'}
     <textarea class={data.dark} name="" rows="5" cols="33">{field.value ?? ''}</textarea>
+  {:else if field.kind === 'headers'}
+    <KeyValueEditor initial={field.rows} dark={data.dark} />
   {:else if field.kind === 'usageTitle'}
     <input
       id="usage-title-input_{data.modalId}"
@@ -290,10 +336,22 @@
 
 
 
-<div class="args-container {data.dark}" use:stringAttrs={idAttrs()}>
+<div
+  class="args-container {data.dark}"
+  use:stringAttrs={idAttrs()}
+  bind:this={root}
+  onchange={refreshVisibility}
+  oninput={refreshVisibility}
+>
   {#each data.branches as branch}
     {#if branch.kind === 'input'}
-      <div class="arg_container" use:stringAttrs={idAttrs()} arg_id={String(branch.argIndex)}>
+      <div
+        class="arg_container"
+        data-branch="input"
+        use:stringAttrs={idAttrs()}
+        arg_id={String(branch.argIndex)}
+        style={hiddenArgs.has(branch.argIndex) ? 'display: none;' : undefined}
+      >
         <!-- svelte-ignore a11y_label_has_associated_control: 1:1 port, upstream for-ids rarely exist. -->
         <label for="{branch.label}_{data.modalId}">{branch.label}:</label>
         {@render argField(branch.field)}

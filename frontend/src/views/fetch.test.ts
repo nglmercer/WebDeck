@@ -38,12 +38,18 @@ describe('Fetch URL command schema', () => {
       'url:',
       'input url',
       'headers:',
-      'input longtext',
+      'input headers',
       'body:',
       'input longtext',
       'timeout:',
       "input number['1','120']",
     ]);
+  });
+
+  it('hides the body field for GET and HEAD', () => {
+    const entry = fetchEntry();
+    const body = asObject(asArray(entry['args'])[7]);
+    expect(body['visibleWhen']).toEqual({ arg: 1, notIn: ['GET', 'HEAD'] });
   });
 
   it('offers the seven supported methods with inline labels', () => {

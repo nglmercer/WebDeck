@@ -50,6 +50,10 @@ describe('parseField', () => {
     expect(parseField({ TYPE: 'input url' })).toEqual({ kind: 'url' });
   });
 
+  it('parses headers editors', () => {
+    expect(parseField({ TYPE: 'input headers' })).toEqual({ kind: 'headers' });
+  });
+
   it('parses key selectors without stealing neighboring kinds', () => {
     expect(parseField({ TYPE: 'input key' })).toEqual({ kind: 'key', value: '' });
     expect(parseField({ TYPE: 'input key', value: 'enter' })).toEqual({ kind: 'key', value: 'enter' });

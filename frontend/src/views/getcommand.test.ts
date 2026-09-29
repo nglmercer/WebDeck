@@ -247,4 +247,57 @@ describe('getCommand goldens', () => {
     setValue(fields()[0]!, 'https://example.com');
     expect(getCommand('/start', MODAL_ID)).toBe('/start https://example.com');
   });
+
+  const FETCH_ARGS = [
+    { TYPE: 'text', value: 'method:' },
+    { TYPE: 'input dropdown', options: [{ ID: 'GET', label: 'GET' }, { ID: 'POST', label: 'POST' }] },
+    { TYPE: 'text', value: 'url:' },
+    { TYPE: 'input url' },
+    { TYPE: 'text', value: 'headers:' },
+    { TYPE: 'input headers' },
+    { TYPE: 'text', value: 'body:' },
+    { TYPE: 'input longtext', visibleWhen: { arg: 1, notIn: ['GET', 'HEAD'] } },
+    { TYPE: 'text', value: 'timeout:' },
+    { TYPE: "input number['1','120']", placeholder: '10' },
+  ];
+
+  it('hides the body for GET and skips widget row inputs (Integrations / Fetch URL)', async () => {
+    await render(testCtx(), 'Integrations', 'Fetch URL', { command: '/fetch', args: FETCH_ARGS });
+    const all = fields();
+    const url = all.find((el) => (el as HTMLInputElement).type === 'url')!;
+    const timeout = all.find((el) => (el as HTMLInputElement).type === 'number')!;
+    setValue(url, 'https://x');
+    setValue(timeout, '10');
+    // Body hidden for the default GET.
+    const bodyPane = document.querySelector('[data-branch="input"][arg_id="7"]') as HTMLElement;
+    expect(bodyPane.style.display).toBe('none');
+    // Widget decoy: row inputs must never serialize directly.
+    const decoy = document.querySelector('input[data-nocollect]') as HTMLInputElement;
+    decoy.value = 'decoy';
+    expect(getCommand('/fetch', MODAL_ID)).toBe(
+      '/fetch method:<|§|>GET<|§|>url:<|§|>https://x<|§|>headers:<|§|>body:<|§|>timeout:<|§|>10'
+    );
+  });
+
+  it('shows the body for POST and joins header rows (Integrations / Fetch URL)', async () => {
+    await render(testCtx(), 'Integrations', 'Fetch URL', { command: '/fetch', args: FETCH_ARGS });
+    const select = document.querySelector('.args-container select') as HTMLSelectElement;
+    select.value = 'POST';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    await tick();
+    const bodyPane = document.querySelector('[data-branch="input"][arg_id="7"]') as HTMLElement;
+    expect(bodyPane.style.display).not.toBe('none');
+    const names = [...document.querySelectorAll('.kv-row input[placeholder="Name"]')] as HTMLInputElement[];
+    const values = [...document.querySelectorAll('.kv-row input[placeholder="Value"]')] as HTMLInputElement[];
+    names[0]!.value = 'X-Token';
+    names[0]!.dispatchEvent(new Event('input', { bubbles: true }));
+    values[0]!.value = 'abc';
+    values[0]!.dispatchEvent(new Event('input', { bubbles: true }));
+    await tick();
+    const textarea = document.querySelector('.args-container textarea') as HTMLTextAreaElement;
+    textarea.value = '{"a":1}';
+    expect(getCommand('/fetch', MODAL_ID)).toBe(
+      '/fetch method:<|§|>POST<|§|>url:<|§|>headers:<|§|>X-Token: abc<|§|>body:<|§|>{"a":1}<|§|>timeout:'
+    );
+  });
 });

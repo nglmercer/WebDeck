@@ -14,7 +14,9 @@ import { parseArg, type ArgSchema, type ParsedArg } from './argschema';
  * - hidden carriers must match their segment (this disambiguates entries
  *   that share a command id, e.g. the fifteen `/usage '` forms);
  * - visible fields consume one segment each, or render their default when
- *   the message is short;
+ *   the message is short — or when the next segment is a marker the form
+ *   emits (empty middle values are dropped on save, e.g. `/fetch` with
+ *   empty headers: the bare `body:` marker must not prefill them);
  * - choice options resolve by trial: the first option whose fields align
  *   (hidden markers included) with the remaining segments wins;
  * - trailing unaligned segments fail the match — the modal then keeps its
@@ -70,6 +72,31 @@ function consumeField(field: ArgSchema, segments: string[], state: { pos: number
   }
 }
 
+/** Positions one field consumes (mirrors {@link consumeField}). */
+function takeCount(field: ArgSchema): number {
+  if (field.kind === 'number') return field.ranges.length;
+  if (field.kind === 'filetype') return field.accepts.length;
+  if (field.kind === 'filepath') return field.acceptLists.length;
+  if (field.kind === 'none') return 0;
+  return 1;
+}
+
+/** Every hidden carrier value in the schema (top level + choice panes). */
+function hiddenValues(parsed: ParsedArg[]): Set<string> {
+  const out = new Set<string>();
+  for (const arg of parsed) {
+    if (arg.kind === 'hidden') out.add(arg.value);
+    if (arg.kind === 'choice') {
+      for (const option of arg.options) {
+        for (const field of option.fields) {
+          if (field.kind === 'hidden') out.add(field.value);
+        }
+      }
+    }
+  }
+  return out;
+}
+
 /**
  * Align parsed args to message segments. Returns the prefill on full
  * alignment (every hidden matched, every segment consumed).
@@ -78,11 +105,26 @@ export function alignArgs(parsed: ParsedArg[], segments: string[]): ArgsPrefill 
   const values: string[] = [];
   const choices = new Map<number, number>();
   const state = { pos: 0, values };
+  const markers = hiddenValues(parsed);
 
   const alignFrom = (argIndex: number): boolean => {
     if (argIndex >= parsed.length) return state.pos === segments.length;
     const arg = parsed[argIndex]!;
     if (arg.kind === 'input') {
+      // Sparse marker forms: a visible field whose next segment is an
+      // emitted marker was empty on save — skip it ("" placeholders keep
+      // render alignment), falling back to greedy consume so values that
+      // literally equal a marker keep matching as before.
+      const takes = takeCount(arg.field);
+      const peek = segments[state.pos];
+      if (takes > 0 && peek !== undefined && markers.has(peek)) {
+        const savePos = state.pos;
+        const saveLen = state.values.length;
+        for (let i = 0; i < takes; i++) state.values.push('');
+        if (alignFrom(argIndex + 1)) return true;
+        state.pos = savePos;
+        state.values.length = saveLen;
+      }
       return consumeField(arg.field, segments, state) && alignFrom(argIndex + 1);
     }
     if (arg.kind === 'hidden') {

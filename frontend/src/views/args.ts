@@ -1,3 +1,4 @@
+import { parseHeaderRows, type HeaderRow } from '../components/headers';
 import { text } from '../framework/i18n';
 import {
   asArray,
@@ -73,6 +74,11 @@ export function collectArgValues(container: Element): string[] {
       if (q(input).hasClass('key-aux')) {
         return false;
       }
+      // Composite widgets (e.g. the key/value editor): row inputs are
+      // editing state, the widget's own carrier submits the value.
+      if (q(input).attr('data-nocollect') !== undefined) {
+        return false;
+      }
       if (q(input).closest('.editorStyle, .webdeck_foldername_div').length > 0) {
         return false;
       }
@@ -144,6 +150,7 @@ export type FieldData =
       placeholder: string;
     }
   | { kind: 'longtext'; value: string | undefined }
+  | { kind: 'headers'; rows: HeaderRow[] }
   | { kind: 'usageTitle'; preset: string }
   | { kind: 'text'; preset: string }
   | { kind: 'hidden'; value: string }
@@ -151,8 +158,29 @@ export type FieldData =
   | { kind: 'gpus'; options: Array<{ key: string; label: string; selected: boolean }> }
   | { kind: 'diskLetter'; options: Array<{ disk: string; selected: boolean }> };
 
+/**
+ * Conditional visibility rule from an arg declaration:
+ * `visibleWhen: {arg, in? | notIn?}`. `arg` is the raw args-array index
+ * of the controlling field (the stamped `arg_id`); the branch shows when
+ * the controller's current value is in `in` (when present) and not in
+ * `notIn` (when present). Hidden branches submit nothing (same as hidden
+ * choice panes).
+ */
+export interface VisibleWhen {
+  arg: number;
+  in?: string[];
+  notIn?: string[];
+}
+
 export type BranchData =
-  | { kind: 'input'; argIndex: number; label: string; folderForm: boolean; field: FieldData }
+  | {
+      kind: 'input';
+      argIndex: number;
+      label: string;
+      folderForm: boolean;
+      field: FieldData;
+      visibleWhen?: VisibleWhen;
+    }
   | {
       kind: 'choice';
       options: Array<{ choiceIndex: number; name: string; selected: boolean; fields: FieldData[] }>;
@@ -233,6 +261,8 @@ function fieldData(
       };
     case 'longtext':
       return { kind: 'longtext', value: nextPrefill(cursor) };
+    case 'headers':
+      return { kind: 'headers', rows: parseHeaderRows(nextPrefill(cursor) ?? '') };
     case 'usageTitle':
       return { kind: 'usageTitle', preset: nextPrefill(cursor) ?? schema.value };
     case 'text':
@@ -282,6 +312,33 @@ function fieldData(
   }
 }
 
+/**
+ * Parse a `visibleWhen` rule (`{arg, in? | notIn?}`). Malformed rules
+ * (non-integer arg, empty lists, neither list) are ignored: the branch
+ * stays unconditionally visible.
+ */
+export function parseVisibleWhen(arg: JsonObject): VisibleWhen | undefined {
+  const raw = arg['visibleWhen'];
+  if (raw === undefined || raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+    return undefined;
+  }
+  const obj = asObject(raw);
+  const index = obj['arg'];
+  if (typeof index !== 'number' || !Number.isInteger(index) || index < 0) return undefined;
+  const strings = (value: unknown): string[] | undefined => {
+    if (!Array.isArray(value)) return undefined;
+    const list = value.filter((v): v is string => typeof v === 'string');
+    return list.length > 0 ? list : undefined;
+  };
+  const rule: VisibleWhen = { arg: index };
+  const inList = strings(obj['in']);
+  const notInList = strings(obj['notIn']);
+  if (inList === undefined && notInList === undefined) return undefined;
+  if (inList !== undefined) rule.in = inList;
+  if (notInList !== undefined) rule.notIn = notInList;
+  return rule;
+}
+
 /** Resolve one arg's branch chrome (consumes prefill in collection order). */
 function branchData(
   rctx: ArgsRenderContext,
@@ -293,13 +350,16 @@ function branchData(
   const parsed = parseArg(arg);
   const base = branchBase(rctx);
   if (parsed.kind === 'input') {
-    return {
+    const branch: Extract<BranchData, { kind: 'input' }> = {
       kind: 'input',
       argIndex,
       label: parsed.label ?? text(`${base}__arg_${argCounter}_name`),
       folderForm: parsed.folderForm,
       field: fieldData(rctx, parsed.field, argCounter, cursor),
     };
+    const rule = parseVisibleWhen(arg);
+    if (rule !== undefined) branch.visibleWhen = rule;
+    return branch;
   }
   if (parsed.kind === 'choice') {
     const override = cursor?.prefill.choices.get(argIndex);

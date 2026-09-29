@@ -78,6 +78,53 @@ describe('alignArgs', () => {
   it('tolerates short messages with defaults', () => {
     expect(align(KEY.args as JsonObject[], [])).toEqual({ values: [], choices: new Map() });
   });
+
+  it('aligns sparse marker forms with placeholders', () => {
+    // /fetch with empty headers/body: bare markers must not prefill the
+    // wrong fields ("" keeps render alignment with collection order).
+    const FETCH = {
+      command: '/fetch',
+      args: [
+        { TYPE: 'text', value: 'method:' },
+        { TYPE: 'input dropdown', options: [{ ID: 'GET' }, { ID: 'POST' }] },
+        { TYPE: 'text', value: 'url:' },
+        { TYPE: 'input url' },
+        { TYPE: 'text', value: 'headers:' },
+        { TYPE: 'input headers' },
+        { TYPE: 'text', value: 'body:' },
+        { TYPE: 'input longtext' },
+        { TYPE: 'text', value: 'timeout:' },
+        { TYPE: "input number['1','120']" },
+      ],
+    };
+    expect(
+      align(FETCH.args as JsonObject[], [
+        'method:',
+        'GET',
+        'url:',
+        'https://x',
+        'headers:',
+        'body:',
+        'timeout:',
+        '10',
+      ])
+    ).toEqual({
+      values: ['method:', 'GET', 'url:', 'https://x', 'headers:', '', 'body:', '', 'timeout:', '10'],
+      choices: new Map(),
+    });
+  });
+
+  it('still matches values that literally equal a marker', () => {
+    // Greedy fallback: the value wins when skipping cannot fully align.
+    const schema = [
+      { TYPE: 'text', value: 'm:' },
+      { TYPE: 'input text' },
+    ];
+    expect(align(schema as JsonObject[], ['m:', 'm:'])).toEqual({
+      values: ['m:', 'm:'],
+      choices: new Map(),
+    });
+  });
 });
 
 describe('resolveButtonCommand', () => {

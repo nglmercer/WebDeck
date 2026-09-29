@@ -1059,14 +1059,18 @@
           "value": "headers:"
         },
         {
-          "TYPE": "input longtext"
+          "TYPE": "input headers"
         },
         {
           "TYPE": "text",
           "value": "body:"
         },
         {
-          "TYPE": "input longtext"
+          "TYPE": "input longtext",
+          "visibleWhen": {
+            "arg": 1,
+            "notIn": ["GET", "HEAD"]
+          }
         },
         {
           "TYPE": "text",

@@ -1,7 +1,7 @@
 import { mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { defineKeyField } from '../components/keyfield';
-import { hasVisibleParams } from './args';
+import { collectArgValues, hasVisibleParams, parseVisibleWhen } from './args';
 import { initI18n } from '../framework/i18n';
 import type { BootContext, JsonObject } from '../framework/types';
 import type { AddModalContext } from './addbutton';
@@ -221,5 +221,38 @@ describe('hasVisibleParams', () => {
     expect(tabs[0]?.textContent?.trim()).toBe('Appearance');
     expect(el.querySelector('#add-9X9-pane-args')).toBeNull();
     expect(el.querySelector('#add-9X9-pane-look')?.hasAttribute('hidden')).toBe(false);
+  });
+});
+
+describe('parseVisibleWhen', () => {
+  it('parses arg + in/notIn lists', () => {
+    expect(parseVisibleWhen({ visibleWhen: { arg: 1, notIn: ['GET', 'HEAD'] } })).toEqual({
+      arg: 1,
+      notIn: ['GET', 'HEAD'],
+    });
+    expect(parseVisibleWhen({ visibleWhen: { arg: 0, in: ['POST'] } })).toEqual({
+      arg: 0,
+      in: ['POST'],
+    });
+  });
+
+  it('ignores malformed rules (fail-open: always visible)', () => {
+    expect(parseVisibleWhen({})).toBeUndefined();
+    expect(parseVisibleWhen({ visibleWhen: 'yes' })).toBeUndefined();
+    expect(parseVisibleWhen({ visibleWhen: { arg: '1', in: ['x'] } })).toBeUndefined();
+    expect(parseVisibleWhen({ visibleWhen: { arg: -1, in: ['x'] } })).toBeUndefined();
+    expect(parseVisibleWhen({ visibleWhen: { arg: 1 } })).toBeUndefined();
+    expect(parseVisibleWhen({ visibleWhen: { arg: 1, in: [] } })).toBeUndefined();
+    expect(parseVisibleWhen({ visibleWhen: { arg: 1, in: [42] } })).toBeUndefined();
+  });
+});
+
+describe('collectArgValues', () => {
+  it('skips data-nocollect widget inputs but keeps their carrier', () => {
+    document.body.innerHTML =
+      '<div id="c"><input type="text" value="v"><input type="text" data-nocollect="true" value="decoy"><input type="hidden" value="joined"></div>';
+    const container = document.querySelector('#c') as Element;
+    expect(collectArgValues(container)).toEqual(['v', 'joined']);
+    document.body.innerHTML = '';
   });
 });

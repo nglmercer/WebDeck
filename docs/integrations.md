@@ -59,8 +59,9 @@ name, focused-handle query, foreground, close. Used by `/kill`-family,
 
 `/fetch …` → `fetch(...)`: send an HTTP request to another app (webhook,
 REST API) from a button. The `Integrations → Fetch URL` entry in
-`webdeck/commands.json` renders the form (method dropdown, URL, headers,
-body, timeout); each field is preceded by a hidden `text` marker
+`webdeck/commands.json` renders the form (method dropdown, URL, a
+name/value headers editor, body, timeout — the body hides for `GET`/`HEAD`
+via `visibleWhen`); each field is preceded by a hidden `text` marker
 (`method:`, `url:`, …) because the form drops empty values, so the
 backend pairs markers — not positions — with values (same convention as
 `/exec`'s `type:` markers). A manual `/fetch https://host/hook` form sends
