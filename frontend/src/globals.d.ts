@@ -7,5 +7,4 @@ interface Window {
   deleteFolder?: (folderName: string) => void;
   togglePasswordVisibility?: (id: string, iconId: string) => void;
   send_data?: (message: string) => void;
-  goFullscreenIFRAME?: () => void;
 }

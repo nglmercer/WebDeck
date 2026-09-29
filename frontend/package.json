@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
+    "knip": "knip",
     "test": "vitest run",
     "preview": "vite preview",
     "demo:video": "playwright test --config playwright.config.ts && node e2e/finalize-video.mjs",
@@ -19,6 +20,7 @@
     "@types/three": "^0.186.0",
     "@types/toastify-js": "1.12.4",
     "happy-dom": "20.14.5",
+    "knip": "^6.38.0",
     "typescript": "7.0.2",
     "vite": "8.3.1",
     "vitest": "5.0.2"

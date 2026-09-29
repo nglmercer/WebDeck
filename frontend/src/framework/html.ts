@@ -1,7 +1,7 @@
 // Minimal HTML builder: `html` tagged template with automatic escaping,
-// `raw()` for pre-escaped fragments, `join()` for lists. Mirrors Jinja's
-// autoescape semantics for `{{ }}` vs pre-rendered blocks. `Html` is a
-// wrapper class so nesting never double-escapes.
+// `join()` for lists. Mirrors Jinja's autoescape semantics for `{{ }}`
+// vs pre-rendered blocks. `Html` is a wrapper class so nesting never
+// double-escapes.
 
 export class Html {
   constructor(readonly value: string) {}
@@ -20,11 +20,6 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#x27;');
 }
 
-/** Mark a string as pre-escaped (equivalent of Jinja `|safe`). */
-export function raw(value: string): Html {
-  return new Html(value);
-}
-
 function renderValue(value: unknown): string {
   if (value instanceof Html) return value.value;
   if (value === null || value === undefined || value === false) return '';
@@ -35,8 +30,8 @@ function renderValue(value: unknown): string {
 }
 
 /**
- * Build escaped HTML. Interpolated `Html` values (from `raw()` or nested
- * `html` calls) pass through untouched; everything else is escaped.
+ * Build escaped HTML. Interpolated `Html` values (from nested `html`
+ * calls) pass through untouched; everything else is escaped.
  */
 export function html(strings: TemplateStringsArray, ...values: unknown[]): Html {
   let out = '';

@@ -3,7 +3,7 @@
 import { Q, unique } from './core';
 
 /** Roots a selector query can run against. */
-export type QueryContext = ParentNode | Q<Element> | null | undefined;
+type QueryContext = ParentNode | Q<Element> | null | undefined;
 
 function resolveRoots(context: QueryContext): ParentNode[] {
   if (context === null || context === undefined) return [document];

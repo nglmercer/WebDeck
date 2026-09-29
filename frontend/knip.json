@@ -1,0 +1,6 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "entry": ["demo-3d/main.ts", "e2e/*.spec.ts"],
+  "project": ["src/**/*", "demo-3d/**/*", "e2e/**/*", "**/*.svelte"],
+  "ignoreBinaries": ["ffmpeg"]
+}

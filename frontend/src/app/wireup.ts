@@ -5,6 +5,7 @@ import { asString, get, type BootContext } from '../framework/types';
 import { q, byId } from '../query';
 import {
   SaveExitEditor,
+  deleteFolder,
   isSwapMode,
   reloadEditorEvents,
   swapEditorButtonFunction,
@@ -65,6 +66,7 @@ export function installGlobals(): void {
   };
 
   window.send_data = send_data;
+  window.deleteFolder = deleteFolder;
 }
 
 function wireVideos(): void {

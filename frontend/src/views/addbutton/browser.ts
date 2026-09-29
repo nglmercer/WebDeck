@@ -51,7 +51,7 @@ export interface BrowserLeaf {
   mctx: AddModalContext;
 }
 
-export interface BrowserBranch {
+interface BrowserBranch {
   desc: string;
   title: string;
   command: string;
@@ -59,11 +59,11 @@ export interface BrowserBranch {
   subs: BrowserLeaf[];
 }
 
-export type BrowserItem =
+type BrowserItem =
   | { kind: 'single'; leaf: BrowserLeaf }
   | { kind: 'multi'; branch: BrowserBranch };
 
-export interface BrowserCategory {
+interface BrowserCategory {
   name: string;
   icon: SectionIconName;
   items: BrowserItem[];

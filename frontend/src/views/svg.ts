@@ -5,7 +5,7 @@ import { q } from '../query';
 // placeholder span, then `hydrateSvgs` fetches each file and applies the
 // exact same `<svg` string surgery the templates did.
 
-export interface SvgSlot {
+interface SvgSlot {
   path: string;
   attrs: string;
   replaceNeedle: '<svg ' | '<svg';

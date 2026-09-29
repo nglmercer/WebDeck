@@ -10,18 +10,18 @@ import { svgInlineStyle, svgSlotId } from './svg';
  * string `gridView` used.
  */
 
-export interface UsageData {
+interface UsageData {
   name: string;
   cls: string;
   fill: string;
 }
 
-export type MediaData =
+type MediaData =
   | { kind: 'none' }
   | { kind: 'img'; src: string; px: number; fill: string }
   | { kind: 'svg'; slot: number };
 
-export interface ButtonCellData {
+interface ButtonCellData {
   kind: 'button';
   folderId: string;
   buttonId: number;
@@ -44,7 +44,7 @@ export interface ButtonCellData {
   message: string;
 }
 
-export interface VoidCellData {
+interface VoidCellData {
   kind: 'void';
   folderId: string;
   buttonId: number;
@@ -53,7 +53,7 @@ export interface VoidCellData {
 
 export type CellData = ButtonCellData | VoidCellData;
 
-export interface FolderData {
+interface FolderData {
   folderId: string;
   cells: CellData[];
 }

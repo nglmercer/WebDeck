@@ -43,6 +43,7 @@ all running instances.
 | [frontend-editor](frontend-editor.md) | Edit/add modals, arg schema, buildCommand protocol |
 | [build-release](build-release.md) | Bins, packaging, updater, version.json |
 | [reference](reference.md) | HTTP + Socket.IO API, CLI, config schema |
+| [refactor](refactor.md) | Cleanup phases, removed code, gates, remaining work |
 
 ## Conventions used in these docs
 

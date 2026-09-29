@@ -18,7 +18,7 @@
 export type Content = string | Element | Q<Element> | ArrayLike<string | Element>;
 
 /** Predicate form for is(). */
-export type ElementPredicate<T extends Element> = (this: T, index: number, element: T) => unknown;
+type ElementPredicate<T extends Element> = (this: T, index: number, element: T) => unknown;
 
 /** Single matching primitive shared by filter/traverse/manipulate. */
 export function matchesSelector(element: Element, selector: string): boolean {

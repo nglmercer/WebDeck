@@ -42,7 +42,7 @@ import { svgSlotId } from './svg';
  * `command_value` always fell back to `button_settings` and `command_id`
  * rendered "".) Markup out in `EditModal.svelte`.
  */
-export interface EditModalArgs {
+interface EditModalArgs {
   category: string;
   command: string;
   subId: number;
@@ -201,7 +201,7 @@ function editPreviewData(
 
 // --- Wire-up (per-modal <script> block) -------------------------------------
 
-export interface EditModalState {
+interface EditModalState {
   button: ButtonState;
   /** Resolved command id when the modal renders an arg form (message rebuild). */
   commandId?: string;

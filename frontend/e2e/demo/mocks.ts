@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import type { Page } from '@playwright/test';
 
 // Live mode (WEBDECK_DEMO_BASE_URL set) records a real server as-is.
-export const LIVE = Boolean(process.env.WEBDECK_DEMO_BASE_URL);
+const LIVE = Boolean(process.env.WEBDECK_DEMO_BASE_URL);
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURES = path.join(HERE, '..', 'fixtures');

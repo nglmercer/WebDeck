@@ -5,7 +5,7 @@
 import { Q } from './core';
 
 /** Loosely-typed stored handler (public overloads narrow per event). */
-export type EventHandler = (this: Element, event: Event) => void;
+type EventHandler = (this: Element, event: Event) => void;
 
 interface Registration {
   base: string;
@@ -33,7 +33,7 @@ function registrationsFor(el: Element): Registration[] {
   return list;
 }
 
-export interface ListenerOptions {
+interface ListenerOptions {
   once?: boolean;
   capture?: boolean;
 }

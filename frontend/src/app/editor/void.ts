@@ -20,7 +20,7 @@ export function formCoords(form: Element): { parentId: string; formNumber: strin
   return { parentId, formNumber: formClassMatch?.[1] ?? '' };
 }
 
-export function createVoidButton(event: Event | null = null, form: Element | null = null): void {
+function createVoidButton(event: Event | null = null, form: Element | null = null): void {
   editorUiState.ifModif = 1;
 
   let closestForm: Element | null;

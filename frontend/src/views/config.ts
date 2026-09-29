@@ -41,7 +41,7 @@ export function resolveLanguage(requested: string, langs: JsonObject[]): string 
  * below is the byte-identical logic the string `configView` used.
  */
 
-export interface AudioSelectData {
+interface AudioSelectData {
   containerClass: string;
   id: string;
   name: string;

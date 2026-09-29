@@ -11,7 +11,7 @@ export const pageState = {
 };
 
 /** Server -> client events (must match `socketio_layer` in src/app/server/realtime.rs). */
-export interface ServerToClientEvents {
+interface ServerToClientEvents {
   /** Echo of the original command string after it ran. */
   json_data: (message: string) => void;
   /** Broadcast from the `send` handler. */
@@ -19,7 +19,7 @@ export interface ServerToClientEvents {
 }
 
 /** Client -> server events (must match `socketio_layer` in src/app/server/realtime.rs). */
-export interface ClientToServerEvents {
+interface ClientToServerEvents {
   message_from_socket: (message: string) => void;
   send: (data: unknown) => void;
 }

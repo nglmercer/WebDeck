@@ -9,6 +9,5 @@ import './factory';
 import './manipulate';
 import './traverse';
 
-export { Q, type Content, type ElementPredicate } from './core';
-export { q, byId, type QueryContext } from './factory';
-export type { EventHandler } from './events';
+export { Q } from './core';
+export { q, byId } from './factory';

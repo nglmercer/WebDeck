@@ -10,8 +10,6 @@ import {
 import { q } from '../query';
 import { consumesArgNumber, parseArg, parseField, type ArgSchema } from './argschema';
 
-export { evalList } from './argschema';
-
 /** Translation-key segments for category/command names (shared add/edit). */
 export function catKey(category: string): string {
   return category.replace(/ /g, '').toUpperCase();
@@ -24,7 +22,7 @@ export function cmdKey(command: string): string {
 /** Modal-id attribute flavor: add modals use `arg_modal_ID`, edit modals `edit_modal_ID`. */
 export type ModalIdAttr = 'arg_modal_ID' | 'edit_modal_ID';
 
-export interface ArgsRenderContext {
+interface ArgsRenderContext {
   ctx: BootContext;
   category: string;
   command: string;
@@ -46,12 +44,12 @@ export interface ArgsPrefill {
 }
 
 /** Render-order cursor over an {@link ArgsPrefill}. */
-export interface PrefillCursor {
+interface PrefillCursor {
   prefill: ArgsPrefill;
   pos: number;
 }
 
-export function nextPrefill(cursor: PrefillCursor | undefined): string | undefined {
+function nextPrefill(cursor: PrefillCursor | undefined): string | undefined {
   if (!cursor || cursor.pos >= cursor.prefill.values.length) return undefined;
   return cursor.prefill.values[cursor.pos++];
 }
@@ -185,7 +183,7 @@ function branchBase(rctx: ArgsRenderContext): string {
 }
 
 /** Resolve one parsed field's runtime values (consumes prefill in order). */
-export function fieldData(
+function fieldData(
   rctx: ArgsRenderContext,
   schema: ArgSchema,
   fieldId: string | number,
