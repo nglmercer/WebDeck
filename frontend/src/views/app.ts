@@ -1,12 +1,5 @@
 import { mount, unmount } from 'svelte';
 import { asObject, asString, get, type BootContext } from '../framework/types';
-import { initBackgroundSetting } from '../legacy/background-setting';
-import { initColorSetting } from '../legacy/color-setting';
-import { initFilepath } from '../legacy/filepath';
-import { initFolderpath } from '../legacy/folderpath';
-import { initLoadingScreen } from '../legacy/loadingscreen';
-import { initThemesSetting } from '../legacy/themes-setting';
-import { initUploadFile } from '../legacy/upload-file';
 import { collectAddModals, wireAddModal, wireBrowserDropdowns, wireBrowserSearch } from '../views/addbutton';
 import { collectEditModals, wireEditModal } from '../views/editmodal';
 import { applyHead } from '../views/shell';
@@ -51,14 +44,6 @@ export function renderApp(target: HTMLElement, ctx: BootContext): void {
   wireBrowserDropdowns();
   wireBrowserSearch();
   void hydrateSvgs(document);
-
-  initBackgroundSetting();
-  initThemesSetting();
-  initColorSetting();
-  initFilepath();
-  initFolderpath();
-  initUploadFile();
-  initLoadingScreen();
 
   wireApp(ctx);
   wireModalA11y();

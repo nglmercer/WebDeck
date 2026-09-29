@@ -27,7 +27,10 @@ a JSON error telling you to build. `/assets/*` serves the bundle.
   themes, devices, danger zone); save flows POST to `/save_config`,
   `/COMPLETE_save_config`, `/save_buttons_only`, `/save_single_button`.
 - `BackgroundsPanel.svelte` — add-background composer: Color/File tabs
-  (`StudioTabs`); panes stay mounted for legacy wiring.
+  (`StudioTabs`); owns the background list state (toggle/delete/add/upload)
+  bound to the config-form handler input.
+- `ThemesPanel.svelte` — owns the theme list state (enable/disable/reorder)
+  bound to the config-form handler input.
 - `ThemesPanel.svelte` — theme manager (enable/order `.config/themes/*.css`).
 - `Preview.svelte` / `preview.ts`, `studio-preview.ts` — button/studio previews.
 

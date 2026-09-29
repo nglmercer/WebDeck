@@ -1,5 +1,5 @@
-import { mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { mount, tick, unmount } from 'svelte';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { html, join, type Html } from '../framework/html';
 import { initI18n, text } from '../framework/i18n';
 import LoadingScreen from './LoadingScreen.svelte';
@@ -47,13 +47,17 @@ describe('LoadingScreen', () => {
     host?.remove();
     host = null;
     document.body.innerHTML = '';
+    vi.useRealTimers();
   });
 
-  function render(svgs: string[]): HTMLElement {
+  function render(svgs: string[], concealed = false): HTMLElement {
     initI18n({});
     host = document.createElement('div');
     document.body.appendChild(host);
-    app = mount(LoadingScreen, { target: host, props: { svgs } }) as unknown as Record<string, never>;
+    app = mount(LoadingScreen, {
+      target: host,
+      props: { svgs, concealed },
+    }) as unknown as Record<string, never>;
     return host;
   }
 
@@ -71,5 +75,30 @@ describe('LoadingScreen', () => {
     expect(el.querySelector('#server-disconnected')).not.toBeNull();
     expect(el.querySelectorAll('.loadingspinner > div')).toHaveLength(5);
     expect(el.querySelectorAll('#loading-screen .invisible img')).toHaveLength(1);
+  });
+
+  it('starts visible without a timer by default (boot splash)', async () => {
+    vi.useFakeTimers();
+    const el = render([]);
+    const screen = el.querySelector('#loading-screen') as HTMLElement;
+    expect(screen.classList.contains('hidden')).toBe(false);
+    await vi.advanceTimersByTimeAsync(6000);
+    await tick();
+    expect(screen.classList.contains('transparent')).toBe(false);
+    expect(el.querySelector('#server-disconnected')?.classList.contains('invisible')).toBe(true);
+  });
+
+  it('starts hidden and reveals the disconnect note after 5s when concealed', async () => {
+    vi.useFakeTimers();
+    const el = render([], true);
+    const screen = el.querySelector('#loading-screen') as HTMLElement;
+    expect(screen.classList.contains('hidden')).toBe(true);
+    expect(screen.classList.contains('transparent')).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(5000);
+    await tick();
+    expect(screen.classList.contains('transparent')).toBe(true);
+    expect(screen.style.pointerEvents).toBe('none');
+    expect(el.querySelector('#server-disconnected')?.classList.contains('invisible')).toBe(false);
   });
 });

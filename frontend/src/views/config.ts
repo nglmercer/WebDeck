@@ -49,18 +49,12 @@ export interface AudioSelectData {
   options: SelectOption[];
 }
 
-export interface ThemeEntry {
-  theme: string;
-  isDefault: boolean;
+/** Card metadata for one theme file (keyed by stripped filename). */
+export interface ThemeMeta {
   icon: string;
   title: string;
   desc: string;
 }
-
-export type BgEntry =
-  | { kind: 'color'; bg: string; stripped: string; activateCls: string }
-  | { kind: 'video'; bg: string; src: string; file: string; activateCls: string }
-  | { kind: 'image'; bg: string; file: string; activateCls: string };
 
 export interface ConfigData {
   dark: string;
@@ -81,13 +75,14 @@ export interface ConfigData {
   portraitRotate: string;
   reloadTime: string;
   gpuOptions: SelectOption[];
-  themesRepr: string;
-  bgRepr: string;
-  disabledThemes: ThemeEntry[];
-  enabledThemes: ThemeEntry[];
+  /** Ordered theme list (`//` prefix = disabled); owned by Config state. */
+  themes: string[];
+  /** Card metadata by stripped filename. */
+  themeMeta: Record<string, ThemeMeta>;
+  /** Ordered background list (`//` prefix = disabled); owned by Config state. */
+  backgrounds: string[];
   infoSlotId: number;
   trashTitle: string;
-  backgrounds: BgEntry[];
   windowsStartup: boolean;
   autoUpdates: boolean;
   /** `invisible` extra class for exe-only switches (undefined in exe builds). */
@@ -131,41 +126,18 @@ function audioSelectData(
   };
 }
 
-function themeEntries(ctx: BootContext, themes: string[]): ThemeEntry[] {
+function themeMeta(ctx: BootContext, themes: string[]): Record<string, ThemeMeta> {
   const parsed = asObject(ctx.parsed_themes);
-  return themes.map((theme) => {
-    const key = rep(theme, '//', '');
-    return {
-      theme,
-      isDefault: theme === 'static/css/style.css',
-      icon: asString(asObject(parsed[key])['theme-icon']),
-      title: asString(asObject(parsed[key])['theme-name']),
-      desc: asString(asObject(parsed[key])['theme-description']),
+  const meta: Record<string, ThemeMeta> = {};
+  for (const theme of themes) {
+    const entry = asObject(parsed[rep(theme, '//', '')]);
+    meta[rep(theme, '//', '')] = {
+      icon: asString(entry['theme-icon']),
+      title: asString(entry['theme-name']),
+      desc: asString(entry['theme-description']),
     };
-  });
-}
-
-function bgEntries(ctx: BootContext): BgEntry[] {
-  const backgrounds = asArray(get(ctx.config, 'front', 'background')).map((b) => asString(b));
-  return backgrounds.map((bg): BgEntry => {
-    const activateCls = bg.startsWith('//')
-      ? 'choose-bg-activate-button'
-      : 'choose-bg-activate-button choose-bg-activate-button-checked';
-    const stripped = rep(bg, '//', '');
-    if (stripped.startsWith('rgb(') || stripped.startsWith('#')) {
-      return { kind: 'color', bg, stripped, activateCls };
-    }
-    if (bg.endsWith('.mp4')) {
-      return {
-        kind: 'video',
-        bg,
-        src: '.config/user_uploads/' + rep(stripped, '**uploaded/', ''),
-        file: rep(stripped, '**uploaded/', ''),
-        activateCls,
-      };
-    }
-    return { kind: 'image', bg, file: rep(stripped, '**uploaded/', ''), activateCls };
-  });
+  }
+  return meta;
 }
 
 /** Settings modal data (index.jinja modal-container block). */
@@ -202,12 +174,6 @@ export function configData(ctx: BootContext): ConfigData {
     { value: 'None', label: text('none'), selected: gpuMethod === 'none' },
   ];
 
-  // NOTE: upstream renders this unescaped (invalid HTML, breaks theme
-  // persistence); emit valid JSON so the feature actually works.
-  const themesRepr = JSON.stringify(asArray(front['themes']).map((t) => asString(t)));
-  const bgRepr =
-    '[' + asArray(front['background']).map((b) => `'${asString(b)}'`).join(', ') + ']';
-
   const configThemes = asArray(front['themes']).map((t) => asString(t));
 
   return {
@@ -241,19 +207,11 @@ export function configData(ctx: BootContext): ConfigData {
     portraitRotate: asString(front['portrait_rotate']),
     reloadTime: asString(front['computer_usage_reload_time']),
     gpuOptions,
-    themesRepr,
-    bgRepr,
-    disabledThemes: themeEntries(
-      ctx,
-      configThemes.filter((theme) => theme.startsWith('//'))
-    ),
-    enabledThemes: themeEntries(
-      ctx,
-      configThemes.filter((theme) => !theme.startsWith('//'))
-    ),
+    themes: configThemes,
+    themeMeta: themeMeta(ctx, configThemes),
     infoSlotId: infoSlotId(dark),
     trashTitle: text('remove_background'),
-    backgrounds: bgEntries(ctx),
+    backgrounds: asArray(front['background']).map((b) => asString(b)),
     windowsStartup:
       'windows-startup' in settings ? asBool(settings['windows_startup']) : true,
     autoUpdates: 'auto-updates' in settings ? asBool(settings['auto_updates']) : true,

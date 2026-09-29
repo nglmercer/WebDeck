@@ -1,4 +1,4 @@
-import { mount, unmount } from 'svelte';
+import { mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import ColorField from './ColorField.svelte';
 
@@ -55,5 +55,31 @@ describe('ColorField', () => {
     });
     expect((el.querySelector('#color') as HTMLInputElement).hasAttribute('value')).toBe(false);
     expect((el.querySelector('#hex') as HTMLInputElement).hasAttribute('value')).toBe(false);
+  });
+
+  it('syncs both inputs with normalization either way', async () => {
+    const el = render({
+      dark: '',
+      containerClass: 'c',
+      colorClass: 'cc',
+      colorId: 'color',
+      hexClass: 'hc',
+      hexId: 'hex',
+      value: '#ff0000',
+    });
+    const color = el.querySelector('#color') as HTMLInputElement;
+    const hex = el.querySelector('#hex') as HTMLInputElement;
+
+    hex.value = '00ff00';
+    hex.dispatchEvent(new Event('input', { bubbles: true }));
+    await tick();
+    expect(hex.value).toBe('#00ff00');
+    expect(color.value).toBe('#00ff00');
+
+    color.value = '#0000ff';
+    color.dispatchEvent(new Event('input', { bubbles: true }));
+    await tick();
+    expect(color.value).toBe('#0000ff');
+    expect(hex.value).toBe('#0000ff');
   });
 });

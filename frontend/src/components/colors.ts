@@ -1,5 +1,5 @@
-// Shared by the color/background settings (normalizeHexValue lived in the
-// index inline script; behavior kept identical).
+// Shared color helpers (normalizeHexValue lived in the index inline
+// script; behavior kept identical).
 
 /** Exact port of the per-modal `normalizeHexValue` (prepend `#` only). */
 export function normalizeHexValue(value: string): string {

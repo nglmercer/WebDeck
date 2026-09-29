@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pickFilePath, pickFolderPath, uploadFile } from '../api/uploads';
   import { stringAttrs } from '../components/string-attrs';
   import { text } from '../framework/i18n';
   import type { BootContext, JsonObject } from '../framework/types';
@@ -93,6 +94,42 @@
   function diskSelected(field: Extract<FieldData, { kind: 'diskLetter' }>): string | undefined {
     return field.options.find((o) => o.selected)?.disk;
   }
+
+  /** Fill the row's path input from the native picker (empty = cancelled). */
+  async function fillFromPicker(target: HTMLInputElement | null, picked: Promise<string>): Promise<void> {
+    if (!target) return;
+    try {
+      const path = await picked;
+      if (path !== '') target.value = path;
+    } catch (error) {
+      console.error('Error during request:', error);
+    }
+  }
+
+  function rowInput(button: HTMLElement, selector: string): HTMLInputElement | null {
+    return button.parentElement?.querySelector(selector) as HTMLInputElement | null;
+  }
+
+  function pickFile(event: Event, filetypes: string): void {
+    const button = event.currentTarget as HTMLButtonElement;
+    void fillFromPicker(rowInput(button, 'input.filepath'), pickFilePath(filetypes));
+  }
+
+  function pickFolder(event: Event): void {
+    const button = event.currentTarget as HTMLButtonElement;
+    void fillFromPicker(rowInput(button, 'input.folderpath'), pickFolderPath());
+  }
+
+  function uploadAudio(event: Event): void {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    const form = new FormData();
+    form.append('file', file);
+    void uploadFile(form).then(undefined, () => {
+      console.error('Failed to download file.');
+    });
+  }
 </script>
 {#snippet argField(field: FieldData)}
   {#if field.kind === 'foldername'}
@@ -119,6 +156,7 @@
       name="file"
       accept=".mp3"
       data-preserved={field.preserved}
+      onchange={uploadAudio}
     />
   {:else if field.kind === 'filetype'}
     {#each field.inputs as input}
@@ -129,12 +167,15 @@
         name="file"
         accept={input.accepts}
         data-preserved={input.preserved}
+        onchange={uploadAudio}
       />
     {/each}
   {:else if field.kind === 'filepath'}
     {#each field.inputs as input}
       <div class="filepath">
-        <button class="filepath" filetypes={input.filetypes}> {text('select_your_file')} </button>
+        <button class="filepath" filetypes={input.filetypes} onclick={(e) => pickFile(e, input.filetypes)}>
+          {text('select_your_file')}
+        </button>
         <input
           type="text"
           class="filepath {data.dark}"
@@ -145,7 +186,7 @@
     {/each}
   {:else if field.kind === 'filePicker'}
     <div class="filepath">
-      <button class="filepath"> {text('select_your_file')} </button>
+      <button class="filepath" onclick={(e) => pickFile(e, '')}> {text('select_your_file')} </button>
       <input
         type="text"
         class="filepath {data.dark}"
@@ -155,7 +196,7 @@
     </div>
   {:else if field.kind === 'folderPicker'}
     <div class="folderpath">
-      <button class="folderpath"> {text('select_your_file')} </button>
+      <button class="folderpath" onclick={pickFolder}> {text('select_your_file')} </button>
       <input
         type="text"
         class="folderpath {data.dark}"

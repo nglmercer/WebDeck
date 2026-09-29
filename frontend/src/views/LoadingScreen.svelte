@@ -3,19 +3,40 @@
 
   interface Props {
     svgs: string[];
+    /**
+     * In-app instance: starts hidden (usage polling reveals it on server
+     * disconnects — see `app/usage.ts`, which owns the `hidden` class
+     * after mount) and the "server disconnected" note fades in after 5s.
+     * The boot splash leaves this off (visible immediately, no timer).
+     */
+    concealed?: boolean;
   }
 
-  let { svgs }: Props = $props();
+  let { svgs, concealed = false }: Props = $props();
 
   // Render-once by design: the boot context never changes after mount.
   // No <style> block — global theme CSS cascades into this light DOM.
   // svelte-ignore state_referenced_locally
   const disconnected = text('server_disconnected');
+
+  let revealed = $state(false);
+  $effect(() => {
+    if (!concealed) return;
+    const timer = setTimeout(() => {
+      revealed = true;
+    }, 5000);
+    return () => clearTimeout(timer);
+  });
 </script>
 
-<div id="loading-screen">
+<div
+  id="loading-screen"
+  class:hidden={concealed}
+  class:transparent={revealed}
+  style:pointer-events={revealed ? 'none' : null}
+>
   <div>
-    <p id="server-disconnected" class="invisible">{disconnected}...</p>
+    <p id="server-disconnected" class:invisible={!revealed}>{disconnected}...</p>
     <div class="loadingspinner">
       <div id="square1"></div>
       <div id="square2"></div>

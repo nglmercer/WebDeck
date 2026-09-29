@@ -274,6 +274,300 @@ describe('Config', () => {
     );
   });
 
+  it('enables a theme to the top and serializes the list', async () => {
+    const el = await render();
+    const handler = () => (el.querySelector('#choose-themes-handler') as HTMLInputElement).value;
+    expect(JSON.parse(handler())).toEqual(['//off.css', 'mytheme.css', 'static/css/style.css']);
+
+    (el.querySelector('#disabled-themes .enable-theme-hitbox') as HTMLElement).click();
+    await tick();
+
+    expect(el.querySelectorAll('#disabled-themes .theme-container')).toHaveLength(0);
+    expect(
+      [...el.querySelectorAll('#enabled-themes .theme-container')].map((e) =>
+        e.getAttribute('filename')
+      )
+    ).toEqual(['off.css', 'mytheme.css', 'static/css/style.css']);
+    expect(JSON.parse(handler())).toEqual(['off.css', 'mytheme.css', 'static/css/style.css']);
+  });
+
+  it('disables a theme back with the // prefix', async () => {
+    const el = await render();
+    (
+      el.querySelector(
+        '#enabled-themes .theme-container[filename="mytheme.css"] .disable-theme-hitbox'
+      ) as HTMLElement
+    ).click();
+    await tick();
+
+    expect(
+      [...el.querySelectorAll('#disabled-themes .theme-container')].map((e) =>
+        e.getAttribute('filename')
+      )
+    ).toEqual(['//mytheme.css', '//off.css']);
+    expect(
+      JSON.parse((el.querySelector('#choose-themes-handler') as HTMLInputElement).value)
+    ).toEqual(['//mytheme.css', '//off.css', 'static/css/style.css']);
+  });
+
+  it('reorders themes with the arrows but never across the default', async () => {
+    const ctx = testCtx();
+    (ctx.config as JsonObject)['front'] = {
+      ...((ctx.config as JsonObject)['front'] as JsonObject),
+      themes: ['a.css', 'b.css', 'c.css', 'static/css/style.css'],
+    };
+    const el = await render(ctx);
+    const order = () =>
+      [...el.querySelectorAll('#enabled-themes .theme-container')].map((e) =>
+        e.getAttribute('filename')
+      );
+    const up = (file: string) =>
+      el.querySelector(
+        `#enabled-themes .theme-container[filename="${file}"] .arrow-up-hitbox`
+      ) as HTMLElement;
+    const down = (file: string) =>
+      el.querySelector(
+        `#enabled-themes .theme-container[filename="${file}"] .arrow-down-hitbox`
+      ) as HTMLElement;
+
+    up('b.css').click();
+    await tick();
+    expect(order()).toEqual(['b.css', 'a.css', 'c.css', 'static/css/style.css']);
+    expect(
+      JSON.parse((el.querySelector('#choose-themes-handler') as HTMLInputElement).value)
+    ).toEqual(['b.css', 'a.css', 'c.css', 'static/css/style.css']);
+
+    // First row cannot move up; nothing changes.
+    up('b.css').click();
+    await tick();
+    expect(order()).toEqual(['b.css', 'a.css', 'c.css', 'static/css/style.css']);
+
+    // Last row cannot move down past the default theme.
+    down('c.css').click();
+    await tick();
+    expect(order()).toEqual(['b.css', 'a.css', 'c.css', 'static/css/style.css']);
+
+    down('a.css').click();
+    await tick();
+    expect(order()).toEqual(['b.css', 'c.css', 'a.css', 'static/css/style.css']);
+  });
+
+  it('reveals row arrows on hover, except on the default theme', async () => {
+    const el = await render();
+    const row = el.querySelector(
+      '#enabled-themes .theme-container[filename="mytheme.css"]'
+    ) as HTMLElement;
+    const arrows = () => row.querySelector('.arrows-container') as HTMLElement;
+    expect(arrows().classList.contains('invisible')).toBe(true);
+
+    row.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    await tick();
+    expect(arrows().classList.contains('invisible')).toBe(false);
+    expect(row.querySelector('.disable-theme')?.classList.contains('invisible')).toBe(false);
+
+    row.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
+    await tick();
+    expect(arrows().classList.contains('invisible')).toBe(true);
+
+    // Disabled rows show the toggle glyph but never the reorder arrows.
+    const off = el.querySelector('#disabled-themes .theme-container') as HTMLElement;
+    off.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    await tick();
+    expect(off.querySelector('.enable-theme')?.classList.contains('invisible')).toBe(false);
+    expect(off.querySelector('.arrows-container')?.classList.contains('invisible')).toBe(true);
+
+    // The default theme has no toggle or arrows at all.
+    const builtin = el.querySelector(
+      '#enabled-themes .theme-container[filename="static/css/style.css"]'
+    ) as HTMLElement;
+    expect(builtin.querySelector('.disable-theme-hitbox')).toBeNull();
+    expect(builtin.querySelector('.arrows-container')).toBeNull();
+  });
+
+  it('toggles backgrounds off and on with the // prefix', async () => {
+    const el = await render();
+    const handler = () => (el.querySelector('#choose-background-handler') as HTMLInputElement).value;
+    expect(JSON.parse(handler())).toEqual(['#112233', '**uploaded/v.mp4', '**uploaded/pic.png']);
+
+    const toggle = el.querySelector(
+      '#choose-backgrounds-container .choose-bg-element .choose-bg-activate-button'
+    ) as HTMLButtonElement;
+    toggle.click();
+    await tick();
+    expect(JSON.parse(handler())).toEqual(['//#112233', '**uploaded/v.mp4', '**uploaded/pic.png']);
+    expect(toggle.classList.contains('choose-bg-activate-button-checked')).toBe(false);
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+
+    toggle.click();
+    await tick();
+    expect(JSON.parse(handler())).toEqual(['#112233', '**uploaded/v.mp4', '**uploaded/pic.png']);
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('keeps the last active background on', async () => {
+    const el = await render();
+    const toggles = [
+      ...el.querySelectorAll(
+        '#choose-backgrounds-container .choose-bg-element .choose-bg-activate-button'
+      ),
+    ] as HTMLButtonElement[];
+    toggles[0]!.click();
+    await tick();
+    toggles[1]!.click();
+    await tick();
+
+    // Two off: the third toggle is refused.
+    toggles[2]!.click();
+    await tick();
+    expect(JSON.parse((el.querySelector('#choose-background-handler') as HTMLInputElement).value)).toEqual(
+      ['//#112233', '//**uploaded/v.mp4', '**uploaded/pic.png']
+    );
+    expect(toggles[2]!.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('deletes backgrounds except the last one and the last active one', async () => {
+    const el = await render();
+    const handler = () => (el.querySelector('#choose-background-handler') as HTMLInputElement).value;
+    const cards = () => el.querySelectorAll('#choose-backgrounds-container .choose-bg-element');
+    const trashOf = (index: number) =>
+      cards()[index]!.querySelector('.choose-bg-delete-button') as unknown as Element;
+    const trashClick = (index: number) =>
+      trashOf(index).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    trashClick(0);
+    await tick();
+    expect(cards()).toHaveLength(2);
+    expect(el.querySelector('#bg-count')?.textContent).toBe('2');
+    expect(JSON.parse(handler())).toEqual(['**uploaded/v.mp4', '**uploaded/pic.png']);
+
+    trashClick(0);
+    await tick();
+    expect(cards()).toHaveLength(1);
+    // The last background cannot be deleted.
+    trashClick(0);
+    await tick();
+    expect(cards()).toHaveLength(1);
+    expect(JSON.parse(handler())).toEqual(['**uploaded/pic.png']);
+  });
+
+  it('deletes a disabled background but never the last active one', async () => {
+    const el = await render();
+    const toggles = [
+      ...el.querySelectorAll(
+        '#choose-backgrounds-container .choose-bg-element .choose-bg-activate-button'
+      ),
+    ] as HTMLButtonElement[];
+    toggles[0]!.click();
+    await tick();
+    toggles[1]!.click();
+    await tick();
+
+    const trash = (index: number) =>
+      el.querySelectorAll('#choose-backgrounds-container .choose-bg-element')[index]!.querySelector(
+        '.choose-bg-delete-button'
+      ) as unknown as Element;
+    const trashClick = (index: number) =>
+      trash(index).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    // Last active card: deletion refused.
+    trashClick(2);
+    await tick();
+    expect(el.querySelectorAll('#choose-backgrounds-container .choose-bg-element')).toHaveLength(3);
+    // Disabled cards delete freely.
+    trashClick(0);
+    await tick();
+    expect(el.querySelectorAll('#choose-backgrounds-container .choose-bg-element')).toHaveLength(2);
+    expect(JSON.parse((el.querySelector('#choose-background-handler') as HTMLInputElement).value)).toEqual(
+      ['//**uploaded/v.mp4', '**uploaded/pic.png']
+    );
+  });
+
+  it('adds a color background from the composer', async () => {
+    const el = await render();
+    const hex = el.querySelector('#background-color-hex') as HTMLInputElement;
+    hex.value = '#aabbcc';
+    hex.dispatchEvent(new Event('input', { bubbles: true }));
+    await tick();
+    (el.querySelector('#create-color-bg') as HTMLButtonElement).click();
+    await tick();
+
+    const cards = el.querySelectorAll('#choose-backgrounds-container .choose-bg-element');
+    expect(cards).toHaveLength(4);
+    expect(el.querySelector('#bg-count')?.textContent).toBe('4');
+    expect(cards[3]?.getAttribute('background')).toBe('#aabbcc');
+    expect(cards[3]?.querySelector('.choose-bg-label')?.textContent).toContain('#aabbcc');
+    expect(
+      cards[3]
+        ?.querySelector('.choose-bg-activate-button')
+        ?.classList.contains('choose-bg-activate-button-checked')
+    ).toBe(true);
+    expect(JSON.parse((el.querySelector('#choose-background-handler') as HTMLInputElement).value)).toEqual(
+      ['#112233', '**uploaded/v.mp4', '**uploaded/pic.png', '#aabbcc']
+    );
+  });
+
+  it('ignores the color composer when empty', async () => {
+    const el = await render();
+    (el.querySelector('#create-color-bg') as HTMLButtonElement).click();
+    await tick();
+    expect(el.querySelectorAll('#choose-backgrounds-container .choose-bg-element')).toHaveLength(3);
+  });
+
+  it('uploads an image background through the file composer', async () => {
+    const el = await render();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true }))
+    );
+    const input = el.querySelector('#create-image-bg') as HTMLInputElement;
+    Object.defineProperty(input, 'files', {
+      value: [new File(['x'], 'wall.png', { type: 'image/png' })],
+      configurable: true,
+    });
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    await vi.waitFor(() =>
+      expect(el.querySelectorAll('#choose-backgrounds-container .choose-bg-element')).toHaveLength(4)
+    );
+
+    const cards = el.querySelectorAll('#choose-backgrounds-container .choose-bg-element');
+    expect(cards[3]?.getAttribute('background')).toBe('**uploaded/wall.png');
+    expect(cards[3]?.querySelector('.choose-bg-label')?.textContent).toBe('wall.png');
+    expect(cards[3]?.querySelector('.choose-bg-thumb img')?.getAttribute('src')).toBe(
+      '.config/user_uploads/wall.png'
+    );
+    expect(el.querySelector('#bg-count')?.textContent).toBe('4');
+    expect(JSON.parse((el.querySelector('#choose-background-handler') as HTMLInputElement).value)).toEqual(
+      ['#112233', '**uploaded/v.mp4', '**uploaded/pic.png', '**uploaded/wall.png']
+    );
+  });
+
+  it('keeps the list when a background upload fails', async () => {
+    const el = await render();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('network down');
+      })
+    );
+    const errors: unknown[][] = [];
+    const origError = console.error;
+    console.error = (...args: unknown[]) => {
+      errors.push(args);
+    };
+    try {
+      const input = el.querySelector('#create-image-bg') as HTMLInputElement;
+      Object.defineProperty(input, 'files', {
+        value: [new File(['x'], 'wall.png', { type: 'image/png' })],
+        configurable: true,
+      });
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      await vi.waitFor(() => expect(errors.length).toBeGreaterThan(0));
+      expect(el.querySelectorAll('#choose-backgrounds-container .choose-bg-element')).toHaveLength(3);
+      expect(el.querySelector('#bg-count')?.textContent).toBe('3');
+    } finally {
+      console.error = origError;
+    }
+  });
+
   it('sends the firewall bypass through the global', async () => {
     const send = vi.fn();
     window.send_data = send;

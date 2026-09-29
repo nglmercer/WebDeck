@@ -18,15 +18,19 @@
     emptyLabel: string;
     /** Optional format hint rendered under the name, e.g. "JPG · PNG". */
     hint?: string | undefined;
+    /** Optional upload handler (background picker); the label updates regardless. */
+    onFile?: ((file: File) => void) | undefined;
   }
 
-  let { id, accept, browseLabel, emptyLabel, hint }: Props = $props();
+  let { id, accept, browseLabel, emptyLabel, hint, onFile }: Props = $props();
 
   let fileName = $state('');
 
   function onChange(event: Event): void {
     const input = event.currentTarget as HTMLInputElement;
-    fileName = input.files?.[0]?.name ?? '';
+    const file = input.files?.[0];
+    fileName = file?.name ?? '';
+    if (file) onFile?.(file);
   }
 </script>
 

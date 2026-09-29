@@ -1,4 +1,4 @@
-import { normalizeHexValue } from '../legacy/colors';
+import { normalizeHexValue } from '../components/colors';
 import { q, byId } from '../query';
 
 // Shared by add/edit button modals: the per-modal preview wiring,

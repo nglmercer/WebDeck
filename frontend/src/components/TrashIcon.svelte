@@ -5,12 +5,14 @@
 
   interface Props {
     title: string;
+    onclick?: ((event: MouseEvent) => void) | undefined;
   }
 
-  let { title }: Props = $props();
+  let { title, onclick }: Props = $props();
 </script>
 
 <svg
+  {onclick}
   class="choose-bg-delete-button"
   xmlns="http://www.w3.org/2000/svg"
   width="16"

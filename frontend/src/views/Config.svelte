@@ -30,6 +30,14 @@
   // svelte-ignore state_referenced_locally
   const config = configData(ctx);
 
+  // Library state (was legacy DOM scraping): the ordered theme list and
+  // background list. The hidden handler inputs below serialize them for
+  // the config-form save; the panels mutate through bindings.
+  // svelte-ignore state_referenced_locally
+  let themes = $state(config.themes);
+  // svelte-ignore state_referenced_locally
+  let backgrounds = $state(config.backgrounds);
+
   // svelte-ignore state_referenced_locally
   const steps = [
     { id: 'settings', label: text('settings') },
@@ -193,14 +201,14 @@
                     <button type="button" id="setting-themes" class={config.dark} onclick={() => openLibrary('themes')}>
                       {text('open_theme_menu')}
                     </button>
-                    <input type="text" name="front.themes" id="choose-themes-handler" class="invisible" value={config.themesRepr} />
+                    <input type="text" name="front.themes" id="choose-themes-handler" class="invisible" value={JSON.stringify(themes)} />
                   </div>
                   <div class="setting background">
                     <label for="background"> {text('backgrounds')} </label>
                     <button type="button" id="setting-background" class={config.dark} onclick={() => openLibrary('backgrounds')}>
                       {text('open_background_image_menu')}
                     </button>
-                    <input type="text" name="front.background" id="choose-background-handler" class="invisible" value={config.bgRepr} />
+                    <input type="text" name="front.background" id="choose-background-handler" class="invisible" value={JSON.stringify(backgrounds)} />
                   </div>
                 </Collapse>
                 <Collapse id="visuals-appearance" title={text('settings_group_appearance')} icon="eye">
@@ -249,7 +257,7 @@
                     aria-labelledby="config-lib-tab-themes"
                     hidden={libTab !== 'themes'}
                   >
-                    <ThemesPanel dark={config.dark} disabled={config.disabledThemes} enabled={config.enabledThemes} infoSlot={config.infoSlotId} />
+                    <ThemesPanel dark={config.dark} bind:themes={themes} themeMeta={config.themeMeta} infoSlot={config.infoSlotId} />
                   </div>
                   <div
                     role="tabpanel"
@@ -257,7 +265,7 @@
                     aria-labelledby="config-lib-tab-backgrounds"
                     hidden={libTab !== 'backgrounds'}
                   >
-                    <BackgroundsPanel dark={config.dark} backgrounds={config.backgrounds} trashTitle={config.trashTitle} />
+                    <BackgroundsPanel dark={config.dark} bind:backgrounds={backgrounds} trashTitle={config.trashTitle} />
                   </div>
                 </div>
               </div>

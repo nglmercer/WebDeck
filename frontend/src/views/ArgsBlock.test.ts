@@ -1,5 +1,5 @@
 import { mount, tick, unmount } from 'svelte';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineKeyField } from '../components/keyfield';
 import { initI18n } from '../framework/i18n';
 import type { BootContext, JsonObject } from '../framework/types';
@@ -75,6 +75,7 @@ describe('ArgsBlock', () => {
     host?.remove();
     host = null;
     document.body.innerHTML = '';
+    vi.unstubAllGlobals();
   });
 
   async function render(o: ArgsBlockOptions): Promise<HTMLElement> {
@@ -175,5 +176,62 @@ describe('ArgsBlock', () => {
       })
     );
     expect(buildCommand('/copy', el.querySelector('.args-container') as Element)).toBe('/copy ');
+  });
+
+  it('fills the row input from the folder picker', async () => {
+    const el = await render(options({ args: [{ TYPE: 'input folderpath' }] }));
+    const fetchMock = vi.fn(async () => ({ ok: true, text: async () => '/home/u/Music' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    (el.querySelector('button.folderpath') as HTMLButtonElement).click();
+    await vi.waitFor(() =>
+      expect((el.querySelector('input.folderpath') as HTMLInputElement).value).toBe('/home/u/Music')
+    );
+    const [folderUrl] = fetchMock.mock.calls[0] as unknown as [string];
+    expect(folderUrl).toContain('upload_folderpath');
+  });
+
+  it('fills the row input from the file picker with filetypes', async () => {
+    const el = await render(options({ args: [{ TYPE: "input filepath['.py']" }] }));
+    const fetchMock = vi.fn(async () => ({ ok: true, text: async () => '/home/u/x.py' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    (el.querySelector('button.filepath') as HTMLButtonElement).click();
+    await vi.waitFor(() =>
+      expect((el.querySelector('input.filepath') as HTMLInputElement).value).toBe('/home/u/x.py')
+    );
+    const [url] = fetchMock.mock.calls[0] as unknown as [string];
+    expect(url).toContain('upload_filepath');
+    expect(url).toContain('filetypes=');
+  });
+
+  it('scopes picker fills to the clicked row', async () => {
+    const el = await render(
+      options({ args: [{ TYPE: 'input folderpath' }, { TYPE: 'input folderpath' }] })
+    );
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, text: async () => '/picked' })));
+
+    const buttons = el.querySelectorAll('button.folderpath');
+    (buttons[0] as HTMLButtonElement).click();
+    await vi.waitFor(() =>
+      expect((el.querySelectorAll('input.folderpath')[0] as HTMLInputElement).value).toBe('/picked')
+    );
+    expect((el.querySelectorAll('input.folderpath')[1] as HTMLInputElement).value).toBe('');
+  });
+
+  it('uploads audio files on selection', async () => {
+    const el = await render(options({ args: [{ TYPE: 'input path-soundboard-audio' }] }));
+    const fetchMock = vi.fn(async () => ({ ok: true }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const input = el.querySelector('.audio-input') as HTMLInputElement;
+    Object.defineProperty(input, 'files', {
+      value: [new File(['x'], 's.mp3', { type: 'audio/mpeg' })],
+      configurable: true,
+    });
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const [uploadUrl] = fetchMock.mock.calls[0] as unknown as [string];
+    expect(uploadUrl).toBe('/upload_file');
   });
 });

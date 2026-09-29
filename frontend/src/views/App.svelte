@@ -19,7 +19,7 @@
   // innerHTML render.
 </script>
 
-<LoadingScreen svgs={ctx.svgs} />
+<LoadingScreen svgs={ctx.svgs} concealed />
 <Shell ctx={ctx} />
 <div id="deck-scale"><Grid ctx={ctx} /></div>
 <EditorBar />
