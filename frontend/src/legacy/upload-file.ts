@@ -7,14 +7,9 @@ export function upload_file(element: HTMLInputElement): void {
   const formData = new FormData();
   formData.append('file', file);
 
-  void post('/upload_file', formData).then(
-    () => {
-      console.log('File downloaded successfully!');
-    },
-    () => {
-      console.error('Failed to download file.');
-    }
-  );
+  void post('/upload_file', formData).then(undefined, () => {
+    console.error('Failed to download file.');
+  });
 }
 
 export function initUploadFile(): void {

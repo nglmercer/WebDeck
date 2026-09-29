@@ -1,5 +1,5 @@
 import { text } from '../framework/i18n';
-import { asBool, asString, get, type BootContext } from '../framework/types';
+import { asString, get, type BootContext } from '../framework/types';
 import { q, byId } from '../query';
 import {
   SaveExitEditor,
@@ -91,10 +91,6 @@ function wireSocket(transferMethod: string): void {
   socket.on('connect', function () {
     console.log('Connected');
   });
-
-  socket.on('json_data', function (message) {
-    console.log(message);
-  });
 }
 
 function wireSubmits(transferMethod: string): void {
@@ -111,8 +107,6 @@ function wireSubmits(transferMethod: string): void {
         const messageElement = q(form).find('.message').get(0) ?? null;
         if (!messageElement) {
           if (q(form).hasClass('config-form')) {
-            console.log('sending config-form...');
-
             const config_dataTemp: Record<string, unknown> = {};
             q('#config-form input, #config-form select')
               .toArray()
@@ -131,8 +125,6 @@ function wireSubmits(transferMethod: string): void {
                 }
                 config_dataTemp[name] = value;
               });
-
-            console.log(config_dataTemp);
 
             const config_data: Record<string, unknown> = {};
 
@@ -156,8 +148,6 @@ function wireSubmits(transferMethod: string): void {
                 obj = obj[k] as Record<string, unknown>;
               }
             }
-
-            console.log(config_data);
 
             fetch('/save_config', {
               method: 'POST',
@@ -206,7 +196,6 @@ function wireSubmits(transferMethod: string): void {
               send_data(message);
             }
           } else if (message.startsWith('/reload') && !isSwapMode()) {
-            console.log('reloading...');
             location.reload();
           } else {
             fetch('/usage', {
@@ -255,15 +244,12 @@ function wireKeydown(): void {
           swapEditorButtonFunction();
         }
         if (event.key.toLowerCase() === 'z' && event.ctrlKey && isSwapMode()) {
-          console.log('Ctrl + Z');
           undoSwap();
         }
         if (event.ctrlKey && event.shiftKey && event.key === 'Z' && isSwapMode()) {
-          console.log('Ctrl + Shift + Z');
           undoUNSwap();
         }
         if (event.key.toLowerCase() === 'y' && event.ctrlKey && isSwapMode()) {
-          console.log('Ctrl + Y');
           undoUNSwap();
         }
       }
@@ -312,13 +298,7 @@ export function wireApp(ctx: BootContext): void {
   reloadEditorEvents();
   wireSocket(transferMethod);
   wireSubmits(transferMethod);
-  wireModals(ctx, () => toggleEditorMode(), isSwapMode);
+  wireModals(() => toggleEditorMode(), isSwapMode);
   wireKeydown();
-  wireZoomControls(
-    isSwapMode,
-    asString(get(ctx.config, 'front', 'width')),
-    asString(get(ctx.config, 'front', 'height'))
-  );
-
-  void asBool;
+  wireZoomControls(isSwapMode, asString(get(ctx.config, 'front', 'width')));
 }

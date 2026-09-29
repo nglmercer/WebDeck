@@ -27,7 +27,6 @@ export function toggleEditorMode(): void {
   toggleEditorButtonsMode();
   syncEditorButtonLabel();
   emitAppEvent('editor:changed', { mode: pageState.editorMode });
-  console.log('La valeur de editorMode a été modifiée :', pageState.editorMode);
 
   if (pageState.editorMode === 1) {
     fetch('/get_config')
@@ -49,7 +48,6 @@ export function toggleEditorMode(): void {
     if (editorUiState.ifModif === 1) {
       // Discard unposted temp edits by re-rendering from the server
       // (same net effect as the old location.reload()).
-      console.log(`swapChanges ${editorUiState.swapChanges}`);
       void refreshApp();
       return;
     }
@@ -57,7 +55,6 @@ export function toggleEditorMode(): void {
     pageState.editorMode = 0;
     toggleEditorButtonsMode();
     syncEditorButtonLabel();
-    console.log('La valeur de editorMode a été modifiée :', pageState.editorMode);
   }
 }
 
@@ -74,7 +71,6 @@ export function SaveExitEditor(tempConfig: JsonObject): void {
   editorUiState.swapFirstBtn = 0;
   editorUiState.swapSecondBtn = 0;
   editorUiState.swapChanges = [];
-  console.log(`swapChanges: ${editorUiState.swapChanges}`);
   toggleEditorButtonsMode();
   if (editorUiState.ifModif === 1 || editorUiState.swapChanges.length !== 0) {
     fetch('/save_buttons_only', {
@@ -104,5 +100,4 @@ export function SaveExitEditor(tempConfig: JsonObject): void {
         showError(error.message);
       });
   }
-  console.log('La valeur de editorMode a été modifiée :', pageState.editorMode);
 }

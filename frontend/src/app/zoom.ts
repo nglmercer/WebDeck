@@ -112,7 +112,7 @@ export function auto_resize(): void {
   applyFit(scaler, s, tx, ty);
 }
 
-export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string, frontHeight: string): void {
+export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string): void {
   const fullscreenBtn = q('.fullscreen-btn').get(0) ?? null;
   const zoomInBtn = q('.zoom-in-btn').get(0) ?? null;
   const zoomOutBtn = q('.zoom-out-btn').get(0) ?? null;
@@ -185,7 +185,6 @@ export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string, 
     // empty
   }
 
-  const maxRows = parseInt(frontHeight);
   const maxCols = parseInt(frontWidth);
 
   const smallDiv = q('.form-0').get(0) ?? null;
@@ -212,7 +211,6 @@ export function wireZoomControls(isSwapMode: () => boolean, frontWidth: string, 
     // scaling it (upstream only constrained the outer container).
     q('[id^="folder-"].all-buttons').css('maxWidth', `${maxWidth}px`);
   }
-  void maxRows;
 
   const scaler = byId<HTMLElement>('deck-scale').get(0) ?? null;
 

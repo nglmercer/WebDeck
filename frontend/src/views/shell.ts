@@ -36,8 +36,7 @@ export function showConsoleForm(ctx: BootContext): boolean {
 
 /** Dynamic per-boot CSS text (wrapped in `<style>` by Shell.svelte). */
 export function shellCss(ctx: BootContext): string {
-  const { config, random_bg: randomBg, dark_theme: _dark } = ctx;
-  void _dark;
+  const { config, random_bg: randomBg } = ctx;
   let css = '';
   if (randomBg && randomBg.trim() !== '') {
     if (randomBg.endsWith('.mp4')) {
@@ -66,7 +65,6 @@ export function shellCss(ctx: BootContext): string {
             background-size: cover;
             background-position: center;
             background-color: transparent;
-            background-position: center;
             z-index: -1;
           }
           div.fakeform-container {
@@ -133,7 +131,6 @@ export function shellCss(ctx: BootContext): string {
         css += `
             @keyframes animation-${flat} {
               100% {background-color: #${flat};}
-              100% {background-color: none;}
             }
             .button-${flat}, .button-${flat}:focus {
               background-color: #${flat};
@@ -146,7 +143,6 @@ export function shellCss(ctx: BootContext): string {
               animation-duration: 1s;
             }
             .button-${flat}:active {
-              background-color: #${flat};
               background: #${flat};
               border-color: rgba(0, 0, 0, 0.15);
               box-shadow: rgba(0, 0, 0, 0.06) 0 2px 4px;

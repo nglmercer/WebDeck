@@ -15,7 +15,6 @@ function handleFilepathButtonClick(filetypes: string | null): void {
   })
     .then((response) => response.text())
     .then((filePath) => {
-      console.log('File path:', filePath);
       if (filePath !== '') {
         q('input.filepath').val(filePath);
       }

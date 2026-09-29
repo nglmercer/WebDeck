@@ -26,7 +26,7 @@ export function addArgsData(ctx: BootContext, mctx: AddModalContext): AddArgsDat
   const style = asObject(commandValue['style']);
   const hasStyle = Object.keys(commandValue).includes('style') && Object.keys(style).length > 0;
   const btn: 'btn' | 'category' = asString(commandValue['TYPE']).includes('multiple') ? 'category' : 'btn';
-  const buttonName = addButtonName(ctx, mctx, btn, hasStyle);
+  const buttonName = addButtonName(mctx, btn, hasStyle);
 
   const providedSize = asString(style['image_size']).trim();
   const icon = resolvePresetIcon(mctx, style);
@@ -49,8 +49,7 @@ export function addArgsData(ctx: BootContext, mctx: AddModalContext): AddArgsDat
   };
 }
 
-export function addButtonName(ctx: BootContext, mctx: AddModalContext, btn: 'btn' | 'category', hasStyle: boolean): string {
-  void ctx;
+export function addButtonName(mctx: AddModalContext, btn: 'btn' | 'category', hasStyle: boolean): string {
   const base =
     mctx.subId !== 0
       ? `${catKey(mctx.category)}_${cmdKey(mctx.parentCommand)}_sub${mctx.subId}`

@@ -1,4 +1,3 @@
-import type { BootContext } from '../framework/types';
 import { q, byId } from '../query';
 
 // Modal open/close managers + URL params (index.jinja modal script block).
@@ -163,8 +162,7 @@ export function hide_last_modal(): void {
   }
 }
 
-export function wireModals(ctx: BootContext, onEditParam: () => void, isSwapMode: () => boolean): void {
-  void ctx;
+export function wireModals(onEditParam: () => void, isSwapMode: () => boolean): void {
   const urlParams = new URLSearchParams(window.location.search);
 
   const modalParam = urlParams.get('config');

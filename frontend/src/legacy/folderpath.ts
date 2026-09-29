@@ -11,7 +11,6 @@ function handleFolderpathButtonClick(): void {
   })
     .then((response) => response.text())
     .then((folderPath) => {
-      console.log('Dir path:', folderPath);
       if (folderPath !== '') {
         q('input.folderpath').val(folderPath);
       }

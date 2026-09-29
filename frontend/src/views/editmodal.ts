@@ -257,7 +257,6 @@ export function wireEditModal(ctx: BootContext, editModalId: string, buttonSetti
   }
 
   byId(`image-input_${editModalId}`).on('change', function () {
-    console.log(`image-input_${editModalId} just got changed!`);
     const input = this as unknown as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
@@ -266,7 +265,6 @@ export function wireEditModal(ctx: BootContext, editModalId: string, buttonSetti
 
     void post('/upload_file', formData).then(
       () => {
-        console.log('File downloaded successfully!');
         const swapped = swapPreviewImage(editModalId, input);
         if (!swapped) return;
         button['image_size'] = '70';
@@ -318,8 +316,6 @@ function buttonCommand(editModalID: string, event: Event): void {
     }
   }
 
-  console.log('buttonCommand received, from: edit');
-
   const final_button = {
     location_Folder: rep(editModalID, 'e', '').split('X')[0],
     location_Id: rep(editModalID, 'e', '').split('X')[1],
@@ -357,6 +353,4 @@ function buttonCommand(editModalID: string, event: Event): void {
       const pending = modalStates.get(editModalID);
       if (pending) pending.submitPending = false;
     });
-
-  console.log(state?.button);
 }

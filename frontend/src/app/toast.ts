@@ -1,7 +1,6 @@
-// Toast helpers (index.jinja showToast/showError/showInfo) + wake lock.
+// Toast helpers (index.jinja showToast/showError).
 import Toastify from 'toastify-js';
 import 'toastify-js/src/toastify.css';
-import { q } from '../query';
 
 export function showToast(kind: number, message: string): void {
   let bg: string;
@@ -28,24 +27,5 @@ export function showToast(kind: number, message: string): void {
 
 export function showError(message: string): void {
   showToast(0, message);
-  console.log('ERROR: ', message);
-}
-
-export function showInfo(message: string): void {
-  showToast(1, message);
-  console.log('INFO: ', message);
-}
-
-export function wireWakeLock(): void {
-  const wakeLock = async (): Promise<void> => {
-    try {
-      await navigator.wakeLock.request('screen');
-    } catch {
-      // ignore
-    }
-  };
-  // Every bubbled click passes through <html>, like the document listener did.
-  q('html').on('click', () => {
-    void wakeLock();
-  });
+  console.error('ERROR: ', message);
 }

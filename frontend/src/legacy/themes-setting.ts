@@ -25,7 +25,7 @@ function swapElements(list: string[], firstElement: string, secondElement: strin
     list[secondIndex] = temp;
     return list;
   } else {
-    console.log('One or both elements are not found in the list.');
+    console.error('One or both elements are not found in the list.');
     return null;
   }
 }
@@ -147,20 +147,13 @@ export function initThemesSetting(): void {
           ? q(themeContainer).find('.arrows-container').get(0) ?? null
           : null;
 
-        console.log(arrow);
-        console.log('Clicked:', q(this).hasClass('disable-theme-hitbox') ? 'Disable Theme' : 'Enable Theme');
-        console.log('Parent .theme-container:', themeContainer);
-
         const themePath = themeContainer ? q(themeContainer).attr('filename') ?? '' : '';
         const themesArray = getThemesArray();
-        let newElement: string | undefined;
-
-        console.log(themesArray);
 
         for (let i = 0; i < themesArray.length; i++) {
           if ((themesArray[i] ?? '').replace('//', '') === themePath.replace('//', '')) {
             if (!(themesArray[i] ?? '').startsWith('//')) {
-              newElement = '//' + (themesArray[i] ?? '');
+              const newElement = '//' + (themesArray[i] ?? '');
               themesArray.splice(i, 1);
               themesArray.unshift(newElement);
               const disabled = byId('disabled-themes').get(0) ?? null;
@@ -174,7 +167,7 @@ export function initThemesSetting(): void {
 
               q(upDownArrows).addClass('invisible');
             } else {
-              newElement = (themesArray[i] ?? '').replace('//', '');
+              const newElement = (themesArray[i] ?? '').replace('//', '');
               themesArray.splice(i, 1);
               themesArray.unshift(newElement);
               const enabled = byId('enabled-themes').get(0) ?? null;
@@ -190,10 +183,6 @@ export function initThemesSetting(): void {
             }
           }
         }
-        void newElement;
-
-        console.log(themesArray);
-
         updateThemesInputValue(themesArray);
       });
     });

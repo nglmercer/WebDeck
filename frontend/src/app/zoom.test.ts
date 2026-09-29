@@ -111,7 +111,7 @@ describe('manual zoom buttons', () => {
       '<button class="dezoom-btn"></button><button class="zoom-btn"></button>'
     );
     auto_resize();
-    wireZoomControls(() => false, '', '');
+    wireZoomControls(() => false, '');
     const dezoom = document.querySelector('.dezoom-btn');
     const zoom = document.querySelector('.zoom-btn');
     if (!(dezoom instanceof HTMLElement) || !(zoom instanceof HTMLElement)) {

@@ -1,4 +1,3 @@
-import { postJson } from '../framework/api';
 import { showError } from './toast';
 
 // Port of send_data() (also exposed as window.send_data for inline onclick).
@@ -12,9 +11,7 @@ export function send_data(message: string): void {
   })
     .then((response) => response.json())
     .then((data: { success?: boolean; message?: string }) => {
-      if (data.success) {
-        console.log(data.message);
-      } else {
+      if (!data.success) {
         console.error(data.message);
         if (data.message && data.message !== '') {
           showError(data.message);

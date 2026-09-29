@@ -53,19 +53,11 @@ export function createVoidButton(event: Event | null = null, form: Element | nul
   addButtonDiv.append(svg);
   voidDiv.append(checkboxDiv).append(addButtonDiv);
 
-  console.log(`${parentId} > ${formNumber}`);
-
   addButtonDiv.attr('add_FOLDER', parentId);
   addButtonDiv.attr('add_ID', formNumber);
 
-  // Upstream also ORs `tempEditorConfig == {}`, which is always false in
-  // JS (object identity), so the 1:1 condition is just the null check.
-  if (pageState.tempEditorConfig === null) {
-    void loadEditorConfig().then((config) => {
-      pageState.tempEditorConfig = loadEditorConfigSync(config);
-    });
-    console.log(pageState.tempEditorConfig);
-  }
+  // NOTE: tempEditorConfig is always an object here (seeded at render in
+  // app.ts, refreshed on editor entry in mode.ts) — no null fallback.
   const buttons = (
     (pageState.tempEditorConfig['front'] as JsonObject | undefined)?.['buttons'] as
       | Record<string, JsonObject[]>
@@ -74,28 +66,9 @@ export function createVoidButton(event: Event | null = null, form: Element | nul
   if (buttons) buttons[Number(formNumber)] = { VOID: 'VOID' } as unknown as JsonObject;
   q(closestForm).replaceWith(voidDiv);
 
-  console.log('The button has been removed.');
-  console.log(pageState.tempEditorConfig);
   pageState.config = pageState.tempEditorConfig;
 
   reloadEditorEvents();
-}
-
-async function loadEditorConfig(): Promise<JsonObject> {
-  const response = await fetch('/get_config', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
-  });
-  return (await response.json()) as JsonObject;
-}
-
-function loadEditorConfigSync(config: JsonObject): JsonObject {
-  void config;
-  // Upstream assigns the promise-returning call itself (a latent bug kept
-  // shape-identical: tempEditorConfig would hold a Promise). Reproduce the
-  // assignment target faithfully is impossible in TS; keep current config.
-  return pageState.tempEditorConfig;
 }
 
 export function deleteFolder(folderName: string): void {
@@ -128,10 +101,6 @@ export function deleteFolder(folderName: string): void {
   });
 }
 
-export function showAddConfirmation(_event: Event): void {
-  console.log('The button is being added');
-}
-
 export function showDeleteConfirmation(event: Event): void {
   if (pageState.editorMode !== 1) return;
   // Upstream escape hatch: a `force` global skips the prompt. Otherwise
@@ -144,8 +113,4 @@ export function showDeleteConfirmation(event: Event): void {
   void showConfirm(text('button_delete_confirmation'), { danger: true }).then((confirmed) => {
     if (confirmed) createVoidButton(event, null);
   });
-}
-
-export function showEditWindow(_event: Event): void {
-  console.log('edit pressé');
 }

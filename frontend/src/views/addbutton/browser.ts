@@ -85,8 +85,7 @@ export function addBrowserData(ctx: BootContext): AddBrowserData {
     if (categoryName === catQuery || categoryName === '') categoryName = category;
 
     const items: BrowserItem[] = [];
-    for (const [command, commandValue] of Object.entries(catObj)) {
-      const cmdIndex = Object.keys(catObj).indexOf(command);
+    for (const [cmdIndex, [command, commandValue]] of Object.entries(catObj).entries()) {
       if (command === 'CATEGORY-SETTINGS') continue;
       const cmdObj = asObject(commandValue);
       const argModalId = `${catIndex}X${cmdIndex}`;

@@ -10,15 +10,11 @@ import { pageState } from '../state';
 import { SaveExitEditor, toggleEditorMode } from './mode';
 import { editorUiState } from './state';
 import { swapButton, swapEditorButtonFunction } from './swap';
-import { showAddConfirmation, showDeleteConfirmation, showEditWindow } from './void';
+import { showDeleteConfirmation } from './void';
 
 export function reloadEditorEvents(): void {
-  for (const el of q('.add-button').toArray()) {
-    q(el).on('click', showAddConfirmation);
-  }
-  for (const el of q('.edit-button').toArray()) {
-    q(el).on('click', showEditWindow);
-  }
+  // NOTE: .add-button clicks open the modal via the div.add-button binding
+  // below; .edit-button clicks via wireModals in ../modals.
   for (const el of q('.delete-button').toArray()) {
     q(el).on('click', showDeleteConfirmation);
   }
@@ -65,8 +61,6 @@ export function wireEditorChrome(): void {
   byId('exitEditorButton').on('click', toggleEditorMode);
 
   byId('SaveExitEditorButton').on('click', function () {
-    console.log('tempEditorConfig:');
-    console.log(JSON.stringify(pageState.tempEditorConfig));
     SaveExitEditor(pageState.tempEditorConfig);
   });
 

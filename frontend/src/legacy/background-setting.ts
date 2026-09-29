@@ -29,7 +29,6 @@ function removeBackgroundFromArray(): string[] {
     const background = q(div).attr('background');
     if (background) next.push(background);
   }
-  console.log(next);
   updateBackgroundsInputValue(next);
   return next;
 }
@@ -221,8 +220,6 @@ export function initBackgroundSetting(): void {
       wireActivateButtons();
       wireDeleteButtons();
       refreshBgCount();
-
-      console.log(backgroundsArray.length + backgroundsArray.join(','));
     }
   });
 
@@ -237,10 +234,8 @@ export function initBackgroundSetting(): void {
 
       void post('/upload_file', formData).then(
         () => {
-          console.log('File downloaded successfully');
           const firstFile = input.files?.[0];
           const fileName = '**uploaded/' + (firstFile?.name ?? '');
-          console.log('Image sent successfully! File name :', fileName);
 
           const imageFile = '.config/user_uploads/' + (firstFile?.name ?? '');
 

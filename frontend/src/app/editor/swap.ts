@@ -5,11 +5,14 @@ import type { JsonObject } from '../../framework/types';
 import { q, byId } from '../../query';
 import { pageState } from '../state';
 import { showError } from '../toast';
-import { setEditorButtonsDisplay } from './display';
-import { hideEditorPartially, showEditorPartially } from './display';
-import { swapButtonLabel } from './display';
+import {
+  hideEditorPartially,
+  setEditorButtonsDisplay,
+  showEditorPartially,
+  swapButtonLabel,
+} from './display';
 import { editorUiState } from './state';
-import { formCoords, showDeleteConfirmation, showEditWindow } from './void';
+import { formCoords, showDeleteConfirmation } from './void';
 
 function swapForms(parentId1: string, formNumber1: string, parentId2: string, formNumber2: string): void {
   // Exact-id root + descendant search: equivalent to `#folder-X .form-Y`
@@ -22,9 +25,6 @@ function swapForms(parentId1: string, formNumber1: string, parentId2: string, fo
   q(form1).html(q(form2).html() ?? '');
   q(form2).html(tempHtml);
 
-  for (const el of q('.edit-button').toArray()) {
-    q(el).on('click', showEditWindow);
-  }
   for (const el of q('.delete-button').toArray()) {
     q(el).on('click', showDeleteConfirmation);
   }
@@ -62,37 +62,29 @@ export function swapButton(event: Event): void {
     const checkbox = q(closestForm).find('div.checkbox').get(0) ?? null;
     if (editorUiState.swapFirstBtn === 0) {
       editorUiState.swapFirstBtn = `${parentId};;;${formNumber}`;
-      console.log(`1: ${editorUiState.swapFirstBtn}\n2: ${editorUiState.swapSecondBtn}`);
       q(checkbox).addClass('checkbox-checked');
       q(closestForm).addClass('swap-picked');
     } else if (editorUiState.swapSecondBtn === 0) {
       if (editorUiState.swapFirstBtn === `${parentId};;;${formNumber}`) {
         editorUiState.swapFirstBtn = 0;
-        console.log(`1: ${editorUiState.swapFirstBtn}\n2: ${editorUiState.swapSecondBtn}`);
         q(checkbox).removeClass('checkbox-checked');
         q(closestForm).removeClass('swap-picked');
       } else {
         q(checkbox).addClass('checkbox-checked');
         editorUiState.swapSecondBtn = `${parentId};;;${formNumber}`;
         if ((editorUiState.swapFirstBtn as string | 0) !== 0) {
-          console.log('both btns are selected');
           const [parentId1, formNumber1] = (editorUiState.swapFirstBtn as string).split(';;;') as [string, string];
           const [parentId2, formNumber2] = (editorUiState.swapSecondBtn as string).split(';;;') as [string, string];
 
           swapForms(parentId1, formNumber1, parentId2, formNumber2);
 
           editorUiState.swapChanges.push(`${parentId1};;;${formNumber1} > ${parentId2};;;${formNumber2}`);
-          console.log(`swapChanges: ${editorUiState.swapChanges}`);
 
           editorUiState.swapFirstBtn = 0;
           editorUiState.swapSecondBtn = 0;
-          console.log(`sucessfully swapped ${parentId1};;;${formNumber1} to ${parentId2};;;${formNumber2}`);
           editorUiState.ifModif = 1;
         }
-        console.log(`1: ${editorUiState.swapFirstBtn}\n2: ${editorUiState.swapSecondBtn}`);
       }
-    } else {
-      console.log('if you see this, it means my code is REALLY really bad. But it works, I hope.');
     }
   }
 }
@@ -112,8 +104,7 @@ function swapLabels(): [short: string, full: string] {
     : [text('stop_swap_mode_short'), text('stop_swap_mode')];
 }
 
-export function swapEditorButtonFunction(_event?: Event): void {
-  void _event;
+export function swapEditorButtonFunction(): void {
   editorUiState.swapMode = editorUiState.swapMode === 0 ? 1 : 0;
   {
     const [short, full] = swapLabels();
@@ -121,7 +112,6 @@ export function swapEditorButtonFunction(_event?: Event): void {
   }
   editorUiState.swapFirstBtn = 0;
   editorUiState.swapSecondBtn = 0;
-  console.log('La valeur de swapMode a été modifiée :', editorUiState.swapMode);
 
   if (pageState.editorMode === 1 && editorUiState.swapMode === 1) {
     setSwapLabel(text('stop_swap_mode_short'), text('stop_swap_mode'));
@@ -167,14 +157,11 @@ export function swapEditorButtonFunction(_event?: Event): void {
       }
     }
     editorUiState.swapChanges = [];
-    console.log(`swapChanges: ${editorUiState.swapChanges}`);
   }
 }
 
 export function undoSwap(): void {
   const lastChange = editorUiState.swapChanges[editorUiState.swapChanges.length - 1];
-  console.log(`All changes: ${editorUiState.swapChanges}`);
-  console.log(`Last change: ${lastChange}`);
 
   if (lastChange === undefined) {
     showError(text('no_changes_to_undo'));
@@ -188,18 +175,14 @@ export function undoSwap(): void {
     editorUiState.swapChanges.splice(-1);
     editorUiState.swapUNChanges.push(`${parentId1};;;${formNumber1} > ${parentId2};;;${formNumber2}`);
 
-    console.log(`swapUNChanges: ${editorUiState.swapChanges}`);
     editorUiState.swapFirstBtn = 0;
     editorUiState.swapSecondBtn = 0;
-    console.log(`sucessfully unswapped ${parentId1};;;${formNumber1} to ${parentId2};;;${formNumber2}`);
     editorUiState.ifModif = 1;
   }
 }
 
 export function undoUNSwap(): void {
   const lastChange = editorUiState.swapUNChanges[editorUiState.swapUNChanges.length - 1];
-  console.log(`All changes: ${editorUiState.swapUNChanges}`);
-  console.log(`Last change: ${lastChange}`);
 
   if (lastChange === undefined) {
     showError(text('no_changes_to_undo'));
@@ -215,7 +198,6 @@ export function undoUNSwap(): void {
 
     editorUiState.swapFirstBtn = 0;
     editorUiState.swapSecondBtn = 0;
-    console.log(`sucessfully unswapped ${parentId1};;;${formNumber1} to ${parentId2};;;${formNumber2}`);
     editorUiState.ifModif = 1;
   }
 }

@@ -32,10 +32,9 @@ export function collectAddModals(ctx: BootContext): AddModalContext[] {
   const out: AddModalContext[] = [];
   const commands = asObject(ctx.commands);
   Object.entries(commands).forEach(([category, categoryValue], catIndex) => {
-    Object.entries(asObject(categoryValue)).forEach(([command, commandValue]) => {
+    Object.entries(asObject(categoryValue)).forEach(([command, commandValue], cmdIndex) => {
       if (command === 'CATEGORY-SETTINGS') return;
       const cmdObj = asObject(commandValue);
-      const cmdIndex = Object.keys(asObject(categoryValue)).indexOf(command);
       const argModalId = `${catIndex}X${cmdIndex}`;
       if (asString(cmdObj['TYPE']) !== 'multiple') {
         const titleQuery = `${catKey(category)}_${cmdKey(command)}__btn_name`;
@@ -94,7 +93,7 @@ export function wireAddModal(ctx: BootContext, mctx: AddModalContext): void {
   // Style-less presets save their registered default icon so the new tile
   // matches the preview; provided art is never touched.
   seedPresetButtonState(mctx, style, buttonState);
-  const buttonName = addButtonName(ctx, mctx, btn, hasStyle);
+  const buttonName = addButtonName(mctx, btn, hasStyle);
   buttonState['name'] = buttonName;
   // NOTE: upstream references an undefined `command_X` global (ReferenceError
   // breaks usage add-modals); the intent is unambiguously the command id.
@@ -116,7 +115,6 @@ export function wireAddModal(ctx: BootContext, mctx: AddModalContext): void {
 
     void post('/upload_file', formData).then(
       () => {
-        console.log('File downloaded successfully!');
         const swapped = swapPreviewImage(id, input);
         if (!swapped) return;
         buttonState['image_size'] = '70';
@@ -183,8 +181,6 @@ export function wireFoldernameForm(modalId: string): void {
         name: folderName.replace(/"/g, ''),
         parent_folder: parentFolder,
       };
-      console.log(data);
-
       fetch('/create_folder', {
         method: 'POST',
         headers: {
@@ -196,13 +192,12 @@ export function wireFoldernameForm(modalId: string): void {
           if (response.ok) {
             return response.json();
           } else {
-            console.log("Une erreur s'est produite lors de la création du dossier.");
+            console.error("Une erreur s'est produite lors de la création du dossier.");
           }
         })
         .then(function (data: { success?: boolean } | undefined) {
           if (data && data.hasOwnProperty('success')) {
             if (data.success) {
-              console.log(text('folder_created_successfully'));
               q('.webdeck_foldername_ALL')
                 .toArray()
                 .forEach(function (div) {
@@ -218,12 +213,12 @@ export function wireFoldernameForm(modalId: string): void {
                   q(div).append(newDiv);
                 });
             } else {
-              console.log('Folder creation failed because the folder already exists.');
+              console.error('Folder creation failed because the folder already exists.');
             }
           }
         })
         .catch(function (error) {
-          console.log('Erreur : ' + error);
+          console.error('Erreur : ' + error);
         });
     }
   });
@@ -257,7 +252,6 @@ function wireUsagePreview(id: string): void {
 
   reloadUsagePreview(id);
   byId(`disk-letter_${id}`).on('change', function () {
-    console.log('changed!');
     q(usageValuePreview).text('-');
     const titleSecond = secondClass(usageTitlePreview);
     const valueSecond = secondClass(usageValuePreview);
@@ -286,11 +280,8 @@ function buttonCommandAdd(argModalId: string, command: string): void {
   const state = addModalStates.get(argModalId);
   if (!state) return;
   const commandString = argModalId === 'NONE' ? command : getCommand(command, argModalId);
-  console.log(commandString);
 
   state.button['message'] = commandString;
-  console.log(state.button);
-  console.log('buttonCommand received, from: add');
   const element = byId('addbutton-modal-content').get(0) ?? null;
   const locationFolder = q(element).attr('add_FOLDER') ?? '';
   const locationId = q(element).attr('add_ID') ?? '';
