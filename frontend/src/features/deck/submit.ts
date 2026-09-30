@@ -1,3 +1,4 @@
+import { commandRequestId, socketCommandTracker } from './socketCommands';
 import { showAlert } from '../../components/dialog';
 import { fetchUsage } from '../../api/usage';
 import { send_data } from '../../app/send';
@@ -18,6 +19,8 @@ export function submitDeck(event: SubmitEvent, transfer: string): void {
   } else if (transfer === 'socket') {
     // No replay on reconnect: native side effects are not idempotent.
     if (!socketHolder.socket?.connected) { void showAlert('Disconnected. The command was not sent; reconnect before trying again.'); return; }
-    socketHolder.socket.emit('message_from_socket', message);
+    const request = { message, request_id: commandRequestId() };
+    socketCommandTracker.track(request);
+    socketHolder.socket.volatile.emit('command', request);
   } else { send_data(message); }
 }

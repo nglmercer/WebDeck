@@ -75,14 +75,14 @@ async fn overload_and_cancelled_request_retain_running_admission() {
         let executor = executor.clone();
         tokio::spawn(async move {
             executor
-                .execute(executor.parse("/key a").unwrap(), None, true)
+                .execute(executor.parse("/key a").unwrap(), None)
                 .await
         })
     };
     fake.entered.notified().await;
     assert_eq!(
         executor
-            .execute(executor.parse("/key b").unwrap(), None, true)
+            .execute(executor.parse("/key b").unwrap(), None)
             .await
             .unwrap_err()
             .code,
@@ -91,7 +91,7 @@ async fn overload_and_cancelled_request_retain_running_admission() {
     work.abort();
     assert_eq!(
         executor
-            .execute(executor.parse("/key c").unwrap(), None, true)
+            .execute(executor.parse("/key c").unwrap(), None)
             .await
             .unwrap_err()
             .code,
@@ -104,7 +104,7 @@ async fn overload_and_cancelled_request_retain_running_admission() {
     assert_eq!(fake.calls.load(Ordering::SeqCst), 1);
     assert_eq!(
         executor
-            .execute(executor.parse("/key d").unwrap(), None, true)
+            .execute(executor.parse("/key d").unwrap(), None)
             .await
             .unwrap_err()
             .code,
@@ -146,7 +146,6 @@ async fn input_is_ordered_and_denied_unknown_commands_never_reach_effects() {
                 .execute(
                     executor.parse("/key a").unwrap(),
                     Some(vec![Capability::Input]),
-                    true,
                 )
                 .await
         }));
@@ -159,8 +158,7 @@ async fn input_is_ordered_and_denied_unknown_commands_never_reach_effects() {
         executor
             .execute(
                 executor.parse("/PCshutdown").unwrap(),
-                Some(vec![Capability::Input]),
-                true
+                Some(vec![Capability::Input])
             )
             .await
             .unwrap_err()
@@ -169,11 +167,70 @@ async fn input_is_ordered_and_denied_unknown_commands_never_reach_effects() {
     );
     assert_eq!(
         executor
-            .execute(executor.parse("/notregistered").unwrap(), None, true)
+            .execute(executor.parse("/notregistered").unwrap(), None)
             .await
             .unwrap_err()
             .code,
         ErrorCode::UnknownCommand
     );
     assert_eq!(fake.calls.load(Ordering::SeqCst), 4);
+}
+
+#[tokio::test]
+async fn accepted_queued_commands_survive_transport_cancellation_and_drain() {
+    // Same resource waits on its lock; a different resource waits on the
+    // single worker. Both must remain owned after the caller disappears.
+    for queued in ["/key b", "/volume set 10"] {
+        let (release, receive) = std::sync::mpsc::channel();
+        let fake = Arc::new(BlockingFake {
+            entered: tokio::sync::Notify::new(),
+            release: std::sync::Mutex::new(receive),
+            calls: AtomicUsize::new(0),
+        });
+        let executor = Arc::new(CommandExecutor::new(fake.clone(), 2, 1));
+        let first = {
+            let executor = executor.clone();
+            tokio::spawn(async move {
+                executor
+                    .execute(executor.parse("/key a").unwrap(), None)
+                    .await
+            })
+        };
+        fake.entered.notified().await;
+        let (accepted, observe) = tokio::sync::oneshot::channel();
+        let second = {
+            let executor = executor.clone();
+            tokio::spawn(async move {
+                executor
+                    .execute_with_admission(executor.parse(queued).unwrap(), None, || {
+                        accepted.send(()).unwrap();
+                    })
+                    .await
+            })
+        };
+        observe.await.unwrap();
+        second.abort();
+        assert_eq!(
+            executor
+                .execute(executor.parse("/key c").unwrap(), None)
+                .await
+                .unwrap_err()
+                .code,
+            ErrorCode::CapacityExhausted
+        );
+        let draining = {
+            let executor = executor.clone();
+            tokio::spawn(async move { executor.drain().await })
+        };
+        release.send(()).unwrap();
+        fake.entered.notified().await;
+        assert!(!draining.is_finished());
+        release.send(()).unwrap();
+        first.await.unwrap().unwrap();
+        tokio::time::timeout(std::time::Duration::from_secs(2), draining)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(fake.calls.load(Ordering::SeqCst), 2);
+    }
 }

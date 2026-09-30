@@ -1,7 +1,5 @@
 # WebDeck
 
-[![GitHub release](https://img.shields.io/github/v/release/Lenochxd/WebDeck.svg?style=flat)](https://github.com/Lenochxd/WebDeck/releases)
-[![GitHub downloads](https://img.shields.io/github/downloads/Lenochxd/WebDeck/total.svg?style=flat)](https://github.com/Lenochxd/WebDeck/releases)
 [![GitHub stars](https://img.shields.io/github/stars/Lenochxd/WebDeck.svg?style=flat)](https://github.com/Lenochxd/WebDeck/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/Lenochxd/WebDeck.svg?style=flat)](https://github.com/Lenochxd/WebDeck/issues)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg?style=flat)](LICENSE)
@@ -14,23 +12,27 @@ and more, with live CPU/RAM/GPU/disk tiles streaming back to the page.
 
 This is the Rust port of the original Python app (axum + Svelte SPA).
 
-The `v2` integration branch adds typed command execution, configuration revisions,
-pairing and feature-owned frontend state. See [implementation status and migration](docs/v2/STATUS.md)
-for validation evidence and the remaining native release gates. Stable releases
-and update channels are unchanged.
+This branch is an unfinished `2.0.0-alpha.1` prerelease. Remote protected
+operations require pairing; configuration writes require revisions. The full
+v2-only command/config/plugin migration is still incomplete. See
+[implementation status and migration](docs/v2/STATUS.md) for the concrete changes,
+remaining code work and validation. Automatic updates are disabled pending a
+verified maintainer-controlled v2 distribution path.
 
 <img width="960" height="540" alt="3d-tour" src="https://github.com/user-attachments/assets/77972bde-4662-4125-80be-3f8dff45234e" />
 
 ## Quickstart
 
-Download the latest `WebDeck-<os>-<arch>-portable.zip` from
-[Releases](https://github.com/Lenochxd/WebDeck/releases), extract it, and run
-`WebDeck` (`WebDeck.exe` on Windows). Then open the printed address
-(default `http://<local-ip>:5000`) on any device in your network — scan the QR
-popup with your phone for the fastest route.
+Evaluate this prerelease from source with an isolated `WEBDECK_CONFIG_DIR`.
+There is no verified v2 distribution approved by this task. V1 remains on its
+deprecated branch; do not use its clients/configuration/plugins as a compatibility
+requirement for v2. Missing/old configuration versions fail without conversion or
+data deletion. Preserve existing data and backups; do not relabel a v1 document.
 
-Your config is created on first run (`.config/config.json`); edit buttons and
-settings from the page itself (config view) or the tray icon.
+Approve remote devices from the host's loopback address. Controller read/input
+grants load the deck without granting access to private settings. Share tokens
+privately and keep them out of URLs/logs/reports. Native file selection requires
+local interaction.
 
 ## Run from source
 

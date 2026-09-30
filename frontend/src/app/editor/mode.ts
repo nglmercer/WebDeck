@@ -27,6 +27,7 @@ export function syncEditorButtonLabel(): void {
 let entryGeneration = 0;
 
 export function toggleEditorMode(): void {
+  if (!pageState.canEdit) return;
   const generation = ++entryGeneration;
   pageState.editorMode = pageState.editorMode === 0 ? 1 : 0;
   toggleEditorButtonsMode();

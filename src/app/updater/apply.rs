@@ -21,11 +21,11 @@ pub async fn check_updates(current_version: &str) {
     let update_repo = settings
         .get("update_repo")
         .and_then(|v| v.as_str())
-        .unwrap_or("Lenochxd/WebDeck");
+        .unwrap_or("nglmercer/WebDeck");
     let update_channel = settings
         .get("update_channel")
         .and_then(|v| v.as_str())
-        .unwrap_or("stable");
+        .unwrap_or("v2-prerelease");
 
     let Some((latest_version, latest_release)) =
         fetch_latest_release(update_repo, update_channel).await
@@ -47,7 +47,8 @@ pub async fn check_updates(current_version: &str) {
     // Select this exact platform. Missing digest fails closed, retaining the
     // current installation; historical unverified releases are not applied.
     let wanted = format!(
-        "WebDeck-{}-{}-portable.zip",
+        "WebDeck-{}-{}-{}-portable.zip",
+        latest_version,
         std::env::consts::OS,
         std::env::consts::ARCH
     );
@@ -65,6 +66,13 @@ pub async fn check_updates(current_version: &str) {
         return;
     };
     let url = asset["browser_download_url"].as_str().unwrap_or("");
+    let expected_url = format!(
+        "https://github.com/nglmercer/WebDeck/releases/download/v{latest_version}/{wanted}"
+    );
+    if url != expected_url {
+        updater_log().error("Update artifact does not match the maintainer repository and release");
+        return;
+    }
     let result = async {
         let bytes = crate::adapters::update::download(url).await?;
         std::fs::create_dir_all(&update_dir)?;

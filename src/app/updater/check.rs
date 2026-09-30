@@ -14,7 +14,9 @@ use crate::app::utils::{
 
 /// Port of `check_for_updates`.
 pub async fn check_for_updates() {
-    if cfg!(debug_assertions) {
+    // Automatic distribution remains disabled until v2 artifacts have passed
+    // the platform/release gates. Manual verified updater/rollback is retained.
+    if !super::V2_AUTOMATIC_UPDATES_VERIFIED || cfg!(debug_assertions) {
         return;
     }
 
@@ -62,16 +64,15 @@ async fn check_for_updates_inner(settings: &Value) -> Result<(), String> {
     let update_repo = settings
         .get("update_repo")
         .and_then(|v| v.as_str())
-        .unwrap_or("Lenochxd/WebDeck");
+        .unwrap_or("nglmercer/WebDeck");
     let update_channel = settings
         .get("update_channel")
         .and_then(|v| v.as_str())
-        .unwrap_or("stable");
+        .unwrap_or("v2-prerelease");
 
-    let latest_version = fetch_latest_release(update_repo, update_channel)
-        .await
-        .map(|(version, _)| version)
-        .unwrap_or_else(|| "1.0.0".to_string());
+    let Some((latest_version, _)) = fetch_latest_release(update_repo, update_channel).await else {
+        return Ok(());
+    };
 
     let is_new_version_available = compare_versions(&latest_version, &current_version) > 0;
     let args = get_args();
@@ -106,13 +107,11 @@ pub async fn check_for_updates_loop() {
     loop {
         let config = get_config(false, false);
         let args = get_args();
-        // NOTE: Python reads the legacy "auto-updates" key here (hyphenated);
-        // kept 1:1 (check_config_update normalizes stored configs anyway).
         let auto_updates = config
             .get("settings")
-            .and_then(|s| s.get("auto-updates"))
+            .and_then(|s| s.get("auto_updates"))
             .and_then(|v| v.as_bool())
-            .unwrap_or(true);
+            .unwrap_or(false);
         if (auto_updates || args.force_update) && !args.no_auto_update {
             check_for_updates().await;
         }

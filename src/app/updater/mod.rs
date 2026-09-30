@@ -26,3 +26,6 @@ pub use check::check_for_updates;
 pub use download::fetch_latest_release;
 pub use files::{check_files, move_folder_content};
 pub use versions::compare_versions;
+
+// Maintainer must validate the v2 distribution path before enabling polling.
+pub const V2_AUTOMATIC_UPDATES_VERIFIED: bool = false;

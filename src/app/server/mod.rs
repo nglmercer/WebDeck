@@ -1,30 +1,5 @@
-//! Port of `app/server.py` — Flask → axum.
-//!
-//! Route table (same paths + methods as the Flask app):
-//! `GET /`, `GET /api/boot`, `POST /usage`, `POST /save_config`,
-//! `POST /COMPLETE_save_config`, `POST /save_single_button`,
-//! `POST /save_buttons_only`, `GET+POST /get_config`, `POST /upload_folderpath`,
-//! `POST /upload_filepath`, `POST /upload_file`, `POST /create_folder`,
-//! `GET /.config/<dir>/<file>`, `POST /send-data`, plus `/static/*` (Flask
-//! static folder) and `/assets/*` (TypeScript frontend bundle).
-//!
-//! Mapping notes:
-//! - `@app.before_request check_local_network` → [`check_local_network`]
-//!   middleware. One intentional deviation: Python tests
-//!   `remote_ip in ipaddress.ip_address(network)` for `allowed_networks`,
-//!   which raises `TypeError` (an `Address` is not a container); Rust
-//!   implements the evidently intended CIDR-contains semantics.
-//! - `@app.after_request` → [`after_request`] middleware (skips `/usage`).
-//! - `@app.errorhandler(Exception)` → [`internal_error`] (always JSON; the
-//!   `flask_debug` HTML-fallthrough is a dev-only path and is not mirrored).
-//! - `render_template("index.jinja")` is replaced by the TypeScript SPA in
-//!   `frontend/` (custom zero-dependency framework, 1:1 port). `GET /`
-//!   serves its bundle; `GET /api/boot` returns the old template context
-//!   (plus `lang`, `audio_devices`, `dark_theme`) as JSON.
-//! - Flask-SocketIO (`connect`/`send`/`message_from_socket`) is ported via
-//!   `socketioxide` ([`socketio_layer`]); the emit points live in the
-//!   `handle_command` callers.
-//! - `werkzeug` vs `app.run` selection collapses to one axum backend.
+//! HTTP composition root. V2 commands, deck boot, configuration and devices
+//! share application services and version-independent authorization.
 
 mod assets;
 mod middleware;
@@ -48,13 +23,12 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use serde_json::{json, Value};
-use tokio::sync::Mutex;
+use serde_json::json;
 use tower_http::services::ServeDir;
 
 use self::middleware::{after_request, check_local_network};
-use self::realtime::{send_data_route, socketio_layer, usage};
-use self::routes_boot::{boot, home};
+use self::realtime::{socketio_layer, usage};
+use self::routes_boot::{boot, home, settings_boot};
 use self::routes_config::{
     complete_save_config, create_folder, get_config_route, save_buttons_only, save_single_button,
     saveconfig,
@@ -71,12 +45,9 @@ use crate::app::utils::{
     settings::get_config::get_port,
 };
 
-/// Shared server state — port of the module-level `config`,
-/// `folders_to_create`, and `local_ip` globals in `app/server.py`.
-/// (Config itself is re-read from disk per handler, exactly like Python.)
+/// Server transport state; configuration transactions live in the application.
 #[derive(Clone)]
 pub struct AppState {
-    pub folders_to_create: Arc<Mutex<Vec<Value>>>,
     pub local_ip: String,
     pub executor: Arc<crate::application::executor::CommandExecutor>,
 }
@@ -114,7 +85,8 @@ pub(crate) fn internal_error(
 pub fn app_router(state: AppState) -> Router {
     Router::new()
         .route("/", get(home))
-        .route("/api/boot", get(boot))
+        .route("/api/v2/boot", get(boot))
+        .route("/api/v2/settings/boot", get(settings_boot))
         .route("/usage", post(usage))
         .route("/save_config", post(saveconfig))
         .route("/COMPLETE_save_config", post(complete_save_config))
@@ -127,10 +99,6 @@ pub fn app_router(state: AppState) -> Router {
         .route("/upload_file", post(upload_file))
         .route("/create_folder", post(create_folder))
         .route("/.config/{directory}/{filename}", get(get_config_file))
-        .route(
-            "/send-data",
-            post(send_data_route).layer(DefaultBodyLimit::max(65536)),
-        )
         .route(
             "/api/v2/commands",
             get(v2::catalog)
@@ -166,7 +134,8 @@ pub fn app_router(state: AppState) -> Router {
 /// Python runs `on_start()` + firewall checks at import time; Rust runs them
 /// at the top of this function (same order, same conditions).
 pub async fn run_server() -> Result<(), ServerError> {
-    let (config, _commands, local_ip) = on_start().await;
+    let (config, commands, local_ip) = on_start().await;
+    crate::application::catalog::publish(commands);
     set_global_variable("config", config.clone());
 
     // Python starts the mic loop at import time when enabled.
@@ -183,7 +152,6 @@ pub async fn run_server() -> Result<(), ServerError> {
     change_server_state(ServerState::Running);
 
     let state = AppState {
-        folders_to_create: Arc::new(Mutex::new(Vec::new())),
         local_ip: local_ip.clone(),
         executor: crate::application::executor::shared(),
     };
@@ -232,7 +200,6 @@ mod tests {
 
     fn test_state() -> AppState {
         AppState {
-            folders_to_create: Arc::new(Mutex::new(Vec::new())),
             local_ip: "127.0.0.1".to_string(),
             executor: Arc::new(crate::application::executor::CommandExecutor::new(
                 Arc::new(crate::application::executor::FakeAdapter),
@@ -262,6 +229,10 @@ mod tests {
                     Request::builder()
                         .method(method)
                         .uri("/get_config")
+                        .header("host", "localhost:5000")
+                        .extension(axum::extract::ConnectInfo(
+                            "127.0.0.1:3000".parse::<SocketAddr>().unwrap(),
+                        ))
                         .header("content-type", "application/json")
                         .body(Body::from("{}"))
                         .unwrap(),

@@ -1,10 +1,11 @@
 // Compatibility entry points; visibility belongs to ModalShell components.
 import { modalState, openModal, closeModal } from '../features/modals/state.svelte';
 import { byId } from '../query';
+import { pageState } from './state';
 export function isAddbuttonModalOpened(): number { return Number(modalState.stack.some(key => key === 'add' || key.startsWith('modal-container-'))); }
 export function isEditbuttonModalOpened(): number { return Number(modalState.stack.some(key => key.startsWith('edit-modal-container-'))); }
 export function resetModalState(): void { modalState.stack = []; }
-export function show_modal(): void { openModal('config'); }
+export function show_modal(): void { if (pageState.canEdit) openModal('config'); }
 export function hide_modal(): void { closeModal('config'); }
 function show_addbutton_modal(folder: string | null, id: string | null): void {
   byId('addbutton-modal-content').attr('data-add-folder', folder ?? '').attr('data-add-id', id ?? '');

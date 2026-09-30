@@ -1,3 +1,4 @@
+import { socketCommandTracker } from '../features/deck/socketCommands';
 import { deviceToken } from '../features/security/session';
 import { showAlert } from '../components/dialog';
 import { text } from '../framework/i18n';
@@ -44,10 +45,11 @@ function wireSocket(transferMethod: string): void {
   socketHolder.socket?.disconnect();
   socketHolder.socket = null;
   if (transferMethod !== 'socket') return;
-  const socket: AppSocket = io(location.origin, { auth: { token: deviceToken() } });
+  const socket: AppSocket = io(location.origin + '/v2', { auth: { token: deviceToken() } });
   socketHolder.socket = socket;
 
-  socket.on('command_error', (error) => { void showAlert(error.message); });
+  socket.on('command_result', result => socketCommandTracker.result(result));
+  socket.on('disconnect', () => socketCommandTracker.disconnect());
   socket.on('connect_error', () => { void showAlert('Connection denied. Check that this device token has not expired or been revoked.'); });
   socket.on('connect', function () {
     console.log('Connected');

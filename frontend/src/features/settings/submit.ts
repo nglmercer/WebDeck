@@ -12,8 +12,18 @@ export function settingsPayload(form: HTMLFormElement): Record<string, unknown> 
     if (!input.name || keys.some(key => ['__proto__', 'constructor', 'prototype'].includes(key))) continue;
     let target = data;
     for (const key of keys.slice(0,-1)) target = (target[key] ??= {}) as Record<string, unknown>;
-    target[keys[keys.length-1]!] = input instanceof HTMLInputElement && input.type === 'checkbox'
+    let value: unknown = input instanceof HTMLInputElement && input.type === 'checkbox'
       ? input.checked : input.id === 'language' ? input.value.toLowerCase() : input.value;
+    if (['front.background', 'front.themes'].includes(input.name)) {
+      const parsed: unknown = JSON.parse(input.value);
+      if (!Array.isArray(parsed) || !parsed.every(v => typeof v === 'string')) throw new Error('Invalid appearance list');
+      value = parsed;
+    } else if (input instanceof HTMLInputElement && (input.type === 'number' || input.name === 'settings.obs.port')) {
+      const number = Number(input.value);
+      if (!Number.isFinite(number)) throw new Error('Invalid numeric setting');
+      value = number;
+    }
+    target[keys[keys.length-1]!] = value;
   }
   return data;
 }

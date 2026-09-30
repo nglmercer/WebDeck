@@ -105,10 +105,8 @@ impl CommandExecutor {
         &self,
         command: ParsedCommand,
         caps: Option<Vec<Capability>>,
-        strict: bool,
     ) -> Result<Value, AppError> {
-        self.execute_with_admission(command, caps, strict, || {})
-            .await
+        self.execute_with_admission(command, caps, || {}).await
     }
 
     /// Reports accepted only after policy and bounded admission succeed.
@@ -117,10 +115,9 @@ impl CommandExecutor {
         &self,
         command: ParsedCommand,
         caps: Option<Vec<Capability>>,
-        strict: bool,
         accepted: impl FnOnce() + Send,
     ) -> Result<Value, AppError> {
-        if strict && command.kind == CommandKind::Unknown {
+        if command.kind == CommandKind::Unknown {
             return Err(AppError::new(ErrorCode::UnknownCommand, "Unknown command"));
         }
         if caps
@@ -137,21 +134,28 @@ impl CommandExecutor {
             }
         })?;
         accepted();
-        let resource = self.resources[&command.resource].clone().lock_owned().await;
-        let worker = self
-            .workers
-            .clone()
-            .acquire_owned()
-            .await
-            .map_err(|_| AppError::new(ErrorCode::ShuttingDown, "Executor is shutting down"))?;
+        let resource = self.resources[&command.resource].clone();
+        let workers = self.workers.clone();
         let adapter = self.adapter.clone();
-        tokio::task::spawn_blocking(move || {
-            let _owned = (admission, resource, worker);
-            let _policy = PolicyGuard::enter(caps);
-            adapter.execute(&command)
-        })
-        .await
-        .map_err(|_| AppError::new(ErrorCode::ExecutionFailed, "Command execution failed"))
+        // This task owns admission before the first wait. Dropping the HTTP or
+        // socket future only drops its observation, never the accepted work.
+        // Drain observes admission through the entire queued/running lifecycle.
+        let work = tokio::spawn(async move {
+            let resource = resource.lock_owned().await;
+            let worker = workers
+                .acquire_owned()
+                .await
+                .map_err(|_| AppError::new(ErrorCode::ShuttingDown, "Executor is shutting down"))?;
+            tokio::task::spawn_blocking(move || {
+                let _owned = (admission, resource, worker);
+                let _policy = PolicyGuard::enter(caps);
+                adapter.execute(&command)
+            })
+            .await
+            .map_err(|_| AppError::new(ErrorCode::ExecutionFailed, "Command execution failed"))
+        });
+        work.await
+            .map_err(|_| AppError::new(ErrorCode::ExecutionFailed, "Command execution failed"))?
     }
 
     pub async fn drain(&self) {

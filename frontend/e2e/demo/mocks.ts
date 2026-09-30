@@ -23,7 +23,7 @@ function ok(body: unknown) {
  * and triggers no real button actions on the host. No-op in live mode.
  *
  * The mocks are stateful: button saves capture the posted grid and later
- * /api/boot + /get_config calls replay it, so added/renamed/swapped
+ * /api/v2/boot + /get_config calls replay it, so added/renamed/swapped
  * buttons persist across the tour's in-place refreshes like a real server.
  */
 export async function setupDemoMocks(page: Page): Promise<void> {
@@ -39,7 +39,7 @@ export async function setupDemoMocks(page: Page): Promise<void> {
     front: { ...boot.config.front, buttons: liveButtons },
   });
 
-  await page.route('**/api/boot', (route) =>
+  await page.route('**/api/v2/boot', (route) =>
     route.fulfill(ok({ ...boot, config: liveConfig() }))
   );
   // Editor enter uses GET, boot uses POST: same config payload either way.
@@ -79,11 +79,12 @@ export async function setupDemoMocks(page: Page): Promise<void> {
     }
     return route.fulfill(ok({ success: true, message: 'demo mode' }));
   });
-  for (const endpoint of ['**/send-data', '**/COMPLETE_save_config', '**/create_folder']) {
+  for (const endpoint of ['**/COMPLETE_save_config', '**/create_folder']) {
     await page.route(endpoint, (route) =>
       route.fulfill(ok({ success: true, message: 'demo mode' }))
     );
   }
+  await page.route('**/api/v2/commands', route => route.fulfill(ok({api_version:2, request_id:'demo', state:'completed', result:{success:true}})));
   // Vite dev does not serve the Rust-owned /static tree; serve the repo
   // copy so button icons and CSS render in the recording.
   await page.route('**/static/**', (route) => {

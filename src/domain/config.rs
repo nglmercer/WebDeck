@@ -20,17 +20,9 @@ impl ConfigDocument {
                 return Err(invalid());
             }
         }
-        if let Some(version) = root.get("schema_version") {
-            match version.as_u64() {
-                Some(1 | SCHEMA_VERSION) => {}
-                Some(_) => {
-                    return Err(AppError::new(
-                        ErrorCode::UnsupportedSchema,
-                        "Unsupported configuration schema",
-                    ))
-                }
-                None => return Err(invalid()),
-            }
+        if root.get("schema_version").and_then(Value::as_u64) != Some(SCHEMA_VERSION) {
+            return Err(AppError::new(ErrorCode::UnsupportedSchema,
+                "Only schema_version 2 is supported. Preserve the data directory and use the deprecated v1 branch for older configurations."));
         }
         if let Some(buttons) = value.pointer("/front/buttons") {
             let folders = buttons.as_object().ok_or_else(invalid)?;
@@ -39,8 +31,18 @@ impl ConfigDocument {
             }
         }
         if let Some(policy) = value.pointer("/settings/v2_security") {
-            if !matches!(policy.as_str(), Some("legacy" | "paired")) {
+            if !matches!(policy.as_str(), Some("paired")) {
                 return Err(invalid());
+            }
+        }
+        for path in ["/front/themes", "/front/background"] {
+            if let Some(list) = value.pointer(path) {
+                if !list
+                    .as_array()
+                    .is_some_and(|items| items.iter().all(Value::is_string))
+                {
+                    return Err(invalid());
+                }
             }
         }
         if let Some(networks) = value.pointer("/settings/allowed_networks") {
@@ -61,22 +63,12 @@ impl ConfigDocument {
         }
         for key in ["height", "width"] {
             if let Some(dim) = value.pointer(&format!("/front/{key}")) {
-                let number = dim.as_u64().or_else(|| dim.as_str()?.parse().ok());
+                let number = dim.as_u64();
                 if !matches!(number, Some(1..=128)) {
                     return Err(invalid());
                 }
             }
         }
         Ok(Self(value))
-    }
-
-    pub fn migrate(mut self) -> Self {
-        self.0["schema_version"] = Value::from(SCHEMA_VERSION);
-        if let Some(settings) = self.0.get_mut("settings").and_then(Value::as_object_mut) {
-            settings
-                .entry("v2_security")
-                .or_insert_with(|| Value::String("legacy".into()));
-        }
-        self
     }
 }

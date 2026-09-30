@@ -4,6 +4,7 @@ import type { JsonObject } from '../framework/types';
 // Shared mutable page state (was implicit globals in the inline script).
 
 export const pageState = {
+  canEdit: true,
   config: {} as JsonObject,
   tempEditorConfig: {} as JsonObject,
   editorMode: 0,
@@ -12,18 +13,14 @@ export const pageState = {
 
 /** Server -> client events (must match `socketio_layer` in src/app/server/realtime.rs). */
 interface ServerToClientEvents {
-  command_error: (error: { message: string }) => void;
-  /** Echo of the original command string after it ran. */
-  json_data: (message: string) => void;
-  /** Broadcast from the `send` handler. */
-  message: (data: unknown) => void;
+  command_result: (event: import('../contracts/v2').CommandEvent) => void;
 }
 
-/** Client -> server events (must match `socketio_layer` in src/app/server/realtime.rs). */
 interface ClientToServerEvents {
-  message_from_socket: (message: string) => void;
-  send: (data: unknown) => void;
+  command: (request: import('../contracts/v2').CommandRequest) => void;
 }
+
+
 
 export type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 

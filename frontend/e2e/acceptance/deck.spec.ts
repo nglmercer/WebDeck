@@ -8,7 +8,7 @@ test('real server: navigation, one click, edit persistence, conflicts, settings 
   await page.getByRole('button',{name:'Work folder',exact:true}).click();
   await expect(page.getByRole('button',{name:'Home folder',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Home folder',exact:true}).click();
-  let commands = 0; page.on('request',r => { if (new URL(r.url()).pathname === '/send-data') commands++; });
+  let commands = 0; page.on('request',r => { if (new URL(r.url()).pathname === '/api/v2/commands') commands++; });
   await page.getByRole('button',{name:'Debug action',exact:true}).click();
   await expect.poll(() => commands).toBe(1);
   await page.keyboard.press('q');
@@ -56,19 +56,23 @@ test('real server: navigation, one click, edit persistence, conflicts, settings 
   expect(errors).toEqual([]);
 });
 
-test('both socket contracts: echo versus accepted/completed; grants, revocation, expiry and reconnect', async ({ request }) => {
+test('v2 socket lifecycle, retired namespace rejection, grants, revocation and expiry', async ({ request }) => {
   const base = 'http://127.0.0.1:59996';
   const grant = await (await request.post('/api/v2/devices',{data:{name:'Socket test',capabilities:['read'],ttl_seconds:60}})).json();
   const connect = (namespace:string,token?:string) => io(base+namespace,{auth:{...(token ? {token} : {})},transports:['websocket'],autoConnect:false,reconnection:false});
   const legacy = connect('/'); const socket = connect('/v2',grant.token);
   const connected = (s: ReturnType<typeof connect>) => new Promise<void>((resolve,reject) => { s.once('connect',()=>resolve()); s.once('connect_error',reject); s.connect(); });
   try {
-    await connected(legacy); await connected(socket);
-    const echo = new Promise(resolve => legacy.once('json_data',resolve)); legacy.emit('message_from_socket','/debug-send {"raw":true}'); expect(await echo).toBe('/debug-send {"raw":true}');
+    await expect(connected(legacy)).rejects.toBeDefined(); await connected(socket);
     const events: any[] = [];
     const completed = new Promise<void>(resolve => socket.on('command_result',event => {events.push(event);if(event.state !== 'accepted')resolve();}));
     socket.emit('command',{message:'/debug-send {}',request_id:'socket-1'}); await completed;
     expect(events.map(e=>e.state)).toEqual(['accepted','completed']); expect(events[1].request_id).toBe('socket-1');
+    socket.disconnect();
+    socket.volatile.emit('command',{message:'/debug-send {}',request_id:'offline-must-not-replay'});
+    await connected(socket);
+    await new Promise(resolve=>setTimeout(resolve,200));
+    expect(events.some(event=>event.request_id==='offline-must-not-replay')).toBe(false);
     const forbidden = new Promise<any>(resolve=>socket.once('command_result',resolve)); socket.emit('command',{message:'/PCshutdown',request_id:'denied'}); expect((await forbidden).code).toBe('forbidden');
     expect((await request.delete('/api/v2/devices/'+grant.device.id)).ok()).toBeTruthy();
     const revoked = new Promise<any>(resolve=>socket.once('command_result',resolve)); socket.emit('command',{message:'/debug-send {}',request_id:'revoked'}); expect((await revoked).code).toBe('unauthorized');
@@ -83,7 +87,7 @@ test('both socket contracts: echo versus accepted/completed; grants, revocation,
 test('real server: create and delete a button, themes and backgrounds persist', async ({page,request}) => {
   const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
   const snapshot=await(await request.get('/api/v2/config')).json();
-  snapshot.config.front.width='3';snapshot.config.front.height='2';snapshot.config.front.buttons={index:[{name:'Settings',message:'/open-config',image:'settings.png'},...Array.from({length:5},()=>({VOID:'VOID'}))]};
+  snapshot.config.front.width=3;snapshot.config.front.height=2;snapshot.config.front.buttons={index:[{name:'Settings',message:'/open-config',image:'settings.png'},...Array.from({length:5},()=>({VOID:'VOID'}))]};
   expect((await request.post('/api/v2/config',{data:{revision:snapshot.revision,config:snapshot.config}})).ok()).toBeTruthy();
   await page.goto('/');await expect(page.getByRole('button',{name:'Settings',exact:true})).toBeVisible();
   await page.keyboard.press('q');
@@ -114,4 +118,23 @@ test('real server: create and delete a button, themes and backgrounds persist', 
   const saved=await(await request.get('/api/v2/config')).json();expect(saved.config.front.themes).toContain('acceptance.css');expect(saved.config.front.background).toContain('#123456');
   await page.reload();await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByTestId('lib-tab-backgrounds').click();
   await expect(page.locator('[data-background="#123456"]')).toBeVisible();expect(errors).toEqual([]);
+});
+
+
+test('paired controller loads deck without settings access or integration secrets', async ({page,request}) => {
+  const snapshot=await(await request.get('/api/v2/config')).json();
+  snapshot.config.settings.obs={host:'localhost',port:4455,password:'private-test-password'};
+  snapshot.config.settings.spotify_api={client_id:'private-test-id',client_secret:'private-test-secret',username:'private-test-user'};
+  expect((await request.post('/api/v2/config',{data:{revision:snapshot.revision,config:snapshot.config}})).ok()).toBeTruthy();
+  const grant=await(await request.post('/api/v2/devices',{data:{name:'Read controller',capabilities:['read','input'],ttl_seconds:60}})).json();
+  await page.addInitScript(token=>sessionStorage.setItem('webdeck.device-token',token),grant.token);
+  const response=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/v2/boot');
+  await page.goto('/');
+  const boot=await(await response).json();
+  expect(boot.can_edit).toBe(false);
+  expect(boot.config.settings.obs).toBeUndefined(); expect(boot.config.settings.spotify_api).toBeUndefined();
+  await expect(page.locator('form.form').first()).toBeVisible();
+  await page.keyboard.press('q'); await expect(page.locator('#config-form')).toHaveCount(0);
+  const denied=await request.get('/api/v2/config',{headers:{Authorization:'Bearer '+grant.token}});
+  expect(denied.status()).toBe(403);
 });

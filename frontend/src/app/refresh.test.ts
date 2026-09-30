@@ -50,7 +50,7 @@ describe('refreshApp', () => {
     boot = bootCtx({ index: [tile('Alpha', '/folder folder1')] });
     fetchMock = vi.fn(async (url: unknown) => {
       const path = String(url);
-      const body = path.includes('/api/boot')
+      const body = path.includes('/api/v2/boot')
         ? boot
         : path.includes('/usage')
           ? {}

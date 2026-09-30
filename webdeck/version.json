@@ -1,6 +1,32 @@
 {
     "versions": [
         {
+            "version": "2.0.0-alpha.1",
+            "release_date": {
+                "day": "30",
+                "month": "09",
+                "year": "2026",
+                "hour": "00",
+                "minute": "00"
+            },
+            "en": {
+                "updates": [
+                    "V2 prerelease: paired remote access, private controller boot, revision-required configuration and owned command lifecycles."
+                ],
+                "minor_enhancements": [],
+                "fixes": [],
+                "nobody_cares": []
+            },
+            "fr": {
+                "updates": [
+                    "Préversion v2 : accès distant appairé et révisions de configuration obligatoires."
+                ],
+                "minor_enhancements": [],
+                "fixes": [],
+                "nobody_cares": []
+            }
+        },
+        {
             "version": "1.8.7",
             "release_date": {
                 "day": "26",
@@ -202,7 +228,10 @@
                 "minute": "17"
             },
             "renamed_files": [
-                ["static/themes/theme1.css", "static/themes/default_theme.css"]
+                [
+                    "static/themes/theme1.css",
+                    "static/themes/default_theme.css"
+                ]
             ],
             "en": {
                 "updates": [],

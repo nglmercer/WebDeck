@@ -232,7 +232,7 @@
               </div>
               <div class="setting-category experimental {config.dark}" hidden={step !== 'experimental'}>
                 <h1 class="config-title"> {text('experimental')} </h1>
-                <DevicesPanel security={asString(get(ctx.config, 'settings', 'v2_security'), 'legacy')} />
+                <DevicesPanel />
                 <Collapse id="experimental-usage" title={text('settings_group_usage')} icon="chart" open={true}>
                   <div class="setting usage-reload-time">
                     <NumberField dark={config.dark} id="usage-reload-time" name="front.computer_usage_reload_time" label={text('usage_btn_reload_time')} value={config.reloadTime} defaultValue="3000" min="0" required={true} />

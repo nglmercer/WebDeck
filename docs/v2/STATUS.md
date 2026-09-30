@@ -1,180 +1,125 @@
-# WebDeck v2 implementation status
+# WebDeck v2-only migration status
 
-Implementation branch: `v2`, based on `343baf22bccbcb26c6114a5795d1449c2d83a777`.
-Recorded on 2026-09-30. This is an integration implementation, awaiting release
-validation. Stable release metadata, version `1.8.7` and update channels have
-not changed. `master` remains the v1 maintenance line.
+Outcome: **incomplete; draft implementation, not ready to merge or release**.
+Recorded 2026-09-30. Starting commit: `d86e5c730393854da06c16ad4791e5249b6842d8`.
+Working branch: `codex/v2-only-migration`, based on `v2`. The deprecated v1
+branch was not changed. This report supersedes prior compatibility-preserving
+requirements. The current implementation does not yet satisfy the requested
+one-generation architecture.
 
-The [proposal](README.md) and [original plan](IMPLEMENTATION_PLAN.md) retain the
-design rationale. This document describes the code actually implemented and
-distinguishes automated evidence from release approval.
+## Implemented changes
 
-## Architecture and ownership
+- Authorization no longer depends on route generation or a legacy policy.
+  Remote protected operations require a paired identity. Explicit invalid HTTP
+  or socket credentials cannot inherit loopback trust. Loopback Host/authority
+  is checked even when a browser omits Origin on a GET. Origin, network,
+  capability, expiry, revocation and loopback device-administration checks remain.
+  Native file selection additionally requires local interaction.
+- `/api/v2/boot` replaces `/api/boot`. Read/input controllers can load the deck
+  without Settings. Controller responses omit administrative settings, OBS and
+  Spotify configuration, command catalog metadata and audio-device discovery.
+  `/api/v2/settings/boot` requires Settings. Plugin initialization runs at
+  startup; boot reads catalog snapshots and cannot trigger plugin initialization.
+  Editing controls are unavailable to
+  controller clients. Config/revision are captured from one service snapshot.
+- `/send-data` and the root Socket.IO namespace are unmounted. Both local and
+  paired command callers use `/api/v2/commands` or `/v2` `command` events.
+  HTTP submission no longer falls back. Socket observations correlate request
+  IDs, distinguish acceptance/completion/failure, and report disconnect/timeout
+  uncertainty. Volatile submission does not queue offline commands for replay.
+  This remains a **string command request**, not the final typed action union.
+- Accepted executor work owns admission through both queued and running states,
+  even after transport cancellation. The API-generation `strict` switch is gone;
+  unknown commands fail. Worker/resource limits and shutdown draining remain.
+- Configuration startup/reload/writes require `schema_version: 2`. Missing/old
+  versions fail without conversion, backup creation/restoration, replacement or
+  deletion. Existing root `config.json` is left untouched and blocks first-run
+  default creation. Normal key renames, hyphen normalization, Python list parsing,
+  string-boolean coercion, GPU alias conversion and defaults-merging were removed
+  from the configuration-normalization module. Useful theme discovery remains.
+- Every ConfigService mutation requires a revision. Remaining HTTP mutation
+  handlers require a valid revision header; v2 replacement requires its body
+  revision. Missing/stale client revisions fail. Reads do not flush writes or
+  apply settings. Folder creation publishes an explicit transaction immediately,
+  preserving existing editor drafts. Configuration resizing and settings
+  publication moved from transport to `application/layout.rs`.
+- Rust, frontend and UI version metadata use `2.0.0-alpha.1`. Development
+  portable labels include that version. Update candidates must be maintainer
+  `nglmercer/WebDeck` v2 prereleases with matching platform/version artifact URL
+  and digest. Semantic version ordering handles numbered prereleases. Automatic
+  polling is disabled until the distribution path is verified. Verified staging,
+  constrained extraction, installation journaling and rollback remain.
 
-- `src/domain`: typed commands, capabilities, resources, validated configuration,
-  stable errors and generated transport requests. No native effects.
-- `src/application`: one shared configuration owner, optimistic revisions,
-  bounded execution, pairing sessions and shutdown coordination.
-- `src/adapters`: durable filesystem writes, confined assets, verified updater,
-  native platform effects and OBS/Spotify/script integrations.
-- `src/app/server`: HTTP and Socket.IO compatibility adapters plus versioned
-  routes. `src/app/buttons` is a compatibility facade; native implementations
-  were removed from that tree after moving to their adapter owners.
-- `frontend/src/features`: deck navigation, editor persistence, settings
-  submission, pairing and modal state. Existing views consume typed callbacks.
-  There are no application functions registered on `window` or executable
-  command attributes. DOM compatibility helpers remain for the old markup.
+The [current action inventory](ACTION_INVENTORY.md) lists registry actions,
+capabilities, frontend-only flows and their remaining migration ownership.
 
-Native effects run through the shared command executor (16 admitted requests,
-4 workers). Commands sharing a resource serialize. Cancellation does not release
-capacity while a blocking effect continues. Shutdown closes admission, drains
-accepted work, stops owned shell process groups, microphone and sound-player
-workers. OBS/Spotify calls and synchronous shell work have 30-second limits;
-scripts have operation, depth and collection limits. Side effects are never
-automatically replayed or retried. GUI windows and external applications opened
-by the OS remain subject to native platform behavior; verify their lifecycle
-in the desktop smoke checklist.
+## Migration map and unfinished work
 
-## Compatibility and intentional changes
+| Old surface | Current replacement / removal | Consumers and evidence | Remaining blocker |
+| --- | --- | --- | --- |
+| `/send-data` | Unmounted; `/api/v2/commands` | HTTP frontend, console, demo, performance harness; authorized-caller 404 test | Request still contains `message`; native parsing remains |
+| `/api/boot` | Unmounted; `/api/v2/boot`, `/api/v2/settings/boot` | SPA, acceptance, portable, performance; least-privilege HTTP/browser checks | Boot/config models still loose; privileged and safe boot share a builder |
+| Root namespace, `message_from_socket`, `send`, `json_data` | Root namespace removed; `/v2` `command` / `command_result` | SPA and real Socket.IO acceptance; retirement, lifecycle, expiry/revocation, disconnected no-replay | Command payload remains string-based; frontend runtime schema validation unfinished |
+| `/save_config`, `/COMPLETE_save_config`, `/save_single_button`, `/save_buttons_only` | **Still mounted**, now revision-required | Settings/editor wrappers, demos and browser tests | Canonical typed mutations and stable button identifiers needed |
+| `/get_config` | **Still mounted**, now read-only snapshot | Editor loads and demos | Replace clients with canonical v2 config/deck reads |
+| `/create_folder`, queued folder writes | Queue removed; immediate revision-required transaction; route **still mounted** | Add-button flow and editor draft merge | Canonical v2 folder mutation and explicit ordering needed |
+| `/usage` | **Still mounted** | Usage tiles and frontend polling | Typed v2 usage endpoint and request model needed |
+| `/upload_file`, `/upload_filepath`, `/upload_folderpath` | **Still mounted**; local-only native pickers | Upload widgets and existing malformed multipart tests | Typed upload/selection operations and canonical assets needed |
+| `.config/`, `**uploaded/`, external path inference | **Still interpreted** | Assets, soundboard, scripts, editor and background UI | Separate managed asset references from privileged external paths |
+| `parse_legacy`, prefix aliases, `<\|§\|>` | **Still present** | Executor, native/integration adapters and legacy console syntax | Generate discriminated action contracts; pass typed adapter arguments |
+| `app/buttons` facade and direct `handle_command` | **Still present** | Scripts/plugins/internal callers | Explicit nested execution with authorization/resource coordination and regression tests |
+| Old config shape under schema 2 | Version gating added, conversion removed | Defaults and persistence tests | Complete generated config model; typed buttons/actions, IDs/order and strict complete-shape validation |
+| Plugin `_dict_doc`, `.py` discovery, delimiter host API | **Still present** | Loader, examples and plugin adapter | One explicit v2 plugin identity/action/argument/result/capability contract |
+| Python-named Rhai modules, `type:uploaded_file`, `type:file_path` | **Still present** | Script metadata, loader and Rhai host | Typed script sources and nested invocation design |
+| Legacy security selector / tokenless remote exception | Removed from authorization and settings UI | HTTP, socket and controller tests | Full policy audit after all new mutation surfaces exist |
+| Old stable updater source / v1 candidate selection | Replaced, automatic polling disabled | Release selection tests, version metadata and packaging | Real signed Windows/Linux v2 distribution validation |
+| Legacy golden contract/tests | **Still present** | `contracts/legacy-commands.json`, parser/native tests | Replace positive compatibility assertions after typed action migration |
 
-| Surface | Implemented behavior | Evidence / release limit |
-| --- | --- | --- |
-| Legacy command strings and aliases | Typed compatibility parser preserves ordering, original text and placeholder/tail behavior; unknown legacy messages retain success behavior | `tests/v2_commands.rs`, legacy command unit tests |
-| HTTP command execution | Legacy final result preserved; v2 uses stable error codes and request IDs | `tests/v2_http.rs`, contracts test |
-| Socket.IO | Legacy `json_data` echo retained; v2 `command_result` sends accepted then completed/failed; no offline replay | Chromium socket test and executor tests |
-| Configuration | Schema 1 migrates idempotently to 2; extra data and folder ordering preserved; immutable v1 backup; revision conflicts preserve editor drafts | 7 config tests and real-browser conflict test |
-| Editor/settings | Create, edit, delete, swap, navigation, appearance, themes, backgrounds and grid dimensions persist | Frontend suite and 3 Chromium acceptance tests |
-| Modal lifecycle | State owns visibility; focus trap, focus restoration, listener/observer cleanup; refresh replaces owned theme stylesheet links | Unit tests and browser repeated open/close |
-| Uploads/assets | Capped multipart body, field validation before publication, rooted paths and symlink rejection | HTTP malformed/duplicate/traversal fixtures; native picker remains desktop-dependent |
-| Rhai/scripts/plugins | Existing compatibility commands retained behind capability checks and execution limits | Parser/adapter tests; real plugin behavior needs desktop smoke |
-| OBS/Spotify/audio/input/window/power | Implementation extracted into native/integration adapters; no claim of live integration parity from mocks | Hardware and credential-dependent checks required below |
-| Portable/update | Fresh frontend/native builds, SHA-256 manifest, constrained verified staging, journaled upgrade and rollback, private user config preserved | Update tests, rollback CLI and actual extracted Linux artifact smoke |
+Internal convenience saves still capture their revision at save time; consolidating
+those writers with the original read snapshot is part of the remaining shared
+configuration/global-state work. The complete generated contract constraints and
+runtime validation must also be made consistent.
 
-External manual config edits reload only when valid; an invalid edit does not
-replace the last valid in-memory snapshot. All application writers use an OS
-advisory lock and atomic publication. External editors do not honor that lock;
-there remains a small race between an external edit and atomic replacement.
-Do not edit the file concurrently with an application save.
+The production guard scans sources and live/demo tooling, not historical
+Markdown or explicit rejection tests. `node tools/validation/v2-only.mjs` returns
+**nonzero** while remaining compatibility surfaces are present. CI runs that
+completion gate; passing ordinary tests does not make this migration complete.
+The machine-readable violations are in `evidence/v2-only/migration-guard.json`.
 
-The compatibility facade and legacy JSON/DOM models deliberately remain until
-native parity evidence permits removal. A directory move alone is not evidence
-that hardware behavior has been validated.
+## Validation evidence
 
-## Pairing and security
+The baseline passed the existing Rust suite and 379 frontend tests. The initial
+plain-shell Cargo invocation failed because Cargo was not on PATH; subsequent
+commands used `/workspace/.webdeck-tools/env.sh` (installed Rust and system-library
+selectors). No test/lint settings were relaxed. Intermediate compile/type/test
+failures were repaired before the final run.
 
-`settings.v2_security` defaults to `legacy` during migration. This retains the
-existing LAN policy for legacy clients. Use Settings → Experimental → Manage
-devices on the local host to approve a device and switch to `paired` mode.
-Pairing tokens are shown once and stored as hashes in a private device file;
-they are sent in headers/socket authentication, never URLs. Grants have
-capabilities and expiration; revocation and expiry are rechecked for every
-socket command. Local approval/revocation endpoints cannot be used by remote
-peers. Browser origins must match the HTTP host; forwarding headers do not
-make a remote peer local. Loopback browser requests must use localhost or a known
-server IP, preventing DNS rebinding from inheriting local administrative trust.
-Custom DNS hostnames on the hosting computer must use localhost/the server IP
-instead. IPv4 and IPv6 CIDRs are validated explicitly.
+See `evidence/v2-only/checks.json` and the corresponding independent logs for
+commands, exit codes and timings. Final validation and artifact results are
+recorded in [MIGRATION_REPORT.md](MIGRATION_REPORT.md). Earlier evidence files
+outside `evidence/v2-only/` describe the baseline compatibility implementation
+and are not evidence for these changes.
 
-V2 remote routes always require a token. In paired mode, legacy remote clients
-also require it. Existing clients without pairing support consequently need
-updating before enabling paired mode. Read does not imply command execution;
-power, scripting and settings use separate grants. Settings is a trusted grant:
-it can read integration configuration containing credentials. Remote Settings
-grants cannot change pairing, network/admin/firewall or update-channel policy.
-There is no replay after reconnect and no automatic retry of failed effects.
-Debug-only `WEBDECK_FAKE_EFFECTS=1` enables headless acceptance; release binaries
-ignore it. A focused maintainer security review is still a release gate.
+Persistence tests cover unsupported-version preservation, existing backup
+preservation, revision conflicts, independent advisory-lock owners, atomic-write
+failure and retention of the last valid snapshot after invalid external edits.
+Advisory locks only coordinate application writers; editors that ignore them
+can race publication. Do not edit the file concurrently with an application save.
+Executor tests cover both resource-lock and worker waiting after caller abort.
+HTTP/native command coverage uses fake effects. Browser acceptance uses a real
+HTTP/Socket.IO server with fake native effects and isolated data.
 
-## Migration and recovery
+## Platform and release gates
 
-Back up the entire existing data directory, including uploads, themes and
-plugins, before changing branches. Start v2 with the same directory, or set
-`WEBDECK_CONFIG_DIR` to an isolated copy for evaluation. The first valid load
-creates `config.v1.backup.json` once and migrates schema metadata/defaults.
-Configuration and pairing writes use private permissions on Unix; validate
-Windows ACLs in a real installation. Do not copy tokens into issue reports.
+Windows checks were not run in this Linux workspace. Native key/mouse input,
+window/power effects, soundboard/microphone/device-loss, live OBS/Spotify,
+representative real plugins/scripts, signed Windows packaging and Windows
+installation upgrade/rollback require separate platform/credential/hardware
+validation. Automatic updates stay disabled. No release or artifact was
+published. Installation rollback safety is independent of v1 config conversion
+and remains available.
 
-To return to v1, close v2, preserve the current data directory separately, and
-restore the v1 backup to `config.json` alongside the backed-up assets. New v2
-edits are not present in that original backup. The configuration service also
-exposes an explicit backup-restoration operation for local tooling.
-
-Updater archives cannot replace user configuration. Downloads require GitHub
-HTTPS and the release asset SHA-256 supplied by trusted release metadata.
-A digest verifies integrity; it is not an independent publisher signature.
-Windows release packaging requires an independently obtained NirCmd digest
-and successful binary signing. Development archives are explicitly named
-`dev-portable`. No artifact has been published from this branch.
-
-Close the application before restoring an updater backup:
-
-```sh
-/path/to/update --rollback /path/to/backup --destination /path/to/installation
-```
-
-Keep administrator ownership of backup and installation paths. The updater
-records originals before changing files and retains successful backups.
-Windows locked files fail safely. The automatic launcher stops the app before
-its download preflight; download failure leaves the installation unchanged but
-requires restarting the app manually. Rehearse this on Windows before release.
-
-## Reproducible checks
-
-Install the native GTK/WebKit/ALSA/XCB development libraries listed in CI and
-use current stable Rust and Node 22+:
-
-```sh
-cargo fmt --all -- --check
-node tools/contracts/generate.mjs --check
-cargo test --locked --all-targets
-cargo clippy --locked --all-targets --all-features -- -D warnings
-npm ci --prefix frontend
-npm ci --prefix tools/component-check
-npm --prefix frontend run check:components
-npm --prefix frontend run typecheck
-npm --prefix frontend run knip
-npm --prefix frontend test
-npm --prefix frontend run build
-cargo build --locked --bin webdeck
-(cd frontend && npx playwright install chromium && npm run test:acceptance)
-cargo run --locked --bin package
-node tools/validation/portable.mjs
-WEBDECK_PORTABLE_ARTIFACT="$PWD/dist/WebDeck-linux-x86_64-portable.zip" \
-  cargo test --locked --test v2_update portable_archive -- --ignored
-```
-
-The cloud run uses installed `/usr/bin/chromium`; set `WEBDECK_CHROMIUM` for
-another executable. Portable smoke currently requires Python 3 and Chromium
-and was executed on Linux x86_64. Windows CI is configured but has not been
-executed in this Linux workspace. No supported Windows release is inferred.
-The final Linux run passed 137 Rust tests (2 opt-in checks ignored) plus the built-artifact upgrade/rollback check, 379 frontend
-tests in 53 files, all 3 Chromium acceptance tests, formatting, generated
-contracts, Clippy, TypeScript, Knip and Svelte diagnostics (0 errors/warnings).
-
-Evidence is in [evidence/](evidence/): original baseline, final checks,
-[portable artifact report](evidence/portable.json), and
-[performance comparison](evidence/performance.json).
-
-## Performance and remaining release gates
-
-The recorded sequential debug-profile comparisons use frozen baseline binaries
-and frontend, the same isolated config, 30 measured boot/command requests after
-warmup, 5 browser loads, RSS and idle CPU. The latest run measured boot p95 at
-56.7 ms baseline / 33.6 ms v2, usable UI p95 at 1752.2 / 1714.3 ms, and command
-p95 at 10.41 / 3.81 ms. Compressed JS grew from 76,635 to 80,415 bytes; RSS was
-84,280 / 83,932 KiB and both measured zero idle CPU ticks in one second.
-
-The [initial run](evidence/performance-initial.json) instead measured boot p95
-at 31.9 / 48.7 ms and UI p95 at 1594.5 / 1907.5 ms. These shared cloud measurements
-show substantial variability and do not establish a speedup or an agreed
-performance budget. Review boot/UI under controlled production workloads and
-establish budgets before release; bundle growth is about 4.9%.
-
-Before stable cutover, record Windows CI and extracted-artifact results; test
-native key/mouse input, window operations, tray/popup/QR shutdown, device loss,
-loopback microphone and soundboard on Windows and Linux; exercise live OBS and
-Spotify with disposable credentials; validate representative Rhai/plugins;
-rehearse an upgrade and rollback of a real Windows installation; review token,
-origin, capability and archive handling; approve performance budgets and release
-notes. A maintainer must approve stable cutover. This branch does not satisfy
-those external/native release gates merely because automated tests pass.
+These external gates are additional to the **unfinished code migration** above;
+this branch is not code-complete awaiting only hardware validation. Use an
+isolated data directory for evaluation. Never relabel an old configuration as
+schema 2 to bypass rejection; preserve old data and use the deprecated branch.

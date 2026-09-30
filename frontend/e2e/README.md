@@ -46,12 +46,12 @@ DOM assertions stay as the final proof; events carry the causal wait.
 ## How it works
 
 - Playwright starts `vite dev` and records the tour above.
-- The Rust backend is mocked from `e2e/fixtures/` (`/api/boot`,
+- The Rust backend is mocked from `e2e/fixtures/` (`/api/v2/boot`,
   `/get_config`, `/usage`, `/send-data`, save endpoints, `/create_folder`)
   and `/static/*` is served from the repo copy, so the shoot is
   deterministic and triggers no real button actions on the host.
 - The mocks are stateful: `/save_buttons_only` and `/save_config` capture
-  the posted grid and later `/api/boot` + `/get_config` calls replay it,
+  the posted grid and later `/api/v2/boot` + `/get_config` calls replay it,
   so added/renamed/swapped buttons persist across the tour's in-place
   refreshes like a real server.
 - Playwright's encoder does not capture the OS pointer, so the spec

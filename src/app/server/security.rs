@@ -47,24 +47,14 @@ pub(crate) fn origin_allowed(headers: &HeaderMap) -> bool {
         && (uri.path().is_empty() || uri.path() == "/")
 }
 
-pub(crate) fn strict_mode() -> bool {
-    crate::app::utils::settings::get_config::get_config(false, false)
-        .pointer("/settings/v2_security")
-        .and_then(|v| v.as_str())
-        == Some("paired")
-}
-
-pub(crate) fn authorize(
-    token: Option<&str>,
-    local: bool,
-    legacy: bool,
-) -> Result<Identity, AppError> {
+pub(crate) fn authorize(token: Option<&str>, local: bool) -> Result<Identity, AppError> {
+    // Supplied credentials are always checked, including on loopback.
     if let Some(token) = token {
         return Ok(Identity {
             capabilities: Some(sessions::shared()?.authorize(token)?),
         });
     }
-    if local || (legacy && !strict_mode()) {
+    if local {
         return Ok(Identity { capabilities: None });
     }
     Err(AppError::new(
@@ -96,7 +86,9 @@ pub(crate) async fn guard(
         .map(|c| c.0.ip());
     let local = is_local(peer);
     if !origin_allowed(request.headers())
-        || (local && !local_browser_origin(request.headers(), &state.local_ip))
+        || (local
+            && (!local_browser_origin(request.headers(), &state.local_ip)
+                || !local_request_host_allowed(&request, &state.local_ip)))
     {
         return super::v2::error_response(
             AppError::new(ErrorCode::Forbidden, "Cross-origin requests are denied"),
@@ -123,15 +115,31 @@ pub(crate) async fn guard(
             None,
         );
     }
-    let token = request
-        .headers()
-        .get("authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "));
-    let identity = match authorize(token, local, !path.starts_with("/api/v2/")) {
+    let token = match request.headers().get("authorization") {
+        None => None,
+        Some(header) => match header.to_str().ok().and_then(|s| s.strip_prefix("Bearer ")) {
+            Some(token) if !token.is_empty() => Some(token),
+            _ => {
+                return super::v2::error_response(
+                    AppError::new(ErrorCode::Unauthorized, "Invalid authorization header"),
+                    None,
+                )
+            }
+        },
+    };
+    let identity = match authorize(token, local) {
         Ok(identity) => identity,
         Err(error) => return super::v2::error_response(error, None),
     };
+    if matches!(path, "/upload_filepath" | "/upload_folderpath") && !local {
+        return super::v2::error_response(
+            AppError::new(
+                ErrorCode::Forbidden,
+                "File selection requires local interaction",
+            ),
+            None,
+        );
+    }
     // Legacy saves and file pickers also use capability policy when paired.
     let capability = if matches!(
         path,
@@ -141,7 +149,7 @@ pub(crate) async fn guard(
             | "/save_buttons_only"
             | "/create_folder"
             | "/get_config"
-            | "/api/boot"
+            | "/api/v2/settings/boot"
             | "/upload_file"
             | "/upload_filepath"
             | "/upload_folderpath"
@@ -151,9 +159,7 @@ pub(crate) async fn guard(
     } else {
         Capability::Read
     };
-    if !(path == "/send-data"
-        || (path == "/api/v2/commands" && request.method() == axum::http::Method::POST))
-    {
+    if !(path == "/api/v2/commands" && request.method() == axum::http::Method::POST) {
         if let Err(error) = require(&identity, capability) {
             return super::v2::error_response(error, None);
         }
@@ -214,22 +220,9 @@ pub(crate) async fn guard(
     next.run(request).await
 }
 
-// A matching Origin/Host alone permits DNS rebinding into loopback admin
-// trust. Local browser requests must name localhost or a known server IP.
-fn local_browser_origin(headers: &HeaderMap, local_ip: &str) -> bool {
-    let Some(origin) = headers.get("origin") else {
-        return true;
-    };
-    let Some(uri) = origin
-        .to_str()
-        .ok()
-        .and_then(|s| s.parse::<axum::http::Uri>().ok())
-    else {
-        return false;
-    };
-    let Some(host) = uri.host() else {
-        return false;
-    };
+// Browsers can omit Origin on same-origin GETs. Validate Host/authority as
+// well, so DNS rebinding cannot inherit trusted-loopback administration.
+fn local_host_allowed(host: &str, local_ip: &str) -> bool {
     host.eq_ignore_ascii_case("localhost")
         || host
             .trim_matches(['[', ']'])
@@ -240,10 +233,46 @@ fn local_browser_origin(headers: &HeaderMap, local_ip: &str) -> bool {
                     || crate::app::utils::args::get_args().host.as_deref() == Some(host)
             })
 }
+fn local_request_host_allowed(request: &Request<Body>, local_ip: &str) -> bool {
+    let authority = request
+        .headers()
+        .get("host")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.parse::<axum::http::uri::Authority>().ok())
+        .or_else(|| request.uri().authority().cloned());
+    authority.is_some_and(|a| local_host_allowed(a.host(), local_ip))
+}
+fn local_browser_origin(headers: &HeaderMap, local_ip: &str) -> bool {
+    let Some(origin) = headers.get("origin") else {
+        return true;
+    };
+    origin
+        .to_str()
+        .ok()
+        .and_then(|s| s.parse::<axum::http::Uri>().ok())
+        .and_then(|uri| uri.host().map(str::to_string))
+        .is_some_and(|host| local_host_allowed(&host, local_ip))
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn host_rebinding_is_denied_even_without_origin() {
+        for (host, allowed) in [
+            ("localhost:5000", true),
+            ("127.0.0.1:5000", true),
+            ("[::1]:5000", true),
+            ("evil.test:5000", false),
+        ] {
+            let request = Request::builder()
+                .uri("/api/v2/config")
+                .header("host", host)
+                .body(Body::empty())
+                .unwrap();
+            assert_eq!(local_request_host_allowed(&request, "192.168.1.2"), allowed);
+        }
+    }
     #[test]
     fn local_browser_origin_rejects_rebinding_host_even_with_matching_origin() {
         for (origin, allowed) in [

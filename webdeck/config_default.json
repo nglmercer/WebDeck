@@ -4,9 +4,9 @@
         "show_popup": true,
         "windows_startup": false,
         "windows_start_menu_shortcut": false,
-        "auto_updates": true,
-        "update_channel": "stable",
-        "update_repo": "Lenochxd/WebDeck",
+        "auto_updates": false,
+        "update_channel": "v2-prerelease",
+        "update_repo": "nglmercer/WebDeck",
         "dev_mode": false,
         "app_admin": true,
         "optimized_usage_display": false,
@@ -19,7 +19,7 @@
         "fix_stop_soundboard": false,
         "ear_soundboard": true,
         "allowed_networks": [],
-        "netmask": "16",
+        "netmask": 16,
         "spotify_api": {
             "client_id": "",
             "client_secret": "",
@@ -35,21 +35,22 @@
             "host": "localhost",
             "port": 4455,
             "password": ""
-        }
+        },
+        "v2_security": "paired"
     },
     "front": {
         "background": [
             "#141414"
         ],
-        "computer_usage_reload_time": "3000",
+        "computer_usage_reload_time": 3000,
         "edit_buttons_color": false,
         "buttons_color": "",
         "names_color": "#b3b3b3",
         "show_names": true,
-        "portrait_rotate": "90",
+        "portrait_rotate": 90,
         "themes": [],
-        "height": "4",
-        "width": "8",
+        "height": 4,
+        "width": 8,
         "dark_theme": true,
         "buttons": {
             "index": [
@@ -422,5 +423,6 @@
     "url": {
         "ip": "0.0.0.0",
         "port": 59997
-    }
+    },
+    "schema_version": 2
 }

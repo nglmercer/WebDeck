@@ -1,3 +1,5 @@
+> Historical plan for the earlier compatibility implementation. Superseded by the v2-only implementation task; see [current status](STATUS.md). Do not use its compatibility requirements as current product requirements.
+
 # WebDeck v2 — Implementation Plan
 
 Status: original work breakdown; implementation and release-gate evidence are tracked in [STATUS.md](STATUS.md). Base: `343baf22bccbcb26c6114a5795d1449c2d83a777`.

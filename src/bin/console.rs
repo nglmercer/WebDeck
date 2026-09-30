@@ -1,6 +1,6 @@
 //! Debug console — port of `console.py`.
 //!
-//! REPL that POSTs typed messages to `/send-data`, printing the round-trip
+//! REPL that POSTs command requests to `/api/v2/commands`, printing the round-trip
 //! time. Run with `cargo run --bin console`.
 
 #![allow(dead_code)]
@@ -8,7 +8,7 @@
 use std::io::{self, BufRead, Write};
 use std::time::Instant;
 
-use webdeck::app::utils::{get_local_ip, logger::log, settings::get_config, working_dir};
+use webdeck::app::utils::{logger::log, settings::get_config, working_dir};
 
 #[tokio::main]
 async fn main() {
@@ -20,8 +20,9 @@ async fn main() {
         .and_then(|u| u.get("port"))
         .and_then(|p| p.as_u64())
         .unwrap_or(5000);
-    let host = get_local_ip::get_local_ip().unwrap_or_else(|_| "127.0.0.1".to_string());
-    let url = format!("http://{host}:{port}/send-data");
+    let host = std::env::var("WEBDECK_HOST").unwrap_or_else(|_| "127.0.0.1".into());
+    let token = std::env::var("WEBDECK_DEVICE_TOKEN").ok();
+    let url = format!("http://{host}:{port}/api/v2/commands");
 
     let client = reqwest::Client::new();
     let stdin = io::stdin();
@@ -41,20 +42,30 @@ async fn main() {
         let message = line.trim_end_matches(['\r', '\n']).to_string();
 
         let start = Instant::now();
-        let result = client
+        let mut request = client
             .post(&url)
-            .json(&serde_json::json!({ "message": message }))
-            .send()
-            .await;
+            .json(&serde_json::json!({"message": message}));
+        if let Some(token) = &token {
+            request = request.bearer_auth(token);
+        }
+        let result = request.send().await;
         let elapsed = start.elapsed().as_secs_f64();
 
         match result {
-            // Python checks `status_code == 200` exactly, not 2xx.
-            Ok(response) if response.status().as_u16() == 200 => {
-                println!("success! {elapsed:.2}s");
+            Ok(response) => {
+                let status = response.status();
+                match response.json::<serde_json::Value>().await {
+                    Ok(result) if status.is_success() && result["state"] == "completed" => {
+                        println!("completed {elapsed:.2}s")
+                    }
+                    Ok(result) => println!(
+                        "Command failed ({status}): {}",
+                        result["code"].as_str().unwrap_or("invalid_response")
+                    ),
+                    Err(_) => println!("Invalid server response ({status}); outcome unknown"),
+                }
             }
-            Ok(response) => println!("Error: {}", response.status()),
-            Err(e) => println!("Error: {e}"),
+            Err(_) => println!("Transport failed; outcome unknown. No retry was attempted."),
         }
     }
 }

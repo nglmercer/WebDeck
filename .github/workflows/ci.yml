@@ -26,6 +26,8 @@ jobs:
         with:
           node-version: 22
       - run: node tools/contracts/generate.mjs --check
+      - name: V2-only migration completion gate
+        run: node tools/validation/v2-only.mjs
       - run: cargo clippy --locked --all-targets --all-features -- -D warnings
       - run: cargo test --locked --all-targets
 
@@ -90,7 +92,7 @@ jobs:
         run: cargo run --locked --bin package -- --dev
       - name: Smoke extracted artifact and rehearse upgrade/rollback
         env:
-          WEBDECK_PORTABLE_ARTIFACT: ${{ github.workspace }}/dist/WebDeck-linux-x86_64-dev-portable.zip
+          WEBDECK_PORTABLE_ARTIFACT: ${{ github.workspace }}/dist/WebDeck-2.0.0-alpha.1-linux-x86_64-dev-portable.zip
         run: |
           node tools/validation/portable.mjs "$WEBDECK_PORTABLE_ARTIFACT"
           cargo test --locked --test v2_update portable_archive -- --ignored

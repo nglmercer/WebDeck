@@ -6889,7 +6889,7 @@ dependencies = [
 
 [[package]]
 name = "webdeck"
-version = "1.8.7"
+version = "2.0.0-alpha.1"
 dependencies = [
  "arboard",
  "ashpd",
@@ -6912,6 +6912,7 @@ dependencies = [
  "rodio",
  "rspotify",
  "screenshots",
+ "semver",
  "serde",
  "serde_json",
  "sha2",

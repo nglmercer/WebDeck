@@ -1,0 +1,280 @@
+[
+  {
+    "name": "fmt",
+    "command": [
+      "cargo",
+      "fmt",
+      "--all",
+      "--",
+      "--check"
+    ],
+    "exit_code": 0,
+    "seconds": 0.25,
+    "log": "fmt.log"
+  },
+  {
+    "name": "contracts",
+    "command": [
+      "node",
+      "tools/contracts/generate.mjs",
+      "--check"
+    ],
+    "exit_code": 0,
+    "seconds": 0.05,
+    "log": "contracts.log"
+  },
+  {
+    "name": "rust",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--all-targets"
+    ],
+    "exit_code": 0,
+    "seconds": 30.29,
+    "log": "rust.log"
+  },
+  {
+    "name": "clippy",
+    "command": [
+      "cargo",
+      "clippy",
+      "--locked",
+      "--all-targets",
+      "--all-features",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 0,
+    "seconds": 2.58,
+    "log": "clippy.log"
+  },
+  {
+    "name": "frontend-contracts",
+    "command": [
+      "npm",
+      "--prefix",
+      "frontend",
+      "run",
+      "check:contracts"
+    ],
+    "exit_code": 0,
+    "seconds": 0.14,
+    "log": "frontend-contracts.log"
+  },
+  {
+    "name": "components",
+    "command": [
+      "npm",
+      "--prefix",
+      "frontend",
+      "run",
+      "check:components"
+    ],
+    "exit_code": 0,
+    "seconds": 5.3,
+    "log": "components.log"
+  },
+  {
+    "name": "types",
+    "command": [
+      "npm",
+      "--prefix",
+      "frontend",
+      "run",
+      "typecheck"
+    ],
+    "exit_code": 0,
+    "seconds": 0.76,
+    "log": "types.log"
+  },
+  {
+    "name": "knip",
+    "command": [
+      "npm",
+      "--prefix",
+      "frontend",
+      "run",
+      "knip"
+    ],
+    "exit_code": 0,
+    "seconds": 1.24,
+    "log": "knip.log"
+  },
+  {
+    "name": "frontend",
+    "command": [
+      "npm",
+      "--prefix",
+      "frontend",
+      "test"
+    ],
+    "exit_code": 0,
+    "seconds": 12.2,
+    "log": "frontend.log"
+  },
+  {
+    "name": "build-ui",
+    "command": [
+      "npm",
+      "--prefix",
+      "frontend",
+      "run",
+      "build"
+    ],
+    "exit_code": 0,
+    "seconds": 1.02,
+    "log": "build-ui.log"
+  },
+  {
+    "name": "build-native",
+    "command": [
+      "cargo",
+      "build",
+      "--locked",
+      "--bin",
+      "webdeck"
+    ],
+    "exit_code": 0,
+    "seconds": 0.42,
+    "log": "build-native.log"
+  },
+  {
+    "name": "guard",
+    "command": [
+      "node",
+      "tools/validation/v2-only.mjs",
+      "--json"
+    ],
+    "exit_code": 1,
+    "seconds": 0.28,
+    "log": "guard.log"
+  },
+  {
+    "name": "npm-ci-frontend",
+    "command": [
+      "npm",
+      "ci",
+      "--prefix",
+      "frontend"
+    ],
+    "exit_code": 0,
+    "log": "npm-ci-frontend.log"
+  },
+  {
+    "name": "npm-ci-components",
+    "command": [
+      "npm",
+      "ci",
+      "--prefix",
+      "tools/component-check"
+    ],
+    "exit_code": 0,
+    "log": "npm-ci-components.log"
+  },
+  {
+    "name": "playwright-install",
+    "command": [
+      "npm",
+      "--prefix",
+      "frontend",
+      "exec",
+      "--",
+      "playwright",
+      "install",
+      "chromium"
+    ],
+    "exit_code": 0,
+    "log": "playwright-install.log"
+  },
+  {
+    "name": "acceptance",
+    "command": [
+      "npm",
+      "run",
+      "test:acceptance"
+    ],
+    "exit_code": 0,
+    "log": "acceptance.log",
+    "cwd": "frontend"
+  },
+  {
+    "name": "package",
+    "command": [
+      "cargo",
+      "run",
+      "--locked",
+      "--bin",
+      "package",
+      "--",
+      "--dev"
+    ],
+    "exit_code": 0,
+    "log": "package.log"
+  },
+  {
+    "name": "portable",
+    "command": [
+      "node",
+      "tools/validation/portable.mjs",
+      "dist/WebDeck-2.0.0-alpha.1-linux-x86_64-dev-portable.zip"
+    ],
+    "exit_code": 0,
+    "log": "portable.log"
+  },
+  {
+    "name": "rollback",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--test",
+      "v2_update",
+      "portable_archive",
+      "--",
+      "--ignored"
+    ],
+    "exit_code": 0,
+    "log": "rollback.log",
+    "environment": {
+      "WEBDECK_PORTABLE_ARTIFACT": "/workspace/WebDeck/dist/WebDeck-2.0.0-alpha.1-linux-x86_64-dev-portable.zip"
+    }
+  },
+  {
+    "name": "types-cleanup",
+    "command": [
+      "npm",
+      "--prefix",
+      "frontend",
+      "run",
+      "typecheck"
+    ],
+    "exit_code": 0,
+    "log": "types-cleanup.log"
+  },
+  {
+    "name": "frontend-cleanup",
+    "command": [
+      "npm",
+      "--prefix",
+      "frontend",
+      "test"
+    ],
+    "exit_code": 0,
+    "log": "frontend-cleanup.log"
+  },
+  {
+    "name": "build-cleanup",
+    "command": [
+      "npm",
+      "--prefix",
+      "frontend",
+      "run",
+      "build"
+    ],
+    "exit_code": 0,
+    "log": "build-cleanup.log"
+  }
+]

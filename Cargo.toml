@@ -1,8 +1,8 @@
 [package]
 name = "webdeck"
-version = "1.8.7"
+version = "2.0.0-alpha.1"
 edition = "2021"
-description = "WebDeck — Rust port (1:1 migration of the Python app)"
+description = "WebDeck v2 desktop controller (prerelease)"
 license = "GPL-3.0-or-later"
 default-run = "webdeck"
 
@@ -35,6 +35,7 @@ tokio = { version = "1", features = ["full"] }
 libc = "0.2"
 getrandom = "0.4.3"
 sha2 = "0.10.9"
+semver = "1.0.28"
 axum = { version = "0.8", features = ["multipart"] }
 # tower (ServiceExt/oneshot) is test-only → [dev-dependencies] below.
 tower-http = { version = "0.6", features = ["fs"] }

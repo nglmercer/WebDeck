@@ -5,42 +5,19 @@
 /// Returns 1 if `version1` > `version2`, -1 if less, 0 if equal.
 /// `-pre`/`-beta` suffixes sort below the plain release.
 pub fn compare_versions(version1: &str, version2: &str) -> i32 {
-    fn parse_version(version: &str) -> (Vec<u64>, Option<&str>) {
-        if let Some(base) = version.strip_suffix("-pre") {
-            return (
-                base.split('.').filter_map(|p| p.parse().ok()).collect(),
-                Some("pre"),
-            );
-        }
-        if let Some(base) = version.strip_suffix("-beta") {
-            return (
-                base.split('.').filter_map(|p| p.parse().ok()).collect(),
-                Some("beta"),
-            );
-        }
-        (
-            version.split('.').filter_map(|p| p.parse().ok()).collect(),
-            None,
-        )
-    }
-
-    let (v1, s1) = parse_version(version1);
-    let (v2, s2) = parse_version(version2);
-
-    for (a, b) in v1.iter().zip(v2.iter()) {
-        if a != b {
-            return if a > b { 1 } else { -1 };
-        }
-    }
-    if v1.len() != v2.len() {
-        return if v1.len() > v2.len() { 1 } else { -1 };
-    }
-
-    let rank = |suffix: Option<&str>| match suffix {
-        Some("pre") | Some("beta") => -1,
-        _ => 0,
+    // Release candidates are validated before this boundary. Invalid local
+    // version metadata cannot make a candidate appear newer.
+    let (Ok(first), Ok(second)) = (
+        semver::Version::parse(version1),
+        semver::Version::parse(version2),
+    ) else {
+        return 0;
     };
-    rank(s1) - rank(s2)
+    match first.cmp(&second) {
+        std::cmp::Ordering::Less => -1,
+        std::cmp::Ordering::Equal => 0,
+        std::cmp::Ordering::Greater => 1,
+    }
 }
 
 #[cfg(test)]
@@ -53,9 +30,12 @@ mod tests {
         assert_eq!(compare_versions("1.8.8", "1.8.7"), 1);
         assert_eq!(compare_versions("1.8.6", "1.8.7"), -1);
         assert_eq!(compare_versions("2.0.0", "1.99.99"), 1);
-        assert_eq!(compare_versions("1.8.7", "1.8"), 1);
+        assert_eq!(compare_versions("1.8.7", "1.8"), 0);
         assert_eq!(compare_versions("1.8.7-beta", "1.8.7"), -1);
-        assert_eq!(compare_versions("1.8.7-pre", "1.8.7-beta"), 0);
+        assert_eq!(compare_versions("1.8.7-pre", "1.8.7-beta"), 1);
         assert_eq!(compare_versions("1.8.8-beta", "1.8.7"), 1);
+        assert_eq!(compare_versions("2.0.0-alpha.10", "2.0.0-alpha.2"), 1);
+        assert_eq!(compare_versions("2.0.0", "2.0.0-alpha.1"), 1);
+        assert_eq!(compare_versions("invalid", "2.0.0-alpha.1"), 0);
     }
 }

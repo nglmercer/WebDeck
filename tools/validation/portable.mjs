@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {createRequire} from 'node:module';
 const root=path.resolve('.');
-const archive=path.resolve(process.argv[2] ?? `dist/WebDeck-${process.platform==='win32'?'windows':process.platform}-${process.arch==='x64'?'x86_64':process.arch}-portable.zip`);
+const archive=path.resolve(process.argv[2] ?? `dist/WebDeck-${JSON.parse(readFileSync(path.join(root,'frontend/package.json'),'utf8')).version}-${process.platform==='win32'?'windows':process.platform}-${process.arch==='x64'?'x86_64':process.arch}-portable.zip`);
 const expected=readFileSync(archive+'.sha256','utf8').split(/\s/)[0];
 if(createHash('sha256').update(readFileSync(archive)).digest('hex')!==expected)throw new Error('Archive checksum mismatch');
 const directory=mkdtempSync(path.join(tmpdir(),'webdeck-portable-'));
@@ -38,9 +38,9 @@ const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let browser;
 try{
  const base='http://127.0.0.1:59992';let ready=false;
- for(let i=0;i<400;i++){try{if((await fetch(base+'/api/boot')).ok){ready=true;break;}}catch{}await wait(25);}
+ for(let i=0;i<400;i++){try{if((await fetch(base+'/api/v2/boot')).ok){ready=true;break;}}catch{}await wait(25);}
  if(!ready)throw new Error('Portable server failed readiness');
- const boot=await (await fetch(base+'/api/boot')).json();
+ const boot=await (await fetch(base+'/api/v2/boot')).json();
  if(!boot.config || !boot.config_revision)throw new Error('Missing boot contract');
  for(const route of ['/','/static/css/style.css','/api/v2/commands']){
   if(!(await fetch(base+route)).ok)throw new Error('Portable asset/route missing: '+route);
@@ -51,8 +51,8 @@ try{
  page.on('pageerror',error=>errors.push(error.message));
  await page.goto(base);await page.locator('form.form').first().waitFor({state:'visible'});
  if(errors.length)throw new Error(errors.join('\n'));
- const report={date:new Date().toISOString(),artifact:path.basename(archive),sha256:expected,profile:'release; extracted outside repository; isolated data; no native commands',checks:['checksum','executable permissions','boot','static CSS','v2 registry','Chromium usable deck','no page errors']};
- writeFileSync(path.join(root,'docs/v2/evidence/portable.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));
+ const report={date:new Date().toISOString(),artifact:path.basename(archive),sha256:expected,profile:(path.basename(archive).includes('-dev-portable.') ? 'development' : 'release')+'; extracted outside repository; isolated data; no native commands',checks:['checksum','executable permissions','boot','static CSS','v2 registry','Chromium usable deck','no page errors']};
+ writeFileSync(path.join(root,'docs/v2/evidence/v2-only/portable.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));
 }finally{
  await browser?.close();child.kill('SIGINT');
  await Promise.race([new Promise(resolve=>child.once('exit',resolve)),wait(5000)]);

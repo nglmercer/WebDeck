@@ -89,7 +89,11 @@ fn read_version() -> Result<String, String> {
 
 /// Port of the cx_Freeze compile step: release binaries for the app + updater.
 fn release_build() -> Result<(), String> {
-    println!("package: cargo build --release --bin webdeck --bin update --bin webdeck-qr");
+    let dev = std::env::args().any(|arg| arg == "--dev");
+    println!(
+        "package: cargo build {} --bin webdeck --bin update --bin webdeck-qr",
+        if dev { "--profile=dev" } else { "--release" }
+    );
     let status = Command::new("cargo")
         .args([
             "build",
@@ -238,7 +242,22 @@ fn stage_tree() -> Result<PathBuf, String> {
         if !src.is_file() {
             return Err(format!("missing release binary: {}", src.display()));
         }
-        copy_file(&src, &stage.join(format!("{shipped}{exe}")))?;
+        let destination = stage.join(format!("{shipped}{exe}"));
+        copy_file(&src, &destination)?;
+        // Debug symbols otherwise make a development portable archive exceed
+        // the updater's admission limit. Strip only staged Linux copies; retain
+        // the original build for debugging. Dynamic symbols remain intact.
+        #[cfg(target_os = "linux")]
+        if std::env::args().any(|arg| arg == "--dev") {
+            let status = Command::new("strip")
+                .arg("--strip-debug")
+                .arg(&destination)
+                .status()
+                .map_err(|e| format!("cannot strip development artifact: {e}"))?;
+            if !status.success() {
+                return Err("Cannot strip development artifact".into());
+            }
+        }
     }
     for dir in ["webdeck", "static", "frontend/dist", "docs/v2"] {
         let src = Path::new(dir);
@@ -315,14 +334,13 @@ fn sign_binaries(stage: &Path) -> Result<(), String> {
 /// Port of `zip_build`: `dist/WebDeck-<platform>-portable.zip` with a
 /// top-level `WebDeck/` folder, matching what the updater extracts.
 fn zip_stage(stage: &Path, version: &str) -> Result<PathBuf, String> {
-    let _ = version;
     let platform = format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH);
     let suffix = if std::env::args().any(|arg| arg == "--dev") {
         "dev-portable"
     } else {
         "portable"
     };
-    let zip_name = format!("WebDeck-{platform}-{suffix}.zip");
+    let zip_name = format!("WebDeck-{version}-{platform}-{suffix}.zip");
     std::fs::create_dir_all("dist").map_err(|e| format!("cannot create dist/: {e}"))?;
     let zip_path = Path::new("dist").join(&zip_name);
     let file = std::fs::File::create(&zip_path).map_err(|e| format!("cannot create zip: {e}"))?;

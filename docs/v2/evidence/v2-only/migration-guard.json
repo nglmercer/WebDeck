@@ -1,0 +1,440 @@
+{
+  "complete": false,
+  "violations": [
+    {
+      "surface": "legacy asset reference",
+      "file": "src/adapters/files.rs",
+      "line": 53
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "src/adapters/integrations/exec/command_handler.rs",
+      "line": 12
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "src/adapters/integrations/exec/command_handler.rs",
+      "line": 31
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "src/adapters/integrations/exec/command_handler.rs",
+      "line": 59
+    },
+    {
+      "surface": "legacy command delimiter",
+      "file": "src/adapters/integrations/fetch.rs",
+      "line": 47
+    },
+    {
+      "surface": "legacy command delimiter",
+      "file": "src/adapters/integrations/fetch.rs",
+      "line": 60
+    },
+    {
+      "surface": "legacy command delimiter",
+      "file": "src/adapters/integrations/fetch.rs",
+      "line": 102
+    },
+    {
+      "surface": "legacy command delimiter",
+      "file": "src/adapters/platform/mod.rs",
+      "line": 451
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "src/adapters/platform/soundboard/player.rs",
+      "line": 169
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "src/adapters/platform/soundboard/player.rs",
+      "line": 174
+    },
+    {
+      "surface": "legacy parser",
+      "file": "src/app/buttons/commands/mod.rs",
+      "line": 3
+    },
+    {
+      "surface": "legacy parser",
+      "file": "src/app/buttons/commands/mod.rs",
+      "line": 11
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "src/app/on_start/utils.rs",
+      "line": 229
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "src/app/on_start/utils.rs",
+      "line": 237
+    },
+    {
+      "surface": "compatibility facade",
+      "file": "src/app/on_start/utils.rs",
+      "line": 250
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/middleware.rs",
+      "line": 114
+    },
+    {
+      "surface": "compatibility facade",
+      "file": "src/app/server/mod.rs",
+      "line": 37
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/mod.rs",
+      "line": 90
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/mod.rs",
+      "line": 91
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/mod.rs",
+      "line": 92
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/mod.rs",
+      "line": 93
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/mod.rs",
+      "line": 94
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/mod.rs",
+      "line": 96
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/mod.rs",
+      "line": 97
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/mod.rs",
+      "line": 98
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/mod.rs",
+      "line": 99
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/mod.rs",
+      "line": 100
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "src/app/server/mod.rs",
+      "line": 101
+    },
+    {
+      "surface": "compatibility facade",
+      "file": "src/app/server/routes_boot.rs",
+      "line": 20
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "src/app/server/routes_boot.rs",
+      "line": 116
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "src/app/server/routes_boot.rs",
+      "line": 119
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/security.rs",
+      "line": 134
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/security.rs",
+      "line": 146
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/security.rs",
+      "line": 147
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/security.rs",
+      "line": 148
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/security.rs",
+      "line": 149
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/security.rs",
+      "line": 150
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/security.rs",
+      "line": 151
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/security.rs",
+      "line": 153
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/security.rs",
+      "line": 154
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/security.rs",
+      "line": 155
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/security.rs",
+      "line": 172
+    },
+    {
+      "surface": "retired route",
+      "file": "src/app/server/security.rs",
+      "line": 191
+    },
+    {
+      "surface": "compatibility facade",
+      "file": "src/app/tray/menu.rs",
+      "line": 8
+    },
+    {
+      "surface": "compatibility facade",
+      "file": "src/app/tray/windows.rs",
+      "line": 10
+    },
+    {
+      "surface": "compatibility facade",
+      "file": "src/app/utils/args.rs",
+      "line": 20
+    },
+    {
+      "surface": "compatibility facade",
+      "file": "src/app/utils/plugins/load_plugins.rs",
+      "line": 224
+    },
+    {
+      "surface": "compatibility facade",
+      "file": "src/app/utils/show_error.rs",
+      "line": 90
+    },
+    {
+      "surface": "legacy parser",
+      "file": "src/application/executor.rs",
+      "line": 8
+    },
+    {
+      "surface": "legacy parser",
+      "file": "src/application/executor.rs",
+      "line": 97
+    },
+    {
+      "surface": "legacy parser",
+      "file": "src/domain/command.rs",
+      "line": 353
+    },
+    {
+      "surface": "legacy command delimiter",
+      "file": "src/domain/command.rs",
+      "line": 360
+    },
+    {
+      "surface": "string command request",
+      "file": "src/domain/transport.rs",
+      "line": 9
+    },
+    {
+      "surface": "retired route",
+      "file": "frontend/src/api/buttons.ts",
+      "line": 43
+    },
+    {
+      "surface": "retired route",
+      "file": "frontend/src/api/buttons.ts",
+      "line": 55
+    },
+    {
+      "surface": "retired route",
+      "file": "frontend/src/api/buttons.ts",
+      "line": 65
+    },
+    {
+      "surface": "retired route",
+      "file": "frontend/src/api/config.ts",
+      "line": 21
+    },
+    {
+      "surface": "retired route",
+      "file": "frontend/src/api/config.ts",
+      "line": 36
+    },
+    {
+      "surface": "retired route",
+      "file": "frontend/src/api/uploads.ts",
+      "line": 7
+    },
+    {
+      "surface": "retired route",
+      "file": "frontend/src/api/uploads.ts",
+      "line": 15
+    },
+    {
+      "surface": "retired route",
+      "file": "frontend/src/api/uploads.ts",
+      "line": 24
+    },
+    {
+      "surface": "retired route",
+      "file": "frontend/src/api/usage.ts",
+      "line": 4
+    },
+    {
+      "surface": "retired route",
+      "file": "frontend/src/api/usage.ts",
+      "line": 11
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/components/preview.ts",
+      "line": 47
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/components/preview.ts",
+      "line": 48
+    },
+    {
+      "surface": "string command request",
+      "file": "frontend/src/contracts/v2.ts",
+      "line": 5
+    },
+    {
+      "surface": "string command request",
+      "file": "frontend/src/contracts/v2.ts",
+      "line": 33
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/views/BackgroundsPanel.svelte",
+      "line": 35
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/views/BackgroundsPanel.svelte",
+      "line": 36
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/views/BackgroundsPanel.svelte",
+      "line": 38
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/views/BackgroundsPanel.svelte",
+      "line": 87
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/views/BackgroundsPanel.svelte",
+      "line": 213
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/views/BackgroundsPanel.svelte",
+      "line": 215
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/views/ThemesPanel.svelte",
+      "line": 76
+    },
+    {
+      "surface": "legacy command delimiter",
+      "file": "frontend/src/views/args.ts",
+      "line": 117
+    },
+    {
+      "surface": "legacy command delimiter",
+      "file": "frontend/src/views/argvalues.ts",
+      "line": 168
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/views/button-upload.ts",
+      "line": 32
+    },
+    {
+      "surface": "legacy command delimiter",
+      "file": "frontend/src/views/grid.ts",
+      "line": 108
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/views/grid.ts",
+      "line": 119
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/views/grid.ts",
+      "line": 120
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/views/modalstyle.ts",
+      "line": 149
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/views/shell.ts",
+      "line": 19
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/views/shell.ts",
+      "line": 30
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/views/shell.ts",
+      "line": 49
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/views/shell.ts",
+      "line": 50
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/views/shell.ts",
+      "line": 51
+    },
+    {
+      "surface": "legacy asset reference",
+      "file": "frontend/src/views/shell.ts",
+      "line": 53
+    }
+  ]
+}

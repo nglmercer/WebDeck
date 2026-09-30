@@ -1,9 +1,8 @@
 <script lang="ts">
   import { approveDevice, listDevices, revokeDevice } from '../../api/v2';
   import type { Capability, Device } from '../../contracts/v2';
-  let { security }: { security: string } = $props();
   let devices = $state<Device[]>([]); let token = $state(''); let name = $state('');
-  let capabilities = $state<Capability[]>(['read', 'input', 'audio', 'settings']);
+  let capabilities = $state<Capability[]>(['read', 'input', 'audio']);
   let error = $state(''); let pending = $state(false); let loaded = $state(false);
   const choices: Capability[] = ['read','input','audio','window','power','script','network','plugin','settings'];
   async function refresh(): Promise<void> {
@@ -25,9 +24,7 @@
 </script>
 <section class="wd2-panel" aria-label="Device access">
   <h2>Device access</h2>
-  <label for="v2-security">Legacy access policy</label>
-  <select id="v2-security" name="settings.v2_security" value={security}><option value="legacy">Legacy LAN access</option><option value="paired">Require paired devices</option></select>
-  <p>Paired mode applies to HTTP and sockets. Approve devices on the host via a loopback address. Tokens expire in one hour; reconnects require a valid token.</p>
+  <p>Remote access requires a paired device for HTTP and sockets. Approve devices on the host via a loopback address. Tokens expire in one hour; reconnects require a valid token.</p>
   <button type="button" onclick={refresh}>Manage devices</button>
   {#if loaded}
     <label for="device-name">Device name</label><input id="device-name" bind:value={name} maxlength="128" />

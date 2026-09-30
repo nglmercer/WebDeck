@@ -25,6 +25,9 @@ impl CommandAdapter for Fake {
         json!({"success":true,"fake":"recorded"})
     }
 }
+fn dir_path() -> std::path::PathBuf {
+    std::path::PathBuf::from(std::env::var("WEBDECK_CONFIG_DIR").unwrap()).join("config.json")
+}
 async fn request(
     state: &AppState,
     method: &str,
@@ -46,6 +49,13 @@ async fn request(
     if let Some(origin) = origin {
         builder = builder.header("origin", origin);
     }
+    if method == "POST" && matches!(path, "/save_config" | "/create_folder") && token.is_some() {
+        let snapshot = webdeck::application::config::shared(dir_path())
+            .unwrap()
+            .snapshot()
+            .unwrap();
+        builder = builder.header("x-webdeck-revision", snapshot.revision);
+    }
     let response = app_router(state.clone())
         .oneshot(builder.body(Body::from(data.to_string())).unwrap())
         .await
@@ -62,11 +72,15 @@ async fn real_routes_enforce_identity_capabilities_revisions_origin_and_legacy_s
     std::fs::create_dir_all(&dir).unwrap();
     std::env::set_var("WEBDECK_CONFIG_DIR", &dir);
     std::env::set_var("WEBDECK_FAKE_EFFECTS", "1");
-    std::fs::write(dir.join("config.json"),json!({"settings":{"v2_security":"paired","allowed_networks":["127.0.0.1/32"]},"front":{"height":1,"width":2,"buttons":{"index":[{"message":"/key a"},{"VOID":"VOID"}]}}}).to_string()).unwrap();
+    std::fs::write(dir.join("config.json"),json!({"schema_version":2,"settings":{"language":"en_US","v2_security":"paired","allowed_networks":["127.0.0.1/32"]},"front":{"height":1,"width":2,"buttons":{"index":[{"message":"/key a"},{"VOID":"VOID"}]}}}).to_string()).unwrap();
+    webdeck::app::utils::languages::init(
+        "webdeck/translations",
+        Some("webdeck/translations/misc"),
+        "en_US",
+    );
     let fake = Arc::new(Fake(AtomicUsize::new(0)));
     let state = AppState {
         local_ip: "192.168.1.2".into(),
-        folders_to_create: Arc::new(tokio::sync::Mutex::new(Vec::new())),
         executor: Arc::new(CommandExecutor::new(fake.clone(), 4, 2)),
     };
     let remote = "192.168.1.3:3000";
@@ -139,6 +153,83 @@ async fn real_routes_enforce_identity_capabilities_revisions_origin_and_legacy_s
     .await;
     assert_eq!(status, StatusCode::OK);
     let token = grant["token"].as_str().unwrap();
+    let (status, boot) = request(
+        &state,
+        "GET",
+        "/api/v2/boot",
+        json!({}),
+        remote,
+        Some(token),
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(boot["can_edit"], false);
+    assert!(boot["config"]["settings"].get("obs").is_none());
+    assert!(boot["config"]["settings"].get("spotify_api").is_none());
+    assert_eq!(boot["commands"], json!({}));
+    assert_eq!(
+        request(
+            &state,
+            "GET",
+            "/api/v2/settings/boot",
+            json!({}),
+            remote,
+            Some(token),
+            None
+        )
+        .await
+        .0,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        request(&state, "GET", "/api/boot", json!({}), local, None, None)
+            .await
+            .0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        request(
+            &state,
+            "GET",
+            "/api/v2/config",
+            json!({}),
+            local,
+            Some("invalid"),
+            None
+        )
+        .await
+        .0,
+        StatusCode::UNAUTHORIZED
+    );
+    assert_eq!(
+        request(
+            &state,
+            "POST",
+            "/save_config",
+            json!({"front":{"names_color":"#123456"}}),
+            local,
+            None,
+            None
+        )
+        .await
+        .0,
+        StatusCode::BAD_REQUEST
+    );
+    assert_eq!(
+        request(
+            &state,
+            "POST",
+            "/api/v2/config",
+            json!({"config":{}}),
+            local,
+            None,
+            None
+        )
+        .await
+        .0,
+        StatusCode::BAD_REQUEST
+    );
     assert_eq!(token.len(), 64);
     assert!(!std::fs::read_to_string(dir.join("devices.json"))
         .unwrap()
@@ -156,7 +247,7 @@ async fn real_routes_enforce_identity_capabilities_revisions_origin_and_legacy_s
     assert_eq!(status, StatusCode::OK);
     assert_eq!(result["request_id"], "test-1");
     assert_eq!(result["state"], "completed");
-    let (_, result) = request(
+    let (retired_status, _) = request(
         &state,
         "POST",
         "/send-data",
@@ -166,7 +257,7 @@ async fn real_routes_enforce_identity_capabilities_revisions_origin_and_legacy_s
         None,
     )
     .await;
-    assert_eq!(result, json!({"success":true,"fake":"recorded"}));
+    assert_eq!(retired_status, StatusCode::NOT_FOUND);
     let (status, result) = request(
         &state,
         "POST",
@@ -179,7 +270,7 @@ async fn real_routes_enforce_identity_capabilities_revisions_origin_and_legacy_s
     .await;
     assert_eq!(status, StatusCode::FORBIDDEN);
     assert_eq!(result["code"], "forbidden");
-    assert_eq!(fake.0.load(Ordering::SeqCst), 2);
+    assert_eq!(fake.0.load(Ordering::SeqCst), 1);
     assert_eq!(
         request(
             &state,
@@ -324,7 +415,7 @@ async fn real_routes_enforce_identity_capabilities_revisions_origin_and_legacy_s
     // Multipart duplicate/malformed fields are rejected before any file is published.
     for fields in ["--boundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"../escape\"\r\n\r\ninvalid\r\n--boundary--\r\n", "--boundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"first.txt\"\r\n\r\none\r\n--boundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"second.txt\"\r\n\r\ntwo\r\n--boundary--\r\n"] {
         let response = app_router(state.clone()).oneshot(Request::builder().method("POST").uri("/upload_file")
-            .header("content-type","multipart/form-data; boundary=boundary").extension(ConnectInfo(local.parse::<SocketAddr>().unwrap())).body(Body::from(fields)).unwrap()).await.unwrap();
+            .header("host", "localhost:5000").header("content-type","multipart/form-data; boundary=boundary").extension(ConnectInfo(local.parse::<SocketAddr>().unwrap())).body(Body::from(fields)).unwrap()).await.unwrap();
         assert_eq!(response.status(),StatusCode::BAD_REQUEST);
         assert_eq!(std::fs::read_dir(dir.join("user_uploads")).unwrap().count(),0);
     }
@@ -357,6 +448,6 @@ async fn real_routes_enforce_identity_capabilities_revisions_origin_and_legacy_s
         .0,
         StatusCode::UNAUTHORIZED
     );
-    assert_eq!(fake.0.load(Ordering::SeqCst), 2);
+    assert_eq!(fake.0.load(Ordering::SeqCst), 1);
     let _ = std::fs::remove_dir_all(dir);
 }

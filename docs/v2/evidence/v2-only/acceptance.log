@@ -1,0 +1,15 @@
+
+> webdeck-frontend@2.0.0-alpha.1 test:acceptance
+> playwright test --config acceptance.config.ts
+
+
+Running 4 tests using 1 worker
+
+(node:25334) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/acceptance/deck.spec.ts:4:1 › real server: navigation, one click, edit persistence, conflicts, settings and cleanup (10.8s)
+  ✓  2 e2e/acceptance/deck.spec.ts:59:1 › v2 socket lifecycle, retired namespace rejection, grants, revocation and expiry (2.4s)
+  ✓  3 e2e/acceptance/deck.spec.ts:87:1 › real server: create and delete a button, themes and backgrounds persist (8.4s)
+  ✓  4 e2e/acceptance/deck.spec.ts:124:1 › paired controller loads deck without settings access or integration secrets (529ms)
+
+  4 passed (23.5s)

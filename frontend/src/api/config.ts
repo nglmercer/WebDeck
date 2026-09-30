@@ -12,7 +12,7 @@ export interface SaveResult {
 
 /** Full boot payload for the SPA. */
 export function fetchBoot(): Promise<BootContext> {
-  return getJson<BootContext>('/api/boot');
+  return getJson<BootContext>('/api/v2/boot');
 }
 
 /** Current server config (editor entry, add-button save). */

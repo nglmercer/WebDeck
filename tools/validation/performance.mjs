@@ -20,11 +20,11 @@ async function measure(label,cwd,binary,port){
  const started=performance.now();const child=spawn(binary,[`--host=127.0.0.1`,`--port=${port}`,'--no-tray','--no-admin','--no-auto-update','--force-start'],{cwd,env:{...process.env,WEBDECK_CONFIG_DIR:directory},stdio:'ignore'});
  const base=`http://127.0.0.1:${port}`;
  try{
-  let ready=false;for(let i=0;i<400;i++){try{if((await fetch(base+'/api/boot')).ok){ready=true;break;}}catch{}await wait(25);}
+  let ready=false;for(let i=0;i<400;i++){try{if((await fetch(base+'/api/v2/boot')).ok){ready=true;break;}}catch{}await wait(25);}
   if(!ready)throw new Error(label+' failed readiness');const startup=performance.now()-started;
   const boot=[],command=[],ui=[];
-  for(let i=0;i<35;i++){let now=performance.now();const r=await fetch(base+'/api/boot');if(!r.ok)throw new Error('boot failed');await r.json();if(i>=5)boot.push(performance.now()-now);}
-  for(let i=0;i<35;i++){let now=performance.now();const r=await fetch(base+'/send-data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'/debug-send {}'})});if(!(await r.json()).success)throw new Error('debug failed');if(i>=5)command.push(performance.now()-now);}
+  for(let i=0;i<35;i++){let now=performance.now();const r=await fetch(base+'/api/v2/boot');if(!r.ok)throw new Error('boot failed');await r.json();if(i>=5)boot.push(performance.now()-now);}
+  for(let i=0;i<35;i++){let now=performance.now();const r=await fetch(base+'/api/v2/commands',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'/debug-send {}'})});if((await r.json()).state !== 'completed')throw new Error('debug failed');if(i>=5)command.push(performance.now()-now);}
   const page=await browser.newPage();
   for(let i=0;i<5;i++){const now=performance.now();await page.goto(base);await page.locator('form.form').first().waitFor({state:'visible'});ui.push(performance.now()-now);}
   await page.close();

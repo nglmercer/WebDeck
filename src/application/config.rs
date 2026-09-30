@@ -7,7 +7,7 @@ use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
-use crate::adapters::config::{atomic_replace, protected_write};
+use crate::adapters::config::atomic_replace;
 use crate::domain::config::{ConfigDocument, SCHEMA_VERSION};
 use crate::domain::error::{AppError, ErrorCode};
 
@@ -44,24 +44,14 @@ fn read_document(path: &Path) -> Result<(ConfigDocument, Vec<u8>), AppError> {
 impl ConfigService {
     pub fn open(path: PathBuf) -> Result<Self, AppError> {
         let _writer = crate::adapters::config::exclusive_lock(&path)?;
-        let (document, mut bytes) = read_document(&path)?;
-        let migrated = document.clone().migrate();
-        if migrated != document {
-            let backup = path.with_extension("v1.backup.json");
-            if !backup.exists() {
-                protected_write(&backup, &bytes, true)?;
-            }
-            bytes = serde_json::to_vec_pretty(&migrated.0)
-                .map_err(|_| AppError::new(ErrorCode::InvalidInput, "Invalid configuration"))?;
-            atomic_replace(&path, &bytes)?;
-        }
+        let (document, bytes) = read_document(&path)?;
         Ok(Self {
             path,
             state: Mutex::new(State {
                 snapshot: ConfigSnapshot {
                     revision: u64::from_le_bytes(Sha256::digest(&bytes)[..8].try_into().unwrap())
                         & ((1u64 << 48) - 1),
-                    config: migrated.0,
+                    config: document.0,
                 },
                 fingerprint: bytes,
             }),
@@ -103,24 +93,22 @@ impl ConfigService {
             .clone()
     }
 
-    /// A missing revision is reserved for legacy last-write-wins callers.
+    /// Every write compares against an explicit snapshot revision.
     pub fn update(
         &self,
-        expected: Option<u64>,
+        expected: u64,
         apply: impl FnOnce(Value) -> Result<Value, AppError>,
     ) -> Result<ConfigSnapshot, AppError> {
         let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
         let _writer = crate::adapters::config::exclusive_lock(&self.path)?;
         self.reload(&mut state)?;
-        if expected.is_some_and(|rev| rev != state.snapshot.revision) {
+        if expected != state.snapshot.revision {
             return Err(AppError::new(
                 ErrorCode::Conflict,
                 "Configuration changed; reload before saving",
             ));
         }
-        let value = ConfigDocument::validate(apply(state.snapshot.config.clone())?)?
-            .migrate()
-            .0;
+        let value = ConfigDocument::validate(apply(state.snapshot.config.clone())?)?.0;
         if value == state.snapshot.config {
             return Ok(state.snapshot.clone());
         }
@@ -142,13 +130,8 @@ impl ConfigService {
         Ok(state.snapshot.clone())
     }
 
-    pub fn replace(&self, value: Value, expected: Option<u64>) -> Result<ConfigSnapshot, AppError> {
+    pub fn replace(&self, value: Value, expected: u64) -> Result<ConfigSnapshot, AppError> {
         self.update(expected, |_| Ok(value))
-    }
-
-    pub fn restore_backup(&self, expected: u64) -> Result<ConfigSnapshot, AppError> {
-        let (backup, _) = read_document(&self.path.with_extension("v1.backup.json"))?;
-        self.replace(backup.migrate().0, Some(expected))
     }
 }
 

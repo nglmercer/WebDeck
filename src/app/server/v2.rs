@@ -1,4 +1,4 @@
-//! Versioned transport DTOs do not mutate legacy response shapes.
+//! Versioned HTTP transport. Application services own execution and persistence.
 use std::sync::atomic::{AtomicU64, Ordering};
 
 pub(crate) use crate::domain::transport::{CommandRequest, ConfigRequest, DeviceRequest};
@@ -79,11 +79,7 @@ pub(crate) async fn command(
         Ok(command) => command,
         Err(error) => return error_response(error, Some(id)),
     };
-    match state
-        .executor
-        .execute(parsed, identity.capabilities, true)
-        .await
-    {
+    match state.executor.execute(parsed, identity.capabilities).await {
         Ok(result) => {
             let success = result.get("success").and_then(Value::as_bool) != Some(false);
             // Do not expose integration/native error strings that can contain
@@ -117,10 +113,7 @@ pub(crate) async fn get_config() -> Response {
     }
 }
 
-pub(crate) async fn save_config(
-    State(state): State<AppState>,
-    request: Result<Json<ConfigRequest>, JsonRejection>,
-) -> Response {
+pub(crate) async fn save_config(request: Result<Json<ConfigRequest>, JsonRejection>) -> Response {
     let request = match request {
         Ok(Json(request)) => request,
         Err(_) => {
@@ -130,11 +123,15 @@ pub(crate) async fn save_config(
             )
         }
     };
-    match super::routes_config::transact(&state, Some(request.revision), |old| {
-        super::routes_config::resize(request.config, &old)
-    })
-    .await
-    {
+    if request.revision > 9_007_199_254_740_991 {
+        return error_response(
+            AppError::new(ErrorCode::InvalidInput, "Invalid configuration revision"),
+            None,
+        );
+    }
+    match crate::application::layout::transact(request.revision, |old| {
+        crate::application::layout::resize(request.config, &old)
+    }) {
         Ok(snapshot) => {
             crate::app::utils::global_variables::set_global_variable(
                 "config",

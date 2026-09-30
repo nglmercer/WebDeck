@@ -1,6 +1,7 @@
-import { deviceToken } from '../features/security/session';
 import { executeV2 } from './v2';
 import { editorPersistence } from '../features/editor/persistence';
+import { asObject, get, type JsonObject } from '../framework/types';
+import { pageState } from '../app/state';
 import { text } from '../framework/i18n';
 import { postJson } from './client';
 import type { SaveResult } from './config';
@@ -19,11 +20,13 @@ export interface CreateFolderInput {
 }
 
 export interface CreateFolderResult {
+  revision?: number;
+  config?: JsonObject;
   success?: boolean;
   message?: string;
 }
 
-/** Answer for `POST /send-data`. */
+/** Answer for `POST /api/v2/commands`. */
 export interface SendResult {
   success?: boolean;
   message?: string;
@@ -57,17 +60,21 @@ export async function saveSingleButton(payload: SingleButtonPayload): Promise<vo
   if (!result.success) throw saveError();
 }
 
-/** Queue a folder for creation (result says whether it already existed). */
-export function createFolder(input: CreateFolderInput): Promise<CreateFolderResult> {
-  return postJson<CreateFolderResult>('/create_folder', input);
+/** Create a folder transactionally and merge it into the current draft. */
+export async function createFolder(input: CreateFolderInput): Promise<CreateFolderResult> {
+  const result = await editorPersistence.save(revision => postJson<CreateFolderResult>('/create_folder', input, revision === undefined ? {} : { revision }));
+  if (result.success && result.config) {
+    // Add only the new folder to the draft. Existing unsaved edits survive.
+    const folder = asObject(get(result.config, 'front', 'buttons'))[input.name];
+    if (folder) asObject(get(pageState.tempEditorConfig, 'front', 'buttons'))[input.name] = structuredClone(folder);
+    editorPersistence.seed(result.config, result.revision);
+  }
+  return result;
 }
 
 /** Run a button command on the server. */
 export async function sendCommand(message: string): Promise<SendResult> {
-  if (deviceToken()) {
-    const result = await executeV2({ message });
-    if (result.state !== 'completed') throw new Error(result.state === 'failed' ? result.message : 'Command is pending');
-    return result.result as SendResult;
-  }
-  return postJson<SendResult>('/send-data', { message });
+  const result = await executeV2({ message });
+  if (result.state !== 'completed') throw new Error(result.state === 'failed' ? result.message : 'Command is pending');
+  return result.result as SendResult;
 }

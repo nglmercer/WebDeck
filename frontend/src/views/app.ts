@@ -16,6 +16,7 @@ let mountedApp: Record<string, never> | null = null;
 
 /** Full page: mount the Svelte shell, then wire behavior (DOMContentLoaded order). */
 export function renderApp(target: HTMLElement, ctx: BootContext): void {
+  pageState.canEdit = ctx.can_edit !== false;
   editorPersistence.seed(ctx.config, ctx.config_revision);
   configureFolders(Object.keys(asObject(get(ctx.config, 'front', 'buttons'))));
   applyHead(ctx);
@@ -37,10 +38,10 @@ export function renderApp(target: HTMLElement, ctx: BootContext): void {
   pageState.tempEditorConfig = JSON.parse(JSON.stringify(ctx.config)) as typeof ctx.config;
 
 
-  for (const m of collectEditModals(ctx)) {
+  for (const m of pageState.canEdit ? collectEditModals(ctx) : []) {
     wireEditModal(ctx, m.editModalId, m.entry);
   }
-  for (const m of collectAddModals(ctx)) {
+  for (const m of pageState.canEdit ? collectAddModals(ctx) : []) {
     wireAddModal(ctx, m);
   }
   wireBrowserDropdowns();

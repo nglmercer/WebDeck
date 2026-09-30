@@ -1,26 +1,30 @@
 //! Boot + home routes (extracted from `server.rs`).
 //!
-//! `GET /` serves the TypeScript SPA bundle; `GET /api/boot` returns the
+//! `GET /` serves the TypeScript SPA bundle; `GET /api/v2/boot` returns the
 //! old Jinja template context as JSON.
 
 use axum::{
     extract::State,
     http::header,
     response::{IntoResponse, Json, Response},
+    Extension,
 };
 use serde_json::{json, Value};
 
 use super::assets::{get_svgs, save_rotated_copy};
-use super::{internal_error, AppState};
+use super::{
+    internal_error,
+    security::{require, Identity},
+    AppState,
+};
 use crate::app::buttons::usage::get_usage;
 use crate::app::utils::{
-    global_variables::set_global_variable,
     languages::{get_languages_info, lang_dict},
     logger::log,
-    plugins::load_plugins::load_plugins,
-    settings::{audio_devices::get_audio_devices, get_config::get_config},
+    settings::audio_devices::get_audio_devices,
     themes::parse_themes::parse_themes,
 };
+use crate::domain::command::Capability;
 
 /// Serves the TypeScript frontend (`GET /`).
 ///
@@ -38,14 +42,23 @@ pub(crate) async fn home(State(_state): State<AppState>) -> Response {
     }
 }
 
-/// Boot context for the TypeScript frontend (`GET /api/boot`).
+/// Boot context for the TypeScript frontend (`GET /api/v2/boot`).
 ///
-/// Same data (and side effects: plugin load, wallpaper pick/rotation,
-/// style.css pre-push) the Jinja render used to inline into the page.
-pub(crate) async fn boot(State(_state): State<AppState>) -> Response {
-    match boot_context() {
+/// Read/input controllers receive deck data without integration credentials.
+pub(crate) async fn boot(Extension(identity): Extension<Identity>) -> Response {
+    match boot_context(require(&identity, Capability::Settings).is_ok()) {
         Ok(context) => Json(context).into_response(),
-        Err(message) => internal_error("An error occurred during a request", message, None),
+        Err(message) => internal_error("Cannot load deck", message, None),
+    }
+}
+
+pub(crate) async fn settings_boot(Extension(identity): Extension<Identity>) -> Response {
+    if let Err(error) = require(&identity, Capability::Settings) {
+        return super::v2::error_response(error, None);
+    }
+    match boot_context(true) {
+        Ok(context) => Json(context).into_response(),
+        Err(message) => internal_error("Cannot load settings", message, None),
     }
 }
 
@@ -60,22 +73,19 @@ fn pseudo_random_below(len: usize) -> usize {
     nanos % len
 }
 
-fn boot_context() -> Result<Value, String> {
-    let config = get_config(false, true);
+fn boot_context(privileged: bool) -> Result<Value, String> {
+    let service = crate::application::config::shared(
+        crate::app::utils::settings::get_config::get_config_path(),
+    )
+    .map_err(|e| e.message)?;
+    let snapshot = service.snapshot().map_err(|e| e.message)?;
+    let config = snapshot.config;
 
-    let commands_raw = match std::fs::read_to_string("webdeck/commands.json") {
-        Ok(content) => content,
-        Err(e) => return Err(format!("Cannot read webdeck/commands.json: {e}")),
+    let commands = if privileged {
+        crate::application::catalog::snapshot().map_err(|e| e.message)?
+    } else {
+        json!({})
     };
-    let commands_raw: Value = match serde_json::from_str(&commands_raw) {
-        Ok(value) => value,
-        Err(e) => return Err(format!("Cannot parse webdeck/commands.json: {e}")),
-    };
-    let (commands, loaded_plugins) = load_plugins(commands_raw);
-    set_global_variable(
-        "all_func",
-        Value::Array(loaded_plugins.into_iter().map(Value::String).collect()),
-    );
 
     let versions: Value = std::fs::read_to_string("webdeck/version.json")
         .ok()
@@ -145,7 +155,8 @@ fn boot_context() -> Result<Value, String> {
     let configured_lang = config
         .get("settings")
         .and_then(|s| s.get("language"))
-        .and_then(|v| v.as_str());
+        .and_then(|v| v.as_str())
+        .map(str::to_string);
     // Jinja truthiness (`{% if config['front']['dark_theme'] %}`).
     let dark_theme = match config.get("front").and_then(|f| f.get("dark_theme")) {
         None | Some(Value::Null) | Some(Value::Bool(false)) => "",
@@ -162,12 +173,27 @@ fn boot_context() -> Result<Value, String> {
         _ => " dark-theme",
     };
 
+    // Use a whitelist: new administrative/integration fields stay private by
+    // default. The deck consumes only language and transfer method.
+    if !privileged {
+        let settings = config["settings"].clone();
+        config = json!({
+            "schema_version": config["schema_version"],
+            "front": config["front"],
+            "settings": {
+                "language": settings["language"],
+                "data_transfer_method": settings["data_transfer_method"],
+            },
+        });
+    }
     Ok(json!({
-        "config_revision": crate::application::config::shared(crate::app::utils::settings::get_config::get_config_path()).and_then(|s| s.snapshot()).map(|s| s.revision).unwrap_or(0),
+        "api_version": 2,
+        "can_edit": privileged,
+        "config_revision": snapshot.revision,
         "config": config,
         "themes": themes,
-        "parsed_themes": serde_json::to_value(parse_themes()).unwrap_or(Value::Null),
-        "commands": commands,
+        "parsed_themes": if privileged { serde_json::to_value(parse_themes()).unwrap_or(Value::Null) } else { json!({}) },
+        "commands": if privileged { commands } else { json!({}) },
         "versions": versions,
         "random_bg": random_bg,
         "usage_example": get_usage(Some(true), &[]),
@@ -175,10 +201,10 @@ fn boot_context() -> Result<Value, String> {
         "svgs": get_svgs(),
         "is_exe": is_exe,
         "portrait_rotate": config.get("front").and_then(|f| f.get("portrait_rotate")).cloned().unwrap_or(Value::Null),
-        "lang": serde_json::to_value(lang_dict(configured_lang)).unwrap_or(Value::Null),
+        "lang": serde_json::to_value(lang_dict(configured_lang.as_deref())).unwrap_or(Value::Null),
         "audio_devices": {
-            "input": get_audio_devices("input"),
-            "output": get_audio_devices("output"),
+            "input": if privileged { get_audio_devices("input") } else { vec![] },
+            "output": if privileged { get_audio_devices("output") } else { vec![] },
         },
         "dark_theme": dark_theme,
     }))

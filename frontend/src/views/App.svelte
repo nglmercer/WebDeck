@@ -32,6 +32,8 @@
 <LoadingScreen svgs={ctx.svgs} concealed />
 <Shell ctx={ctx} />
 <div id="deck-scale"><Grid ctx={ctx} /></div>
-<EditorBar />
-<Config ctx={ctx} />
-<AddModal ctx={ctx} />
+{#if ctx.can_edit !== false}
+  <EditorBar />
+  <Config ctx={ctx} />
+  <AddModal ctx={ctx} />
+{/if}

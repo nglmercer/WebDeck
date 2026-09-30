@@ -1,13 +1,4 @@
-//! Port of `app/utils/settings/get_config.py`.
-//!
-//! Config-source-of-truth notes (same as Python):
-//! - `.config/config.json` is created from `webdeck/config_default.json` on
-//!   first run (`ensure_config_exists`, including the legacy `config.json`
-//!   move).
-//! - `--port` overrides `url.port` (`get_port`).
-//! - Like Python (where config errors are fatal/uncaught), IO/JSON failures
-//!   panic with a clear message instead of threading `Result` through every
-//!   caller.
+//! Shared configuration reads, explicit internal saves and non-destructive first-run initialization.
 
 use std::path::PathBuf;
 
@@ -41,18 +32,23 @@ fn default_config_path() -> PathBuf {
 /// Port of `ensure_config_exists`.
 pub fn ensure_config_exists() {
     let config_path = get_config_path();
-    if std::path::Path::new("config.json").exists() {
-        let _ = std::fs::rename("config.json", &config_path);
-    } else if !config_path.exists() {
+    // Never move or remove an existing user file. Detect the obsolete root
+    // location before creating defaults, so startup cannot silently reset it.
+    if !config_path.exists() {
+        assert!(
+            !std::path::Path::new("config.json").exists(),
+            "Existing root config.json requires manual recovery; no files were changed"
+        );
         if let Some(parent) = config_path.parent() {
-            std::fs::create_dir_all(parent).expect("Cannot create .config directory");
+            std::fs::create_dir_all(parent).expect("Cannot create config directory");
         }
-        let default_content = std::fs::read_to_string(default_config_path())
-            .expect("Cannot read webdeck/config_default.json");
-        std::fs::write(&config_path, default_content).expect("Cannot write .config/config.json");
-    }
-    if std::path::Path::new("config.json").exists() {
-        let _ = std::fs::remove_file("config.json");
+        let default_content =
+            std::fs::read(default_config_path()).expect("Cannot read webdeck/config_default.json");
+        let value = serde_json::from_slice(&default_content).expect("Invalid default JSON");
+        crate::domain::config::ConfigDocument::validate(value)
+            .expect("Invalid default configuration");
+        crate::adapters::config::protected_write(&config_path, &default_content, true)
+            .expect("Cannot create configuration");
     }
 }
 
@@ -103,7 +99,10 @@ pub fn get_port() -> u16 {
 /// torn config — the server reads config from many tasks at once.
 pub fn save_config(config: &Value) {
     crate::application::config::shared(get_config_path())
-        .and_then(|service| service.replace(config.clone(), None))
+        .and_then(|service| {
+            let revision = service.snapshot()?.revision;
+            service.replace(config.clone(), revision)
+        })
         .expect("Cannot save configuration");
 }
 
@@ -139,9 +138,11 @@ pub mod test_support {
     pub fn seed_config(value: &serde_json::Value) {
         let dir = std::env::temp_dir().join("webdeck-test-config");
         std::fs::create_dir_all(&dir).unwrap();
+        let mut value = value.clone();
+        value["schema_version"] = serde_json::json!(2);
         std::fs::write(
             dir.join("config.json"),
-            serde_json::to_string(value).unwrap(),
+            serde_json::to_string(&value).unwrap(),
         )
         .unwrap();
     }

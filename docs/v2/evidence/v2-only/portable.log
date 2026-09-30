@@ -1,0 +1,15 @@
+{
+  "date": "2026-09-30T18:21:56.409Z",
+  "artifact": "WebDeck-2.0.0-alpha.1-linux-x86_64-dev-portable.zip",
+  "sha256": "11de57c59cd1f934546b175d75e09421e2e4acbfdc7b61c4bf97d862b4560945",
+  "profile": "development; extracted outside repository; isolated data; no native commands",
+  "checks": [
+    "checksum",
+    "executable permissions",
+    "boot",
+    "static CSS",
+    "v2 registry",
+    "Chromium usable deck",
+    "no page errors"
+  ]
+}
