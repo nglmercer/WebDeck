@@ -121,18 +121,7 @@ export function swapEditorButtonFunction(): void {
     setEditorButtonsDisplay('#swapHint', 'inline');
     document.body.classList.add('swap-active');
 
-    // Snapshot: the loop below only touches attributes, so the live
-    // collection's liveness is unobservable here.
-    for (const button of q('button').toArray()) {
-      if (!q(button).hasClass('EditorButtons-Folder')) {
-        const onclickAttr = q(button).attr('onclick');
-        const onclickHandlerAttr = q(button).attr('onclickhandler');
-        if (onclickHandlerAttr) {
-          editorUiState.savedOnClicks[onclickHandlerAttr] = onclickAttr ?? null;
-        }
-        q(button).removeAttr('onclick');
-      }
-    }
+
   } else {
     setSwapLabel(text('swap_buttons_short'), text('swap_buttons'));
     editorUiState.swapMode = 0;
@@ -147,15 +136,6 @@ export function swapEditorButtonFunction(): void {
     q('div.checkbox').removeClass('checkbox-checked');
     q('.swap-picked').removeClass('swap-picked');
 
-    for (const button of q('button').toArray()) {
-      if (!q(button).hasClass('EditorButtons-Folder')) {
-        const onclickHandlerAttr = q(button).attr('onclickhandler');
-        const savedOnClick = onclickHandlerAttr ? editorUiState.savedOnClicks[onclickHandlerAttr] : undefined;
-        if (savedOnClick) {
-          q(button).attr('onclick', savedOnClick);
-        }
-      }
-    }
     editorUiState.swapChanges = [];
   }
 }

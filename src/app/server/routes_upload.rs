@@ -15,6 +15,8 @@ use serde_json::json;
 
 use super::assets::save_rotated_copy;
 use super::internal_error;
+use crate::adapters::{config::atomic_replace, files::confined_path};
+use crate::app::utils::settings::get_config::config_dir;
 use crate::app::utils::{languages::text, logger::log};
 
 /// Port of `upload_folderpath` (`POST /upload_folderpath`).
@@ -65,58 +67,72 @@ pub(crate) async fn upload_filepath(Query(params): Query<HashMap<String, String>
 
 /// Port of `upload_file` (`POST /upload_file`).
 pub(crate) async fn upload_file(mut multipart: Multipart) -> Response {
-    let mut saved_name: Option<String> = None;
-    let mut info: Option<String> = None;
-
-    while let Ok(Some(field)) = multipart.next_field().await {
-        let field_name = field.name().unwrap_or("").to_string();
-        if field_name == "file" {
-            let filename = field.file_name().unwrap_or("upload.bin").to_string();
-            let filename = std::path::Path::new(&filename)
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("upload.bin")
-                .to_string();
-            match field.bytes().await {
-                Ok(bytes) => {
-                    let save_path = format!(".config/user_uploads/{filename}");
-                    match std::fs::write(&save_path, &bytes) {
-                        Ok(()) => saved_name = Some(filename),
-                        Err(e) => {
-                            return internal_error(
-                                "An error occurred during a request",
-                                format!("Cannot save upload: {e}"),
-                                None,
-                            );
-                        }
-                    }
-                }
-                Err(e) => {
-                    return internal_error(
-                        "An error occurred during a request",
-                        format!("Cannot read upload: {e}"),
-                        None,
-                    );
-                }
+    let invalid = || {
+        super::v2::error_response(
+            crate::domain::error::AppError::new(
+                crate::domain::error::ErrorCode::InvalidInput,
+                "Invalid upload request",
+            ),
+            None,
+        )
+    };
+    let mut pending = None;
+    let mut info = None;
+    loop {
+        let field = match multipart.next_field().await {
+            Ok(Some(field)) => field,
+            Ok(None) => break,
+            Err(_) => return invalid(),
+        };
+        match field.name().unwrap_or("") {
+            "file" if pending.is_none() => {
+                let filename = field.file_name().unwrap_or("upload.bin").to_string();
+                let path = match confined_path(&config_dir(), "user_uploads", &filename) {
+                    Ok(path) => path,
+                    Err(error) => return super::v2::error_response(error, None),
+                };
+                let bytes = match field.bytes().await {
+                    Ok(bytes) => bytes,
+                    Err(_) => return invalid(),
+                };
+                pending = Some((filename, path, bytes));
             }
-        } else if field_name == "info" {
-            info = field.text().await.ok();
+            "info" if info.is_none() => {
+                let value = match field.text().await {
+                    Ok(value) if value.len() <= 128 => value,
+                    _ => return invalid(),
+                };
+                info = Some(value);
+            }
+            _ => return invalid(),
+        }
+    }
+    let Some((filename, path, bytes)) = pending else {
+        return invalid();
+    };
+    match tokio::task::spawn_blocking(move || atomic_replace(&path, &bytes)).await {
+        Ok(Ok(())) => (),
+        _ => {
+            return super::v2::error_response(
+                crate::domain::error::AppError::new(
+                    crate::domain::error::ErrorCode::PersistenceFailed,
+                    "Cannot save upload",
+                ),
+                None,
+            )
         }
     }
 
-    let Some(filename) = saved_name else {
-        log().error("No files were found in the request.");
-        return Json(
-            json!({"success": false, "message": text(Some("no_files_found_error"), None)}),
-        )
-        .into_response();
-    };
-
     if info.as_deref() == Some("background_image") {
-        save_rotated_copy(&format!(".config/user_uploads/{filename}"));
+        save_rotated_copy(
+            &config_dir()
+                .join("user_uploads")
+                .join(&filename)
+                .to_string_lossy(),
+        );
     }
 
-    log().success(&format!("File '{filename}' uploaded successfully"));
+    log().success("File uploaded successfully");
     Json(json!({"success": true, "message": text(Some("downloaded_successfully"), None)}))
         .into_response()
 }
@@ -129,15 +145,14 @@ pub(crate) async fn get_config_file(
         return (StatusCode::UNAUTHORIZED, "Unauthorized").into_response();
     }
 
-    let filename = std::path::Path::new(&filename)
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("")
-        .to_string();
-    let file_path = format!(".config/{directory}/{filename}");
+    let file_path = match confined_path(&config_dir(), &directory, &filename) {
+        Ok(path) => path,
+        Err(error) => return super::v2::error_response(error, None),
+    };
 
-    match tokio::fs::read(&file_path).await {
-        Ok(bytes) => match Response::builder()
+    match tokio::task::spawn_blocking(move || crate::adapters::files::read_asset(&file_path)).await
+    {
+        Ok(Ok(bytes)) => match Response::builder()
             .header("content-type", "application/octet-stream")
             .header(
                 "content-disposition",
@@ -152,7 +167,7 @@ pub(crate) async fn get_config_file(
                 None,
             ),
         },
-        Err(_) => (
+        _ => (
             StatusCode::NOT_FOUND,
             format!("File '{filename}' not found."),
         )

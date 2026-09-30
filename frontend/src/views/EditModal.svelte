@@ -38,7 +38,7 @@
 <ModalShell
   containerClass="editbutton-modal-container {modal.dark}"
   containerId="edit-modal-container-{modal.modalId}"
-  containerAttrs={{ edit_modal_ID: modal.modalId }}
+  containerAttrs={{ 'data-edit-modal-id': modal.modalId }}
   contentClass="editbutton-modal-content {modal.dark}"
   headerClass="editbutton-modal-header bold edit-modal-container-{modal.modalId}"
   titleClass="editbutton-modal"
@@ -51,7 +51,7 @@
 >
   <div class="editbutton-modal-main">
     <div class="config-container {modal.dark}">
-      <form class="args-form" edit_modal_ID={modal.modalId} novalidate>
+      <form class="args-form" data-edit-modal-id={modal.modalId} novalidate>
         <div class="wd2-split">
           <aside class="wd2-preview" aria-label={tx('studio_preview', 'Preview')}>
             <h2 class="wd2-pane-title">{tx('studio_preview', 'Preview')}</h2>
@@ -95,7 +95,7 @@
                     parentCommand={modal.args.parentCommand}
                     commandValue={modal.args.commandValue}
                     modalId={modal.modalId}
-                    idAttr="edit_modal_ID"
+                    idAttr="data-edit-modal-id"
                     prefill={modal.args.prefill}
                   />
                 </div>
@@ -119,7 +119,7 @@
                 />
                 {#if modal.showDevbox}
                   <div class="editorStyle-bar {modal.dark}"></div>
-                  <div class="arg_container" edit_modal_ID={modal.modalId}>
+                  <div class="arg_container" data-edit-modal-id={modal.modalId}>
                     <StudioField label={text('edit_command')} labelFor="command_{modal.modalId}">
                       <input
                         class={modal.dark}

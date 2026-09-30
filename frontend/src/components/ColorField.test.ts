@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'svelte';
 import { mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import ColorField from './ColorField.svelte';
@@ -16,7 +17,7 @@ describe('ColorField', () => {
     document.body.innerHTML = '';
   });
 
-  function render(props: Record<string, unknown>): HTMLElement {
+  function render(props: ComponentProps<typeof ColorField>): HTMLElement {
     host = document.createElement('div');
     document.body.appendChild(host);
     app = mount(ColorField, { target: host, props }) as unknown as Record<string, never>;

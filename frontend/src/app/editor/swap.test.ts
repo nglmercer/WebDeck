@@ -21,7 +21,6 @@ function reset(): void {
   pageState.tempEditorConfig = { front: { buttons: { x: [{ v: 'a' }, { v: 'b' }] } } };
   editorUiState.ifModif = 0;
   editorUiState.swapMode = 0;
-  editorUiState.savedOnClicks = {};
   editorUiState.swapChanges = [];
   editorUiState.swapUNChanges = [];
   editorUiState.swapFirstBtn = 0;

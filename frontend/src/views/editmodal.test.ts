@@ -145,7 +145,7 @@ describe('edit modal arg form', () => {
     expect(panes[1]!.style.display).toBe('');
     expect((panes[1]!.querySelector('input[type="text"]') as HTMLInputElement).value).toBe('hi');
     expect(panes[0]!.style.display).toBe('none');
-    expect(panes[0]!.getAttribute('arg_id')).toBe('0');
+    expect(panes[0]!.getAttribute('data-arg-id')).toBe('0');
   });
 
   it('hides the Parameters tab for resolved commands without visible params', async () => {
@@ -225,9 +225,10 @@ describe('edit resave round-trip', () => {
 
   it('switches choice panes through the shared switcher', async () => {
     await mountEdit('/copy hi');
-    const show = (window as unknown as Record<string, (id: string) => void>)['showArg_e0X0']!;
-    expect(typeof show).toBe('function');
-    show('0');
+    const radio = document.querySelector<HTMLInputElement>('input.choice[value="0"]')!;
+    radio.checked = true;
+    radio.dispatchEvent(new Event('change', { bubbles: true }));
+    await tick();
     const panes = [...document.querySelectorAll('.choices_ALL .arg_container')] as HTMLElement[];
     expect(panes[0]!.style.display).toBe('block');
     expect(panes[1]!.style.display).toBe('none');

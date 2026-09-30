@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'svelte';
 import { mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import NumberField from './NumberField.svelte';
@@ -16,7 +17,7 @@ describe('NumberField', () => {
     document.body.innerHTML = '';
   });
 
-  function render(props: Record<string, unknown>): HTMLElement {
+  function render(props: ComponentProps<typeof NumberField>): HTMLElement {
     host = document.createElement('div');
     document.body.appendChild(host);
     app = mount(NumberField, { target: host, props }) as unknown as Record<string, never>;

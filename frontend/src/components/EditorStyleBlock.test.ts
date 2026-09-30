@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'svelte';
 import { mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { initI18n } from '../framework/i18n';
@@ -37,7 +38,7 @@ describe('EditorStyle', () => {
     document.body.innerHTML = '';
   });
 
-  function render(props: Record<string, unknown>): HTMLElement {
+  function render(props: ComponentProps<typeof EditorStyle>): HTMLElement {
     host = document.createElement('div');
     document.body.appendChild(host);
     app = mount(EditorStyle, { target: host, props }) as unknown as Record<string, never>;

@@ -8,13 +8,8 @@ use serde_json::Value;
 
 use crate::app::updater::{compare_versions, fetch_latest_release, prepare_update_directory};
 use crate::app::utils::{
-    args::{get_args, raw_args},
-    exit::exit_program,
-    languages::text,
-    logger::log,
-    settings::get_config::get_config,
-    show_error::show_error,
-    working_dir::get_base_dir,
+    args::get_args, exit::exit_program, languages::text, logger::log,
+    settings::get_config::get_config, show_error::show_error, working_dir::get_base_dir,
 };
 
 /// Port of `check_for_updates`.
@@ -25,10 +20,6 @@ pub async fn check_for_updates() {
 
     let config = get_config(false, false);
     let settings = config.get("settings").cloned().unwrap_or(Value::Null);
-
-    if std::path::Path::new("update").exists() {
-        let _ = std::fs::remove_dir_all("update");
-    }
 
     let result = check_for_updates_inner(&settings).await;
     if let Err(message) = result {
@@ -91,13 +82,12 @@ async fn check_for_updates_inner(settings: &Value) -> Result<(), String> {
 
         // Python chdirs into update/ and spawns the updater binary with the
         // original CLI args, then exits; mirrored here.
-        let _ = std::env::set_current_dir("update");
         #[cfg(windows)]
         let updater_bin = get_base_dir().join("update").join("update.exe");
         #[cfg(not(windows))]
         let updater_bin = get_base_dir().join("update").join("update");
         match std::process::Command::new(&updater_bin)
-            .args(raw_args())
+            .args(std::env::args().skip(1))
             .spawn()
         {
             Ok(_) => {}

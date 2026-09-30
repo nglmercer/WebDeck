@@ -66,6 +66,7 @@ async fn main() {
     }
 
     if !is_opened::is_opened() || args::get_args().force_start {
+        webdeck::application::lifecycle::activate();
         log().info("Starting WebDeck");
 
         log().info("Loading translations");
@@ -78,6 +79,7 @@ async fn main() {
         log().info("Starting server task");
         let server_handle = tokio::spawn(async {
             if let Err(e) = webdeck::app::server::run_server().await {
+                webdeck::application::lifecycle::request_shutdown();
                 // Native error dialogs block: run off the async worker.
                 tokio::task::block_in_place(|| {
                     show_error::show_error(
@@ -120,15 +122,22 @@ async fn main() {
             }
         } else {
             log().info("Running without tray icon");
-            match tokio::signal::ctrl_c().await {
-                Ok(()) => log().info("Exiting WebDeck... (Ctrl+C)"),
-                Err(e) => {
-                    log().exception(&e, Some("Failed to listen for Ctrl+C"), false, true, true)
-                }
+            tokio::select! {
+                _ = tokio::signal::ctrl_c() => webdeck::application::lifecycle::request_shutdown(),
+                _ = webdeck::application::lifecycle::shutdown_requested() => (),
             }
         }
 
+        webdeck::application::lifecycle::request_shutdown();
         let _ = server_handle.await;
         let _ = popup_handle.await;
+        if webdeck::application::lifecycle::restarting() {
+            if let Ok(exe) = std::env::current_exe() {
+                let _ = std::process::Command::new(exe)
+                    .args(std::env::args().skip(1))
+                    .arg("--force-start")
+                    .spawn();
+            }
+        }
     }
 }

@@ -1,5 +1,7 @@
 # Frontend — Shell
 
+> V2 implementation: see [architecture, compatibility and validation](v2/STATUS.md). The historical descriptions below document the v1 compatibility layer.
+
 Svelte + TypeScript SPA (`frontend/`). Zero-dependency custom framework plus
 a jQuery-like `query/` layer — a 1:1 port of the old Jinja/JS behavior.
 

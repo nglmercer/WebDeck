@@ -1,6 +1,6 @@
 <script lang="ts">
   import { FOLDER_X_PATH } from './icons';
-  import { stringAttrs } from './string-attrs';
+  import { deleteFolder } from '../app/editor/void';
 
   /**
    * Folder-tab delete glyph (bi-x-circle, 16px). The `onclick` handler
@@ -15,21 +15,25 @@
     safeFolder: string;
   }
 
-  let { folderName, safeFolder }: Props = $props();
+  let { folderName }: Props = $props();
 
-  function deleteAttrs(): Record<string, string> {
-    return { onclick: `event.stopPropagation(); deleteFolder('${safeFolder}')` };
+  function remove(event: Event): void {
+    event.stopPropagation();
+    deleteFolder(folderName);
   }
+
 </script>
 
 <svg
   class="delete-icon folder-tab-delete"
-  use:stringAttrs={deleteAttrs()}
+  onclick={remove}
+  onkeydown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); remove(event); } }}
+  tabindex="0"
   xmlns="http://www.w3.org/2000/svg"
   width="16"
   height="16"
   fill="currentColor"
   viewBox="0 0 16 16"
-  role="img"
+  role="button"
   aria-label="Delete folder {folderName}"
   ><title>Delete folder {folderName}</title><path d={FOLDER_X_PATH} /></svg>

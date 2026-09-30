@@ -13,6 +13,24 @@ use webdeck::app::utils::{args, logger::log, working_dir};
 
 #[tokio::main]
 async fn main() {
+    let arguments: Vec<String> = std::env::args().skip(1).collect();
+    if arguments.first().is_some_and(|arg| arg == "--rollback") {
+        if arguments.len() != 4 || arguments[2] != "--destination" {
+            eprintln!("Usage: update --rollback BACKUP --destination INSTALLATION");
+            std::process::exit(2);
+        }
+        match webdeck::adapters::update::rollback(
+            std::path::Path::new(&arguments[3]),
+            std::path::Path::new(&arguments[1]),
+        ) {
+            Ok(()) => println!("Original installation restored; user configuration preserved."),
+            Err(_) => {
+                eprintln!("Rollback failed; keep the backup for recovery.");
+                std::process::exit(1);
+            }
+        }
+        return;
+    }
     if cfg!(debug_assertions) {
         log().debug("Running updater in debug mode (Python skips this unless frozen)");
     }
@@ -49,7 +67,7 @@ async fn main() {
         let update_exe_path = wd_dir.join("update").join("update");
 
         match std::process::Command::new(&update_exe_path)
-            .args(args::raw_args())
+            .args(std::env::args().skip(1))
             .spawn()
         {
             Ok(_) => {}
@@ -81,6 +99,5 @@ async fn main() {
         })
         .unwrap_or_else(|| "0.0.0".to_string());
 
-    updater::check_files();
     updater::check_updates(&current_version).await;
 }

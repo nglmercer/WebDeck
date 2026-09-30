@@ -53,10 +53,8 @@ pub fn parse_css_file(css_file_path: &str) -> HashMap<String, Value> {
 
     if icon_missing {
         let fallback = css_data
-            .get("theme-icon")
+            .get("theme-logo")
             .cloned()
-            .filter(|v| !v.as_str().map(|s| s.is_empty()).unwrap_or(true))
-            .or_else(|| css_data.get("theme-logo").cloned())
             .unwrap_or(Value::String(String::new()));
         css_data.insert("theme-icon".to_string(), fallback);
     }

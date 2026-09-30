@@ -146,7 +146,7 @@
           placeholder="{text('wallpaper_color')} (HEX)"
           bind:value={colorHex}
         />
-        <button class={dark} id="create-color-bg" onclick={addColorBg}>
+        <button type="button" class={dark} id="create-color-bg" onclick={addColorBg}>
           {text('add_background_color')}
         </button>
       </div>
@@ -173,7 +173,7 @@
       {#if view.kind === 'color'}
         <div
           class="choose-bg-element choose-bg-element-color {dark}"
-          background={bg}
+          data-background={bg}
           style="background-color: {view.stripped}; color: {textOn(bg)};"
         >
           <span class="choose-bg-swatch" style="background-color: {view.stripped};" aria-hidden="true"></span>
@@ -183,7 +183,7 @@
           </div>
         </div>
       {:else if view.kind === 'video'}
-        <div class="choose-bg-element choose-bg-element-image" background={bg}>
+        <div class="choose-bg-element choose-bg-element-image" data-background={bg}>
           <div class="choose-bg-thumb">
             <div class="video-container choose-bg-pseudo-element">
               <!-- svelte-ignore a11y_media_has_caption: 1:1 port, decorative ambient background. -->
@@ -206,7 +206,7 @@
           </div>
         </div>
       {:else}
-        <div class="choose-bg-element choose-bg-element-image" background={bg}>
+        <div class="choose-bg-element choose-bg-element-image" data-background={bg}>
           <div class="choose-bg-thumb">
             <div
               class="choose-bg-pseudo-element"

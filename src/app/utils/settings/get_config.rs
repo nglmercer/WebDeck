@@ -60,14 +60,22 @@ pub fn ensure_config_exists() {
 pub fn get_config(check_updates: bool, save_updated_config: bool) -> Value {
     ensure_config_exists();
 
-    let content =
-        std::fs::read_to_string(get_config_path()).expect("Cannot read .config/config.json");
-    let mut config: Value =
-        serde_json::from_str(&content).expect("Cannot parse .config/config.json");
+    let service = crate::application::config::shared(get_config_path())
+        .expect("Cannot initialize configuration service");
+    let snapshot = service.snapshot();
+    let externally_valid = snapshot.is_ok();
+    let mut config = match snapshot {
+        Ok(snapshot) => snapshot.config,
+        Err(_) => {
+            crate::app::utils::logger::log()
+                .warning("Invalid external configuration; retaining last valid snapshot");
+            service.last_valid().config
+        }
+    };
 
     if check_updates || save_updated_config {
         config = check_config_update(config);
-        if save_updated_config {
+        if save_updated_config && externally_valid {
             save_config(&config);
         }
     }
@@ -94,15 +102,15 @@ pub fn get_port() -> u16 {
 /// Writes atomically (temp file + rename) so concurrent readers never see a
 /// torn config — the server reads config from many tasks at once.
 pub fn save_config(config: &Value) {
-    let content = serde_json::to_string_pretty(config).expect("Cannot serialize config");
-    write_config_atomically(&get_config_path(), &content);
+    crate::application::config::shared(get_config_path())
+        .and_then(|service| service.replace(config.clone(), None))
+        .expect("Cannot save configuration");
 }
 
 /// Atomic file write used by both `save_config` copies.
 pub fn write_config_atomically(path: &std::path::Path, content: &str) {
-    let tmp = path.with_extension("json.tmp");
-    std::fs::write(&tmp, content).expect("Cannot write config temp file");
-    std::fs::rename(&tmp, path).expect("Cannot replace config file");
+    crate::adapters::config::atomic_replace(path, content.as_bytes())
+        .expect("Cannot replace configuration file");
 }
 
 /// Test-only helpers: serialize disk-config tests and point them at a temp

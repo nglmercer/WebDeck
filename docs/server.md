@@ -1,5 +1,7 @@
 # Server
 
+> V2 implementation: see [architecture, compatibility and validation](v2/STATUS.md). The historical descriptions below document the v1 compatibility layer.
+
 axum port of the Flask app (`src/app/server/`). Same paths + methods.
 
 ## Route table (`mod.rs` → `app_router`)

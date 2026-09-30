@@ -1,19 +1,5 @@
-//! Port of `app/buttons/`.
-//!
-//! `app/buttons/__init__.py` is empty in Python (callers rely on the
-//! `from package import submodule` fallback); Rust re-exports the command
-//! entry point explicitly instead.
-
-pub mod audio;
-pub mod color_picker;
+//! Compatibility imports; native and integration implementations have one owner.
 pub mod commands;
-pub mod exec;
-pub mod fetch;
-pub mod obs;
-pub mod soundboard;
-pub mod spotify;
-pub mod system;
-pub mod usage;
-pub mod window;
-
+pub use crate::adapters::integrations::{exec, fetch, obs, spotify};
+pub use crate::adapters::platform::{audio, color_picker, soundboard, system, usage, window};
 pub use commands::handle_command;

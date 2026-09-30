@@ -7,16 +7,16 @@ import { filterAddBrowser, wireAddModal } from './wireup';
 function mount(): HTMLElement {
   document.body.innerHTML = `
     <div class="all-commands">
-      <button class="dropdown-btn" dropdown-category="Spotify">Spotify</button>
+      <button class="dropdown-btn" data-dropdown-category="Spotify">Spotify</button>
       <div class="dropdown-container">
         <div class="addbutton-description"><p>Play music</p></div>
-        <button class="dropdown-btn no-dropdown" dropdown-commandTag="play">Play</button>
+        <button class="dropdown-btn no-dropdown" data-dropdown-command-tag="play">Play</button>
         <div class="addbutton-description"><p>Stop music</p></div>
-        <button class="dropdown-btn no-dropdown" dropdown-commandTag="stop">Stop</button>
+        <button class="dropdown-btn no-dropdown" data-dropdown-command-tag="stop">Stop</button>
       </div>
-      <button class="dropdown-btn" dropdown-category="Display">Display</button>
+      <button class="dropdown-btn" data-dropdown-category="Display">Display</button>
       <div class="dropdown-container">
-        <button class="dropdown-btn no-dropdown" dropdown-commandTag="brightness">Brightness</button>
+        <button class="dropdown-btn no-dropdown" data-dropdown-command-tag="brightness">Brightness</button>
       </div>
     </div>`;
   return document.querySelector('.all-commands') as HTMLElement;
@@ -115,9 +115,9 @@ describe('add submit coalescing', () => {
       if (String(url).includes('save_buttons_only')) {
         // Failure response: the save is still sent (what this counts),
         // but no modal-hide timers outlive the test environment.
-        return { ok: true, json: async () => ({ success: false }) };
+        return { ok: true, headers: new Headers(), json: async () => ({ success: false }) };
       }
-      return { ok: true, json: async () => ({ front: { buttons: {} } }) };
+      return { ok: true, headers: new Headers(), json: async () => ({ front: { buttons: {} } }) };
     });
     vi.stubGlobal('fetch', fetchMock);
 
@@ -139,7 +139,7 @@ describe('add submit coalescing', () => {
     });
     const fetchMock = vi.fn((url: unknown) => {
       if (String(url).includes('save_buttons_only')) return gate;
-      return Promise.resolve({ ok: true, json: async () => ({ front: { buttons: {} } }) });
+      return Promise.resolve({ ok: true, headers: new Headers(), json: async () => ({ front: { buttons: {} } }) });
     });
     vi.stubGlobal('fetch', fetchMock);
 

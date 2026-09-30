@@ -35,6 +35,13 @@ beforeEach(() => {
 });
 
 describe('applyHead themes', () => {
+  it('replaces owned theme links on refresh while preserving application styles', () => {
+    const base = document.createElement('link'); base.rel = 'stylesheet'; base.href = '/bundle.css';
+    document.head.append(base);
+    applyHead(testCtx(['old.css']));
+    applyHead(testCtx(['new.css']));
+    expect(stylesheetHrefs()).toEqual(['/bundle.css', '.config/themes/new.css']);
+  });
   it('links the built-in stylesheet directly instead of prefixing .config/themes', async () => {
     applyHead(testCtx(['static/css/style.css']));
     expect(stylesheetHrefs()).toEqual(['/static/css/style.css?v=studio3']);
@@ -139,19 +146,20 @@ describe('Shell', () => {
     expect(css).toContain('.button-00ff00');
   });
 
-  it('renders one folder tab per folder with string handlers', async () => {
+  it('renders one folder tab per folder with typed callbacks', async () => {
     const el = await render(shellCtx({ buttons: { index: [], spotify: [] } }));
     const tabs = el.querySelectorAll('#EditorButtons-Folders button.EditorButtons-Folder');
     expect(tabs).toHaveLength(2);
-    expect(tabs[0]?.getAttribute('onclick')).toContain('folder(');
+    expect(tabs[0]?.getAttribute('data-folder-target')).toBe('index');
     expect(tabs[0]?.querySelector('svg.delete-icon')).not.toBeNull();
   });
 
-  it('keeps the upstream double-escaping quirk for quoted folder ids', async () => {
+  it('preserves quoted folder ids as data without double escaping', async () => {
     const el = await render(shellCtx({ buttons: { 'a"b': [] } }));
     const tab = el.querySelector('#EditorButtons-Folders button.EditorButtons-Folder');
     // Upstream replaces '"' then autoescapes: the parsed attribute holds &quot;.
-    expect(tab?.getAttribute('onclick')).toContain('&quot;');
+    expect(tab?.getAttribute('onclick')).toBeNull();
+    expect(tab?.getAttribute('data-folder-target')).toBe('a\"b');
     expect(tab?.textContent).toContain('a"b');
   });
 

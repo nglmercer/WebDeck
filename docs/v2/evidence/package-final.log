@@ -1,0 +1,9 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.59s
+     Running `target/debug/package`
+package: WebDeck v1.8.7
+package: cargo build --release --bin webdeck --bin update --bin webdeck-qr
+   Compiling webdeck v1.8.7 (/workspace/WebDeck)
+    Finished `release` profile [optimized] target(s) in 1m 48s
+package: rebuilding frontend/dist from the current sources
+package: portable build zipped as 'dist/WebDeck-linux-x86_64-portable.zip'
+Build done! 2m 10s

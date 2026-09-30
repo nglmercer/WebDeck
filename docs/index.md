@@ -51,3 +51,5 @@ all running instances.
 - `<|§|>` inside a message is normalized to a space before dispatch.
 - Paths like `src/app/server/mod.rs` are relative to the repo root.
 - "Python did X" notes explain a port decision; they are not a spec.
+
+- [V2 implementation, migration and validation](v2/STATUS.md)

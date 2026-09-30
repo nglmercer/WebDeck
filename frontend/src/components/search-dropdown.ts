@@ -1,4 +1,4 @@
-import { flushSync, mount } from 'svelte';
+import { flushSync, mount, unmount } from 'svelte';
 import SearchDropdownView from './SearchDropdownView.svelte';
 
 /**
@@ -59,10 +59,11 @@ export class SearchDropdown extends HTMLElement {
   }
 
   /** Replace the option list (selection kept when still present). */
-  setOptions(options: string[]): void {
+  setOptions(options: string[], synchronous = true): void {
     if (this.app) {
       const app = this.app;
-      flushSync(() => app.setOptions(options));
+      if (synchronous) flushSync(() => app.setOptions(options));
+      else app.setOptions(options);
     } else {
       this.pendingOptions = [...options];
     }
@@ -106,6 +107,14 @@ export class SearchDropdown extends HTMLElement {
     });
   }
 
+  disconnectedCallback(): void {
+    if (!this.app) return;
+    this.pendingValue = this.app.getValue();
+    const app = this.app;
+    this.app = null;
+    void unmount(app as unknown as Record<string, never>);
+  }
+
   attributeChangedCallback(name: string): void {
     if ((name === 'placeholder' || name === 'input-class') && this.app) {
       const app = this.app;
@@ -131,12 +140,13 @@ defineSearchDropdown();
 export function wireSearchDropdown(
   id: string,
   options: string[],
-  onSelect: (value: string) => void
-): void {
+  onSelect: (value: string) => void,
+  synchronous = true
+): () => void {
   const el = document.getElementById(id);
-  if (!(el instanceof SearchDropdown)) return;
-  el.setOptions(options);
-  el.addEventListener(SEARCH_DROPDOWN_CHANGE, (event) => {
-    onSelect((event as CustomEvent<string>).detail);
-  });
+  if (!(el instanceof SearchDropdown)) return () => {};
+  el.setOptions(options, synchronous);
+  const listener = (event: Event): void => onSelect((event as CustomEvent<string>).detail);
+  el.addEventListener(SEARCH_DROPDOWN_CHANGE, listener);
+  return () => el.removeEventListener(SEARCH_DROPDOWN_CHANGE, listener);
 }

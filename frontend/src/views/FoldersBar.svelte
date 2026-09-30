@@ -1,9 +1,9 @@
 <script lang="ts">
   import FolderDeleteIcon from '../components/FolderDeleteIcon.svelte';
-  import { stringAttrs } from '../components/string-attrs';
+  import { navigateFolder } from '../features/deck/state.svelte';
   import { text } from '../framework/i18n';
   import type { BootContext } from '../framework/types';
-  import { foldersBarData, type FolderTab } from './shell';
+  import { foldersBarData } from './shell';
 
   interface Props {
     ctx: BootContext;
@@ -18,9 +18,7 @@
   // svelte-ignore state_referenced_locally
   const openFolder = text('open_folder');
 
-  function tabAttrs(tab: FolderTab): Record<string, string> {
-    return { onclick: `folder(\`${tab.safe}\`)` };
-  }
+
 </script>
 
 <div id="EditorButtons-Folders" class="folders-bar" style="display: none;">
@@ -51,7 +49,8 @@
         <div class="folder-tab-wrap">
           <button
             class="button folder-tab EditorButtons-Folder"
-            use:stringAttrs={tabAttrs(tab)}
+            data-folder-target={tab.folderId}
+            onclick={() => navigateFolder(tab.folderId)}
             title="{openFolder}: {tab.folderId}"
           >
             <span class="folder-tab-name">{tab.folderId}</span>

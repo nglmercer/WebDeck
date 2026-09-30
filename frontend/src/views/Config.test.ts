@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initI18n } from '../framework/i18n';
 import type { BootContext, JsonObject } from '../framework/types';
 import Config from './Config.svelte';
+import { send_data } from '../app/send';
+vi.mock('../app/send', () => ({ send_data: vi.fn() }));
 import { resolveLanguage } from './config';
 
 function testCtx(): BootContext {
@@ -152,11 +154,11 @@ describe('Config', () => {
     const el = await render();
     expect(el.querySelectorAll('#disabled-themes .theme-container')).toHaveLength(1);
     expect(el.querySelectorAll('#enabled-themes .theme-container')).toHaveLength(2);
-    const builtin = el.querySelector('#enabled-themes .theme-container[filename="static/css/style.css"]');
-    expect(builtin?.hasAttribute('defaulttheme')).toBe(true);
+    const builtin = el.querySelector('#enabled-themes .theme-container[data-filename="static/css/style.css"]');
+    expect(builtin?.hasAttribute('data-default-theme')).toBe(true);
     expect(builtin?.querySelector('.arrows-container')).toBeNull();
     expect(
-      el.querySelector('#enabled-themes .theme-container[filename="mytheme.css"] .arrows-container')
+      el.querySelector('#enabled-themes .theme-container[data-filename="mytheme.css"] .arrows-container')
     ).not.toBeNull();
   });
 
@@ -285,7 +287,7 @@ describe('Config', () => {
     expect(el.querySelectorAll('#disabled-themes .theme-container')).toHaveLength(0);
     expect(
       [...el.querySelectorAll('#enabled-themes .theme-container')].map((e) =>
-        e.getAttribute('filename')
+        e.getAttribute('data-filename')
       )
     ).toEqual(['off.css', 'mytheme.css', 'static/css/style.css']);
     expect(JSON.parse(handler())).toEqual(['off.css', 'mytheme.css', 'static/css/style.css']);
@@ -295,14 +297,14 @@ describe('Config', () => {
     const el = await render();
     (
       el.querySelector(
-        '#enabled-themes .theme-container[filename="mytheme.css"] .disable-theme-hitbox'
+        '#enabled-themes .theme-container[data-filename="mytheme.css"] .disable-theme-hitbox'
       ) as HTMLElement
     ).click();
     await tick();
 
     expect(
       [...el.querySelectorAll('#disabled-themes .theme-container')].map((e) =>
-        e.getAttribute('filename')
+        e.getAttribute('data-filename')
       )
     ).toEqual(['//mytheme.css', '//off.css']);
     expect(
@@ -319,15 +321,15 @@ describe('Config', () => {
     const el = await render(ctx);
     const order = () =>
       [...el.querySelectorAll('#enabled-themes .theme-container')].map((e) =>
-        e.getAttribute('filename')
+        e.getAttribute('data-filename')
       );
     const up = (file: string) =>
       el.querySelector(
-        `#enabled-themes .theme-container[filename="${file}"] .arrow-up-hitbox`
+        `#enabled-themes .theme-container[data-filename="${file}"] .arrow-up-hitbox`
       ) as HTMLElement;
     const down = (file: string) =>
       el.querySelector(
-        `#enabled-themes .theme-container[filename="${file}"] .arrow-down-hitbox`
+        `#enabled-themes .theme-container[data-filename="${file}"] .arrow-down-hitbox`
       ) as HTMLElement;
 
     up('b.css').click();
@@ -355,7 +357,7 @@ describe('Config', () => {
   it('reveals row arrows on hover, except on the default theme', async () => {
     const el = await render();
     const row = el.querySelector(
-      '#enabled-themes .theme-container[filename="mytheme.css"]'
+      '#enabled-themes .theme-container[data-filename="mytheme.css"]'
     ) as HTMLElement;
     const arrows = () => row.querySelector('.arrows-container') as HTMLElement;
     expect(arrows().classList.contains('invisible')).toBe(true);
@@ -378,7 +380,7 @@ describe('Config', () => {
 
     // The default theme has no toggle or arrows at all.
     const builtin = el.querySelector(
-      '#enabled-themes .theme-container[filename="static/css/style.css"]'
+      '#enabled-themes .theme-container[data-filename="static/css/style.css"]'
     ) as HTMLElement;
     expect(builtin.querySelector('.disable-theme-hitbox')).toBeNull();
     expect(builtin.querySelector('.arrows-container')).toBeNull();
@@ -493,7 +495,7 @@ describe('Config', () => {
     const cards = el.querySelectorAll('#choose-backgrounds-container .choose-bg-element');
     expect(cards).toHaveLength(4);
     expect(el.querySelector('#bg-count')?.textContent).toBe('4');
-    expect(cards[3]?.getAttribute('background')).toBe('#aabbcc');
+    expect(cards[3]?.getAttribute('data-background')).toBe('#aabbcc');
     expect(cards[3]?.querySelector('.choose-bg-label')?.textContent).toContain('#aabbcc');
     expect(
       cards[3]
@@ -529,7 +531,7 @@ describe('Config', () => {
     );
 
     const cards = el.querySelectorAll('#choose-backgrounds-container .choose-bg-element');
-    expect(cards[3]?.getAttribute('background')).toBe('**uploaded/wall.png');
+    expect(cards[3]?.getAttribute('data-background')).toBe('**uploaded/wall.png');
     expect(cards[3]?.querySelector('.choose-bg-label')?.textContent).toBe('wall.png');
     expect(cards[3]?.querySelector('.choose-bg-thumb img')?.getAttribute('src')).toBe(
       '.config/user_uploads/wall.png'
@@ -568,9 +570,9 @@ describe('Config', () => {
     }
   });
 
-  it('sends the firewall bypass through the global', async () => {
-    const send = vi.fn();
-    window.send_data = send;
+  it('sends the firewall bypass through the typed command API', async () => {
+    const send = vi.mocked(send_data);
+    send.mockClear();
     const el = await render();
     (el.querySelector('#authorize_windows_firewall') as HTMLButtonElement).click();
     expect(send).toHaveBeenCalledWith('/bypass-windows-firewall');

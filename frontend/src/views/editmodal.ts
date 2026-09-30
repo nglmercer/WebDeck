@@ -19,7 +19,7 @@ import { iconFillStyle } from '../components/button-icons';
 import { showAlert } from '../components/dialog';
 import { wireKeyField } from '../components/keyfield';
 import { previewImageLink, type PreviewData } from '../components/preview';
-import { buildCommand, hasVisibleParams, registerShowArg, type ArgsPrefill } from './args';
+import { buildCommand, hasVisibleParams, type ArgsPrefill } from './args';
 import { resolveButtonCommand } from './argvalues';
 import { wireFoldernameForm } from './addbutton';
 import { wireButtonImageUpload } from './button-upload';
@@ -243,7 +243,6 @@ export function wireEditModal(ctx: BootContext, editModalId: string, buttonSetti
   if (resolved) state.commandId = resolved.commandId;
   modalStates.set(editModalId, state);
 
-  registerShowArg(editModalId, 'edit_modal_ID');
   wireFoldernameForm(editModalId);
   wireKeyField(editModalId);
   wireStudioPreview(editModalId);
@@ -267,7 +266,7 @@ export function wireEditModal(ctx: BootContext, editModalId: string, buttonSetti
 function buttonCommand(editModalID: string): void {
   const state = modalStates.get(editModalID);
   if (state && state.commandId !== undefined) {
-    const container = q(`form[edit_modal_ID="${editModalID}"] .args-container`).get(0) ?? null;
+    const container = q(`form[data-edit-modal-id="${editModalID}"] .args-container`).get(0) ?? null;
     if (container) {
       state.button['message'] = buildCommand(state.commandId, container);
     }

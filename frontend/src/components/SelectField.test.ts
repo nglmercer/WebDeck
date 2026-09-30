@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'svelte';
 import { mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import SelectField from './SelectField.svelte';
@@ -16,7 +17,7 @@ describe('SelectField', () => {
     document.body.innerHTML = '';
   });
 
-  async function render(props: Record<string, unknown>): Promise<HTMLElement> {
+  async function render(props: ComponentProps<typeof SelectField>): Promise<HTMLElement> {
     host = document.createElement('div');
     document.body.appendChild(host);
     app = mount(SelectField, { target: host, props }) as unknown as Record<string, never>;

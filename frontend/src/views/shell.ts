@@ -5,6 +5,7 @@ import { q } from '../query';
 export function applyHead(ctx: BootContext): void {
   document.title = ctx.is_exe ? 'WebDeck' : 'WebDeck DEV';
   const themes = asArray(get(ctx.config, 'front', 'themes'));
+  document.querySelectorAll('link[data-webdeck-theme]').forEach((link) => link.remove());
   const head = q('head');
   for (const file of [...themes].reverse()) {
     const name = asString(file);
@@ -16,7 +17,7 @@ export function applyHead(ctx: BootContext): void {
     // ?v= cache-bust (see frontend/index.html): bump with static/css changes.
     const href =
       name === 'static/css/style.css' ? '/static/css/style.css?v=studio3' : `.config/themes/${name}`;
-    head.append(q('<link>').attr({ rel: 'stylesheet', href }));
+    head.append(q('<link>').attr({ rel: 'stylesheet', href, 'data-webdeck-theme': '' }));
   }
   // NOTE: socket.io is a bundled `socket.io-client` import in wireup.ts;
   // upstream injected static/js/socketio.js here, but that file never
@@ -162,14 +163,7 @@ export interface FolderTab {
   safe: string;
 }
 
-/**
- * Folder-tab bar data (markup in `FoldersBar.svelte`). The tabs keep
- * upstream string `onclick` handlers (`folder(...)` / `deleteFolder(...)`)
- * as content attributes: browsers compile them, `swap.ts` reads sibling
- * handler attributes back, and `deleteFolder` queries
- * `button[onclick="folder(...)"]` — so a Svelte function handler would
- * silently break deletion.
- */
+/** Folder tabs preserve raw identifiers; navigation uses typed callbacks. */
 export function foldersBarData(ctx: BootContext): FolderTab[] {
   const buttons = asObject(get(ctx.config, 'front', 'buttons'));
   return Object.keys(buttons).map((folderId) => ({

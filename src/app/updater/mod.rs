@@ -23,6 +23,6 @@ mod versions;
 pub use admin::{needs_admin_permissions, prepare_update_directory, request_admin_permissions};
 pub use apply::check_updates;
 pub use check::check_for_updates;
-pub use download::{download_and_extract, fetch_latest_release};
+pub use download::fetch_latest_release;
 pub use files::{check_files, move_folder_content};
 pub use versions::compare_versions;

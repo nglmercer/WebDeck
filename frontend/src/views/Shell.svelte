@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { submitDeck } from '../features/deck/submit';
+  import { asString, get } from '../framework/types';
   import type { BootContext } from '../framework/types';
   import FoldersBar from './FoldersBar.svelte';
   import { backgroundVideoSrc, shellCss, showConsoleForm } from './shell';
@@ -46,7 +48,7 @@
   </div>
 {/if}
 {#if shell.showConsole}
-  <form class="form">
+  <form class="form" onsubmit={(event) => submitDeck(event, asString(get(ctx.config, 'settings', 'data_transfer_method')))}>
     <!-- svelte-ignore a11y_label_has_associated_control: 1:1 port of the debug console label. -->
     <label style="color: white;">Console:</label><br />
     <input type="text" class={'message ' + shell.dark} /><br />

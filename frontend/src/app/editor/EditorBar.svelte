@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { SaveExitEditor, toggleEditorMode, swapEditorButtonFunction } from './index';
+  import { pageState } from '../state';
   import { text } from '../../framework/i18n';
 
   // Render-once by design: the boot context never changes after mount.
@@ -26,6 +28,7 @@
   <button
     class="button editor-btn editor-btn-primary"
     id="SaveExitEditorButton"
+    onclick={() => SaveExitEditor(pageState.tempEditorConfig)}
     title="{saveAndExit} (E)"
     aria-keyshortcuts="e"
   >
@@ -35,6 +38,7 @@
   <button
     class="button editor-btn"
     id="exitEditorButton"
+    onclick={toggleEditorMode}
     title="{quitWithoutSaving} (Q)"
     aria-keyshortcuts="q"
   >
@@ -45,6 +49,7 @@
   <button
     class="button editor-btn"
     id="swapEditorButton"
+    onclick={swapEditorButtonFunction}
     title="{swapButtons} (S)"
     aria-keyshortcuts="s"
   >

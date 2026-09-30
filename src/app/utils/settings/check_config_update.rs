@@ -174,7 +174,7 @@ pub fn check_config_themes(mut config: Value) -> Value {
             .filter(|theme| {
                 !installed_names
                     .iter()
-                    .any(|name| theme.ends_with(name.as_str()))
+                    .any(|name| theme.trim_start_matches("//") == name.trim_start_matches("//"))
             })
             .collect();
         if !new_themes.is_empty() {
@@ -200,19 +200,17 @@ pub fn check_config_themes(mut config: Value) -> Value {
             themes_dir.join(file).is_file()
         });
 
-        // Remove duplicates (keep first occurrence, re-inserted at the front
-        // like Python).
+        // Preserve the first entry including its enabled/disabled state.
         let mut seen: Vec<String> = Vec::new();
         let mut deduped: Vec<Value> = Vec::new();
         for theme in installed.iter() {
             let name = theme.as_str().unwrap_or("").replace("//", "");
             if !seen.contains(&name) {
                 seen.push(name.clone());
-                deduped.push(Value::String(format!("//{name}")));
+                deduped.push(theme.clone());
             }
         }
-        // Python moves each duplicate to index 0; net effect for the common
-        // cases equals first-occurrence-wins with `//` prefix normalized.
+        // Normalizing every entry to // silently disabled themes after save.
         *installed = deduped;
     }
 

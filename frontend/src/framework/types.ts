@@ -74,6 +74,7 @@ export function get(obj: JsonValue | undefined, ...keys: string[]): JsonValue | 
 }
 
 export interface BootContext {
+  config_revision?: number;
   config: JsonObject;
   commands: JsonObject;
   versions: JsonObject;

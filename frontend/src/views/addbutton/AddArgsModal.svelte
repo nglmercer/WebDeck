@@ -37,7 +37,7 @@
 <ModalShell
   containerClass="addbutton-modal-container-args {modal.dark}"
   containerId="modal-container-{modal.id}"
-  containerAttrs={{ arg_modal_ID: modal.id }}
+  containerAttrs={{ 'data-arg-modal-id': modal.id }}
   contentClass="addbutton-modal-content-args {modal.dark}"
   headerClass="addbutton-modal-header-args bold modal-container-{modal.id}"
   titleClass="addbutton-modal-args"
@@ -50,7 +50,7 @@
 >
   <div class="addbutton-modal-main-args">
     <div class="config-container {modal.dark}">
-      <form class="args-form" arg_modal_ID={modal.id} novalidate>
+      <form class="args-form" data-arg-modal-id={modal.id} novalidate>
         <div class="wd2-split">
           <aside class="wd2-preview" aria-label={tx('studio_preview', 'Preview')}>
             <h2 class="wd2-pane-title">{tx('studio_preview', 'Preview')}</h2>
@@ -94,7 +94,7 @@
                     parentCommand={mctx.parentCommand}
                     commandValue={mctx.commandValue}
                     modalId={modal.id}
-                    idAttr="arg_modal_ID"
+                    idAttr="data-arg-modal-id"
                   />
                 </div>
               {/if}
@@ -116,7 +116,7 @@
                   mode="controls"
                 />
                 <div class="editorStyle-bar {modal.dark}" style="display: none;"></div>
-                <div class="arg_container" arg_modal_ID={modal.id} style="display: none;">
+                <div class="arg_container" data-arg-modal-id={modal.id} style="display: none;">
                   <label for="command_{modal.id}">Command (experimental):</label>
                   <input
                     class={modal.dark}

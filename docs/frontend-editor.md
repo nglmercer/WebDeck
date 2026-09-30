@@ -1,5 +1,7 @@
 # Frontend — Editor
 
+> V2 implementation: see [architecture, compatibility and validation](v2/STATUS.md). The historical descriptions below document the v1 compatibility layer.
+
 Button editing: `EditModal` (single slot) + Add-button browser
 (`addbutton/`), with `ArgsBlock` rendering per-command arguments from the
 catalog schema.

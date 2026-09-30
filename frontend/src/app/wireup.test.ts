@@ -1,20 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { deleteFolder } from './editor/void';
-import { installGlobals } from './wireup';
+import { configureFolders, navigateFolder, deckState } from '../features/deck/state.svelte';
 
-describe('installGlobals', () => {
-  it('installs window.deleteFolder (folder-tab string onclick handler)', () => {
-    // Regression: the FolderDeleteIcon `deleteFolder('…')` handler, the
-    // globals.d.ts declaration, and the void.ts implementation existed,
-    // but nothing assigned window.deleteFolder — every click threw.
-    installGlobals();
-    expect(window.deleteFolder).toBe(deleteFolder);
-  });
-
-  it('installs the other inline-handler globals', () => {
-    installGlobals();
-    expect(typeof window.folder).toBe('function');
-    expect(typeof window.togglePasswordVisibility).toBe('function');
-    expect(typeof window.send_data).toBe('function');
+describe('typed folder navigation', () => {
+  it('uses raw names as data and ignores missing folders', () => {
+    const name = "quotes\" and ' backticks` ${notCode}";
+    configureFolders(['index', name]);
+    navigateFolder(name);
+    expect(deckState.activeFolder).toBe(name);
+    navigateFolder('missing');
+    expect(deckState.activeFolder).toBe(name);
+    configureFolders(['index']);
+    expect(deckState.activeFolder).toBe('index');
   });
 });

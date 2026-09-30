@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import TrashIcon from './TrashIcon.svelte';
   import { serializeHeaderRows, type HeaderRow } from './headers';
 
@@ -15,7 +16,7 @@
 
   let { initial, dark = '' }: Props = $props();
 
-  let rows = $state<HeaderRow[]>(initial.map((row) => ({ ...row })));
+  let rows = $state<HeaderRow[]>(untrack(() => initial.map((row) => ({ ...row }))));
 
   // Trailing-blank invariant: there is always an empty row to type in.
   $effect(() => {

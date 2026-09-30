@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'svelte';
 import { mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import FileField from './FileField.svelte';
@@ -16,7 +17,7 @@ describe('FileField', () => {
     document.body.innerHTML = '';
   });
 
-  async function render(props: Record<string, unknown>): Promise<HTMLElement> {
+  async function render(props: ComponentProps<typeof FileField>): Promise<HTMLElement> {
     host = document.createElement('div');
     document.body.appendChild(host);
     app = mount(FileField, { target: host, props }) as unknown as Record<string, never>;

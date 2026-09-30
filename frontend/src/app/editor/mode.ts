@@ -10,7 +10,7 @@ import { emitAppEvent } from '../events';
 import { refreshApp } from '../refresh';
 import { showError } from '../toast';
 import { showAlert } from '../../components/dialog';
-import { showEditorPartially, swapButtonLabel, toggleEditorButtonsMode } from './display';
+import { toggleEditorButtonsMode } from './display';
 import { editorUiState } from './state';
 import { swapEditorButtonFunction } from './swap';
 
@@ -24,7 +24,10 @@ export function syncEditorButtonLabel(): void {
   }
 }
 
+let entryGeneration = 0;
+
 export function toggleEditorMode(): void {
+  const generation = ++entryGeneration;
   pageState.editorMode = pageState.editorMode === 0 ? 1 : 0;
   toggleEditorButtonsMode();
   syncEditorButtonLabel();
@@ -35,7 +38,7 @@ export function toggleEditorMode(): void {
     // config untouched (same as before: only a response reset it).
     fetchConfig()
       .then(function (configData: JsonObject) {
-        pageState.tempEditorConfig = configData;
+        if (generation === entryGeneration && pageState.editorMode === 1 && !editorUiState.ifModif) pageState.tempEditorConfig = structuredClone(configData);
       })
       .catch(function (error) {
         console.error(error);
@@ -54,31 +57,26 @@ export function toggleEditorMode(): void {
   }
 }
 
+let savingEditor = false;
 export function SaveExitEditor(tempConfig: JsonObject): void {
-  pageState.editorMode = 0;
-  editorUiState.swapMode = 0;
-  showEditorPartially();
-  swapEditorButtonFunction();
-  const swapLabel = swapButtonLabel();
-  if (swapLabel) {
-    swapLabel.textContent = text('swap_buttons_short');
-  }
-  byId('swapEditorButton').get(0)?.setAttribute('title', `${text('swap_buttons')} (S)`);
-  editorUiState.swapFirstBtn = 0;
-  editorUiState.swapSecondBtn = 0;
-  editorUiState.swapChanges = [];
-  toggleEditorButtonsMode();
-  if (editorUiState.ifModif === 1 || editorUiState.swapChanges.length !== 0) {
-    saveButtonsOnly(tempConfig)
-      .then(function () {
-        emitAppEvent('save:completed', { flow: 'buttons' });
-        void refreshApp();
-        void showAlert(text('settings_save_success'));
-      })
-      .catch(function (error: Error) {
-        // NOTE: success:false answers land here too (as the localized
-        // save error instead of the old generic toast).
-        showError(error.message);
-      });
-  }
+  if (savingEditor) return;
+  const modified = editorUiState.ifModif === 1 || editorUiState.swapChanges.length !== 0;
+  const finish = (): void => {
+    pageState.editorMode = 0;
+    editorUiState.swapMode = 0;
+    editorUiState.ifModif = 0;
+    editorUiState.swapChanges = [];
+    document.body.classList.remove('swap-active');
+    toggleEditorButtonsMode();
+    syncEditorButtonLabel();
+  };
+  if (!modified) { finish(); return; }
+  savingEditor = true;
+  saveButtonsOnly(tempConfig).then(async () => {
+    finish();
+    emitAppEvent('save:completed', { flow: 'buttons' });
+    await refreshApp();
+    await showAlert(text('settings_save_success'));
+  }).catch((error: Error) => showError(error.message))
+    .finally(() => { savingEditor = false; });
 }

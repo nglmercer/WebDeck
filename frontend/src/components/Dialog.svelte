@@ -23,7 +23,7 @@
 
   // Dismiss value for non-answers: alerts only acknowledge, confirms
   // default to false (safe side for destructive actions).
-  const dismissValue = variant === 'alert';
+  const dismissValue = $derived(variant === 'alert');
 
   $effect(() => {
     primaryBtn?.focus();

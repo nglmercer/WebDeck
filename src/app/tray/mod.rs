@@ -129,10 +129,14 @@ pub fn create_tray_icon() {
     };
 
     // Double-click opens the same QR window as the default menu entry.
-    std::thread::spawn(|| {
-        for event in TrayIconEvent::receiver() {
-            if matches!(event, TrayIconEvent::DoubleClick { .. }) {
-                show_qrcode();
+    let events = std::thread::spawn(|| {
+        while !crate::application::lifecycle::stopping() {
+            if let Ok(event) =
+                TrayIconEvent::receiver().recv_timeout(std::time::Duration::from_millis(50))
+            {
+                if matches!(event, TrayIconEvent::DoubleClick { .. }) {
+                    show_qrcode();
+                }
             }
         }
     });
@@ -140,7 +144,7 @@ pub fn create_tray_icon() {
     // Menu-event service loop (blocks like pystray's `icon.run()`),
     // polling for requested menu rebuilds along the way.
     let menu_rx = MenuEvent::receiver();
-    loop {
+    while !crate::application::lifecycle::stopping() {
         let pending = tray_state().lock().ok().and_then(|mut state| {
             if state.dirty {
                 state.dirty = false;
@@ -157,6 +161,8 @@ pub fn create_tray_icon() {
         }
         std::thread::sleep(std::time::Duration::from_millis(50));
     }
+    let _ = events.join();
+    TRAY_RUNNING.store(false, Ordering::SeqCst);
 }
 
 /// Non-desktop stub (macOS and other Unixes without the GUI stack).

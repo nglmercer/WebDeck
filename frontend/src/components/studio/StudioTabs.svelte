@@ -36,7 +36,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions: arrow-key delegation for the tablist (focus stays on the tab buttons). -->
-<div class="wd2-tabs" role="tablist" aria-label="modal sections" onkeydown={onKeydown}>
+<div class="wd2-tabs" role="tablist" tabindex="0" aria-label="modal sections" onkeydown={onKeydown}>
   {#each tabs as tab}
     <button
       type="button"

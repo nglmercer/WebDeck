@@ -1,5 +1,7 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte';
+  import { onMount, type Snippet } from 'svelte';
+  import { modalState, modalKey } from '../../features/modals/state.svelte';
+  import { wireModalA11y } from './a11y';
   import CloseIcon from '../CloseIcon.svelte';
   import { stringAttrs } from '../string-attrs';
 
@@ -15,7 +17,7 @@
     /** Outer hook classes, e.g. `modal-container dark-theme`. */
     containerClass: string;
     containerId?: string | undefined;
-    /** Modal-id attributes (`edit_modal_ID`, `arg_modal_ID`). */
+    /** Modal-id attributes (`data-edit-modal-id`, `data-arg-modal-id`). */
     containerAttrs?: Record<string, string> | undefined;
     /** Content hook classes, e.g. `modal-content dark-theme`. */
     contentClass: string;
@@ -57,9 +59,12 @@
     labelledBy,
     children,
   }: Props = $props();
+  let container: HTMLDivElement;
+  const key = $derived(modalKey(containerClass, containerId));
+  onMount(() => wireModalA11y(container));
 </script>
 
-<div class={containerClass} id={containerId} use:stringAttrs={containerAttrs ?? {}}>
+<div bind:this={container} style:display={modalState.stack.includes(key) ? 'block' : 'none'} style:opacity={modalState.stack.includes(key) ? '1' : '0'} class={containerClass} id={containerId} use:stringAttrs={containerAttrs ?? {}}>
   <div
     class={contentClass}
     id={contentId}

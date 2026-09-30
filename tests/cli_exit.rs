@@ -66,3 +66,39 @@ fn invalid_args_exit_with_code_2() {
         "bad args should exit(2) like argparse, got: {status}"
     );
 }
+
+#[test]
+fn ordered_space_separated_options_and_timeout_exit_gracefully_with_isolated_config() {
+    let directory = std::env::temp_dir().join(format!("webdeck-cli-owned-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let mut config: serde_json::Value =
+        serde_json::from_str(include_str!("../webdeck/config_default.json")).unwrap();
+    config["settings"]["show_popup"] = false.into();
+    config["settings"]["auto_updates"] = false.into();
+    std::fs::write(directory.join("config.json"), config.to_string()).unwrap();
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    drop(listener);
+    let mut child = Command::new(env!("CARGO_BIN_EXE_webdeck"))
+        .args([
+            "--host",
+            "127.0.0.1",
+            "--port",
+            &port.to_string(),
+            "--timeout",
+            "1",
+            "--no-tray",
+            "--no-admin",
+            "--no-auto-update",
+            "--force-start",
+        ])
+        .env("WEBDECK_CONFIG_DIR", &directory)
+        .env("WEBDECK_FAKE_EFFECTS", "1")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
+    assert!(wait_for_exit(&mut child, "ordered options + graceful timeout", 15).success());
+    std::fs::remove_dir_all(directory).unwrap();
+}

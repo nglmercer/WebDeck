@@ -12,7 +12,9 @@ cargo clippy --all-targets
 # Frontend (from frontend/)
 npm ci
 npm test              # vitest, 298 tests
-npm run typecheck     # svelte-check
+npm run typecheck     # TypeScript
+npm ci --prefix ../tools/component-check
+npm run check:components # Svelte component diagnostics
 npm run build         # → frontend/dist/ (required by GET /)
 ```
 
@@ -71,3 +73,30 @@ Two phases:
 `renamed_files` directives plus per-locale changelogs (`en`/`fr`:
 `updates`, `minor_enhancements`, `fixes`, `nobody_cares`).
 Current version: 1.8.7.
+
+
+## V2 distribution and recovery
+
+See [v2 status](v2/STATUS.md) for the current architecture and release gates.
+`cargo run --locked --bin package` rebuilds the frontend and native release
+binaries and writes a platform ZIP plus `.zip.sha256`. `--dev` creates an
+explicitly named unsigned development ZIP. Windows packaging requires
+`WEBDECK_NIRCMD_SHA256` obtained independently from a verified vendor archive;
+release signing must succeed for all three shipped binaries.
+
+The updater requires GitHub HTTPS assets with a trusted release SHA-256,
+validates the complete archive, stages it privately, and journals originals
+before publication. Failure restores originals. A committed backup is kept.
+Close WebDeck before manually recovering an installation:
+
+```sh
+/path/to/update --rollback /path/to/backup --destination /path/to/installation
+```
+
+Use the backup created by that installation only; keep it until recovery has
+been checked. User configuration is excluded from update packages.
+The local backup directory and installation are trusted administrator-owned
+paths. Windows locked executables cause a safe failure; validate installation
+and rollback on Windows before release. The automatic launcher currently
+stops the application before the updater checks the download; a failed
+preflight requires manually restarting the unchanged application.

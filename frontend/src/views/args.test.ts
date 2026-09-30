@@ -165,8 +165,8 @@ describe('arg labels', () => {
     expect(host.innerHTML).toContain('add');
     // Leaf rows keep their opener contract: id + modal-id + command tag.
     const btn = host.querySelector('#open-button-0X0') as HTMLElement;
-    expect(btn?.getAttribute('arg_modal_ID')).toBe('0X0');
-    expect(btn?.getAttribute('dropdown-commandTag')).toBe('add');
+    expect(btn?.getAttribute('data-arg-modal-id')).toBe('0X0');
+    expect(btn?.getAttribute('data-dropdown-command-tag')).toBe('add');
     expect(host.querySelector('#modal-container-0X0')).not.toBeNull();
   });
 

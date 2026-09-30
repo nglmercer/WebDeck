@@ -1,11 +1,10 @@
-import { saveConfig } from '../api/config';
-import { fetchUsage } from '../api/usage';
+import { deviceToken } from '../features/security/session';
+import { showAlert } from '../components/dialog';
 import { text } from '../framework/i18n';
 import { asString, get, type BootContext } from '../framework/types';
 import { q, byId } from '../query';
 import {
   SaveExitEditor,
-  deleteFolder,
   isSwapMode,
   reloadEditorEvents,
   swapEditorButtonFunction,
@@ -20,54 +19,10 @@ import {
   isAddbuttonModalOpened,
   isEditbuttonModalOpened,
   show_modal,
-  wireModals,
 } from './modals';
 import { io } from 'socket.io-client';
 import { pageState, socketHolder, type AppSocket } from './state';
-import { emitAppEvent } from './events';
-import { refreshApp } from './refresh';
-import { showError } from './toast';
-import { showAlert } from '../components/dialog';
-import { updateUsageTiles } from './usage';
 import { auto_resize, wireZoomControls } from './zoom';
-import { send_data } from './send';
-
-/** Global helpers (top-level functions in the inline script). */
-export function installGlobals(): void {
-  window.folder = function (folder_id: string): void {
-    q('.buttons-center')
-      .toArray()
-      .forEach(function (element) {
-        if (!q(element).hasClass('invisible')) {
-          q(element).addClass('invisible');
-        }
-      });
-
-    const folderElement = byId('folder-' + folder_id).get(0) ?? null;
-    if (!folderElement) return;
-    if (q(folderElement).hasClass('invisible')) {
-      q(folderElement).removeClass('invisible');
-    } else {
-      q(folderElement).addClass('invisible');
-    }
-  };
-
-  window.togglePasswordVisibility = function (id: string, iconid: string): void {
-    const passwordInput = byId<HTMLInputElement>(id).get(0) ?? null;
-    const showPasswordIcon = byId(iconid).get(0) ?? null;
-    if (!passwordInput || !showPasswordIcon) return;
-    if (q(passwordInput).prop('type') === 'password') {
-      q(passwordInput).prop('type', 'text');
-      q(showPasswordIcon).addClass('active');
-    } else {
-      q(passwordInput).prop('type', 'password');
-      q(showPasswordIcon).removeClass('active');
-    }
-  };
-
-  window.send_data = send_data;
-  window.deleteFolder = deleteFolder;
-}
 
 function wireVideos(): void {
   const videos = q('video');
@@ -89,115 +44,14 @@ function wireSocket(transferMethod: string): void {
   socketHolder.socket?.disconnect();
   socketHolder.socket = null;
   if (transferMethod !== 'socket') return;
-  const socket: AppSocket = io('http://' + document.domain + ':' + location.port);
+  const socket: AppSocket = io(location.origin, { auth: { token: deviceToken() } });
   socketHolder.socket = socket;
 
+  socket.on('command_error', (error) => { void showAlert(error.message); });
+  socket.on('connect_error', () => { void showAlert('Connection denied. Check that this device token has not expired or been revoked.'); });
   socket.on('connect', function () {
     console.log('Connected');
   });
-}
-
-function wireSubmits(transferMethod: string): void {
-  q('form')
-    .toArray()
-    .forEach((form) => {
-      q(form).on('submit', function (event) {
-        event.preventDefault();
-
-        if (pageState.editorMode === 1 && isSwapMode()) {
-          return;
-        }
-
-        const messageElement = q(form).find('.message').get(0) ?? null;
-        if (!messageElement) {
-          if (q(form).hasClass('config-form')) {
-            const config_dataTemp: Record<string, unknown> = {};
-            q('#config-form input, #config-form select')
-              .toArray()
-              .forEach(function (input) {
-                const el = input as HTMLInputElement | HTMLSelectElement;
-                const field = el as HTMLInputElement;
-                const name = q(el).prop('name') ?? '';
-                let value: unknown;
-                if (q(field).prop('type') === 'checkbox') {
-                  value = q(field).prop('checked') === true;
-                } else {
-                  value = String(q(field).val() ?? '');
-                  if (q(el).prop('id') === 'language') {
-                    value = String(value).toLowerCase();
-                  }
-                }
-                config_dataTemp[name] = value;
-              });
-
-            const config_data: Record<string, unknown> = {};
-
-            for (const key in config_dataTemp) {
-              if (key === '') continue;
-
-              const keys = key.split('.');
-              let obj: Record<string, unknown> = config_data;
-
-              for (let i = 0; i < keys.length; i++) {
-                const k = keys[i];
-                if (k === undefined) continue;
-                if (!Object.prototype.hasOwnProperty.call(obj, k)) {
-                  obj[k] = {};
-                }
-
-                if (i === keys.length - 1) {
-                  obj[k] = config_dataTemp[key];
-                }
-
-                obj = obj[k] as Record<string, unknown>;
-              }
-            }
-
-            saveConfig(config_data)
-              .then(function (response) {
-                if (response.success) {
-                  emitAppEvent('save:completed', { flow: 'config' });
-                  // Re-render so grid size, language, theme, and background
-                  // apply immediately (no manual reload needed).
-                  void refreshApp();
-                  void showAlert(text('settings_save_success'));
-                } else {
-                  // Single notification per failure (was toast + alert together).
-                  if (response.message && response.message !== '') {
-                    void showAlert(response.message);
-                  } else {
-                    void showAlert(text('settings_save_error'));
-                  }
-                }
-              })
-              .catch(function (error: Error) {
-                showError(error.message);
-              });
-          }
-        } else {
-          const message = String(q(messageElement).val() ?? '');
-          if (
-            !message.startsWith('/usage') &&
-            !message.startsWith('/reload') &&
-            !message.startsWith('/folder')
-          ) {
-            if (transferMethod === 'socket') {
-              socketHolder.socket?.emit('message_from_socket', message);
-            } else {
-              send_data(message);
-            }
-          } else if (message.startsWith('/reload') && !isSwapMode()) {
-            location.reload();
-          } else {
-            fetchUsage({ message })
-              .then((usage_dict) => {
-                updateUsageTiles(usage_dict);
-              })
-              .catch((error) => console.error(error));
-          }
-        }
-      });
-    });
 }
 
 // The keydown listener binds <html>, which survives re-renders: wire it
@@ -281,8 +135,6 @@ export function wireApp(ctx: BootContext): void {
   wireEditorChrome();
   reloadEditorEvents();
   wireSocket(transferMethod);
-  wireSubmits(transferMethod);
-  wireModals(() => toggleEditorMode(), isSwapMode);
   wireKeydown();
   wireZoomControls(isSwapMode, asString(get(ctx.config, 'front', 'width')));
 }

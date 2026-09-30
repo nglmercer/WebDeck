@@ -14,6 +14,11 @@ and more, with live CPU/RAM/GPU/disk tiles streaming back to the page.
 
 This is the Rust port of the original Python app (axum + Svelte SPA).
 
+The `v2` integration branch adds typed command execution, configuration revisions,
+pairing and feature-owned frontend state. See [implementation status and migration](docs/v2/STATUS.md)
+for validation evidence and the remaining native release gates. Stable releases
+and update channels are unchanged.
+
 <img width="960" height="540" alt="3d-tour" src="https://github.com/user-attachments/assets/77972bde-4662-4125-80be-3f8dff45234e" />
 
 ## Quickstart

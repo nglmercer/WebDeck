@@ -1,6 +1,24 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
-  "entry": ["demo-3d/main.ts", "e2e/*.spec.ts"],
-  "project": ["src/**/*", "demo-3d/**/*", "e2e/**/*", "**/*.svelte"],
-  "ignoreBinaries": ["ffmpeg"]
+  "entry": [
+    "demo-3d/main.ts",
+    "e2e/*.spec.ts",
+    "e2e/acceptance/server.mjs",
+    "../tools/validation/performance.mjs",
+    "../tools/validation/portable.mjs"
+  ],
+  "project": [
+    "src/**/*",
+    "demo-3d/**/*",
+    "e2e/**/*",
+    "**/*.svelte"
+  ],
+  "ignoreBinaries": [
+    "ffmpeg"
+  ],
+  "ignoreIssues": {
+    "src/contracts/v2.ts": [
+      "types"
+    ]
+  }
 }

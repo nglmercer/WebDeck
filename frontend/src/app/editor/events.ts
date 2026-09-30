@@ -5,34 +5,27 @@
 // createVoidButton ends with reloadEditorEvents).
 
 import { q, byId } from '../../query';
-import { show_addbutton_modal } from '../modals';
-import { pageState } from '../state';
-import { SaveExitEditor, toggleEditorMode } from './mode';
+import { toggleEditorMode } from './mode';
 import { editorUiState } from './state';
-import { swapButton, swapEditorButtonFunction } from './swap';
+import { swapButton } from './swap';
 import { showDeleteConfirmation } from './void';
 
+const wired = new WeakSet<Element>();
 export function reloadEditorEvents(): void {
   // NOTE: .add-button clicks open the modal via the div.add-button binding
   // below; .edit-button clicks via wireModals in ../modals.
   for (const el of q('.delete-button').toArray()) {
+    if (wired.has(el)) continue; wired.add(el);
     q(el).on('click', showDeleteConfirmation);
   }
 
   const AllButtons = q('form.form').toArray().concat(q('div.void').toArray());
   for (const el of AllButtons) {
+    if (wired.has(el)) continue; wired.add(el);
     q(el).on('click', swapButton);
   }
 
-  for (const button of q('div.add-button').toArray()) {
-    q(button).on('click', function () {
-      if (editorUiState.swapMode !== 1) {
-        const addIdValue = q(button).attr('add_ID');
-        const addFolderValue = q(button).attr('add_FOLDER');
-        show_addbutton_modal(addFolderValue ?? null, addIdValue ?? null);
-      }
-    });
-  }
+
 }
 
 export function wireEditorChrome(): void {
@@ -58,11 +51,4 @@ export function wireEditorChrome(): void {
     });
 
   byId('editorButton').on('click', toggleEditorMode);
-  byId('exitEditorButton').on('click', toggleEditorMode);
-
-  byId('SaveExitEditorButton').on('click', function () {
-    SaveExitEditor(pageState.tempEditorConfig);
-  });
-
-  byId('swapEditorButton').on('click', swapEditorButtonFunction);
 }

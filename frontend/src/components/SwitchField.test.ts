@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'svelte';
 import { mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import SwitchField from './SwitchField.svelte';
@@ -16,7 +17,7 @@ describe('SwitchField', () => {
     document.body.innerHTML = '';
   });
 
-  function render(props: Record<string, unknown>): HTMLElement {
+  function render(props: ComponentProps<typeof SwitchField>): HTMLElement {
     host = document.createElement('div');
     document.body.appendChild(host);
     app = mount(SwitchField, { target: host, props }) as unknown as Record<string, never>;

@@ -3,7 +3,7 @@
 //! Port of Flask's `@app.before_request check_local_network` and
 //! `@app.after_request` hooks.
 
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::net::{IpAddr, SocketAddr};
 
 use axum::{
     body::Body,
@@ -50,54 +50,61 @@ pub(crate) async fn check_local_network(
     next.run(req).await
 }
 
-fn ipv4_masked(ip: Ipv4Addr, prefix: u8) -> u32 {
-    let bits = u32::from(ip);
-    if prefix >= 32 {
-        bits
-    } else {
-        bits & (!0u32 << (32 - prefix))
+fn in_network(remote: IpAddr, local: IpAddr, prefix: u8) -> bool {
+    match (remote, local) {
+        (IpAddr::V4(remote), IpAddr::V4(local)) if prefix <= 32 => {
+            let mask = if prefix == 0 {
+                0
+            } else {
+                !0u32 << (32 - prefix)
+            };
+            u32::from(remote) & mask == u32::from(local) & mask
+        }
+        (IpAddr::V6(remote), IpAddr::V6(local)) if prefix <= 128 => {
+            let mask = if prefix == 0 {
+                0
+            } else {
+                !0u128 << (128 - prefix)
+            };
+            u128::from(remote) & mask == u128::from(local) & mask
+        }
+        _ => false,
     }
 }
-
-/// Same-network check + `allowed_networks` (CIDR or single IP entries).
+/// Loopback plus same-network and explicit IPv4/IPv6 entries. Invalid
+/// addresses never grant access; CIDR /0 is handled without a shift panic.
 fn ip_allowed(remote: IpAddr, local_ip: &str, netmask: u8, config: &Value) -> bool {
-    // Non-IPv4 remotes or unparseable local IP: allow (the app is
-    // IPv4-oriented; loopback/v6 stays reachable in dev).
-    let IpAddr::V4(remote_v4) = remote else {
-        return true;
-    };
-    let Ok(local) = local_ip.parse::<Ipv4Addr>() else {
-        return true;
-    };
-
-    if ipv4_masked(remote_v4, netmask) == ipv4_masked(local, netmask) {
+    if remote.is_loopback() {
         return true;
     }
-    if let Some(networks) = config
-        .get("settings")
-        .and_then(|s| s.get("allowed_networks"))
-        .and_then(|v| v.as_array())
+    if local_ip
+        .parse()
+        .is_ok_and(|local| in_network(remote, local, netmask))
     {
-        for network in networks.iter().filter_map(|v| v.as_str()) {
-            if let Some((base, prefix)) = network.split_once('/') {
-                if let (Ok(base), Ok(prefix)) = (base.parse::<Ipv4Addr>(), prefix.parse::<u8>()) {
-                    if ipv4_masked(remote_v4, prefix) == ipv4_masked(base, prefix) {
-                        return true;
-                    }
-                }
-            } else if network.parse::<IpAddr>() == Ok(remote) {
-                return true;
-            }
-        }
+        return true;
     }
-    false
+    config
+        .pointer("/settings/allowed_networks")
+        .and_then(Value::as_array)
+        .is_some_and(|networks| {
+            networks.iter().filter_map(Value::as_str).any(|network| {
+                if let Some((base, prefix)) = network.split_once('/') {
+                    base.parse::<IpAddr>()
+                        .ok()
+                        .zip(prefix.parse::<u8>().ok())
+                        .is_some_and(|(base, prefix)| in_network(remote, base, prefix))
+                } else {
+                    network.parse::<IpAddr>() == Ok(remote)
+                }
+            })
+        })
 }
 
 /// Port of `@app.after_request` (skips `/usage`, like Python).
 pub(crate) async fn after_request(req: Request<Body>, next: Next) -> Response {
     let method = req.method().to_string();
     let path = req.uri().path().to_string();
-    let url = req.uri().to_string();
+    let url = req.uri().path().to_string();
     let remote = req
         .extensions()
         .get::<ConnectInfo<SocketAddr>>()
@@ -108,4 +115,42 @@ pub(crate) async fn after_request(req: Request<Body>, next: Next) -> Response {
         log().httprequest(&remote, &method, &url, response.status().as_u16());
     }
     response
+}
+
+#[cfg(test)]
+mod network_tests {
+    use super::*;
+    #[test]
+    fn deny_unconfigured_ipv6_and_invalid_cidr_but_allow_explicit_networks() {
+        let remote: IpAddr = "2001:db8::1".parse().unwrap();
+        assert!(!ip_allowed(remote, "192.168.1.2", 16, &json!({})));
+        assert!(ip_allowed(
+            remote,
+            "192.168.1.2",
+            16,
+            &json!({"settings":{"allowed_networks":["2001:db8::/32"]}})
+        ));
+        assert!(!in_network(
+            "10.0.0.1".parse().unwrap(),
+            "10.0.0.1".parse().unwrap(),
+            33
+        ));
+        assert!(in_network(
+            "10.0.0.1".parse().unwrap(),
+            "192.168.0.1".parse().unwrap(),
+            0
+        ));
+        assert!(ip_allowed(
+            "::1".parse().unwrap(),
+            "invalid",
+            16,
+            &json!({})
+        ));
+        assert!(!ip_allowed(
+            "10.0.0.1".parse().unwrap(),
+            "invalid",
+            16,
+            &json!({})
+        ));
+    }
 }

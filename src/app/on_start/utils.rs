@@ -321,19 +321,24 @@ pub async fn on_start() -> (Value, Value, String) {
     #[cfg(not(any(windows, target_os = "linux")))]
     let _ = &config;
 
-    for dir in [".config/user_uploads", ".config/themes", ".config/plugins"] {
-        if !std::path::Path::new(dir).exists() {
-            let _ = std::fs::create_dir_all(dir);
+    for directory in ["user_uploads", "themes", "plugins"] {
+        let dir = crate::app::utils::settings::get_config::config_dir().join(directory);
+        if !dir.exists() {
+            let _ = std::fs::create_dir_all(&dir);
         }
     }
 
     // Move legacy static/files/uploaded content to .config/user_uploads.
-    if std::path::Path::new("static/files/uploaded").exists() {
+    if std::env::var_os("WEBDECK_CONFIG_DIR").is_none()
+        && std::path::Path::new("static/files/uploaded").exists()
+    {
         if let Ok(entries) = std::fs::read_dir("static/files/uploaded") {
             for entry in entries.flatten() {
                 let src = entry.path();
                 if let Some(name) = src.file_name() {
-                    let dst = std::path::Path::new(".config/user_uploads").join(name);
+                    let dst = crate::app::utils::settings::get_config::config_dir()
+                        .join("user_uploads")
+                        .join(name);
                     let _ = std::fs::rename(&src, &dst);
                 }
             }
@@ -342,7 +347,9 @@ pub async fn on_start() -> (Value, Value, String) {
     }
 
     // Update new files.
-    check_files();
+    if std::env::var_os("WEBDECK_CONFIG_DIR").is_none() {
+        check_files();
+    }
 
     // Load config & get gpu method.
     config = get_gpu_method();

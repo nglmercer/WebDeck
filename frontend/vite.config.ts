@@ -41,12 +41,13 @@ export default defineConfig({
     port: 5173,
     // API + static assets stay on the Rust server during `npm run dev`.
     proxy: {
-      '^/(send-data|usage|save_config|COMPLETE_save_config|save_single_button|save_buttons_only|get_config|upload_folderpath|upload_filepath|upload_file|create_folder|\\.config|static|socket\\.io)':
+      '^/(api|send-data|usage|save_config|COMPLETE_save_config|save_single_button|save_buttons_only|get_config|upload_folderpath|upload_filepath|upload_file|create_folder|\\.config|static|socket\\.io)':
         'http://127.0.0.1:59997',
     },
   },
   test: {
     environment: 'happy-dom',
+    environmentOptions: { happyDOM: { settings: { disableCSSFileLoading: true, handleDisabledFileLoadingAsSuccess: true } } },
     include: ['src/**/*.test.ts'],
   },
 });

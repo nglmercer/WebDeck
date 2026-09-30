@@ -1,6 +1,7 @@
+import { deckState, navigateFolder } from '../features/deck/state.svelte';
 import { fetchBoot } from '../api/config';
 import { initI18n } from '../framework/i18n';
-import { byId, q } from '../query';
+import { byId } from '../query';
 import { renderApp } from '../views/app';
 import { emitAppEvent } from './events';
 import { resetEditorUiState } from './editor/state';
@@ -13,13 +14,8 @@ import { resetModalState } from './modals';
 // calls inside function bodies, so the cycle is safe: nothing runs at
 // module-evaluation time.
 
-function currentFolderId(): string | null {
-  const visible = q('.buttons-center')
-    .toArray()
-    .find((el) => !q(el).hasClass('invisible'));
-  const id = visible ? q(visible).prop('id') : null;
-  return id?.startsWith('folder-') ? id.slice('folder-'.length) : null;
-}
+
+let refreshGeneration = 0;
 
 /**
  * Re-render the app from a fresh boot context without reloading the page.
@@ -33,9 +29,11 @@ function currentFolderId(): string | null {
 export async function refreshApp(): Promise<void> {
   const mountEl = byId<HTMLElement>('app').get(0) ?? null;
   if (!mountEl) return;
-  const folder = currentFolderId();
+  const generation = ++refreshGeneration;
+  const folder = deckState.activeFolder;
 
   const ctx = await fetchBoot();
+  if (generation !== refreshGeneration) return;
   initI18n(ctx.lang);
 
   resetEditorUiState();
@@ -45,8 +43,8 @@ export async function refreshApp(): Promise<void> {
 
   renderApp(mountEl, ctx);
 
-  if (folder !== null && window.folder) {
-    window.folder(folder);
+  if (folder) {
+    navigateFolder(folder);
   }
   toggleEditorButtonsMode();
   syncEditorButtonLabel();

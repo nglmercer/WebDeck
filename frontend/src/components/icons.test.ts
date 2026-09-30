@@ -59,12 +59,14 @@ describe('icons', () => {
     expect(x.querySelector('path')?.getAttribute('d')).toContain('M18.8,16l5.5-5.5');
   });
 
-  it('keeps the string delete handler with the pre-escaped folder id', async () => {
+  it('uses accessible callbacks without compiling folder names as code', async () => {
     const el = await render(FolderDeleteIcon, { folderName: 'a"b', safeFolder: 'a&quot;b' });
     const svg = el.querySelector('svg.delete-icon')!;
     // The parsed attribute holds `&quot;` (callers pre-replace `"`,
     // exactly as the inline template did after its double escape).
-    expect(svg.getAttribute('onclick')).toBe(`event.stopPropagation(); deleteFolder('a&quot;b')`);
+    expect(svg.getAttribute('onclick')).toBeNull();
+    expect(svg.getAttribute('role')).toBe('button');
+    expect(svg.getAttribute('tabindex')).toBe('0');
     expect(svg.querySelector('path')?.getAttribute('d')).toContain('M11.742 4.258');
     expect(svg.querySelector('title')?.textContent).toBe('Delete folder a"b');
     expect(svg.getAttribute('aria-label')).toBe('Delete folder a"b');

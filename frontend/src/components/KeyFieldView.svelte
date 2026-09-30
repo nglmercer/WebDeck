@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { text } from '../framework/i18n';
   import { NAMED_KEYS, normalizeCapturedKey } from './keyfield';
   import { wireSearchDropdown } from './search-dropdown';
@@ -25,9 +26,10 @@
   const listId = $derived(`key-list_${fieldId}`);
 
   $effect(() => {
-    wireSearchDropdown(listId, NAMED_KEYS, (value) => {
+    const id = listId;
+    return untrack(() => wireSearchDropdown(id, NAMED_KEYS, (value) => {
       if (inputEl) inputEl.value = value;
-    });
+    }, false));
   });
 
   $effect(() => {

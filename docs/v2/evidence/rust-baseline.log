@@ -1,0 +1,166 @@
+    Blocking waiting for file lock on build directory
+   Compiling webdeck v1.8.7 (/workspace/WebDeck)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3m 43s
+     Running unittests src/lib.rs (target/debug/deps/webdeck-ec789bdc052fce5a)
+
+running 109 tests
+test app::buttons::audio::volume::tests::percent_parses_first_channel ... ok
+test app::buttons::audio::volume::tests::bad_set_target_returns_err_without_touching_audio ... ok
+test app::buttons::audio::volume::tests::endpoints_parse_name_and_description ... ok
+test app::buttons::color_picker::get_arg::tests::extracts_args ... ok
+test app::buttons::color_picker::get_color_name::tests::exact_and_closest ... ok
+test app::buttons::color_picker::get_mouse_pixel_color::tests::decodes_x11_pixel_formats ... ok
+test app::buttons::color_picker::get_mouse_pixel_color::tests::decodes_portal_file_uris ... ok
+test app::buttons::color_picker::get_mouse_pixel_color::tests::formats_primary_colors ... ok
+test app::buttons::color_picker::get_mouse_pixel_color::tests::parses_grim_p6_1x1 ... ok
+test app::buttons::color_picker::notification::tests::single_copy_picks_first_value ... ok
+test app::buttons::color_picker::notification::tests::list_display_formats_entries ... ok
+test app::buttons::color_picker::notification::tests::raw_display_joins_values ... ok
+test app::buttons::commands::desktop_linux::tests::shell_quote_wraps_safely ... ok
+test app::buttons::commands::app_volume::tests::app_volume_math_matches_python ... ok
+test app::buttons::commands::app_volume::tests::sink_inputs_parse_index_binary_percent ... ok
+test app::buttons::commands::input::tests::maps_common_key_names ... ok
+test app::buttons::fetch::tests::dispatch_routes_fetch_through_handle_command ... ok
+test app::buttons::commands::tests::volume_errors_surface_as_failure ... ok
+test app::buttons::fetch::tests::manual_form_is_bare_url_with_defaults ... ok
+test app::buttons::fetch::tests::empty_fields_arrive_as_bare_markers ... ok
+test app::buttons::fetch::tests::missing_url_fails ... ok
+test app::buttons::fetch::tests::parses_form_built_message ... ok
+test app::buttons::fetch::tests::separator_inside_body_survives ... ok
+test app::buttons::soundboard::ffmpeg::tests::replaces_only_last_occurrence ... ok
+test app::buttons::fetch::tests::rejects_bad_input_before_any_network ... ok
+test app::buttons::soundboard::ffmpeg::tests::silence_output_name_matches_python ... ok
+test app::buttons::soundboard::mic::tests::stop_and_restart_do_not_panic_without_devices ... ok
+test app::buttons::soundboard::mic::tests::paren_name_parsing_matches_python_slice ... ok
+test app::buttons::soundboard::player::tests::params_default_volume_when_not_numeric ... ok
+test app::buttons::soundboard::player::tests::params_keep_absolute_and_nospace_forms_like_python ... ok
+test app::buttons::soundboard::player::tests::params_parse_volume_and_prefix_upload_dir ... ok
+test app::buttons::soundboard::player::tests::remove_player_with_unknown_ids_is_noop ... ok
+test app::buttons::spotify::volume::tests::volume_parsing_matches_python_branches ... ok
+test app::buttons::usage::asked_devices::tests::extracts_groups ... ok
+test app::buttons::usage::disks::tests::disk_alias_is_eval_safe ... ok
+test app::buttons::usage::disks::tests::disk_keys_expose_root_as_c ... ok
+test app::buttons::usage::get_usage::tests::asked_metric_matches_python_len_rules ... ok
+test app::buttons::exec::python_code::tests::script_errors_surface ... ok
+test app::buttons::usage::get_usage::tests::filtered_merges_with_full ... ok
+test app::buttons::usage::get_usage::tests::failed_nvml_read_keeps_configured_method ... ok
+test app::buttons::exec::python_code::tests::scripts_run_with_host_api ... ok
+test app::buttons::usage::get_usage::tests::rounds_like_psutil ... ok
+test app::buttons::usage::get_usage::tests::full_shape_has_expected_sections ... ok
+test app::buttons::usage::gpu::tests::amd_shape_on_amdgpu_hardware ... ok
+test app::buttons::usage::gpu::tests::default_gpu_key_always_present ... ok
+test app::buttons::usage::gpu::tests::legacy_aliases_canonicalize ... ok
+test app::buttons::usage::gpu::tests::none_method_falls_back_to_working_backend ... ok
+test app::buttons::usage::gpu_amd::tests::fdinfo_sampler_yields_range_gated_load ... ok
+test app::buttons::usage::gpu_amd::tests::gfx_load_percent_handles_edges ... ok
+test app::buttons::usage::gpu_amd::tests::parses_gpu_metrics_v2_2 ... ok
+test app::buttons::window::find_window::tests::matches_case_insensitively ... ok
+test app::buttons::window::find_window::tests::wmctrl_list_parses_ids_and_titles ... ok
+test app::on_start::utils::tests::color_distance_black_white ... ok
+test app::on_start::utils::tests::desktop_entry_has_required_keys ... ok
+test app::buttons::usage::get_usage::tests::shared_system_holds_no_proc_stat_fds ... ok
+test app::server::assets::tests::rotated_copy_swaps_dimensions ... ok
+test app::server::assets::tests::svgs_follow_stylesheet_imports_in_order ... ok
+test app::buttons::usage::get_usage::tests::network_reports_lifetime_totals ... ok
+test app::buttons::usage::get_usage::tests::live_disks_have_aliases_and_rounded_percents ... ok
+test app::tray::tests::port_validation_matches_python_save_gate ... ok
+test app::tray::tests::server_state_numeric_mapping_matches_python ... ok
+test app::updater::versions::tests::version_ordering ... ok
+test app::on_start::utils::tests::stuck_none_method_recovers_to_working_backend ... ok
+test app::utils::args::tests::defaults_match_python ... ok
+test app::utils::debug::timers::tests::start_get_stop ... ok
+test app::utils::args::tests::parses_flags ... ok
+test app::utils::get_local_ip::tests::returns_an_ip ... ok
+test app::utils::global_variables::tests::get_many ... ok
+test app::utils::global_variables::tests::set_and_get_roundtrip ... ok
+test app::utils::is_opened::tests::debug_build_is_never_opened ... ok
+test app::server::tests::get_config_accepts_get_and_post ... ok
+test app::utils::debug::timers::tests::stop_all_and_longest ... ok
+test app::utils::languages::tests::negotiates_exact_short_and_sibling_locales ... ok
+test app::utils::languages::tests::sibling_pick_is_deterministic ... ok
+test app::utils::logger::tests::civil_date_conversion ... ok
+test app::utils::merge_dicts::tests::merges_nested_objects ... ok
+test app::utils::logger::tests::logger_writes_file ... ok
+test app::utils::merge_dicts::tests::overwrites_non_objects ... ok
+test app::utils::plugins::load_plugins::tests::dynamic_to_json_converts_nesting ... ok
+test app::utils::plugins::load_plugins::tests::broken_plugin_reports_import_error ... ok
+test app::utils::plugins::load_plugins::tests::plugin_doc_map_form_declares_args ... ok
+test app::utils::plugins::load_plugins::tests::plugin_doc_wrong_type_falls_back_to_empty_command ... ok
+test app::utils::qr::tests::button_geometry_matches_default_window ... ok
+test app::utils::plugins::load_plugins::tests::rhai_plugin_contract_end_to_end ... ok
+test app::utils::qr::tests::glyph_e_sets_18_pixels_at_scale_1 ... ok
+test app::utils::languages::tests::loads_real_lang_files ... ok
+test app::utils::qr::tests::sibling_binary_keeps_exe_dir ... ok
+test app::utils::qr::tests::size_parses_w_by_h ... ok
+test app::utils::qr::tests::size_rejects_garbage_and_absurd ... ok
+test app::utils::qr::tests::tiny_window_has_no_button ... ok
+test app::utils::qr::tests::unknown_glyph_is_blank_but_advances ... ok
+test app::utils::settings::audio_devices::tests::dedup_and_microsoft_filter ... ok
+test app::utils::qr::tests::qr_png_bytes_have_png_magic ... ok
+test app::utils::qr::tests::frame_has_qr_button_and_white_corners ... ok
+test app::utils::settings::check_config_update::tests::hyphen_case_and_booleans ... ok
+test app::utils::settings::check_config_update::tests::migrates_legacy_gpu_and_drops_flask_keys ... ok
+test app::utils::settings::check_config_update::tests::renames_legacy_keys ... ok
+test app::utils::settings::gridsize::tests::grow_height_adds_voids ... ok
+test app::utils::settings::gridsize::tests::matrix_roundtrip ... ok
+test app::utils::settings::gridsize::tests::shrink_width_removes_void_column ... ok
+test app::utils::translate::tests::live_translation ... ignored, requires network access to translate.googleapis.com
+test app::utils::show_error::tests::issue_url_encoding ... ok
+test app::utils::translate::tests::parses_google_response ... ok
+test app::utils::translate::tests::splits_camel_case ... ok
+test app::utils::welcome_popup::tests::detects_dont_show_again_result ... ok
+test app::utils::welcome_popup::tests::treats_other_results_as_plain_dismiss ... ok
+test app::utils::working_dir::tests::debug_build_uses_cwd ... ok
+test app::utils::settings::audio_devices::tests::enumerates_without_panicking ... ok
+test app::tray::menu::tests::menu_builds_with_all_states ... ok
+
+test result: ok. 108 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running unittests src/bin/console.rs (target/debug/deps/console-59d7108fba956d9c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/package.rs (target/debug/deps/package-a3f8e24c0a9e285a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/update.rs (target/debug/deps/update-4d7c09eac9b986d9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/webdeck-5520a4727aa1a423)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/qr.rs (target/debug/deps/webdeck_qr-ccae542a297d78ab)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli_exit.rs (target/debug/deps/cli_exit-44b75ddb8f01a895)
+
+running 2 tests
+test invalid_args_exit_with_code_2 ... ok
+test exit_positional_terminates_process ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+
+     Running tests/cli_qr.rs (target/debug/deps/cli_qr-5424e2a502bd7c8f)
+
+running 5 tests
+test invalid_size_exits_2 ... ok
+test neither_source_fails ... ok
+test help_exits_zero ... ok
+test missing_png_fails_without_window ... ok
+test png_and_text_conflict ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s

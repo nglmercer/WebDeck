@@ -1,4 +1,5 @@
-import { mount, unmount } from 'svelte';
+import type { ComponentProps } from 'svelte';
+import { mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import TextField from './TextField.svelte';
 
@@ -17,7 +18,7 @@ describe('TextField', () => {
     vi.unstubAllGlobals();
   });
 
-  function render(props: Record<string, unknown>): HTMLElement {
+  function render(props: ComponentProps<typeof TextField>): HTMLElement {
     host = document.createElement('div');
     document.body.appendChild(host);
     app = mount(TextField, { target: host, props }) as unknown as Record<string, never>;
@@ -65,10 +66,7 @@ describe('TextField', () => {
     ).toBe('"><script>alert(1)</script>');
   });
 
-  it('toggles password visibility through the global', () => {
-    const toggle = vi.fn();
-    vi.stubGlobal('togglePasswordVisibility', undefined);
-    window.togglePasswordVisibility = toggle;
+  it('owns password visibility locally', async () => {
     const el = render({
       dark: '',
       cls: 'spotify-setting',
@@ -79,6 +77,10 @@ describe('TextField', () => {
       toggleId: 'show-password-spotify',
     });
     (el.querySelector('#show-password-spotify') as HTMLElement).click();
-    expect(toggle).toHaveBeenCalledWith('spotify-client_secret', 'show-password-spotify');
+    await tick();
+    expect(el.querySelector<HTMLInputElement>('#spotify-client_secret')?.type).toBe('text');
+    (el.querySelector('#show-password-spotify') as HTMLElement).click();
+    await tick();
+    expect(el.querySelector<HTMLInputElement>('#spotify-client_secret')?.type).toBe('password');
   });
 });

@@ -20,7 +20,7 @@ import { refreshApp } from '../../app/refresh';
 import { seedPresetButtonState } from '../../components/button-icons';
 import { showAlert } from '../../components/dialog';
 import { wireKeyField } from '../../components/keyfield';
-import { buildCommand, catKey, cmdKey, registerShowArg } from '../args';
+import { buildCommand, catKey, cmdKey } from '../args';
 import { wireButtonImageUpload } from '../button-upload';
 import {
   beginModalSubmit,
@@ -89,7 +89,7 @@ export function collectAddModals(ctx: BootContext): AddModalContext[] {
 
 /** Collect arg values in DOM order (exported for tests; powers submit + usage preview). */
 export function getCommand(command: string, argModalId: string): string {
-  const container = q(`form[arg_modal_ID="${argModalId}"] .args-container`).get(0);
+  const container = q(`form[data-arg-modal-id="${argModalId}"] .args-container`).get(0);
   if (!container) return command + ' ';
   return buildCommand(command, container);
 }
@@ -110,7 +110,6 @@ export function wireAddModal(ctx: BootContext, mctx: AddModalContext): void {
   // breaks usage add-modals); the intent is unambiguously the command id.
   addModalStates.set(id, { button: buttonState, command: mctx.commandId });
 
-  registerShowArg(id, 'arg_modal_ID');
 
   wireFoldernameForm(id);
   wireUsagePreview(id);
@@ -236,8 +235,8 @@ function buttonCommandAdd(argModalId: string, command: string): void {
 
   state.button['message'] = commandString;
   const element = byId('addbutton-modal-content').get(0) ?? null;
-  const locationFolder = q(element).attr('add_FOLDER') ?? '';
-  const locationId = q(element).attr('add_ID') ?? '';
+  const locationFolder = q(element).attr('data-add-folder') ?? '';
+  const locationId = q(element).attr('data-add-id') ?? '';
 
   fetchConfig()
     .then(function (configData) {
@@ -251,6 +250,8 @@ function buttonCommandAdd(argModalId: string, command: string): void {
       emitAppEvent('save:completed', { flow: 'add' });
       hide_addbutton_args_modal();
       hide_addbutton_modal();
+      q(element).removeAttr('data-add-id');
+      q(element).removeAttr('data-add-folder');
       void refreshApp();
       void showAlert(text('settings_save_success'));
     })
@@ -261,8 +262,6 @@ function buttonCommandAdd(argModalId: string, command: string): void {
       endModalSubmit(addModalStates.get(argModalId), argModalId);
     });
 
-  q(element).removeAttr('add_ID');
-  q(element).removeAttr('add_FOLDER');
 }
 
 /**
@@ -282,7 +281,7 @@ export function filterAddBrowser(root: Element, query: string): void {
   }
   for (const leaf of leaves) {
     const hay =
-      `${leaf.textContent ?? ''} ${leaf.getAttribute('dropdown-commandTag') ?? ''}`.toLowerCase();
+      `${leaf.textContent ?? ''} ${leaf.getAttribute('data-dropdown-command-tag') ?? ''}`.toLowerCase();
     leaf.style.display = hay.includes(needle) ? '' : 'none';
   }
   // Descriptions follow their button (the next sibling).

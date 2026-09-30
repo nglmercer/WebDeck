@@ -53,8 +53,8 @@ function createVoidButton(event: Event | null = null, form: Element | null = nul
   addButtonDiv.append(svg);
   voidDiv.append(checkboxDiv).append(addButtonDiv);
 
-  addButtonDiv.attr('add_FOLDER', parentId);
-  addButtonDiv.attr('add_ID', formNumber);
+  addButtonDiv.attr('data-add-folder', parentId);
+  addButtonDiv.attr('data-add-id', formNumber);
 
   // NOTE: tempEditorConfig is always an object here (seeded at render in
   // app.ts, refreshed on editor entry in mode.ts) — no null fallback.
@@ -83,8 +83,8 @@ export function deleteFolder(folderName: string): void {
     if (!folderElement) return;
     q(folderElement).remove();
 
-    const folderButtons = q(`button[onclick="folder(\`${folderName}\`)"]`);
-    for (const btn of folderButtons.toArray()) {
+    const folderButtons = q<HTMLButtonElement>('button[data-folder-target]').toArray().filter(button => button.dataset['folderTarget'] === folderName);
+    for (const btn of folderButtons) {
       if (q(btn).hasClass('wd_button')) {
         createVoidButton(null, q(btn).parent().get(0) ?? null);
       } else {

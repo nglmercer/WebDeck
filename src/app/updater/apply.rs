@@ -2,13 +2,10 @@
 
 use serde_json::Value;
 
-use super::download::{download_and_extract, fetch_latest_release};
+use super::download::fetch_latest_release;
 use super::versions::compare_versions;
 use crate::app::utils::{
-    args::{get_args, raw_args},
-    exit::exit_program,
-    logger::updater_log,
-    settings::get_config::get_config,
+    args::get_args, logger::updater_log, settings::get_config::get_config,
     working_dir::get_base_dir,
 };
 
@@ -47,55 +44,59 @@ pub async fn check_updates(current_version: &str) {
     }
     updater_log().info(&format!("New version available: {latest_version}"));
 
-    exit_program(true, false);
-    if let Some(assets) = latest_release.get("assets").and_then(|v| v.as_array()) {
-        for asset in assets {
-            let url = asset
-                .get("browser_download_url")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
-            let state = asset.get("state").and_then(|v| v.as_str()).unwrap_or("");
-            if url.ends_with("portable.zip") && state == "uploaded" {
-                download_and_extract(url, &wd_dir, &update_dir).await;
-                break;
-            }
-        }
+    // Select this exact platform. Missing digest fails closed, retaining the
+    // current installation; historical unverified releases are not applied.
+    let wanted = format!(
+        "WebDeck-{}-{}-portable.zip",
+        std::env::consts::OS,
+        std::env::consts::ARCH
+    );
+    let asset = latest_release["assets"].as_array().and_then(|assets| {
+        assets.iter().find(|a| {
+            a["name"].as_str() == Some(&wanted) && a["state"].as_str() == Some("uploaded")
+        })
+    });
+    let Some(asset) = asset else {
+        updater_log().error("No portable artifact for this platform");
+        return;
+    };
+    let Some(expected) = asset["digest"].as_str() else {
+        updater_log().error("Update lacks a trusted SHA-256 digest; installation unchanged");
+        return;
+    };
+    let url = asset["browser_download_url"].as_str().unwrap_or("");
+    let result = async {
+        let bytes = crate::adapters::update::download(url).await?;
+        std::fs::create_dir_all(&update_dir)?;
+        let mut random = [0u8; 8];
+        getrandom::fill(&mut random).map_err(std::io::Error::other)?;
+        let identifier: String = random.iter().map(|b| format!("{b:02x}")).collect();
+        let stage = update_dir.join(format!("staged-{identifier}"));
+        let backup = update_dir.join(format!("backup-{identifier}"));
+        let staged = crate::adapters::update::stage(&bytes, expected, &stage)?;
+        // Replacement is attempted only after verification. Locked files fail
+        // with rollback rather than killing unrelated processes by image name.
+        crate::adapters::update::install(&staged, &wd_dir, &backup)?;
+        std::fs::remove_dir_all(staged)?;
+        Ok::<(), std::io::Error>(())
     }
-
-    // Removing update files.
-    for file_path in [
-        update_dir.join("WebDeck"),
-        update_dir.join("WD-update"),
-        update_dir.join("WD-update.zip"),
-    ] {
-        if file_path.exists() {
-            if file_path.is_dir() {
-                let _ = std::fs::remove_dir_all(&file_path);
-            } else {
-                let _ = std::fs::remove_file(&file_path);
-            }
-        }
+    .await;
+    if result.is_err() {
+        updater_log()
+            .error("Update failed; retain the installation and inspect the recovery backup");
+        return;
     }
-
-    // Launch WebDeck from the root directory.
-    updater_log().success("\nRestarting WebDeck.exe");
-    let _ = std::env::set_current_dir(&wd_dir);
+    updater_log().success("Verified update installed; backup retained under update/");
     #[cfg(windows)]
     let webdeck_path = wd_dir.join("WebDeck.exe");
     #[cfg(not(windows))]
     let webdeck_path = wd_dir.join("WebDeck");
-    let mut command = std::process::Command::new(&webdeck_path);
-    if compare_versions(&latest_version, "2.0.0") >= 0 {
-        command.args(raw_args());
-    }
-    match command.spawn() {
-        Ok(_) => {}
-        Err(e) => updater_log().exception(
-            &e,
-            Some(&format!("Failed to relaunch {}", webdeck_path.display())),
-            true,
-            true,
-            true,
-        ),
+    let result = std::process::Command::new(webdeck_path)
+        .current_dir(wd_dir)
+        .args(std::env::args().skip(1))
+        .spawn();
+    if result.is_err() {
+        updater_log()
+            .error("Updated application could not start; use the retained backup to roll back");
     }
 }

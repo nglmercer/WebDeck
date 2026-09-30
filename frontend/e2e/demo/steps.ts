@@ -52,7 +52,7 @@ export async function renameButtonStep(page: Page): Promise<void> {
   await waitForAppEvent(page, 'editor:changed', entered);
   await expect(page.locator('#EditorButtons')).toBeVisible();
   await page.waitForTimeout(1000);
-  await vclick(page, '.edit-button[edit_modal_ID="e0X0"]');
+  await vclick(page, '.edit-button[data-edit-modal-id="e0X0"]');
   await expect(page.locator('#edit-modal-container-e0X0')).toHaveCSS('display', 'block');
   await page.waitForTimeout(1000);
   // The modal opens on the Parameters tab; the name field lives on Appearance.
@@ -97,7 +97,7 @@ export async function addButtonStep(page: Page): Promise<void> {
   // The leaf carries its args-modal id: scope to it instead of hardcoding
   // catalog indices (and `:visible` is vacuous here — hidden modals keep
   // layout with opacity 0, so assert the display flip instead).
-  const argId = await leafLoc.getAttribute('arg_modal_ID');
+  const argId = await leafLoc.getAttribute('data-arg-modal-id');
   const argsModal = `#modal-container-${argId}`;
   await vclick(page, leaf);
   await expect(page.locator(argsModal)).toHaveCSS('display', 'block');

@@ -42,7 +42,7 @@ function testCtx(): BootContext {
 function options(
   commandValue: JsonObject,
   modalId = '9X9',
-  idAttr: ModalIdAttr = 'arg_modal_ID',
+  idAttr: ModalIdAttr = 'data-arg-modal-id',
   prefill?: ArgsPrefill
 ): ArgsBlockOptions {
   return {
@@ -102,7 +102,7 @@ describe('ArgsBlock', () => {
   it('renders labeled input fields', async () => {
     const el = await render(options({ args: [{ TYPE: 'input text' }] }));
     const container = el.querySelector('.args-container') as HTMLElement;
-    expect(container.getAttribute('arg_modal_ID')).toBe('9X9');
+    expect(container.getAttribute('data-arg-modal-id')).toBe('9X9');
     expect(container.querySelector('label')?.textContent).toBe('Tecla:');
     expect(container.querySelector('input[type="text"]')).not.toBeNull();
   });
@@ -112,7 +112,7 @@ describe('ArgsBlock', () => {
       options(
         { args: [{ TYPE: 'input key' }] },
         'e0X0',
-        'edit_modal_ID',
+        'data-edit-modal-id',
         { values: ['a'], choices: new Map() }
       )
     );
@@ -130,7 +130,7 @@ describe('ArgsBlock', () => {
     expect(input.value).toBe('75');
   });
 
-  it('switches choice panes through the showArg global', async () => {
+  it('switches choice panes through component-owned change callbacks', async () => {
     const el = await render(
       options({ args: [{ TYPE: 'choice', options: [{ TYPE: 'NONE checked' }, { TYPE: 'input text' }] }] })
     );
@@ -138,10 +138,9 @@ describe('ArgsBlock', () => {
     expect((panes[0] as HTMLElement).style.display).toBe('');
     expect((panes[1] as HTMLElement).style.display).toBe('none');
     const radios = el.querySelectorAll('.choices_ALL input.choice');
-    expect(radios[1]?.getAttribute('onchange')).toBe("showArg_9X9('1')");
-    // happy-dom doesn't compile content-attribute handlers; invoke the
-    // registered global directly (browsers run it via the attr above).
-    (window as unknown as Record<string, (argId: string) => void>)['showArg_9X9']?.('1');
+    expect(radios[1]?.getAttribute('onchange')).toBeNull();
+    radios[1]!.dispatchEvent(new Event('change', { bubbles: true }));
+    await tick();
     expect((panes[0] as HTMLElement).style.display).toBe('none');
     expect((panes[1] as HTMLElement).style.display).toBe('block');
   });
@@ -157,7 +156,7 @@ describe('ArgsBlock', () => {
           ],
         },
         '9X9',
-        'arg_modal_ID',
+        'data-arg-modal-id',
         { values: ['full', 'GPU1'], choices: new Map() }
       )
     );

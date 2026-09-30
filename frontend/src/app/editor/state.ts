@@ -6,7 +6,6 @@
 export const editorUiState: {
   ifModif: number;
   swapMode: number;
-  savedOnClicks: Record<string, string | null>;
   swapChanges: string[];
   swapUNChanges: string[];
   swapFirstBtn: string | 0;
@@ -15,7 +14,6 @@ export const editorUiState: {
 } = {
   ifModif: 0,
   swapMode: 0,
-  savedOnClicks: {},
   swapChanges: [],
   swapUNChanges: [],
   swapFirstBtn: 0,
@@ -31,7 +29,6 @@ export function isSwapMode(): boolean {
 export function resetEditorUiState(): void {
   editorUiState.ifModif = 0;
   editorUiState.swapMode = 0;
-  editorUiState.savedOnClicks = {};
   editorUiState.swapChanges = [];
   editorUiState.swapUNChanges = [];
   editorUiState.swapFirstBtn = 0;

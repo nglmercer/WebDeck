@@ -1,13 +1,4 @@
-/**
- * Dialog focus management for the studio modals.
- *
- * All modals mount hidden at boot and open imperatively (query `show_*`
- * helpers set inline `display: block`). A `MutationObserver` per modal
- * container watches that transition: on open, focus moves into the
- * dialog content (`tabindex="-1"`, never a tab stop); on close, focus
- * returns to the element that had it. No focus trap: stacked modals
- * (browser + args) stay navigable, and Escape already closes globally.
- */
+/** Each ModalShell owns and disconnects its focus observer and keyboard trap. */
 
 const CONTAINER_SELECTOR =
   '.modal-container, .addbutton-modal-container, ' +
@@ -18,8 +9,9 @@ function isShown(container: HTMLElement): boolean {
 }
 
 /** Wire focus open/restore for every modal under `root` (once per container). */
-export function wireModalA11y(root: ParentNode = document): void {
-  const containers = [...root.querySelectorAll(CONTAINER_SELECTOR)] as HTMLElement[];
+export function wireModalA11y(root: ParentNode = document): () => void {
+  const cleanups: Array<() => void> = [];
+  const containers = root instanceof HTMLElement && root.matches(CONTAINER_SELECTOR) ? [root] : [...root.querySelectorAll(CONTAINER_SELECTOR)] as HTMLElement[];
   for (const container of containers) {
     if (container.dataset.wd2A11y === '1') continue;
     container.dataset.wd2A11y = '1';
@@ -39,6 +31,18 @@ export function wireModalA11y(root: ParentNode = document): void {
         lastFocus = null;
       }
     });
+    cleanups.push(() => { observer.disconnect(); delete container.dataset.wd2A11y; });
+    const trap = (event: KeyboardEvent): void => {
+      if (event.key !== 'Tab' || !isShown(container) || !container.contains(document.activeElement)) return;
+      const focusable = [...dialog.querySelectorAll<HTMLElement>('button, input, select, textarea, a[href], [tabindex="0"]')].filter(el => !el.hasAttribute('disabled') && el.getClientRects().length > 0);
+      const first = focusable[0]; const last = focusable[focusable.length - 1];
+      if (!first) { event.preventDefault(); dialog.focus(); }
+      else if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog)) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialog)) { event.preventDefault(); first.focus(); }
+    };
+    container.addEventListener('keydown', trap);
+    cleanups.push(() => container.removeEventListener('keydown', trap));
     observer.observe(container, { attributes: true, attributeFilter: ['style'] });
   }
+  return () => cleanups.forEach(cleanup => cleanup());
 }

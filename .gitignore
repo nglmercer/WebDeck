@@ -29,3 +29,8 @@ data.json
 /frontend/demo/.frames-3d
 /frontend/e2e/test-results
 /node_modules
+
+/tools/component-check/node_modules/
+/frontend/playwright-report/
+
+/frontend/test-results/

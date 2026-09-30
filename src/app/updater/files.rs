@@ -81,7 +81,12 @@ pub fn check_files() {
                     _ => continue,
                 };
                 if compare_versions(&update_limit, &current_version) > 0 {
-                    let path = wd_dir.join(&file_to_delete);
+                    let Ok(relative) = crate::adapters::update::relative(&file_to_delete) else {
+                        continue;
+                    };
+                    let Ok(path) = crate::adapters::update::confined(&wd_dir, &relative) else {
+                        continue;
+                    };
                     match std::fs::remove_file(&path) {
                         Ok(()) => {
                             updater_log().info(&format!("UPDATER: Deleted {}", path.display()))
@@ -109,8 +114,23 @@ pub fn check_files() {
             let Some(pair) = entry.as_array() else {
                 continue;
             };
-            let source = wd_dir.join(pair.first().and_then(|v| v.as_str()).unwrap_or_default());
-            let destination = wd_dir.join(pair.get(1).and_then(|v| v.as_str()).unwrap_or_default());
+            let Ok(source_relative) = crate::adapters::update::relative(
+                pair.first().and_then(|v| v.as_str()).unwrap_or_default(),
+            ) else {
+                continue;
+            };
+            let Ok(destination_relative) = crate::adapters::update::relative(
+                pair.get(1).and_then(|v| v.as_str()).unwrap_or_default(),
+            ) else {
+                continue;
+            };
+            let Ok(source) = crate::adapters::update::confined(&wd_dir, &source_relative) else {
+                continue;
+            };
+            let Ok(destination) = crate::adapters::update::confined(&wd_dir, &destination_relative)
+            else {
+                continue;
+            };
             let update_limit = pair.get(2).and_then(|v| v.as_str()).unwrap_or("99.99.99");
             if compare_versions(update_limit, &current_version) > 0 {
                 if let Some(parent) = destination.parent() {

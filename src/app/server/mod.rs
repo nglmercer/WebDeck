@@ -32,6 +32,8 @@ mod realtime;
 mod routes_boot;
 mod routes_config;
 mod routes_upload;
+mod security;
+mod v2;
 
 pub use assets::get_svgs;
 
@@ -76,6 +78,7 @@ use crate::app::utils::{
 pub struct AppState {
     pub folders_to_create: Arc<Mutex<Vec<Value>>>,
     pub local_ip: String,
+    pub executor: Arc<crate::application::executor::CommandExecutor>,
 }
 
 /// Server startup/serve error (port of exceptions out of `run_server`).
@@ -108,7 +111,7 @@ pub(crate) fn internal_error(
 
 /// Route table shared by [`run_server`] and the routing regression tests.
 /// (The SocketIO layer + TCP bind stay in [`run_server`].)
-fn app_router(state: AppState) -> Router {
+pub fn app_router(state: AppState) -> Router {
     Router::new()
         .route("/", get(home))
         .route("/api/boot", get(boot))
@@ -124,14 +127,36 @@ fn app_router(state: AppState) -> Router {
         .route("/upload_file", post(upload_file))
         .route("/create_folder", post(create_folder))
         .route("/.config/{directory}/{filename}", get(get_config_file))
-        .route("/send-data", post(send_data_route))
+        .route(
+            "/send-data",
+            post(send_data_route).layer(DefaultBodyLimit::max(65536)),
+        )
+        .route(
+            "/api/v2/commands",
+            get(v2::catalog)
+                .post(v2::command)
+                .layer(DefaultBodyLimit::max(65536)),
+        )
+        .route("/api/v2/config", get(v2::get_config).post(v2::save_config))
+        .route(
+            "/api/v2/devices",
+            get(v2::list_devices).post(v2::approve_device),
+        )
+        .route(
+            "/api/v2/devices/{id}",
+            axum::routing::delete(v2::revoke_device),
+        )
         .nest_service("/static", ServeDir::new("static"))
         .nest_service("/assets", ServeDir::new("frontend/dist/assets"))
         .layer(axum_middleware::from_fn_with_state(
             state.clone(),
             check_local_network,
         ))
-        .layer(DefaultBodyLimit::disable())
+        .layer(axum_middleware::from_fn_with_state(
+            state.clone(),
+            security::guard,
+        ))
+        .layer(DefaultBodyLimit::max(16 * 1024 * 1024))
         .with_state(state)
         .layer(axum_middleware::from_fn(after_request))
 }
@@ -160,13 +185,21 @@ pub async fn run_server() -> Result<(), ServerError> {
     let state = AppState {
         folders_to_create: Arc::new(Mutex::new(Vec::new())),
         local_ip: local_ip.clone(),
+        executor: crate::application::executor::shared(),
     };
 
-    let app = app_router(state);
+    let app = app_router(state.clone());
 
     let host = get_args().host.clone().unwrap_or(local_ip);
     let port = get_port();
-    let app = app.layer(socketio_layer(&host, port));
+    let executor = state.executor.clone();
+    let app = app
+        .layer(socketio_layer(&host, port, state.clone()))
+        .layer(axum_middleware::from_fn_with_state(
+            state.clone(),
+            check_local_network,
+        ))
+        .layer(axum_middleware::from_fn_with_state(state, security::guard));
     let listener = tokio::net::TcpListener::bind(format!("{host}:{port}"))
         .await
         .map_err(|e| ServerError(format!("Cannot bind {host}:{port}: {e}")))?;
@@ -175,6 +208,14 @@ pub async fn run_server() -> Result<(), ServerError> {
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
+    .with_graceful_shutdown(async move {
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => crate::application::lifecycle::request_shutdown(),
+            _ = crate::application::lifecycle::shutdown_requested() => (),
+        }
+        executor.drain().await;
+        soundboard::mic::stop();
+    })
     .await
     .map_err(|e| ServerError(format!("Server failed: {e}")))?;
     Ok(())
@@ -193,6 +234,11 @@ mod tests {
         AppState {
             folders_to_create: Arc::new(Mutex::new(Vec::new())),
             local_ip: "127.0.0.1".to_string(),
+            executor: Arc::new(crate::application::executor::CommandExecutor::new(
+                Arc::new(crate::application::executor::FakeAdapter),
+                16,
+                4,
+            )),
         }
     }
 

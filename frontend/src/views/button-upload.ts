@@ -15,6 +15,7 @@ export async function uploadButtonImage(
 ): Promise<void> {
   const file = input.files?.[0];
   if (!file) return;
+  const preview = byId(`button-image_${id}`).get(0);
   const formData = new FormData();
   formData.append('file', file);
   try {
@@ -23,6 +24,7 @@ export async function uploadButtonImage(
     console.error('Failed to download file.');
     return;
   }
+  if (preview !== byId(`button-image_${id}`).get(0)) return;
   const swapped = swapPreviewImage(id, input);
   if (!swapped) return;
   state['image_size'] = '70';

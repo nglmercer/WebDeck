@@ -116,7 +116,7 @@ function audit(dict: Record<string, string>): Leak[] {
       parentCommand: mctx.parentCommand,
       commandValue: mctx.commandValue,
       modalId: mctx.argModalId,
-      idAttr: 'arg_modal_ID',
+      idAttr: 'data-arg-modal-id',
     });
     const keys = [
       ...new Set(data.branches.flatMap(branchLabels).flatMap((s) => s.match(RAW_ARG_KEY) ?? [])),

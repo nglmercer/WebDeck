@@ -20,8 +20,8 @@ export function cmdKey(command: string): string {
   return command.replace(/ /g, '_').replace(/'/g, '').toLowerCase();
 }
 
-/** Modal-id attribute flavor: add modals use `arg_modal_ID`, edit modals `edit_modal_ID`. */
-export type ModalIdAttr = 'arg_modal_ID' | 'edit_modal_ID';
+/** Modal-id attribute flavor: add modals use `data-arg-modal-id`, edit modals `data-edit-modal-id`. */
+export type ModalIdAttr = 'data-arg-modal-id' | 'data-edit-modal-id';
 
 interface ArgsRenderContext {
   ctx: BootContext;
@@ -161,7 +161,7 @@ export type FieldData =
 /**
  * Conditional visibility rule from an arg declaration:
  * `visibleWhen: {arg, in? | notIn?}`. `arg` is the raw args-array index
- * of the controlling field (the stamped `arg_id`); the branch shows when
+ * of the controlling field (the stamped `data-arg-id`); the branch shows when
  * the controller's current value is in `in` (when present) and not in
  * `notIn` (when present). Hidden branches submit nothing (same as hidden
  * choice panes).
@@ -183,6 +183,7 @@ export type BranchData =
     }
   | {
       kind: 'choice';
+      argIndex: number;
       options: Array<{ choiceIndex: number; name: string; selected: boolean; fields: FieldData[] }>;
     }
   | { kind: 'hidden'; field: FieldData }
@@ -365,6 +366,7 @@ function branchData(
     const override = cursor?.prefill.choices.get(argIndex);
     return {
       kind: 'choice',
+      argIndex,
       options: parsed.options.map((option, choiceIndex) => {
         const selected = override !== undefined ? choiceIndex === override : option.checked;
         // NOTE: nested fields keep the legacy 0-based choice index as their
@@ -423,25 +425,5 @@ export function argsData(o: ArgsBlockOptions): ArgsData {
     return branchData(rctx, arg, argIndex, argCounter, o.cursor);
   });
   return { dark: o.ctx.dark_theme, modalId: o.modalId, idAttr: o.idAttr, branches };
-}
-
-/**
- * Register one modal's choice-pane switcher (shared add/edit wire-up).
- * Shows the selected pane, hides its siblings; input args and the dev box
- * are untouched. (Legacy only hid — the `:not` filter excluded the target
- * pane, so switching choices blanked the form.)
- */
-export function registerShowArg(modalId: string, idAttr: ModalIdAttr): void {
-  (window as unknown as Record<string, unknown>)[`showArg_${modalId}`] = (argId: string) => {
-    q(`div.choices_ALL div.arg_container[${idAttr}="${modalId}"][arg_id]`)
-      .toArray()
-      .forEach(function (element) {
-        if (q(element).attr('arg_id') === argId) {
-          q(element).css('display', 'block');
-        } else {
-          q(element).css('display', 'none');
-        }
-      });
-  };
 }
 

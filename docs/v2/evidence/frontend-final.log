@@ -1,0 +1,16 @@
+
+> webdeck-frontend@1.0.0 test
+> vitest run
+
+
+ RUN  v5.0.2 /workspace/WebDeck/frontend
+
+
+ Test Files  53 passed (53)
+      Tests  379 passed (379)
+   Start at  04:48:16
+   Duration  19.01s (environment 45%, tests 20%, transform 18%, import 16%, worker 1%)
+
+Environment  happy-dom was created 53 times · 21.07s total, 45% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments

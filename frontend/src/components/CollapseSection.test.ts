@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'svelte';
 import { createRawSnippet, mount, tick, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Collapse from './Collapse.svelte';
@@ -30,7 +31,7 @@ describe('Collapse', () => {
   });
 
   async function render(
-    props: Record<string, unknown>,
+    props: Omit<ComponentProps<typeof Collapse>, 'children'>,
     children = body('<input type="text" name="a" />')
   ): Promise<HTMLElement> {
     host = document.createElement('div');

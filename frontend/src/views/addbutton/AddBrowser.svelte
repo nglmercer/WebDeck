@@ -41,11 +41,11 @@
       <div class="addbutton-description"><p>{item.desc}</p></div>
     {/if}
     <button
-      arg_modal_ID={item.argModalId}
+      data-arg-modal-id={item.argModalId}
       class="dropdown-btn no-dropdown {data.dark}"
       id="open-button-{item.argModalId}"
       data-testid="add-leaf"
-      dropdown-commandTag={item.commandTag}
+      data-dropdown-command-tag={item.commandTag}
     >
       {@render rowIcon(item.icon)}
       {item.title}
@@ -56,7 +56,7 @@
 
 {#each data.categories as category}
   <div class="wd2-cat-card">
-    <button class="dropdown-btn {data.dark}" dropdown-category={category.name}>
+    <button class="dropdown-btn {data.dark}" data-dropdown-category={category.name}>
       <SectionIcon name={category.icon} size={18} />
       {category.name}
     </button>
@@ -69,7 +69,7 @@
             {#if item.branch.desc !== ''}
               <div class="addbutton-description"><p>{item.branch.desc}</p></div>
             {/if}
-            <button class="dropdown-btn {data.dark}" dropdown-category={item.branch.command}>
+            <button class="dropdown-btn {data.dark}" data-dropdown-category={item.branch.command}>
               {@render rowIcon(item.branch.icon)}
               {item.branch.title}
             </button>

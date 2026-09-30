@@ -147,7 +147,7 @@ pub fn parse_args() {
             .next()
             .unwrap_or_else(|| "webdeck".to_string()),
     )
-    .chain(raw_args())
+    .chain(std::env::args().skip(1))
     .collect();
 
     match Args::try_parse_from(&argv) {

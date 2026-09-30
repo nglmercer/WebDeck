@@ -1,3 +1,4 @@
+import { deviceToken } from '../features/security/session';
 // Single HTTP transport for the app (native fetch).
 //
 // Centralizes status checks, JSON parsing, server-message extraction,
@@ -26,6 +27,7 @@ export class HttpError extends Error {
 export interface RequestOptions {
   /** Milliseconds before aborting (rejects with HttpError, status 0). */
   timeout?: number;
+  revision?: number;
   /** Caller abort signal (composes with `timeout`). */
   signal?: AbortSignal;
 }
@@ -45,6 +47,10 @@ async function send(
           controller.abort();
         }, options.timeout);
   const onCallerAbort = (): void => controller.abort();
+  if (options.signal?.aborted) controller.abort();
+  if (options.revision !== undefined) init.headers = { ...init.headers, 'X-WebDeck-Revision': String(options.revision) };
+  const token = deviceToken();
+  if (token) init.headers = { ...init.headers, Authorization: `Bearer ${token}` };
   try {
     options.signal?.addEventListener('abort', onCallerAbort, { once: true });
     try {
@@ -132,4 +138,16 @@ export async function postForm(
 ): Promise<void> {
   const response = await send(path, { method: 'POST', body: form }, options);
   await checkOk(response, path);
+}
+
+/** Configuration callers capture the revision with the exact snapshot read. */
+export async function getConfigSnapshot<T>(path: string): Promise<{ config: T; revision: number | undefined }> {
+  const response = await send(path, { method: 'GET' });
+  await checkOk(response, path);
+  const raw = response.headers.get('x-webdeck-revision');
+  return { config: await response.json() as T, revision: raw === null ? undefined : Number(raw) };
+}
+
+export async function deleteJson<T>(path: string): Promise<T> {
+  const response = await send(path, {method: 'DELETE'}); await checkOk(response, path); return await response.json() as T;
 }

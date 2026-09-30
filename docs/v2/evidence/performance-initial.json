@@ -1,0 +1,55 @@
+{
+  "date": "2026-09-30T04:31:21.087Z",
+  "node": "v24.19.0",
+  "platform": "linux",
+  "arch": "x64",
+  "profile": "debug; same isolated default config; native debug action only; cached build; sequential requests",
+  "measurements": [
+    {
+      "label": "baseline",
+      "startup_to_boot_ms": 226.21769799999993,
+      "boot": {
+        "samples": 30,
+        "median_ms": 22.74787900000001,
+        "p95_ms": 31.90119999999979
+      },
+      "command": {
+        "samples": 30,
+        "median_ms": 3.778080999999929,
+        "p95_ms": 8.04953599999999
+      },
+      "usable_ui": {
+        "samples": 5,
+        "median_ms": 955.5074340000001,
+        "p95_ms": 1594.4624240000003
+      },
+      "idle_rss_kib": 85928,
+      "idle_cpu_ticks_1s": 0,
+      "bundle_js_bytes": 248900,
+      "bundle_gzip_bytes": 76635
+    },
+    {
+      "label": "v2",
+      "startup_to_boot_ms": 207.953207999999,
+      "boot": {
+        "samples": 30,
+        "median_ms": 34.58948100000089,
+        "p95_ms": 48.67777500000011
+      },
+      "command": {
+        "samples": 30,
+        "median_ms": 4.0027700000009645,
+        "p95_ms": 7.847262999999657
+      },
+      "usable_ui": {
+        "samples": 5,
+        "median_ms": 1259.2152389999992,
+        "p95_ms": 1907.4949560000005
+      },
+      "idle_rss_kib": 88392,
+      "idle_cpu_ticks_1s": 1,
+      "bundle_js_bytes": 257233,
+      "bundle_gzip_bytes": 80384
+    }
+  ]
+}

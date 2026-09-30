@@ -1,5 +1,7 @@
 # Commands
 
+> V2 implementation: see [architecture, compatibility and validation](v2/STATUS.md). The historical descriptions below document the v1 compatibility layer.
+
 Dispatcher: `handle_command(message)` in `src/app/buttons/commands/mod.rs`,
 called by `POST /send-data` and Socket.IO `message_from_socket`. Ported 1:1
 including branch order. `<|§|>` is replaced with a space before matching;

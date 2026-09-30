@@ -161,12 +161,12 @@ describe('Grid', () => {
   });
 
   describe('handlers and values', () => {
-    it('keeps inline string handlers on folder buttons', async () => {
+    it('uses typed folder callbacks without executable attributes', async () => {
       const el = await render(testCtx({ index: [{ message: '/folder docs', name: 'docs', image: '' }] }));
       const button = form(el).querySelector('#button_e0X0') as HTMLElement;
-      expect(button.getAttribute('onclick')).toBe('folder(`docs`)');
-      expect(button.getAttribute('onclickhandler')).toBe('folder(`docs`)');
-      expect(button.hasAttribute('type')).toBe(false);
+      expect(button.getAttribute('onclick')).toBeNull();
+      expect(button.getAttribute('data-folder-target')).toBe('docs');
+      expect(button.getAttribute('type')).toBe('button');
     });
 
     it('renders plain submit buttons for ordinary commands', async () => {

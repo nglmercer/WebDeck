@@ -12,6 +12,7 @@ export const pageState = {
 
 /** Server -> client events (must match `socketio_layer` in src/app/server/realtime.rs). */
 interface ServerToClientEvents {
+  command_error: (error: { message: string }) => void;
   /** Echo of the original command string after it ran. */
   json_data: (message: string) => void;
   /** Broadcast from the `send` handler. */

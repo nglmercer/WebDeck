@@ -4,6 +4,10 @@ use crate::app::utils::{exit::exit_program, logger::log};
 
 /// Port of `restart_program`.
 pub fn restart_program() {
+    if crate::application::lifecycle::active() {
+        crate::application::lifecycle::request_restart();
+        return;
+    }
     let result = restart_inner();
     if let Err(e) = result {
         log().exception(

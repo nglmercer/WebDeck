@@ -1,88 +1,173 @@
-//! Realtime paths (extracted from `server.rs`).
-//!
-//! `POST /usage`, `POST /send-data`, and the SocketIO `/` namespace
-//! (`connect`/`send`/`message_from_socket`).
+//! Legacy adapters retain HTTP results versus Socket.IO original-message echo.
+use super::{
+    security::{self, Identity},
+    v2, AppState,
+};
+use crate::app::buttons::usage::get_usage;
+use crate::domain::error::{AppError, ErrorCode};
+use axum::{
+    extract::{ConnectInfo, State},
+    response::{IntoResponse, Json, Response},
+    Extension,
+};
+use serde_json::{json, Value};
+use socketioxide::extract::{Data, SocketRef};
+use socketioxide::handler::ConnectHandler;
+use std::net::SocketAddr;
 
-use axum::response::{IntoResponse, Json, Response};
-use serde_json::Value;
-
-use super::internal_error;
-use crate::app::buttons::{self, usage::get_usage};
-use crate::app::utils::logger::log;
-
-/// Port of `usage` (`POST /usage`).
 pub(crate) async fn usage() -> Json<Value> {
     Json(get_usage(None, &[]))
 }
 
-/// SocketIO `/` namespace setup — port of the `@socketio.on(...)` handlers
-/// in `app/server.py` (`connect`, `send`, `message_from_socket`).
+fn socket_identity(
+    socket: &SocketRef,
+    token: Option<&str>,
+    legacy: bool,
+) -> Result<Identity, AppError> {
+    if !security::origin_allowed(&socket.req_parts().headers) {
+        return Err(AppError::new(
+            ErrorCode::Forbidden,
+            "Cross-origin requests are denied",
+        ));
+    }
+    let local = security::is_local(
+        socket
+            .req_parts()
+            .extensions
+            .get::<ConnectInfo<SocketAddr>>()
+            .map(|c| c.0.ip()),
+    );
+    security::authorize(token, local, legacy)
+}
+fn token(auth: &Value) -> Option<String> {
+    auth.get("token")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+}
+
 pub(crate) fn socketio_layer(
-    server_address: &str,
-    server_port: u16,
+    _server_address: &str,
+    _server_port: u16,
+    state: AppState,
 ) -> socketioxide::layer::SocketIoLayer {
-    use socketioxide::extract::{Data, SocketRef};
-
-    let (layer, io) = socketioxide::SocketIo::new_layer();
-    let address = server_address.to_string();
-
-    io.ns("/", move |socket: SocketRef| {
-        let address = address.clone();
-        async move {
-            log().info(&format!("server connected at {address}:{server_port}"));
-
-            socket.on(
-                "send",
-                |socket: SocketRef, Data::<Value>(data)| async move {
-                    log().info(&format!("message received with : {data}"));
-                    // Python `send(data, broadcast=True)` emits "message".
-                    let _ = socket.broadcast().emit("message", &data).await;
-                },
-            );
-
-            socket.on(
-                "message_from_socket",
-                |socket: SocketRef, Data::<Value>(data)| async move {
-                    let message = data
-                        .as_str()
-                        .map(|s| s.to_string())
-                        .unwrap_or_else(|| data.to_string());
-                    log().info(&format!("Message from client: {message}"));
-                    let owned = message.clone();
-                    let result =
-                        tokio::task::spawn_blocking(move || buttons::handle_command(&owned)).await;
-                    if result.is_ok() {
-                        // Python emits the ORIGINAL message, not the result.
-                        let _ = socket.emit("json_data", &message);
+    let (layer, io) = socketioxide::SocketIo::builder()
+        .max_payload(65536)
+        .build_layer();
+    let legacy_state = state.clone();
+    io.ns(
+        "/",
+        (move |socket: SocketRef, Data::<Value>(auth)| {
+            let state = legacy_state.clone();
+            let identity_token = token(&auth);
+            async move {
+                socket.on("send", {
+                    let token = identity_token.clone();
+                    move |socket: SocketRef, Data::<Value>(data)| {
+                        let token = token.clone();
+                        async move {
+                            if socket_identity(&socket, token.as_deref(), true).is_ok() {
+                                let _ = socket.broadcast().emit("message", &data).await;
+                            } else {
+                                let _ = socket.disconnect();
+                            }
+                        }
                     }
-                },
-            );
+                });
+                socket.on(
+                    "message_from_socket",
+                    move |socket: SocketRef, Data::<Value>(data)| {
+                        let state = state.clone();
+                        let token = identity_token.clone();
+                        async move {
+                            let identity = match socket_identity(&socket, token.as_deref(), true) {
+                                Ok(identity) => identity,
+                                Err(_) => {
+                                    let _ = socket.disconnect();
+                                    return;
+                                }
+                            };
+                            let message = data
+                                .as_str()
+                                .map(str::to_string)
+                                .unwrap_or_else(|| data.to_string());
+                            let result = match state.executor.parse(&message) {
+                                Ok(command) => {
+                                    state
+                                        .executor
+                                        .execute(command, identity.capabilities, false)
+                                        .await
+                                }
+                                Err(error) => Err(error),
+                            };
+                            if result.is_ok() {
+                                let _ = socket.emit("json_data", &message);
+                            } else {
+                                let _ = socket.emit(
+                                    "command_error",
+                                    &json!({"success":false,"message":"Command rejected"}),
+                                );
+                            }
+                        }
+                    },
+                );
+            }
+        })
+        .with(|socket: SocketRef, Data::<Value>(auth)| async move {
+            socket_identity(&socket, token(&auth).as_deref(), true).map(|_| ())
+        }),
+    );
+    io.ns("/v2", (move |socket: SocketRef, Data::<Value>(auth)| {
+        let state = state.clone();
+        let identity_token = token(&auth);
+        async move {
+            socket.on("command", move |socket: SocketRef, Data::<Value>(data)| {
+                let state = state.clone();
+                let token = identity_token.clone();
+                async move {
+                    let id = data.get("request_id").and_then(Value::as_str).unwrap_or("");
+                    let id = if id.is_empty() { v2::request_id() } else { id.to_string() };
+                    let result = async {
+                        let identity = socket_identity(&socket, token.as_deref(), false)?;
+                        let request: v2::CommandRequest = serde_json::from_value(data)
+                            .map_err(|_| AppError::new(ErrorCode::InvalidInput, "Invalid command request"))?;
+                        if !v2::valid_request_id(&id) { return Err(AppError::new(ErrorCode::InvalidInput, "Invalid request identifier")); }
+                        let command = state.executor.parse(&request.message)?;
+                        state.executor.execute_with_admission(command, identity.capabilities, true, || {
+                            let _ = socket.emit("command_result", &json!({"api_version":2,"request_id":id,"state":"accepted"}));
+                        }).await
+                    }.await;
+                    let payload = match result {
+                        Ok(result) if result.get("success").and_then(Value::as_bool) != Some(false) => json!({"api_version":2,"request_id":id,"state":"completed","result":result}),
+                        Ok(_) => json!({"api_version":2,"request_id":id,"state":"failed","code":"execution_failed","message":"Command execution failed"}),
+                        Err(error) => json!({"api_version":2,"request_id":id,"state":"failed","code":error.code,"message":error.message}),
+                    };
+                    let _ = socket.emit("command_result", &payload);
+                }
+            });
         }
-    });
-
+    }).with(|socket: SocketRef, Data::<Value>(auth)| async move {
+        socket_identity(&socket, token(&auth).as_deref(), false).map(|_| ())
+    }));
     layer
 }
 
-/// Port of `send_data_route` (`POST /send-data`).
-pub(crate) async fn send_data_route(Json(body): Json<Value>) -> Response {
-    let message = body
-        .get("message")
-        .and_then(|v| v.as_str())
-        .unwrap_or("")
-        .to_string();
-    // Command handling is blocking/sync (subprocesses, sleeps, sync HTTP for
-    // Spotify/translate), like Python's gevent worker: run it off the runtime.
-    let result = tokio::task::spawn_blocking(move || buttons::handle_command(&message)).await;
-    match result {
-        Ok(result) => {
-            // NOTE: like Python's `send_data_route`, the HTTP path does not
-            // emit SocketIO events; only `on_socket_message` emits `json_data`.
-            Json(result).into_response()
+pub(crate) async fn send_data_route(
+    State(state): State<AppState>,
+    Extension(identity): Extension<Identity>,
+    Json(body): Json<Value>,
+) -> Response {
+    let message = body.get("message").and_then(Value::as_str).unwrap_or("");
+    let result = match state.executor.parse(message) {
+        Ok(command) => {
+            state
+                .executor
+                .execute(command, identity.capabilities, false)
+                .await
         }
-        Err(e) => internal_error(
-            "An error occurred while handling a command",
-            format!("Command task failed: {e}"),
-            None,
-        ),
+        Err(error) => Err(error),
+    };
+    match result {
+        Ok(result) => Json(result).into_response(),
+        Err(error) => v2::error_response(error, None),
     }
 }

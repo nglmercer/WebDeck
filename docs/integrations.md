@@ -1,5 +1,7 @@
 # Integrations
 
+> V2 implementation: see [architecture, compatibility and validation](v2/STATUS.md). The historical descriptions below document the v1 compatibility layer.
+
 ## OBS (`src/app/buttons/obs/`)
 
 `command_handler` dispatches `/obs …` (scenes, streaming, recording,

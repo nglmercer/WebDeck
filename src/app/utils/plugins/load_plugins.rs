@@ -86,7 +86,7 @@ pub fn plugin_commands() -> HashMap<String, HashMap<String, PluginFn>> {
 /// for statically-registered plugins (dynamic `.py` import is deferred — see
 /// module docs); the temp-dir refresh is kept 1:1.
 pub fn load_plugins(mut commands: Value) -> (Value, Vec<String>) {
-    let plugins_path = ".config/plugins";
+    let plugins_path = crate::app::utils::settings::get_config::config_dir().join("plugins");
     let temp_dir = "temp/plugins";
 
     if std::path::Path::new(temp_dir).exists() {
@@ -105,7 +105,7 @@ pub fn load_plugins(mut commands: Value) -> (Value, Vec<String>) {
     }
 
     // Same copy step as Python (keeps temp/plugins in sync for future loaders).
-    if let Ok(entries) = walk_files(plugins_path) {
+    if let Ok(entries) = walk_files(&plugins_path.to_string_lossy()) {
         for src in entries {
             if let Some(name) = src.file_name().and_then(|n| n.to_str()) {
                 let dst = std::path::Path::new(temp_dir).join(name);
@@ -198,6 +198,11 @@ thread_local! {
 /// Shared by `.rhai` plugins and `/exec` script execution.
 pub(crate) fn script_engine() -> Engine {
     let mut engine = Engine::new();
+    engine.set_max_operations(100_000);
+    engine.set_max_call_levels(32);
+    engine.set_max_string_size(1_048_576);
+    engine.set_max_array_size(65_536);
+    engine.set_max_map_size(65_536);
     engine.register_fn("log_debug", |msg: &str| log().debug(msg));
     engine.register_fn("log_info", |msg: &str| log().info(msg));
     engine.register_fn("log_notice", |msg: &str| log().notice(msg));
@@ -222,14 +227,12 @@ pub(crate) fn script_engine() -> Engine {
         response
     });
     engine.register_fn("run_shell", |cmd: &str| -> i64 {
-        #[cfg(windows)]
-        let result = std::process::Command::new("cmd").args(["/C", cmd]).status();
-        #[cfg(not(windows))]
-        let result = std::process::Command::new("sh").args(["-c", cmd]).status();
-        match result {
-            Ok(status) => status.code().unwrap_or(-1) as i64,
-            Err(_) => -1,
+        if !crate::application::executor::context_allows(crate::domain::command::Capability::Script)
+        {
+            return -1;
         }
+        crate::adapters::platform::processes::run(cmd, std::time::Duration::from_secs(30))
+            .unwrap_or(-1)
     });
     engine
 }

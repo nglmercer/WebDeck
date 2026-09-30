@@ -18,7 +18,7 @@
 
   function scrub(event: Event): void {
     const el = event.currentTarget as HTMLInputElement;
-    el.value = el.value.replaceAll(/[^0-9]/g, '');
+    el.value = el.value.replace(/[^0-9]/g, '');
   }
 </script>
 

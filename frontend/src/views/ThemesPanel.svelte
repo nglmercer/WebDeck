@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { send_data } from '../app/send';
   import SvgSlot from '../components/SvgSlot.svelte';
   import { text } from '../framework/i18n';
   import type { ThemeMeta } from './config';
@@ -72,7 +73,7 @@
   }
 
   function openThemesFolder(): void {
-    window.send_data?.('/openfolder /.config/themes');
+    send_data('/openfolder /.config/themes');
   }
 </script>
 
@@ -81,21 +82,24 @@
   {@const isDefault = theme === DEFAULT_THEME}
   <div
     class="theme-container"
-    filename={theme}
-    defaulttheme={isDefault ? '' : undefined}
+    role="group"
+    data-filename={theme}
+    data-default-theme={isDefault ? '' : undefined}
     onmouseenter={() => (hovered = theme)}
     onmouseleave={() => (hovered = null)}
   >
     {#if !isDefault}
       <span
         class={isEnabled ? 'disable-theme-hitbox' : 'enable-theme-hitbox'}
+        role="button" tabindex="0" aria-label="Toggle theme"
+        onkeydown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleTheme(theme); } }}
         onclick={() => toggleTheme(theme)}
       ></span>
       <span class={(isEnabled ? 'disable-theme' : 'enable-theme') + (hovered === theme ? '' : ' invisible')}></span>
       <div class={'arrows-container' + (isEnabled && hovered === theme ? '' : ' invisible')}>
-        <span class={arrowCls(theme, -1)} onclick={() => moveTheme(theme, -1)}></span>
+        <span class={arrowCls(theme, -1)} role="button" tabindex="0" aria-label="Move theme" onkeydown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); moveTheme(theme, -1); } }} onclick={() => moveTheme(theme, -1)}></span>
         <span class="arrow-up"></span>
-        <span class={arrowCls(theme, 1)} onclick={() => moveTheme(theme, 1)}></span>
+        <span class={arrowCls(theme, 1)} role="button" tabindex="0" aria-label="Move theme" onkeydown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); moveTheme(theme, 1); } }} onclick={() => moveTheme(theme, 1)}></span>
         <span class="arrow-down"></span>
       </div>
     {/if}

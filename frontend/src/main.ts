@@ -2,10 +2,12 @@
 // the full page context, then render views and wire up behavior.
 
 import { mount, unmount } from 'svelte';
+import { HttpError } from './api/client';
+import PairingScreen from './features/security/PairingScreen.svelte';
 import { fetchBoot } from './api/config';
 import { emitAppEvent } from './app/events';
 import { initI18n } from './framework/i18n';
-import { q, byId } from './query';
+import { byId } from './query';
 import { renderApp } from './views/app';
 import LoadingScreen from './views/LoadingScreen.svelte';
 
@@ -27,8 +29,15 @@ async function boot(): Promise<void> {
     emitAppEvent('boot:ready', ctx);
   } catch (error) {
     void unmount(loading);
-    q(mountEl).html(`<p style="color:white">Failed to load WebDeck: ${String(error)}</p>`);
-    throw error;
+    if (error instanceof HttpError && (error.status === 401 || error.status === 403)) {
+      let pairing: Record<string, never>;
+      pairing = mount(PairingScreen, { target: mountEl, props: { retry: async () => { void unmount(pairing); mountEl.textContent = ''; await boot(); } } }) as unknown as Record<string, never>;
+      return;
+    }
+    const message = document.createElement('p'); message.style.color = 'white';
+    message.textContent = `Failed to load WebDeck: ${String(error)}`;
+    mountEl.replaceChildren(message);
+
   }
 }
 

@@ -31,8 +31,8 @@ export function refreshStudioPreview(modalId: string): void {
   if (key === '') {
     const first =
       document.querySelector(
-        `form[arg_modal_ID="${modalId}"] .args-container input[type="text"],` +
-          ` form[edit_modal_ID="${modalId}"] .args-container input[type="text"]`
+        `form[data-arg-modal-id="${modalId}"] .args-container input[type="text"],` +
+          ` form[data-edit-modal-id="${modalId}"] .args-container input[type="text"]`
       ) as HTMLInputElement | null;
     key = (first?.value ?? '').trim();
   }

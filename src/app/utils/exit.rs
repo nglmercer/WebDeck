@@ -24,6 +24,11 @@ pub fn exit_program(force: bool, from_timeout: bool) {
         log().info("Exiting WebDeck...");
     }
 
+    if crate::application::lifecycle::active() {
+        crate::application::lifecycle::request_shutdown();
+        return;
+    }
+
     #[cfg(windows)]
     {
         let mut targets = vec!["nircmd.exe"];

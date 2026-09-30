@@ -1,0 +1,37 @@
+
+> webdeck-frontend@1.0.0 test
+> vitest run src/components/keyfield.test.ts
+
+
+ RUN  v5.0.2 /workspace/WebDeck/frontend
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+TypeError: Cannot read properties of null (reading 'schedule')
+
+	in $effect
+	in KeyFieldView.svelte
+	in undefined
+
+This error originated in "src/components/keyfield.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The last test to run before this error was "writes dropdown selection into the value input". This means either:
+- the error was thrown while Vitest was running this test, or
+- the error was thrown after the test completed, and this was the most recent test at that point.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+     Errors  1 error
+   Start at  02:35:22
+   Duration  3.13s (transform 56%, environment 21%, import 12%, tests 9%, worker 1%)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.1.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.1.0
+npm notice To update run: npm install -g npm@12.1.0
+npm notice

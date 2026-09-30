@@ -12,7 +12,10 @@
     "preview": "vite preview",
     "demo:video": "playwright test --config playwright.config.ts && node e2e/finalize-video.mjs",
     "demo:3d": "playwright test --config capture-3d.config.ts",
-    "demo:3d-gif": "playwright test --config capture-3d-gif.config.ts && node e2e/finalize-3d-gif.mjs"
+    "demo:3d-gif": "playwright test --config capture-3d-gif.config.ts && node e2e/finalize-3d-gif.mjs",
+    "check:components": "node ../tools/component-check/node_modules/svelte-check/bin/svelte-check --workspace . --tsconfig ./tsconfig.json",
+    "test:acceptance": "playwright test --config acceptance.config.ts",
+    "check:contracts": "node ../tools/contracts/generate.mjs --check"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

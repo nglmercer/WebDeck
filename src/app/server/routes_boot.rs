@@ -104,7 +104,11 @@ fn boot_context() -> Result<Value, String> {
             continue;
         }
         if candidate.starts_with("**uploaded/") {
-            let rotated = candidate.replace("**uploaded/", ".config/user_uploads/");
+            let rotated = crate::app::utils::settings::get_config::config_dir()
+                .join("user_uploads")
+                .join(candidate.trim_start_matches("**uploaded/"))
+                .to_string_lossy()
+                .to_string();
             let path = std::path::Path::new(&rotated);
             if path.exists() {
                 save_rotated_copy(&rotated);
@@ -127,7 +131,9 @@ fn boot_context() -> Result<Value, String> {
     }
 
     let mut themes: Vec<String> = Vec::new();
-    if let Ok(entries) = std::fs::read_dir(".config/themes/") {
+    if let Ok(entries) =
+        std::fs::read_dir(crate::app::utils::settings::get_config::config_dir().join("themes"))
+    {
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().to_string();
             if name.ends_with(".css") {
@@ -157,6 +163,7 @@ fn boot_context() -> Result<Value, String> {
     };
 
     Ok(json!({
+        "config_revision": crate::application::config::shared(crate::app::utils::settings::get_config::get_config_path()).and_then(|s| s.snapshot()).map(|s| s.revision).unwrap_or(0),
         "config": config,
         "themes": themes,
         "parsed_themes": serde_json::to_value(parse_themes()).unwrap_or(Value::Null),

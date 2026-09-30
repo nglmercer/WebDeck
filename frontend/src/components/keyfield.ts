@@ -1,4 +1,4 @@
-import { mount } from 'svelte';
+import { mount, unmount } from 'svelte';
 import KeyFieldView from './KeyFieldView.svelte';
 
 /**
@@ -68,22 +68,27 @@ export const NAMED_KEYS = [
 ];
 
 export class KeyField extends HTMLElement {
-  private mounted = false;
+  private mounted: Record<string, never> | null = null;
 
   connectedCallback(): void {
     if (this.mounted) return;
-    this.mounted = true;
-    mount(KeyFieldView, {
+    this.mounted = mount(KeyFieldView, {
       target: this,
       props: {
         fieldId: this.getAttribute('field-id') ?? '',
         dark: this.getAttribute('dark') ?? '',
         initialValue: this.getAttribute('value') ?? '',
       },
-    });
+    }) as Record<string, never>;
     // NOTE: no flushSync here (same nested-mount rule as search-dropdown):
     // this element upgrades inside modal subtrees sharing the outer
     // batch; search wiring runs in the interior effect, post-mount.
+  }
+  disconnectedCallback(): void {
+    if (!this.mounted) return;
+    const app = this.mounted;
+    this.mounted = null;
+    void unmount(app);
   }
 }
 

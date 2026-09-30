@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { stringAttrs } from '../components/string-attrs';
+  import { onMount } from 'svelte';
+  import { navigateFolder, deckState, configureFolders } from '../features/deck/state.svelte';
+  import { submitDeck } from '../features/deck/submit';
+  import { isSwapMode } from '../app/editor';
+  import { asString, get } from '../framework/types';
   import DeleteXIcon from '../components/DeleteXIcon.svelte';
   import PencilIcon from '../components/PencilIcon.svelte';
   import PlusIcon from '../components/PlusIcon.svelte';
@@ -24,12 +28,11 @@
   // svelte-ignore state_referenced_locally
   const addLabel = text('add_a_button');
 
-  /** Raw handler attrs for /folder buttons (empty otherwise). */
-  function folderAttrs(cell: CellData): Record<string, string> {
-    if (cell.kind !== 'button' || cell.folderHandler === null) return {};
-    return { onclick: cell.folderHandler, onclickhandler: cell.folderHandler };
+  onMount(() => configureFolders(grid.folders.map(folder => folder.folderId)));
+  function openFolder(cell: CellData, force = false): void {
+    if (cell.kind !== 'button' || cell.folderHandler === null || (!force && isSwapMode())) return;
+    navigateFolder(cell.message.replace('/folder ', '').replace(/"/g, ''));
   }
-
   /**
    * Hover tooltip + accessible name for a tile (undefined omits the
    * attribute). Falls back to the command when the tile is unnamed.
@@ -52,7 +55,7 @@
 
 {#each grid.folders as folder}
   <!-- NOTE: duplicate id="folder-X" on both divs is upstream behavior. -->
-  <div id="folder-{folder.folderId}" class="buttons-center invisible">
+  <div id="folder-{folder.folderId}" class="buttons-center" class:invisible={deckState.activeFolder !== folder.folderId}>
     <div id="folder-{folder.folderId}" class="all-buttons">
       {#each folder.cells as cell (cell.editModalId)}
         {#if cell.kind === 'void'}
@@ -61,8 +64,8 @@
             <div
               class="add-button"
               data-testid="add-slot"
-              add_FOLDER={cell.folderId}
-              add_ID={String(cell.buttonId)}
+              data-add-folder={cell.folderId}
+              data-add-id={String(cell.buttonId)}
               style="display: none;"
               title={addLabel}
             >
@@ -70,11 +73,12 @@
             </div>
           </div>
         {:else}
-          <form class="form-{cell.buttonId} form" id={cell.editModalId}>
+          <form class="form-{cell.buttonId} form" id={cell.editModalId} onsubmit={(event) => submitDeck(event, asString(get(ctx.config, 'settings', 'data_transfer_method')))}>
             {#if cell.folderHandler !== null}
               <div
                 class="swapMode-open-folder"
-                use:stringAttrs={folderAttrs(cell)}
+                onclick={() => openFolder(cell, true)}
+                role="button" tabindex="0" onkeydown={(event) => { if (event.key === 'Enter' || event.key === ' ') openFolder(cell, true); }}
                 style="display: none;"
               >
                 {grid.openFolder}
@@ -84,7 +88,7 @@
               <div
                 class="edit-button"
                 style="display: none;"
-                edit_modal_ID={cell.editModalId}
+                data-edit-modal-id={cell.editModalId}
                 title={tileTitle(cell)}
               >
                 <PencilIcon />
@@ -97,10 +101,11 @@
             <div class="checkbox" style="display: none;"></div>
             <!-- svelte-ignore a11y_no_redundant_roles: 1:1 port, upstream sets role="button". -->
             <button
-              use:stringAttrs={folderAttrs(cell)}
-              type={cell.folderHandler !== null ? undefined : 'submit'}
+              onclick={() => openFolder(cell)}
+              data-folder-target={cell.folderHandler !== null ? cell.message.replace('/folder ', '').replace(/"/g, '') : undefined}
+              type={cell.folderHandler !== null ? 'button' : 'submit'}
               id="button_{cell.editModalId}"
-              edit_modal_ID={cell.editModalId}
+              data-edit-modal-id={cell.editModalId}
               data-testid="deck-tile"
               data-message={cell.message}
               class={cell.cls}

@@ -238,7 +238,7 @@ describe('ModalShell', () => {
       props: {
         containerClass: 'editbutton-modal-container dark-theme',
         containerId: 'edit-modal-container-e0X0',
-        containerAttrs: { edit_modal_ID: 'e0X0' },
+        containerAttrs: { 'data-edit-modal-id': 'e0X0' },
         contentClass: 'editbutton-modal-content dark-theme',
         headerClass: 'editbutton-modal-header bold',
         titleClass: 'editbutton-modal',
@@ -254,7 +254,7 @@ describe('ModalShell', () => {
     const container = host.querySelector('#edit-modal-container-e0X0') as HTMLElement;
     expect(container.className).toContain('editbutton-modal-container');
     // Parsed attribute form is lowercase (matches modals.ts lookups).
-    expect(container.getAttribute('edit_modal_id')).toBe('e0X0');
+    expect(container.getAttribute('data-edit-modal-id')).toBe('e0X0');
     const dialog = host.querySelector('[data-wd2-dialog]') as HTMLElement;
     expect(dialog.getAttribute('role')).toBe('dialog');
     expect(dialog.getAttribute('aria-modal')).toBe('true');

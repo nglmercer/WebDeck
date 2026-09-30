@@ -6,7 +6,6 @@
   import type { BootContext, JsonObject } from '../framework/types';
   import {
     argsData,
-    registerShowArg,
     type ArgsData,
     type FieldData,
     type ModalIdAttr,
@@ -17,8 +16,7 @@
   /**
    * The `.args-container` block (shared add/edit template): one branch per
    * arg with label/group chrome. Prefill/numbering semantics come from the
-   * shared `argsData` traversal; choice-pane switching registers the same
-   * `showArg_*` global the string renderer relied on.
+   * shared `argsData` traversal; choice panes use component-owned state.
    */
 
   interface Props {
@@ -60,16 +58,13 @@
     ...(prefill !== undefined ? { cursor: { prefill, pos: 0 } } : {}),
   });
 
-  $effect(() => {
-    registerShowArg(modalId, idAttr);
-  });
 
   let root: HTMLElement | undefined = $state();
   let hiddenArgs = $state<Set<number>>(new Set());
 
   /** Controller value for a `visibleWhen` rule (fail-open: undefined). */
   function controllerValue(argIndex: number): string | undefined {
-    const container = root?.querySelector(`[data-branch="input"][arg_id="${argIndex}"]`);
+    const container = root?.querySelector(`[data-branch="input"][data-arg-id="${argIndex}"]`);
     const field = container?.querySelector('select, input, textarea');
     if (field instanceof HTMLSelectElement) return field.value;
     if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) {
@@ -106,13 +101,16 @@
     refreshVisibility();
   });
 
-  /** Dynamic modal-id attribute (`arg_modal_ID` vs `edit_modal_ID`). */
+  /** Dynamic modal-id attribute (`data-arg-modal-id` vs `data-edit-modal-id`). */
   function idAttrs(): Record<string, string> {
     return { [data.idAttr]: data.modalId };
   }
 
-  function choiceAttrs(choiceIndex: number): Record<string, string> {
-    return { onchange: `showArg_${data.modalId}('${choiceIndex}')` };
+  let selectedChoices = $state<Record<number, number>>({});
+  function choiceStyle(branch: number, choice: number, initiallySelected: boolean): string | undefined {
+    const selected = selectedChoices[branch];
+    return selected === undefined ? initiallySelected ? undefined : 'display: none;'
+      : selected === choice ? 'display: block;' : 'display: none;';
   }
 
   /** Digit scrub for non-negative number fields (first match only, 1:1). */
@@ -217,7 +215,7 @@
   {:else if field.kind === 'filepath'}
     {#each field.inputs as input}
       <div class="filepath">
-        <button class="filepath" filetypes={input.filetypes} onclick={(e) => pickFile(e, input.filetypes)}>
+        <button type="button" class="filepath" data-filetypes={input.filetypes} onclick={(e) => pickFile(e, input.filetypes)}>
           {text('select_your_file')}
         </button>
         <input
@@ -230,7 +228,7 @@
     {/each}
   {:else if field.kind === 'filePicker'}
     <div class="filepath">
-      <button class="filepath" onclick={(e) => pickFile(e, '')}> {text('select_your_file')} </button>
+      <button type="button" class="filepath" onclick={(e) => pickFile(e, '')}> {text('select_your_file')} </button>
       <input
         type="text"
         class="filepath {data.dark}"
@@ -240,7 +238,7 @@
     </div>
   {:else if field.kind === 'folderPicker'}
     <div class="folderpath">
-      <button class="folderpath" onclick={pickFolder}> {text('select_your_file')} </button>
+      <button type="button" class="folderpath" onclick={pickFolder}> {text('select_your_file')} </button>
       <input
         type="text"
         class="folderpath {data.dark}"
@@ -349,7 +347,7 @@
         class="arg_container"
         data-branch="input"
         use:stringAttrs={idAttrs()}
-        arg_id={String(branch.argIndex)}
+        data-arg-id={String(branch.argIndex)}
         style={hiddenArgs.has(branch.argIndex) ? 'display: none;' : undefined}
       >
         <!-- svelte-ignore a11y_label_has_associated_control: 1:1 port, upstream for-ids rarely exist. -->
@@ -382,16 +380,16 @@
               type="radio"
               name="choice"
               value={String(option.choiceIndex)}
-              use:stringAttrs={choiceAttrs(option.choiceIndex)}
+              onchange={() => selectedChoices[branch.argIndex] = option.choiceIndex}
             />
             <!-- svelte-ignore a11y_label_has_associated_control: 1:1 port, upstream for-names dangle. -->
             <label for={option.name}>{option.name}</label>
           </div>
           <div
-            style={option.selected ? undefined : 'display: none;'}
+            style={choiceStyle(branch.argIndex, option.choiceIndex, option.selected)}
             class="arg_container"
             use:stringAttrs={idAttrs()}
-            arg_id={String(option.choiceIndex)}
+            data-arg-id={String(option.choiceIndex)}
           >
             {#each option.fields as field}
               {@render argField(field)}

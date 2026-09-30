@@ -33,6 +33,8 @@ path = "src/lib.rs"
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 libc = "0.2"
+getrandom = "0.4.3"
+sha2 = "0.10.9"
 axum = { version = "0.8", features = ["multipart"] }
 # tower (ServiceExt/oneshot) is test-only → [dev-dependencies] below.
 tower-http = { version = "0.6", features = ["fs"] }

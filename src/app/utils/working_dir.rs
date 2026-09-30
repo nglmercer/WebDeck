@@ -53,13 +53,16 @@ pub fn locate_file_directory(filename: &str, base_dir: Option<&Path>) -> PathBuf
 
 /// Port of `get_base_dir`.
 pub fn get_base_dir() -> PathBuf {
-    locate_file_directory("WebDeck.exe", None)
+    locate_file_directory(&format!("WebDeck{}", std::env::consts::EXE_SUFFIX), None)
 }
 
 /// Port of `get_update_dir`.
 pub fn get_update_dir() -> PathBuf {
     let base_dir = get_base_dir().join("update");
-    locate_file_directory("update.exe", Some(&base_dir))
+    locate_file_directory(
+        &format!("update{}", std::env::consts::EXE_SUFFIX),
+        Some(&base_dir),
+    )
 }
 
 /// Port of `chdir_base`.
@@ -82,7 +85,7 @@ mod tests {
     fn debug_build_uses_cwd() {
         if cfg!(debug_assertions) {
             assert_eq!(
-                locate_file_directory("WebDeck.exe", None),
+                locate_file_directory(&format!("WebDeck{}", std::env::consts::EXE_SUFFIX), None),
                 std::env::current_dir().unwrap()
             );
         }

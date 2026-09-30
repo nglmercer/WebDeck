@@ -65,7 +65,7 @@ async function render(
 }
 
 function fields(): HTMLElement[] {
-  return [...document.querySelectorAll(`form[arg_modal_ID="${MODAL_ID}"] .args-container input, form[arg_modal_ID="${MODAL_ID}"] .args-container select, form[arg_modal_ID="${MODAL_ID}"] .args-container textarea`)] as HTMLElement[];
+  return [...document.querySelectorAll(`form[data-arg-modal-id="${MODAL_ID}"] .args-container input, form[data-arg-modal-id="${MODAL_ID}"] .args-container select, form[data-arg-modal-id="${MODAL_ID}"] .args-container textarea`)] as HTMLElement[];
 }
 
 function setValue(el: HTMLElement, value: string): void {
@@ -120,7 +120,7 @@ describe('getCommand goldens', () => {
     // Default: first (empty) choice selected.
     expect(getCommand('/copy', MODAL_ID)).toBe('/copy ');
     // Switch to the second choice (mirrors showArg_X pane toggling).
-    const panes = [...document.querySelectorAll(`div.arg_container[arg_modal_ID="${MODAL_ID}"]`)] as HTMLElement[];
+    const panes = [...document.querySelectorAll(`div.arg_container[data-arg-modal-id="${MODAL_ID}"]`)] as HTMLElement[];
     panes[0]!.style.display = 'none';
     panes[1]!.style.display = 'block';
     setValue(fields()[2]!, 'hi');
@@ -153,7 +153,7 @@ describe('getCommand goldens', () => {
     });
     // Default: uploaded-file pane (file input contributes nothing).
     expect(getCommand('/exec', MODAL_ID)).toBe('/exec type:uploaded_file');
-    const panes = [...document.querySelectorAll(`div.arg_container[arg_modal_ID="${MODAL_ID}"]`)] as HTMLElement[];
+    const panes = [...document.querySelectorAll(`div.arg_container[data-arg-modal-id="${MODAL_ID}"]`)] as HTMLElement[];
     panes[0]!.style.display = 'none';
     panes[2]!.style.display = 'block';
     setValue(fields()[8]!, 'print(1)');
@@ -269,7 +269,7 @@ describe('getCommand goldens', () => {
     setValue(url, 'https://x');
     setValue(timeout, '10');
     // Body hidden for the default GET.
-    const bodyPane = document.querySelector('[data-branch="input"][arg_id="7"]') as HTMLElement;
+    const bodyPane = document.querySelector('[data-branch="input"][data-arg-id="7"]') as HTMLElement;
     expect(bodyPane.style.display).toBe('none');
     // Widget decoy: row inputs must never serialize directly.
     const decoy = document.querySelector('input[data-nocollect]') as HTMLInputElement;
@@ -285,7 +285,7 @@ describe('getCommand goldens', () => {
     select.value = 'POST';
     select.dispatchEvent(new Event('change', { bubbles: true }));
     await tick();
-    const bodyPane = document.querySelector('[data-branch="input"][arg_id="7"]') as HTMLElement;
+    const bodyPane = document.querySelector('[data-branch="input"][data-arg-id="7"]') as HTMLElement;
     expect(bodyPane.style.display).not.toBe('none');
     const names = [...document.querySelectorAll('.kv-row input[placeholder="Name"]')] as HTMLInputElement[];
     const values = [...document.querySelectorAll('.kv-row input[placeholder="Value"]')] as HTMLInputElement[];

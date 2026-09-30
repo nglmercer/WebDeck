@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DevicesPanel from '../features/security/DevicesPanel.svelte';
   import Collapse from '../components/Collapse.svelte';
   import SectionIcon from '../components/SectionIcon.svelte';
   import ModalShell from '../components/studio/ModalShell.svelte';
@@ -10,9 +11,11 @@
   import StudioSteps from '../components/studio/StudioSteps.svelte';
   import StudioTabs from '../components/studio/StudioTabs.svelte';
   import { tx } from '../components/studio/labels';
+  import { submitSettings } from '../features/settings/submit';
+  import { send_data } from '../app/send';
   import { hide_modal } from '../app/modals';
   import { text } from '../framework/i18n';
-  import type { BootContext } from '../framework/types';
+  import { asString, get, type BootContext } from '../framework/types';
   import BackgroundsPanel from './BackgroundsPanel.svelte';
   import ThemesPanel from './ThemesPanel.svelte';
   import { configData } from './config';
@@ -53,13 +56,21 @@
     { id: 'backgrounds', label: text('random_bg_menu_title') },
   ];
 
+  let saving = $state(false);
+  async function save(event: SubmitEvent): Promise<void> {
+    event.preventDefault();
+    if (saving) return;
+    saving = true;
+    try { await submitSettings(event.currentTarget as HTMLFormElement); }
+    finally { saving = false; }
+  }
   function rotatePortrait(value: string): void {
     const input = document.getElementById('portrait-rotate');
     if (input instanceof HTMLInputElement) input.value = value;
   }
 
   function bypassFirewall(): void {
-    window.send_data?.('/bypass-windows-firewall');
+    send_data('/bypass-windows-firewall');
   }
 
   /** Library panels live in the main column — no back-button navigation. */
@@ -83,10 +94,10 @@
   labelledBy="config-title"
 >
     <div class="wd2-version-row">
-      <a class={config.dark} id="version" href="https://github.com/Lenochxd/WebDeck/releases/tag/v{config.version}" target="_blank" title={text('see_patchnotes')} alt={text('see_patchnotes')}>
+      <a class={config.dark} id="version" href="https://github.com/Lenochxd/WebDeck/releases/tag/v{config.version}" target="_blank" title={text('see_patchnotes')} aria-label={text('see_patchnotes')}>
         v{config.version}
       </a>
-      <a class={config.dark} id="version" href="https://github.com/Lenochxd/WebDeck/issues/new/choose" target="_blank" alt={text('github_issue')}>
+      <a class={config.dark} id="version" href="https://github.com/Lenochxd/WebDeck/issues/new/choose" target="_blank" aria-label={text('github_issue')}>
         {text('github_issue')}
       </a>
       <span style="flex: 1;"></span>
@@ -94,7 +105,7 @@
     </div>
     <div class="modal-main">
       <div class="config-container {config.dark}" id="config-container" style="display: block;">
-        <form id="config-form" class="config-form">
+        <form id="config-form" class="config-form" onsubmit={save} aria-busy={saving}>
           <div class="wd2-config-body">
             <div class="wd2-side">
               <StudioSteps {steps} selected={step} onSelect={(id) => (step = id)} />
@@ -221,6 +232,7 @@
               </div>
               <div class="setting-category experimental {config.dark}" hidden={step !== 'experimental'}>
                 <h1 class="config-title"> {text('experimental')} </h1>
+                <DevicesPanel security={asString(get(ctx.config, 'settings', 'v2_security'), 'legacy')} />
                 <Collapse id="experimental-usage" title={text('settings_group_usage')} icon="chart" open={true}>
                   <div class="setting usage-reload-time">
                     <NumberField dark={config.dark} id="usage-reload-time" name="front.computer_usage_reload_time" label={text('usage_btn_reload_time')} value={config.reloadTime} defaultValue="3000" min="0" required={true} />
@@ -277,7 +289,7 @@
               <button type="button" class="wd2-btn ghost" onclick={() => hide_modal()}>
                 {tx('cancel', 'Cancel')}
               </button>
-              <input type="submit" value={text('save')} class="modal-button save-config {config.dark}" />
+              <input type="submit" disabled={saving} value={text('save')} class="modal-button save-config {config.dark}" />
             </div>
           </footer>
         </form>
