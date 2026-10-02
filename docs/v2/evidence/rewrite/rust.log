@@ -1,0 +1,80 @@
+   Compiling webdeck v2.0.0-alpha.1 (/workspace/WebDeck)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 15.03s
+     Running unittests src/lib.rs (target/debug/deps/webdeck-bec8cd085442e0a6)
+
+running 13 tests
+test native::capture::tests::decodes_x11_pixel_formats ... ok
+test native::capture::tests::parses_grim_p6_1x1 ... ok
+test native::capture::tests::decodes_portal_file_uris ... ok
+test native::capture::tests::formats_primary_colors ... ok
+test qr::tests::button_geometry_matches_default_window ... ok
+test qr::tests::glyph_e_sets_18_pixels_at_scale_1 ... ok
+test qr::tests::size_parses_w_by_h ... ok
+test qr::tests::sibling_binary_keeps_exe_dir ... ok
+test qr::tests::size_rejects_garbage_and_absurd ... ok
+test qr::tests::tiny_window_has_no_button ... ok
+test qr::tests::unknown_glyph_is_blank_but_advances ... ok
+test qr::tests::qr_png_bytes_have_png_magic ... ok
+test qr::tests::frame_has_qr_button_and_white_corners ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/bin/console.rs (target/debug/deps/console-fca0f92275ccda15)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/package.rs (target/debug/deps/package-9cacf8886670633f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/update.rs (target/debug/deps/update-0da2c6ed5194523b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/webdeck-90b9d36a190f1670)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/qr.rs (target/debug/deps/webdeck_qr-05c62f0541e8c7f6)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rewrite.rs (target/debug/deps/rewrite-1def8d8acc6b9b0c)
+
+running 10 tests
+test accepted_work_survives_cancellation_and_capacity_counts_waiters ... ok
+test configuration_validates_full_shape_and_preserves_extensions ... ok
+test independent_session_owners_keep_grants_and_observe_revocation ... ok
+test paired_identity_has_no_invalid_credential_local_fallback ... ok
+test invalid_and_cyclic_configured_button_references_are_rejected_before_publication ... ok
+test disk_conflicts_and_invalid_reload_leave_last_valid_and_user_bytes ... ok
+test uploaded_assets_reject_escape_and_external_sources_are_explicit ... ok
+test controller_boot_redacts_inline_action_secrets_and_both_http_actions_check_resolved_capabilities ... ok
+test protected_routes_retired_protocol_and_dns_rebinding ... ok
+test scripts_and_plugins_obey_nested_policy_and_budget_without_native_effects ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/v2_update.rs (target/debug/deps/v2_update-201669994e65662d)
+
+running 7 tests
+test ordinary_download_without_trusted_https_source_is_denied ... ok
+test portable_archive_upgrade_and_real_updater_rollback_preserve_user_data ... ignored, requires WEBDECK_PORTABLE_ARTIFACT from a native package build
+test release_selection_uses_only_verified_newer_maintainer_v2_prereleases ... ok
+test interrupted_install_restores_all_originals_and_removes_new_files ... ok
+test installation_rejects_symlinked_destination_without_touching_target ... ok
+test verified_upgrade_and_rollback_preserve_user_config_and_original_permissions ... ok
+test invalid_digest_traversal_and_config_replacement_never_publish ... ok
+
+test result: ok. 6 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

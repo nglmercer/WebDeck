@@ -20,7 +20,7 @@ use std::sync::mpsc;
 
 use clap::Parser;
 use minifb::{Key, KeyRepeat, MouseButton, MouseMode, Window, WindowOptions};
-use webdeck::app::utils::qr;
+use webdeck::qr;
 
 /// Lightweight QR viewer: one QR bitmap plus an EXIT button.
 #[derive(Parser, Debug)]

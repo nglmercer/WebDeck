@@ -1,0 +1,993 @@
+[
+  {
+    "id": "debug",
+    "capability": "read",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "debug"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "type",
+        "data"
+      ],
+      "x-capability": "read"
+    }
+  },
+  {
+    "id": "exit",
+    "capability": "power",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "exit"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "power"
+    }
+  },
+  {
+    "id": "usage",
+    "capability": "read",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "usage"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "read"
+    }
+  },
+  {
+    "id": "stop_sound",
+    "capability": "audio",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "stop_sound"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "audio"
+    }
+  },
+  {
+    "id": "play_sound",
+    "capability": "audio",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "play_sound"
+        },
+        "source": {
+          "$ref": "#/$defs/FileSource"
+        },
+        "volume": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "output_device": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "microphone": {
+          "type": "boolean"
+        },
+        "local_only": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "source",
+        "volume",
+        "output_device",
+        "microphone",
+        "local_only"
+      ],
+      "x-capability": "audio"
+    }
+  },
+  {
+    "id": "shutdown",
+    "capability": "power",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "shutdown"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "power"
+    }
+  },
+  {
+    "id": "reboot",
+    "capability": "power",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "reboot"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "power"
+    }
+  },
+  {
+    "id": "sleep",
+    "capability": "power",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "sleep"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "power"
+    }
+  },
+  {
+    "id": "hibernate",
+    "capability": "power",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "hibernate"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "power"
+    }
+  },
+  {
+    "id": "lock",
+    "capability": "power",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "lock"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "power"
+    }
+  },
+  {
+    "id": "screensaver_settings",
+    "capability": "power",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "screensaver_settings"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "power"
+    }
+  },
+  {
+    "id": "screensaver",
+    "capability": "power",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "screensaver"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "start",
+            "stop",
+            "display_off"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "mode"
+      ],
+      "x-capability": "power"
+    }
+  },
+  {
+    "id": "key",
+    "capability": "input",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "key"
+        },
+        "keys": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "minItems": 1,
+          "maxItems": 16
+        }
+      },
+      "required": [
+        "type",
+        "keys"
+      ],
+      "x-capability": "input"
+    }
+  },
+  {
+    "id": "write",
+    "capability": "input",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "write"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "send": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "text",
+        "send"
+      ],
+      "x-capability": "input"
+    }
+  },
+  {
+    "id": "copy",
+    "capability": "input",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "copy"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "use_selection": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "text",
+        "use_selection"
+      ],
+      "x-capability": "input"
+    }
+  },
+  {
+    "id": "paste",
+    "capability": "input",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "paste"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "use_selection": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "text",
+        "use_selection"
+      ],
+      "x-capability": "input"
+    }
+  },
+  {
+    "id": "cut",
+    "capability": "input",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "cut"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "input"
+    }
+  },
+  {
+    "id": "clipboard",
+    "capability": "input",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "clipboard"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "input"
+    }
+  },
+  {
+    "id": "clear_clipboard",
+    "capability": "input",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "clear_clipboard"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "input"
+    }
+  },
+  {
+    "id": "speech_recognition",
+    "capability": "input",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "speech_recognition"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "input"
+    }
+  },
+  {
+    "id": "restart_desktop",
+    "capability": "window",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "restart_desktop"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "window"
+    }
+  },
+  {
+    "id": "close_focused",
+    "capability": "window",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "close_focused"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "window"
+    }
+  },
+  {
+    "id": "color_picker",
+    "capability": "window",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "color_picker"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "window"
+    }
+  },
+  {
+    "id": "kill",
+    "capability": "window",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "kill"
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "type",
+        "target"
+      ],
+      "x-capability": "window"
+    }
+  },
+  {
+    "id": "restart",
+    "capability": "window",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "restart"
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "type",
+        "target"
+      ],
+      "x-capability": "window"
+    }
+  },
+  {
+    "id": "foreground",
+    "capability": "window",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "foreground"
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "type",
+        "target"
+      ],
+      "x-capability": "window"
+    }
+  },
+  {
+    "id": "open",
+    "capability": "window",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "open"
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "type",
+        "target"
+      ],
+      "x-capability": "window"
+    }
+  },
+  {
+    "id": "volume",
+    "capability": "audio",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "volume"
+        },
+        "change": {
+          "$ref": "#/$defs/VolumeChange"
+        }
+      },
+      "required": [
+        "type",
+        "change"
+      ],
+      "x-capability": "audio"
+    }
+  },
+  {
+    "id": "app_volume",
+    "capability": "audio",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "app_volume"
+        },
+        "application": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "change": {
+          "$ref": "#/$defs/VolumeChange"
+        }
+      },
+      "required": [
+        "type",
+        "application",
+        "change"
+      ],
+      "x-capability": "audio"
+    }
+  },
+  {
+    "id": "mute",
+    "capability": "audio",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "mute"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "audio"
+    }
+  },
+  {
+    "id": "play_pause",
+    "capability": "audio",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "play_pause"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "audio"
+    }
+  },
+  {
+    "id": "previous",
+    "capability": "audio",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "previous"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "audio"
+    }
+  },
+  {
+    "id": "next",
+    "capability": "audio",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "next"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "audio"
+    }
+  },
+  {
+    "id": "microphone",
+    "capability": "audio",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "microphone"
+        },
+        "device": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "type",
+        "device"
+      ],
+      "x-capability": "audio"
+    }
+  },
+  {
+    "id": "speakers",
+    "capability": "audio",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "speakers"
+        },
+        "device": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "type",
+        "device"
+      ],
+      "x-capability": "audio"
+    }
+  },
+  {
+    "id": "fetch",
+    "capability": "network",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "fetch"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "HEAD",
+            "OPTIONS"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 8192
+          }
+        },
+        "body": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30
+        }
+      },
+      "required": [
+        "type",
+        "method",
+        "url",
+        "headers",
+        "body",
+        "timeout_seconds"
+      ],
+      "x-capability": "network"
+    }
+  },
+  {
+    "id": "script",
+    "capability": "script",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "script"
+        },
+        "source": {
+          "$ref": "#/$defs/ScriptSource"
+        }
+      },
+      "required": [
+        "type",
+        "source"
+      ],
+      "x-capability": "script"
+    }
+  },
+  {
+    "id": "shell",
+    "capability": "script",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "shell"
+        },
+        "source": {
+          "$ref": "#/$defs/ScriptSource"
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30
+        }
+      },
+      "required": [
+        "type",
+        "source",
+        "timeout_seconds"
+      ],
+      "x-capability": "script"
+    }
+  },
+  {
+    "id": "firewall",
+    "capability": "admin",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "firewall"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "x-capability": "admin"
+    }
+  },
+  {
+    "id": "obs",
+    "capability": "network",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "obs"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "toggle_recording",
+            "start_recording",
+            "stop_recording",
+            "toggle_recording_pause",
+            "pause_recording",
+            "resume_recording",
+            "toggle_stream",
+            "start_stream",
+            "stop_stream",
+            "toggle_virtual_camera",
+            "start_virtual_camera",
+            "stop_virtual_camera",
+            "scene",
+            "hotkey"
+          ]
+        },
+        "target": {
+          "type": "string",
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "type",
+        "action",
+        "target"
+      ],
+      "x-capability": "network"
+    }
+  },
+  {
+    "id": "spotify",
+    "capability": "network",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "spotify"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "save_song",
+            "save_album",
+            "play_song",
+            "play_playlist",
+            "add_to_playlist",
+            "remove_from_playlist",
+            "toggle_playlist",
+            "follow_artist",
+            "unfollow_artist",
+            "toggle_artist",
+            "volume"
+          ]
+        },
+        "target": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "change": {
+          "$ref": "#/$defs/VolumeChange"
+        }
+      },
+      "required": [
+        "type",
+        "action",
+        "target",
+        "change"
+      ],
+      "x-capability": "network"
+    }
+  },
+  {
+    "id": "plugin",
+    "capability": "plugin",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "plugin"
+        },
+        "plugin_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "action_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "type",
+        "plugin_id",
+        "version",
+        "action_id",
+        "args"
+      ],
+      "x-capability": "plugin"
+    }
+  },
+  {
+    "id": "button",
+    "capability": "read",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "button"
+        },
+        "button_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        }
+      },
+      "required": [
+        "type",
+        "button_id"
+      ],
+      "x-capability": "read"
+    }
+  }
+]

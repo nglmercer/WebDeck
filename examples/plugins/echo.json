@@ -1,0 +1,1 @@
+{"schema_version":2,"id":"echo","version":"2.0.0","entry":"echo.rhai","actions":[{"id":"echo","label":"Echo text","capabilities":["read"],"arguments":{"text":{"type":"string","required":true}},"result":{"type":"object","required":true}}]}

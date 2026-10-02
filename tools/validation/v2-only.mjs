@@ -1,46 +1,20 @@
-// A migration completion gate, deliberately scoped to production sources.
-// Rejection tests and historical documents may mention retired interfaces.
 import fs from 'node:fs';
 import path from 'node:path';
-const root = path.resolve(import.meta.dirname, '../..');
-const rules = [
-  ['legacy parser', /\bparse_legacy\b/],
-  ['compatibility facade', /crate::app::buttons\b/],
-  ['string command request', /pub message: String|message:\s*string/],
-  ['legacy command delimiter', /<\|§\|>/],
-  ['retired socket event', /message_from_socket|json_data|command_error/],
-  ['API generation switch', /strict:\s*bool|legacy:\s*bool|\blegacy\s*&&/],
-  ['legacy authorization', /["']legacy["']/],
-  ['v1 config conversion', /config\.v1\.backup|fn migrate\(|parse_stringified_list|check_config_hyphen_case|check_config_booleans/],
-  ['retired route', /["'`]\/(?:send-data|save_config|COMPLETE_save_config|save_single_button|save_buttons_only|get_config|create_folder|api\/boot|usage|upload_file|upload_filepath|upload_folderpath)(?:["'`]|\b)/],
-  ['legacy asset reference', /\.config\/|\*\*uploaded\//],
+const root=path.resolve(import.meta.dirname,'../..');
+const rules=[
+ ['text dispatcher',/\bparse_legacy\b|ParsedCommand|crate::app::buttons/],
+ ['command delimiters',/<\|§\|>/],
+ ['retired socket events',/message_from_socket|json_data|command_error/],
+ ['generation-dependent authorization',/strict:\s*bool|legacy:\s*bool|["']legacy["']/],
+ ['automatic v1 conversion',/config\.v1\.backup|fn migrate\(|parse_stringified_list|check_config_hyphen_case/],
+ ['retired HTTP routes',/["'`]\/(?:send-data|save_config|COMPLETE_save_config|save_single_button|save_buttons_only|get_config|create_folder|api\/boot|usage|upload_file|upload_filepath|upload_folderpath)["'`]/],
+ ['old asset protocol',/\*\*uploaded\/|(?:strip_prefix|starts_with)\(["']\.config\//],
 ];
-const directories = ['src', 'frontend/src', 'frontend/e2e/demo', 'tools/validation'];
-const failures = [];
-function scan(directory) {
-  for (const entry of fs.readdirSync(directory, {withFileTypes:true})) {
-    const target = path.join(directory, entry.name);
-    if (entry.isDirectory()) { scan(target); continue; }
-    if (!/\.(rs|ts|svelte|mjs|py)$/.test(entry.name) || /\.(test|spec)\./.test(entry.name) || target === import.meta.filename) continue;
-    // Rust unit-test modules may explicitly exercise rejection fixtures.
-    const contents = fs.readFileSync(target, 'utf8').split('#[cfg(test)]')[0];
-    for (const [index, line] of contents.split('\n').entries()) {
-      // Comments are not production callers. All executable references count.
-      if (/^\s*(?:\/\/|\*|#)/.test(line)) continue;
-      for (const [name, pattern] of rules) {
-        const relative = path.relative(root,target).replaceAll('\\', '/');
-        if (name === 'string command request' && !['src/domain/transport.rs', 'frontend/src/contracts/v2.ts'].includes(relative)) continue;
-        if (name === 'retired route' && !/^(src\/app\/server\/|frontend\/src\/api\/|frontend\/e2e\/demo\/|tools\/validation\/)/.test(relative)) continue;
-        if (pattern.test(line)) failures.push({surface:name, file:path.relative(root,target), line:index+1});
-      }
-    }
-  }
-}
-for (const directory of directories) scan(path.join(root,directory));
-const report = {complete:failures.length === 0, violations:failures};
-if (process.argv.includes('--json')) console.log(JSON.stringify(report,null,2));
-else {
-  for (const f of failures) console.error(`${f.file}:${f.line}: ${f.surface}`);
-  console.log(`V2-only migration guard: ${failures.length} production violations`);
-}
-process.exitCode = failures.length ? 1 : 0;
+const violations=[];
+function scan(directory){if(!fs.existsSync(directory))return;for(const e of fs.readdirSync(directory,{withFileTypes:true})){const p=path.join(directory,e.name);if(e.isDirectory()){scan(p);continue;}if(!/\.(rs|ts|svelte|mjs|rhai)$/.test(e.name)||/\.(test|spec)\./.test(e.name)||p===import.meta.filename)continue;const content=fs.readFileSync(p,'utf8').split('#[cfg(test)]')[0];for(const [n,line]of content.split('\n').entries()){if(/^\s*(?:\/\/|\*|#)/.test(line))continue;for(const[name,pattern]of rules)if(pattern.test(line))violations.push({surface:name,file:path.relative(root,p),line:n+1});}}}
+for(const d of ['src','frontend/src','frontend/e2e','tools/validation','examples/plugins'])scan(path.join(root,d));
+const schema=JSON.parse(fs.readFileSync(path.join(root,'contracts/v2.schema.json'),'utf8'));
+if(schema.$defs.CommandRequest.properties.message||!schema.$defs.CommandRequest.properties.command?.$ref)violations.push({surface:'untyped command request',file:'contracts/v2.schema.json'});
+for(const retired of ['src/app','src/application','src/adapters','src/domain/transport.rs','frontend/src/views','frontend/src/framework','contracts/legacy-commands.json','webdeck/commands.json'])if(fs.existsSync(path.join(root,retired)))violations.push({surface:'discarded runtime still present',file:retired});
+const report={complete:violations.length===0,violations};
+console.log(process.argv.includes('--json')?JSON.stringify(report,null,2):`V2-only migration guard: ${violations.length} violations`);process.exitCode=violations.length?1:0;

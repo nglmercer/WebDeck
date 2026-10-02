@@ -40,8 +40,6 @@ axum = { version = "0.8", features = ["multipart"] }
 # tower (ServiceExt/oneshot) is test-only → [dev-dependencies] below.
 tower-http = { version = "0.6", features = ["fs"] }
 serde = { version = "1", features = ["derive"] }
-# preserve_order keeps config key order (Python dicts are insertion-ordered;
-# gridsize::unmatrix depends on folder order).
 serde_json = { version = "1", features = ["preserve_order"] }
 clap = { version = "4", features = ["derive"] }
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "query", "rustls", "webpki-roots"] }
@@ -52,10 +50,8 @@ qrcode = "0.14.1"
 minifb = "0.28"
 arboard = "3.6.1"
 enigo = "0.6.1"
-notify-rust = "4.18.0"
-rhai = { version = "1.26.1", features = ["sync"] }
+rhai = { version = "1.26.1", features = ["sync", "serde"] }
 nvml-wrapper = "0.13.0"
-cpal = "0.18.2"
 rodio = "0.22.2"
 socketioxide = "0.18.7"
 rspotify = { version = "0.16.1", features = ["cli"] }
@@ -63,9 +59,8 @@ obws = "0.15.0"
 rfd = { version = "0.17.2", default-features = false, features = ["common-controls-v6", "xdg-portal"] }
 
 [target.'cfg(windows)'.dependencies]
-# GUI stack (tray + config/QR/port windows).
+# Native tray event loop.
 tray-icon = "0.25.1"
-wry = "0.57.0"
 tao = "0.37.1"
 
 windows = { version = "0", features = [
@@ -86,14 +81,12 @@ windows = { version = "0", features = [
     "Win32_UI_Shell",
     "Win32_UI_WindowsAndMessaging",
 ] }
-winrt-notification = "0"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-# Same GUI stack on Linux (needs webkit2gtk + gtk system libraries).
+# GTK event loop for the native tray.
 # ksni (pure-Rust StatusNotifier) instead of libappindicator: native on
 # KDE/Wayland, no extra system libraries.
 tray-icon = { version = "0.25.1", default-features = false, features = ["ksni"] }
-wry = "0.57.0"
 tao = "0.37.1"
 # Color-picker capture without `screenshots`: it forces dbus/vendored, whose
 # libdbus build lacks HAVE_POLL, so any D-Bus call with an fd >= 1024 ends in
