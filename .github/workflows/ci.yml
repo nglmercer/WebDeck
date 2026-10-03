@@ -44,6 +44,10 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      - run: npm ci --prefix ../runtime
+      - run: npm --prefix ../runtime run check
+      - run: npm --prefix ../runtime run build
+      - run: git diff --exit-code -- ../runtime/dist/main.js
       - run: npm ci --prefix ../tools/component-check
       - run: npm run format:check
       - run: npm run check:contracts

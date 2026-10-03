@@ -4,6 +4,7 @@ use webdeck::{
     domain::Result,
     executor::{Adapter, Executor, Fake},
     native::Native,
+    runtime::{capabilities::NativeMetrics, VmAdapter, VmRuntime},
     server::{router, App},
     sessions::Sessions,
     storage::{Assets, ConfigStore},
@@ -17,6 +18,9 @@ struct Args {
     port: u16,
     #[arg(long)]
     no_tray: bool,
+    /// Transitional development runtime; VM supports debug and usage only.
+    #[arg(long, value_parser = ["native", "vm"], default_value = "native")]
+    runtime: String,
     #[arg(long)]
     config_dir: Option<PathBuf>,
     #[arg(long)]
@@ -49,12 +53,22 @@ async fn start() -> Result<()> {
         shutdown.clone(),
     )?);
     let plugins = Arc::new(native.plugins.iter().map(|p| p.manifest.clone()).collect());
-    let adapter: Arc<dyn Adapter> =
-        if cfg!(debug_assertions) && std::env::var("WEBDECK_FAKE_EFFECTS").as_deref() == Ok("1") {
-            Arc::new(Fake)
-        } else {
-            Arc::new(native)
-        };
+    let adapter: Arc<dyn Adapter> = if args.runtime == "vm" {
+        if !cfg!(debug_assertions) {
+            return Err(webdeck::domain::Error::new(
+                webdeck::contracts::ErrorCode::InvalidInput,
+                "VM migration mode is available in development builds only",
+            ));
+        }
+        Arc::new(VmAdapter::new(Arc::new(VmRuntime::new(Arc::new(
+            NativeMetrics,
+        ))?)))
+    } else if cfg!(debug_assertions) && std::env::var("WEBDECK_FAKE_EFFECTS").as_deref() == Ok("1")
+    {
+        Arc::new(Fake)
+    } else {
+        Arc::new(native)
+    };
     let executor = Arc::new(Executor::new(adapter, 16));
     let app = App {
         io: Arc::new(tokio::sync::Semaphore::new(4)),

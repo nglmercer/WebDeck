@@ -1,0 +1,10 @@
+{
+  "name": "webdeck-runtime",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "check": "tsc --noEmit"
+  },
+  "devDependencies": { "typescript": "7.0.2" }
+}

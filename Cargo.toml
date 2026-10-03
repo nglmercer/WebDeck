@@ -31,6 +31,7 @@ name = "webdeck"
 path = "src/lib.rs"
 
 [dependencies]
+napi-vm = { git = "https://github.com/nglmercer/napi-vm", rev = "881cc8f1cec262049b6d31fa499b0d601ba673c5", default-features = false }
 tokio = { version = "1", features = ["full"] }
 libc = "0.2"
 getrandom = "0.4.3"

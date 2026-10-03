@@ -28,3 +28,9 @@ data.json
 /frontend/playwright-report/
 
 /frontend/test-results/
+
+/runtime/node_modules/
+!/runtime/dist/
+!/runtime/dist/*.js
+
+/runtime/dist/generated/
