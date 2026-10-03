@@ -63,8 +63,10 @@ fn main() -> io::Result<()> {
         let ext = if cfg!(windows) { ".exe" } else { "" };
         let src = PathBuf::from(format!("target/{profile}/{bin}{ext}"));
         let bytes = if cfg!(unix) && dev {
-            let temp =
-                std::env::temp_dir().join(format!("webdeck-strip-{}", webdeck::domain::id()));
+            let temp = std::env::temp_dir().join(format!(
+                "webdeck-strip-{}",
+                webdeck::domain::id().map_err(std::io::Error::other)?
+            ));
             fs::copy(&src, &temp)?;
             if !Command::new("strip")
                 .args(["--strip-debug"])

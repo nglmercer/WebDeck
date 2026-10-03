@@ -17,7 +17,7 @@ use webdeck::{
 struct Temp(PathBuf);
 impl Temp {
     fn new() -> Self {
-        let p = std::env::temp_dir().join(format!("webdeck-test-{}", domain::id()));
+        let p = std::env::temp_dir().join(format!("webdeck-test-{}", domain::id().unwrap()));
         std::fs::create_dir(&p).unwrap();
         Self(p)
     }
@@ -38,6 +38,9 @@ impl Adapter for NoEffects {
 }
 fn app(t: &Temp) -> App {
     App {
+        io: Arc::new(tokio::sync::Semaphore::new(4)),
+        queries: Arc::new(tokio::sync::Semaphore::new(2)),
+        authorization: Arc::new(tokio::sync::Semaphore::new(4)),
         port: 5000,
         config: store(t),
         sessions: Arc::new(Sessions::open(t.0.join("devices.json")).unwrap()),
@@ -662,4 +665,315 @@ async fn stalled_action_observation_times_out_without_releasing_owned_capacity()
     assert!(error.message.contains("outcome is unknown"));
     assert_eq!(second.unwrap_err().code, ErrorCode::CapacityExhausted);
     executor.drain().await;
+}
+
+#[tokio::test]
+async fn paired_settings_credentials_never_become_local_administrators() {
+    let t = Temp::new();
+    let a = app(&t);
+    let grant = a
+        .sessions
+        .approve(DeviceRequest {
+            name: "Settings controller".into(),
+            capabilities: vec![Capability::Read, Capability::Settings],
+            ttl_seconds: 60,
+        })
+        .unwrap();
+    for remote in [false, true] {
+        let host = if remote {
+            "192.168.1.2:5000"
+        } else {
+            "localhost:5000"
+        };
+        for (method, path, body) in [
+            ("GET", "/api/v2/config", json!(null)),
+            (
+                "PUT",
+                "/api/v2/config",
+                serde_json::to_value(ConfigRequest {
+                    revision: a.config.snapshot().unwrap().revision,
+                    config: a.config.snapshot().unwrap().config,
+                })
+                .unwrap(),
+            ),
+            ("GET", "/api/v2/devices", json!(null)),
+        ] {
+            assert_eq!(
+                call(&a, method, path, body, remote, Some(&grant.token), host)
+                    .await
+                    .status(),
+                StatusCode::FORBIDDEN
+            );
+        }
+        let response = call(
+            &a,
+            "GET",
+            "/api/v2/boot",
+            json!(null),
+            remote,
+            Some(&grant.token),
+            host,
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let boot: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(boot["can_edit"], false);
+        assert!(boot.get("settings").is_none());
+    }
+}
+
+#[tokio::test]
+async fn integration_status_is_local_only_redacted_and_checks_do_not_execute_commands() {
+    let t = Temp::new();
+    let a = app(&t);
+    let snapshot = a.config.snapshot().unwrap();
+    a.config
+        .mutate(snapshot.revision, |config| {
+            config.settings.obs.host = "invalid host".into();
+            config.settings.obs.password = "obs-private-secret".into();
+            config.settings.spotify.client_id = "private-client-id".into();
+            config.settings.spotify.client_secret = "spotify-private-secret".into();
+            Ok(())
+        })
+        .unwrap();
+    let grant = a
+        .sessions
+        .approve(DeviceRequest {
+            name: "Controller".into(),
+            capabilities: vec![Capability::Read, Capability::Settings],
+            ttl_seconds: 60,
+        })
+        .unwrap();
+    for (method, endpoint) in [
+        ("GET", "/api/v2/integrations/status"),
+        ("POST", "/api/v2/integrations/obs/check"),
+    ] {
+        assert_eq!(
+            call(
+                &a,
+                method,
+                endpoint,
+                json!(null),
+                false,
+                Some(&grant.token),
+                "localhost:5000"
+            )
+            .await
+            .status(),
+            StatusCode::FORBIDDEN
+        );
+        let response = call(
+            &a,
+            method,
+            endpoint,
+            json!(null),
+            false,
+            None,
+            "localhost:5000",
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 4096)
+            .await
+            .unwrap();
+        let status: IntegrationStatus = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(
+            status.obs,
+            if method == "POST" {
+                IntegrationState::Failed
+            } else {
+                IntegrationState::NotTested
+            }
+        );
+        assert_eq!(status.spotify, IntegrationState::AuthorizationRequired);
+        let text = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(!text.contains("private"));
+    }
+    std::fs::write(t.0.join("spotify-token.json"), b"stored-secret").unwrap();
+    let response = call(
+        &a,
+        "GET",
+        "/api/v2/integrations/status",
+        json!(null),
+        false,
+        None,
+        "localhost:5000",
+    )
+    .await;
+    let bytes = axum::body::to_bytes(response.into_body(), 4096)
+        .await
+        .unwrap();
+    let status: IntegrationStatus = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(status.spotify, IntegrationState::AuthorizationSaved);
+}
+
+#[tokio::test]
+async fn disk_capacity_keeps_auth_first_and_direct_effects_independent() {
+    let temporary = Temp::new();
+    let application = app(&temporary);
+    let held = application.io.clone().acquire_many_owned(4).await.unwrap();
+    for path in ["/api/v2/boot", "/api/v2/config", "/api/v2/translations"] {
+        let response = call(
+            &application,
+            "GET",
+            path,
+            json!(null),
+            false,
+            None,
+            "127.0.0.1:5000",
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS, "{path}");
+    }
+    let denied = call(
+        &application,
+        "GET",
+        "/api/v2/boot",
+        json!(null),
+        false,
+        Some("invalid-credential"),
+        "127.0.0.1:5000",
+    )
+    .await;
+    assert_eq!(denied.status(), StatusCode::UNAUTHORIZED);
+    let direct = call(
+        &application,
+        "POST",
+        "/api/v2/commands",
+        json!({"request_id":"independent","command":{"type":"debug","data":{}}}),
+        false,
+        None,
+        "127.0.0.1:5000",
+    )
+    .await;
+    assert_eq!(direct.status(), StatusCode::OK);
+    drop(held);
+    let restored = call(
+        &application,
+        "GET",
+        "/api/v2/boot",
+        json!(null),
+        false,
+        None,
+        "127.0.0.1:5000",
+    )
+    .await;
+    assert_eq!(restored.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn hardware_query_capacity_does_not_consume_disk_or_effect_capacity() {
+    let temporary = Temp::new();
+    let application = app(&temporary);
+    let held = application
+        .queries
+        .clone()
+        .acquire_many_owned(2)
+        .await
+        .unwrap();
+    for path in ["/api/v2/usage", "/api/v2/audio/devices"] {
+        let response = call(
+            &application,
+            "GET",
+            path,
+            json!(null),
+            false,
+            None,
+            "127.0.0.1:5000",
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS, "{path}");
+    }
+    let config = call(
+        &application,
+        "GET",
+        "/api/v2/config",
+        json!(null),
+        false,
+        None,
+        "127.0.0.1:5000",
+    )
+    .await;
+    assert_eq!(config.status(), StatusCode::OK);
+    let direct = call(
+        &application,
+        "POST",
+        "/api/v2/commands",
+        json!({"request_id":"independent-query","command":{"type":"debug","data":{}}}),
+        false,
+        None,
+        "127.0.0.1:5000",
+    )
+    .await;
+    assert_eq!(direct.status(), StatusCode::OK);
+    drop(held);
+}
+
+#[tokio::test]
+async fn saturated_authorization_fails_closed_before_effects_and_recovers() {
+    let temporary = Temp::new();
+    let application = app(&temporary);
+    let held = application
+        .authorization
+        .clone()
+        .acquire_many_owned(4)
+        .await
+        .unwrap();
+    for token in [None, Some("invalid-credential")] {
+        let response = call(
+            &application,
+            "POST",
+            "/api/v2/commands",
+            json!({"request_id":"authorization-full","command":{"type":"debug","data":{}}}),
+            false,
+            token,
+            "127.0.0.1:5000",
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+    }
+    assert_eq!(application.io.available_permits(), 4);
+    assert_eq!(application.queries.available_permits(), 2);
+    drop(held);
+    let denied = call(
+        &application,
+        "GET",
+        "/api/v2/boot",
+        json!(null),
+        false,
+        Some("invalid-credential"),
+        "127.0.0.1:5000",
+    )
+    .await;
+    assert_eq!(denied.status(), StatusCode::UNAUTHORIZED);
+    let allowed = call(
+        &application,
+        "POST",
+        "/api/v2/commands",
+        json!({"request_id":"authorization-restored","command":{"type":"debug","data":{}}}),
+        false,
+        None,
+        "127.0.0.1:5000",
+    )
+    .await;
+    assert_eq!(allowed.status(), StatusCode::OK);
+}
+
+#[test]
+fn canonical_validation_matches_shared_frontend_corpus() {
+    let fixtures: Vec<Value> =
+        serde_json::from_str(include_str!("../contracts/validation-cases.json")).unwrap();
+    for fixture in fixtures {
+        let accepted =
+            domain::validate(fixture["definition"].as_str().unwrap(), &fixture["value"]).is_ok();
+        assert_eq!(
+            accepted,
+            fixture["valid"].as_bool().unwrap(),
+            "{}",
+            fixture["label"]
+        );
+    }
 }

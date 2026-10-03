@@ -231,10 +231,15 @@ pub fn decode_config(bytes: &[u8]) -> Result<Config> {
     validate_config(&c)?;
     Ok(c)
 }
-pub fn id() -> String {
+pub fn id() -> Result<String> {
     let mut b = [0u8; 16];
-    getrandom::fill(&mut b).expect("operating system entropy");
-    b.iter().map(|b| format!("{b:02x}")).collect()
+    getrandom::fill(&mut b).map_err(|_| {
+        Error::new(
+            ErrorCode::ExecutionFailed,
+            "Cannot obtain operating system entropy",
+        )
+    })?;
+    Ok(b.iter().map(|b| format!("{b:02x}")).collect())
 }
 pub const ALL_CAPABILITIES: [Capability; 10] = [
     Capability::Read,

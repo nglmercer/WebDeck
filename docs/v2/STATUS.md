@@ -15,7 +15,7 @@ and rejects the discarded application trees and protocols.
 | HTTP and correlated Socket.IO transport | `src/server.rs`, `src/server/realtime.rs` |
 | Native tray and QR viewer | `src/desktop.rs`, `src/qr.rs`, `src/bin/qr.rs` |
 | Verified staging, installation and rollback | `src/update.rs`, `src/bin/update.rs` |
-| Deck, editor, settings and controller state | `frontend/src/App.svelte`, `editor.svelte.ts`, `api.ts` |
+| Deck, editor, settings and controller state | `frontend/src/App.svelte`, `features/`, `lib/` |
 
 ## Execution policy
 
@@ -48,8 +48,8 @@ manual recovery outside this runtime.
 
 Protected remote requests require a device identity. The local exception uses the
 actual loopback peer, approved literal Host/Origin values and no forwarded-header
-trust. Invalid supplied credentials cannot use that exception. Device approval,
-revocation, native selection and Spotify connection approval require a local
+trust. Supplied credentials always retain device identity, including from loopback; invalid credentials cannot use that exception. Configuration access and editing require the local administrator. Device approval,
+revocation, native selection, integration checks and Spotify connection approval require a local
 administrator. Controller boot contains action references and required capabilities,
 not action code, HTTP headers or integration settings. Both transports resolve
 references against current configuration and authorize every invocation.
@@ -68,3 +68,11 @@ artifact requires compatible native system libraries. Signed release artifacts
 and automatic-update distribution have not been validated or published.
 
 Current rewrite evidence is under `docs/v2/evidence/rewrite/`. Superseded partial-migration reports have been removed. The subsequent asset/documentation cleanup is recorded in `evidence/rewrite/cleanup.json` and `cleanup-portable.json`.
+
+The subsequent code/design implementation is tracked separately in
+[improvement progress](../improvement-progress.md) and its
+[completion audit](../improvement-audit.md). Current screenshots, measured browser
+workloads and development portable checks live under `evidence/improvements/`.
+Those records identify their verification scope; a newer UI build does not make
+an older portable checkpoint current. Live platform/account verification remains
+open for that plan.

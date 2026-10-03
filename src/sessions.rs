@@ -97,9 +97,9 @@ impl Sessions {
                 "Administrative actions are local only",
             ));
         }
-        let token = format!("{}{}", domain::id(), domain::id());
+        let token = format!("{}{}", domain::id()?, domain::id()?);
         let device = Device {
-            id: domain::id(),
+            id: domain::id()?,
             name: r.name,
             capabilities: r.capabilities,
             expires_at: now() + r.ttl_seconds,

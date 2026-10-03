@@ -10,6 +10,7 @@
 //! (its `dbus` dependency is Linux-only and never builds there).
 
 use enigo::{Enigo, Mouse, Settings};
+use std::time::{Duration, Instant};
 
 #[cfg(target_os = "linux")]
 use display_info::DisplayInfo;
@@ -236,7 +237,8 @@ fn file_path_from_uri(uri: &str) -> Result<std::path::PathBuf, String> {
 /// Capture one pixel through the XDG Screenshot portal (`ashpd`, pure-Rust
 /// D-Bus — the accurate Wayland path on KDE/GNOME where `grim` is absent).
 #[cfg(target_os = "linux")]
-fn capture_pixel_portal(x: i32, y: i32) -> Result<[u8; 3], String> {
+fn capture_pixel_portal(x: i32, y: i32, deadline: Instant) -> Result<[u8; 3], String> {
+    remaining(deadline, Duration::from_secs(30))?;
     let scale = DisplayInfo::from_point(x, y)
         .map(|info| info.scale_factor)
         .unwrap_or(1.0);
@@ -257,13 +259,13 @@ fn capture_pixel_portal(x: i32, y: i32) -> Result<[u8; 3], String> {
         // reuse a connection whose I/O tasks belonged to the first call's
         // (now dropped) runtime and hang forever.
         let connection = tokio::time::timeout(
-            std::time::Duration::from_secs(5),
+            remaining(deadline, Duration::from_secs(5))?,
             zbus::Connection::session(),
         )
         .await
         .map_err(|_| "portal bus connection timed out".to_string())?
         .map_err(|e| e.to_string())?;
-        let request = tokio::time::timeout(std::time::Duration::from_secs(20), async {
+        let request = tokio::time::timeout(remaining(deadline, Duration::from_secs(20))?, async {
             ashpd::desktop::screenshot::Screenshot::request()
                 .connection(Some(connection))
                 .modal(true)
@@ -276,11 +278,12 @@ fn capture_pixel_portal(x: i32, y: i32) -> Result<[u8; 3], String> {
         .map_err(|e| e.to_string())?;
         let uri = request.response().map_err(|e| e.to_string())?;
         let path = file_path_from_uri(uri.uri().as_str())?;
-        let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
+        let bytes = remaining(deadline, Duration::from_secs(30))
+            .and_then(|_| std::fs::read(&path).map_err(|e| e.to_string()));
         if let Err(e) = std::fs::remove_file(&path) {
             log().debug(&format!("portal: cannot remove {path:?}: {e}"));
         }
-        Ok::<Vec<u8>, String>(bytes)
+        bytes
     })?;
     let image = image::load_from_memory(&png)
         .map_err(|e| e.to_string())?
@@ -299,11 +302,14 @@ fn capture_pixel_portal(x: i32, y: i32) -> Result<[u8; 3], String> {
 /// Linux fallback for Wayland (where X11 capture fails): grab a 1x1 region
 /// with `grim` (wlroots compositors) as raw PPM and parse the single pixel.
 #[cfg(target_os = "linux")]
-fn capture_pixel_grim(x: i32, y: i32) -> Result<[u8; 3], String> {
-    let out = std::process::Command::new("grim")
-        .args(["-g", &format!("{x},{y} 1x1"), "-t", "ppm", "-"])
-        .output()
-        .map_err(|e| format!("grim not available: {e}"))?;
+fn capture_pixel_grim(x: i32, y: i32, deadline: Instant) -> Result<[u8; 3], String> {
+    let mut command = std::process::Command::new("grim");
+    command.args(["-g", &format!("{x},{y} 1x1"), "-t", "ppm", "-"]);
+    let out = super::processes::ManagedChild::output(
+        command,
+        remaining(deadline, Duration::from_secs(5))?,
+    )
+    .map_err(|_| "grim capture failed or exceeded its budget".to_string())?;
     if !out.status.success() {
         return Err(format!(
             "grim failed: {}",
@@ -337,23 +343,26 @@ fn parse_p6_1x1(buf: &[u8]) -> Result<[u8; 3], String> {
 }
 
 /// Port of `get_mouse_pixel_color`.
-pub fn get_mouse_pixel_color() -> Result<MousePixelColor, String> {
+pub fn get_mouse_pixel_color(deadline: Instant) -> Result<MousePixelColor, String> {
+    remaining(deadline, Duration::from_secs(30))?;
     let enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
     let (x, y) = enigo.location().map_err(|e| e.to_string())?;
+    remaining(deadline, Duration::from_secs(30))?;
 
     #[cfg(target_os = "linux")]
     let pixel = if is_wayland() {
         // grim is instant where present; the portal is the accurate
         // fallback on KDE/GNOME; xcb sees XWayland clients only, so it
         // stays last (better than failing outright on exotic compositors).
-        capture_pixel_grim(x, y).or_else(|grim_err| {
+        capture_pixel_grim(x, y, deadline).or_else(|grim_err| {
             log().debug(&format!(
                 "Color picker: grim unavailable ({grim_err}), trying portal"
             ));
-            capture_pixel_portal(x, y).or_else(|portal_err| {
+            capture_pixel_portal(x, y, deadline).or_else(|portal_err| {
                 log().warning(&format!(
                     "Color picker: portal failed ({portal_err}), trying xcb"
                 ));
+                remaining(deadline, Duration::from_secs(30))?;
                 capture_pixel_xcb(x, y)
             })
         })?
@@ -363,11 +372,20 @@ pub fn get_mouse_pixel_color() -> Result<MousePixelColor, String> {
     #[cfg(not(target_os = "linux"))]
     let pixel = capture_pixel_native(x, y)?;
 
+    remaining(deadline, Duration::from_secs(30))?;
     log().debug(&format!(
         "Mouse pixel at ({x}, {y}): rgb({},{},{})",
         pixel[0], pixel[1], pixel[2]
     ));
     Ok(format_pixel_color(pixel[0], pixel[1], pixel[2]))
+}
+
+fn remaining(deadline: Instant, ceiling: Duration) -> Result<Duration, String> {
+    let budget = deadline.saturating_duration_since(Instant::now());
+    if budget.is_zero() {
+        return Err("capture execution budget exhausted".into());
+    }
+    Ok(budget.min(ceiling))
 }
 
 #[cfg(test)]
@@ -381,6 +399,26 @@ mod tests {
         assert_eq!(parse_p6_1x1(ppm), Ok([0x12, 0x34, 0x56]));
         assert!(parse_p6_1x1(b"P5\n1 1\n255\n\x00").is_err());
         assert!(parse_p6_1x1(b"P6\n2 2\n255\n\x00\x00\x00").is_err());
+    }
+
+    #[test]
+    fn expired_capture_rejects_before_cursor_or_desktop_access() {
+        let error = get_mouse_pixel_color(Instant::now() - Duration::from_secs(1)).unwrap_err();
+        assert_eq!(error, "capture execution budget exhausted");
+        #[cfg(target_os = "linux")]
+        {
+            let deadline = Instant::now() - Duration::from_secs(1);
+            assert_eq!(capture_pixel_portal(0, 0, deadline).unwrap_err(), error);
+            assert_eq!(capture_pixel_grim(0, 0, deadline).unwrap_err(), error);
+        }
+        assert_eq!(
+            remaining(
+                Instant::now() + Duration::from_secs(60),
+                Duration::from_secs(5)
+            )
+            .unwrap(),
+            Duration::from_secs(5)
+        );
     }
 
     #[test]

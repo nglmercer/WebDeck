@@ -2155,6 +2155,42 @@
         "capability",
         "schema"
       ]
+    },
+    "IntegrationState": {
+      "type": "string",
+      "enum": [
+        "not_configured",
+        "not_tested",
+        "connected",
+        "failed",
+        "authorization_saved",
+        "authorization_required"
+      ]
+    },
+    "IntegrationStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "api_version",
+        "obs",
+        "spotify",
+        "checked_at"
+      ],
+      "properties": {
+        "api_version": {
+          "const": 2
+        },
+        "obs": {
+          "$ref": "#/$defs/IntegrationState"
+        },
+        "spotify": {
+          "$ref": "#/$defs/IntegrationState"
+        },
+        "checked_at": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
     }
   }
 }

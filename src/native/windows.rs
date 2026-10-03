@@ -77,7 +77,11 @@ pub(super) fn windows_display_off() -> Result<Value> {
     }
     Ok(json!({}))
 }
-pub(super) fn windows_app_volume(app: &str, change: &VolumeChange) -> Result<Value> {
+pub(super) fn windows_app_volume(
+    app: &str,
+    change: &VolumeChange,
+    context: &Context,
+) -> Result<Value> {
     use ::windows::core::Interface;
     let _com = Com::init()?;
     unsafe {
@@ -96,6 +100,7 @@ pub(super) fn windows_app_volume(app: &str, change: &VolumeChange) -> Result<Val
         let system = sysinfo::System::new_all();
         let mut found = false;
         for i in 0..n {
+            context.check(Capability::Audio)?;
             let session = sessions.GetSession(i).map_err(|_| Error::execution())?;
             let control: IAudioSessionControl2 = session.cast().map_err(|_| Error::execution())?;
             let pid = control.GetProcessId().map_err(|_| Error::execution())?;
@@ -105,6 +110,7 @@ pub(super) fn windows_app_volume(app: &str, change: &VolumeChange) -> Result<Val
             {
                 let volume: ISimpleAudioVolume = session.cast().map_err(|_| Error::execution())?;
                 let current = volume.GetMasterVolume().map_err(|_| Error::execution())?;
+                context.check(Capability::Audio)?;
                 volume
                     .SetMasterVolume(
                         percent(change, (current * 100.0).round() as i64) as f32 / 100.0,

@@ -45,12 +45,15 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm ci --prefix ../tools/component-check
+      - run: npm run format:check
       - run: npm run check:contracts
+      - run: npm run check:i18n
       - run: npm run check:components
       - run: npm run typecheck
       - run: npm run knip
       - run: npm run test
       - run: npm run build
+      - run: npm run check:budget
 
   windows:
     runs-on: windows-latest
@@ -88,6 +91,8 @@ jobs:
         working-directory: frontend
       - run: npm run test:acceptance
         working-directory: frontend
+      - name: Redacted command diagnostic smoke
+        run: node tools/validation/diagnostics.mjs
       - name: Build an explicitly labelled development portable artifact
         run: cargo run --locked --bin package -- --dev
       - name: Smoke extracted artifact and rehearse upgrade/rollback

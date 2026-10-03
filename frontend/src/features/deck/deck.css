@@ -1,0 +1,166 @@
+/* Shared by deck tiles and editor previews. Global selectors preserve uploaded-theme hooks. */
+
+.deck-grid {
+  display: grid;
+  grid-auto-rows: var(--button-height, 140px);
+  align-content: start;
+  width: 100%;
+  min-height: calc(100dvh - 32px);
+  touch-action: manipulation;
+}
+.deck-button {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--button-color, #242424);
+  color: var(--button-foreground, var(--text));
+  border: 0;
+  border-radius: var(--button-radius, 8px);
+  padding: 12px;
+  overflow: hidden;
+}
+.deck-button:hover {
+  filter: brightness(1.12);
+  background: var(--button-color, #242424);
+}
+.deck-button .button-icon {
+  font-size: var(--icon-size, 42px);
+  line-height: 1.2;
+}
+.deck-button img {
+  width: var(--icon-size, 42px);
+  height: var(--icon-size, 42px);
+  max-width: 100%;
+  object-fit: contain;
+}
+.deck-button > span:not(.button-icon) {
+  font-size: 0.9rem;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.deck-button small {
+  font-size: 0.7rem;
+}
+.deck-button small:empty {
+  display: none;
+}
+.deck-button.blank {
+  background: transparent;
+}
+.metric-value {
+  font-size: clamp(0.75rem, 3vw, 1.7rem);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+progress {
+  width: 80%;
+  height: 4px;
+  accent-color: currentColor;
+}
+.hidden-label {
+  display: none;
+}
+.add {
+  background: transparent;
+  border: 1px dashed #ffffff30;
+  font-size: 1.5rem;
+}
+.add span {
+  font-size: 0.8rem;
+}
+@media (max-width: 600px) {
+  .deck-grid {
+    min-height: calc(100dvh - 16px);
+  }
+  .deck-button {
+    padding: 8px;
+    gap: 6px;
+  }
+  .deck-button > span:not(.button-icon) {
+    font-size: 0.75rem;
+  }
+  .button-icon {
+    max-width: 100%;
+    overflow: hidden;
+  }
+}
+.deck-cell {
+  position: relative;
+  min-width: 0;
+  height: 100%;
+}
+.deck-cell > .deck-button,
+.empty-cell {
+  width: 100%;
+  height: 100%;
+}
+.empty-cell {
+  background: #ffffff04;
+  border: 1px solid #ffffff0b;
+  border-radius: var(--button-radius, 8px);
+}
+.cell-actions {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  right: 6px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.cell-actions button {
+  padding: 6px;
+  background: #171717ed;
+  font-size: 0.75rem;
+}
+.deck-cell:has(.cell-actions) > .deck-button {
+  padding: 6px 8px 42px;
+  gap: 3px;
+}
+.deck-cell:has(.cell-actions) .button-icon {
+  font-size: min(var(--icon-size, 42px), 32px);
+}
+.deck-cell:has(.cell-actions) img {
+  width: min(var(--icon-size, 42px), 32px);
+  height: min(var(--icon-size, 42px), 32px);
+}
+@media (pointer: coarse) {
+  .deck-grid.editing {
+    grid-auto-rows: max(var(--button-height, 140px), 220px);
+  }
+  .cell-actions {
+    grid-template-columns: 1fr;
+  }
+  .cell-actions button {
+    min-height: 44px;
+  }
+  .deck-cell:has(.cell-actions) > .deck-button {
+    padding-bottom: 104px;
+  }
+}
+.deck-grid.editing {
+  min-height: 0;
+}
+@media (max-width: 600px) {
+  .deck-grid.editing {
+    grid-auto-rows: max(var(--button-height, 140px), 220px);
+  }
+  .cell-actions {
+    grid-template-columns: 1fr;
+  }
+  .cell-actions button {
+    min-width: 0;
+    min-height: 44px;
+    padding: 4px 2px;
+    font-size: 0.7rem;
+  }
+  .deck-cell:has(.cell-actions) > .deck-button {
+    padding-bottom: 104px;
+  }
+}

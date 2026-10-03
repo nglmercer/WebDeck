@@ -7,7 +7,7 @@ use ashpd::desktop::{
 use std::sync::OnceLock;
 type Portal = (RemoteDesktop, Session<RemoteDesktop>);
 static SESSION: Mutex<Option<Portal>> = Mutex::new(None);
-static RUNTIME: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
+static RUNTIME: OnceLock<std::io::Result<tokio::runtime::Runtime>> = OnceLock::new();
 pub(super) fn wayland() -> bool {
     std::env::var("XDG_SESSION_TYPE").as_deref() == Ok("wayland")
 }
@@ -51,22 +51,31 @@ fn unicode(c: char) -> i32 {
         0x01000000 | c as i32
     }
 }
-fn send(events: Vec<(i32, KeyState)>) -> Result<Value> {
-    let rt = RUNTIME.get_or_init(|| {
-        tokio::runtime::Builder::new_multi_thread()
-            .worker_threads(1)
-            .enable_all()
-            .build()
-            .expect("input runtime")
-    });
+fn send(events: Vec<(i32, KeyState)>, deadline: Instant) -> Result<Value> {
+    remaining(deadline)?;
+    let rt = RUNTIME
+        .get_or_init(|| {
+            tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(1)
+                .enable_all()
+                .build()
+        })
+        .as_ref()
+        .map_err(|_| {
+            Error::new(
+                ErrorCode::ExecutionFailed,
+                "Cannot initialize host keyboard service",
+            )
+        })?;
     let mut slot = SESSION.try_lock().map_err(|_| {
         Error::new(
             ErrorCode::ExecutionFailed,
             "Keyboard is busy; check the host desktop permission dialog",
         )
     })?;
+    let budget = remaining(deadline)?;
     let result = rt.block_on(async {
-        tokio::time::timeout(Duration::from_secs(20), async {
+        tokio::time::timeout(budget, async {
             if slot.is_none() {
                 let portal = RemoteDesktop::with_connection(zbus::Connection::session().await.map_err(|_| Error::execution())?).await.map_err(|_| Error::execution())?;
                 let session = portal.create_session(Default::default()).await.map_err(|_| Error::execution())?;
@@ -94,7 +103,7 @@ fn send(events: Vec<(i32, KeyState)>) -> Result<Value> {
     }
     result
 }
-pub(super) fn keys(keys: &[String]) -> Result<Value> {
+pub(super) fn keys(keys: &[String], deadline: Instant) -> Result<Value> {
     let symbols = keys.iter().map(|k| symbol(k)).collect::<Result<Vec<_>>>()?;
     send(
         symbols
@@ -102,9 +111,10 @@ pub(super) fn keys(keys: &[String]) -> Result<Value> {
             .map(|s| (*s, KeyState::Pressed))
             .chain(symbols.iter().rev().map(|s| (*s, KeyState::Released)))
             .collect(),
+        deadline,
     )
 }
-pub(super) fn text(text: &str, enter: bool) -> Result<Value> {
+pub(super) fn text(text: &str, enter: bool, deadline: Instant) -> Result<Value> {
     let mut events = Vec::new();
     for c in text.chars() {
         let sym = match c {
@@ -117,5 +127,39 @@ pub(super) fn text(text: &str, enter: bool) -> Result<Value> {
     if enter {
         events.extend([(0xff0d, KeyState::Pressed), (0xff0d, KeyState::Released)]);
     }
-    send(events)
+    send(events, deadline)
+}
+
+fn remaining(deadline: Instant) -> Result<Duration> {
+    let budget = deadline.saturating_duration_since(Instant::now());
+    if budget.is_zero() {
+        return Err(Error::new(
+            ErrorCode::ExecutionFailed,
+            "Execution budget exhausted",
+        ));
+    }
+    Ok(budget.min(Duration::from_secs(20)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn expired_input_is_rejected_before_runtime_or_portal_access() {
+        let deadline = Instant::now() - Duration::from_secs(1);
+        assert_eq!(
+            keys(&["ctrl".into(), "c".into()], deadline)
+                .unwrap_err()
+                .code,
+            ErrorCode::ExecutionFailed
+        );
+        assert_eq!(
+            text("hello", true, deadline).unwrap_err().code,
+            ErrorCode::ExecutionFailed
+        );
+        assert_eq!(
+            remaining(Instant::now() + Duration::from_secs(60)).unwrap(),
+            Duration::from_secs(20)
+        );
+    }
 }

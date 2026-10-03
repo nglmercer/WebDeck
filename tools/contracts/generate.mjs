@@ -36,7 +36,7 @@ const variants=defs.Command.oneOf;
 rust+=`impl Command { pub fn capability(&self) -> Capability { match self { ${variants.map(s=>{let n=title(s.properties.type.const);return `Self::${n}${Object.keys(s.properties).length>1?' { .. }':''} => Capability::${title(s['x-capability'])},`;}).join('\n')} } } }\n`;
 rust=execFileSync('rustfmt',['--emit','stdout','--edition','2021'],{input:rust,encoding:'utf8'});
 const catalog=variants.map(s=>({id:s.properties.type.const,capability:s['x-capability'],schema:s}));
-for(const [p,c] of [['src/contracts.rs',rust],['frontend/src/contracts.ts',types],['contracts/catalog.json',JSON.stringify(catalog,null,2)+'\n']]) {
+for(const [p,c] of [['src/contracts.rs',rust],['frontend/src/lib/contracts.ts',types],['contracts/catalog.json',JSON.stringify(catalog,null,2)+'\n']]) {
  const target=path.join(root,p);
  if(process.argv.includes('--check')) {if(!fs.existsSync(target)||fs.readFileSync(target,'utf8')!==c) throw Error(`Contract drift: ${p}`);}
  else {fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,c);}

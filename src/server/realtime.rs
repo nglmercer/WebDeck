@@ -17,7 +17,10 @@ async fn on_connect(app: App, socket: SocketRef, auth: Value) {
         .extensions
         .get::<ConnectInfo<SocketAddr>>()
         .map(|p| p.0.ip());
-    let local = peer.is_some_and(|p| p.is_loopback());
+    let Some(peer) = peer else {
+        let _ = socket.disconnect();
+        return;
+    };
     if !auth.is_object() {
         let _ = socket.disconnect();
         return;
@@ -27,26 +30,26 @@ async fn on_connect(app: App, socket: SocketRef, auth: Value) {
         Some(Value::String(t)) => Some(t.clone()),
         Some(_) => Some(String::new()),
     };
-    if peer.is_none() || app.sessions.authorize(token.as_deref(), local).is_err() {
+    if authorize(&app, peer, token.clone()).await.is_err() {
         let _ = socket.disconnect();
         return;
     }
     let commands = app.clone();
     let credential = token.clone();
     socket.on("command", move |s: SocketRef, Data(v): Data<Value>| {
-        invoke(commands.clone(), s, credential.clone(), local, v)
+        invoke(commands.clone(), s, credential.clone(), peer, v)
     });
     socket.on("usage", move |s: SocketRef, Data(v): Data<Value>| {
-        usage(app.clone(), s, token.clone(), local, v)
+        usage(app.clone(), s, token.clone(), peer, v)
     });
 }
-async fn invoke(app: App, socket: SocketRef, token: Option<String>, local: bool, v: Value) {
+async fn invoke(app: App, socket: SocketRef, token: Option<String>, peer: IpAddr, v: Value) {
     let id = v["request_id"].as_str().unwrap_or("").to_string();
     let result = async {
         domain::validate("CommandRequest", &v)?;
         let r: CommandRequest = serde_json::from_value(v).map_err(|_| Error::invalid())?;
-        let caps = app.sessions.authorize(token.as_deref(), local)?;
-        let r = resolve_request(&app, r)?;
+        let caps = authorize(&app, peer, token).await?.capabilities;
+        let r = resolve_async(&app, r).await?;
         let observer = socket.clone();
         let correlation = id.clone();
         app.executor
@@ -61,17 +64,16 @@ async fn invoke(app: App, socket: SocketRef, token: Option<String>, local: bool,
     .await;
     let _ = socket.emit("command_result", &command_event(id, result));
 }
-async fn usage(app: App, socket: SocketRef, token: Option<String>, local: bool, v: Value) {
+async fn usage(app: App, socket: SocketRef, token: Option<String>, peer: IpAddr, v: Value) {
     let id = v["request_id"].as_str().unwrap_or("");
     if id.is_empty() || id.len() > 128 {
         return;
     }
-    if app
-        .sessions
-        .authorize(token.as_deref(), local)
-        .is_ok_and(|c| c.contains(&Capability::Read))
+    if authorize(&app, peer, token)
+        .await
+        .is_ok_and(|c| c.capabilities.contains(&Capability::Read))
     {
-        if let Ok(value) = tokio::task::spawn_blocking(crate::native::usage).await {
+        if let Ok(value) = blocking(app.queries.clone(), || Ok(crate::native::usage())).await {
             let _ = socket.emit(
                 "usage_result",
                 &json!({"api_version":2,"request_id":id,"usage":value}),

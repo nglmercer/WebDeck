@@ -57,6 +57,9 @@ async fn start() -> Result<()> {
         };
     let executor = Arc::new(Executor::new(adapter, 16));
     let app = App {
+        io: Arc::new(tokio::sync::Semaphore::new(4)),
+        queries: Arc::new(tokio::sync::Semaphore::new(2)),
+        authorization: Arc::new(tokio::sync::Semaphore::new(4)),
         port: args.port,
         plugins,
         config,

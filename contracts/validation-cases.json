@@ -1,0 +1,146 @@
+[
+  {
+    "label": "typed write",
+    "definition": "CommandRequest",
+    "value": {
+      "request_id": "id",
+      "command": {
+        "type": "write",
+        "text": "😀",
+        "send": false
+      }
+    },
+    "valid": true
+  },
+  {
+    "label": "boolean is not text",
+    "definition": "CommandRequest",
+    "value": {
+      "request_id": "id",
+      "command": {
+        "type": "write",
+        "text": "hello",
+        "send": "false"
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "upper volume boundary",
+    "definition": "CommandRequest",
+    "value": {
+      "request_id": "id",
+      "command": {
+        "type": "volume",
+        "change": {
+          "type": "set",
+          "percent": 100
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "label": "volume overflow",
+    "definition": "CommandRequest",
+    "value": {
+      "request_id": "id",
+      "command": {
+        "type": "volume",
+        "change": {
+          "type": "set",
+          "percent": 101
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "unknown command field",
+    "definition": "CommandRequest",
+    "value": {
+      "request_id": "id",
+      "command": {
+        "type": "play_pause",
+        "extra": 1
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "nested inline source",
+    "definition": "CommandRequest",
+    "value": {
+      "request_id": "id",
+      "command": {
+        "type": "script",
+        "source": {
+          "type": "inline",
+          "code": "42"
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "label": "NUL text",
+    "definition": "CommandRequest",
+    "value": {
+      "request_id": "id",
+      "command": {
+        "type": "write",
+        "text": "a\u0000b",
+        "send": false
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "missing request ID",
+    "definition": "CommandRequest",
+    "value": {
+      "command": {
+        "type": "play_pause"
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "accepted event",
+    "definition": "CommandEvent",
+    "value": {
+      "api_version": 2,
+      "request_id": "id",
+      "state": "accepted"
+    },
+    "valid": true
+  },
+  {
+    "label": "completed without result",
+    "definition": "CommandEvent",
+    "value": {
+      "api_version": 2,
+      "request_id": "id",
+      "state": "completed"
+    },
+    "valid": false
+  },
+  {
+    "label": "picker cancellation",
+    "definition": "SelectionResponse",
+    "value": {
+      "api_version": 2,
+      "source": null
+    },
+    "valid": true
+  },
+  {
+    "label": "wrong picker version",
+    "definition": "SelectionResponse",
+    "value": {
+      "api_version": 1,
+      "source": null
+    },
+    "valid": false
+  }
+]

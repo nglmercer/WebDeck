@@ -1,0 +1,15 @@
+{
+  "scope": "availability inventory only; no desktop effects or accounts accessed",
+  "display_configured": true,
+  "wayland_display_configured": true,
+  "session_bus_configured": true,
+  "tools": {
+    "orca": false,
+    "speech-dispatcher": false,
+    "obs": true,
+    "pactl": true,
+    "xclip": true,
+    "wl-copy": true
+  },
+  "windows_runtime": false
+}

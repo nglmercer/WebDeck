@@ -33,7 +33,10 @@ enum Action {
     },
 }
 fn install(bytes: &[u8], digest: &str, destination: &Path, backup: &Path) -> std::io::Result<()> {
-    let stage = std::env::temp_dir().join(format!("webdeck-stage-{}", webdeck::domain::id()));
+    let stage = std::env::temp_dir().join(format!(
+        "webdeck-stage-{}",
+        webdeck::domain::id().map_err(std::io::Error::other)?
+    ));
     webdeck::update::stage(bytes, digest, &stage)?;
     let result = webdeck::update::install(&stage, destination, backup);
     let _ = std::fs::remove_dir_all(stage);

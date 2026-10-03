@@ -28,7 +28,7 @@ pub fn protected_write(path: &Path, bytes: &[u8]) -> Result<()> {
     f.sync_all().map_err(|_| failed())
 }
 pub fn atomic_replace(path: &Path, bytes: &[u8]) -> Result<()> {
-    let t = path.with_extension(format!("{}.tmp", domain::id()));
+    let t = path.with_extension(format!("{}.tmp", domain::id()?));
     let result = (|| {
         protected_write(&t, bytes)?;
         fs::rename(&t, path).map_err(|_| failed())?;
@@ -243,7 +243,7 @@ impl Assets {
         if !allowed.contains(&extension) || bytes.len() > 16 * 1024 * 1024 {
             return Err(Error::invalid());
         }
-        let id = format!("{}.{}", domain::id(), extension);
+        let id = format!("{}.{}", domain::id()?, extension);
         protected_write(&self.path(&id)?, bytes)?;
         Ok(FileSource::Asset { id })
     }

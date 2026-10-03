@@ -17,8 +17,15 @@ async fn main() {
                 continue;
             }
         };
+        let request_id = match domain::id() {
+            Ok(id) => id,
+            Err(error) => {
+                eprintln!("{error}");
+                continue;
+            }
+        };
         let request = CommandRequest {
-            request_id: domain::id(),
+            request_id,
             command,
         };
         if domain::validate_command(&request.command).is_err() {

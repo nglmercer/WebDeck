@@ -502,6 +502,29 @@ pub struct CatalogEntry {
     pub capability: Capability,
     pub schema: BTreeMap<String, Value>,
 }
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Eq, Hash, Copy)]
+pub enum IntegrationState {
+    #[serde(rename = "not_configured")]
+    NotConfigured,
+    #[serde(rename = "not_tested")]
+    NotTested,
+    #[serde(rename = "connected")]
+    Connected,
+    #[serde(rename = "failed")]
+    Failed,
+    #[serde(rename = "authorization_saved")]
+    AuthorizationSaved,
+    #[serde(rename = "authorization_required")]
+    AuthorizationRequired,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct IntegrationStatus {
+    pub api_version: u64,
+    pub obs: IntegrationState,
+    pub spotify: IntegrationState,
+    pub checked_at: u64,
+}
 impl Command {
     pub fn capability(&self) -> Capability {
         match self {

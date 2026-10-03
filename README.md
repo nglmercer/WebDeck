@@ -64,6 +64,9 @@ manifest capabilities and the caller's capabilities.
 
 ## Validation and packaging
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for feature ownership, complete checks,
+performance profiling, and redacted command diagnostics.
+
 ```sh
 node tools/contracts/generate.mjs --check
 node tools/validation/v2-only.mjs
