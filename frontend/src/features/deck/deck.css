@@ -142,7 +142,7 @@ progress {
   min-height: 0;
 }
 .master-layout .deck-cell > .deck-button {
-  height: calc(100% - 28px);
+  height: calc(100% - var(--deck-label-height, 28px));
   padding: 12px;
   border-radius: var(--button-radius, 20px);
   box-shadow: 0 1px 3px #0003;
@@ -195,4 +195,32 @@ progress {
   .cell-actions {
     display: none;
   }
+}
+
+@media (pointer: coarse) {
+  .master-layout .buttontext {
+    font-size: 12px;
+    line-height: 1.25;
+    max-height: 48px;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .master-layout .deck-button .button-icon svg {
+    max-width: 100%;
+  }
+  .master-layout .deck-button .button-icon {
+    max-width: 100%;
+  }
+}
+
+.master-layout .button-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(var(--icon-size, 42px), 100%);
+  height: min(var(--icon-size, 42px), 65%);
+}
+.master-layout .button-icon svg {
+  width: 100%;
+  height: 100%;
 }

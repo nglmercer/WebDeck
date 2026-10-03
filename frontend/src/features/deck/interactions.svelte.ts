@@ -15,9 +15,15 @@ export class DeckInteractions {
   ) {}
   keyboard = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
+      if (this.actions.hasDialog()) return;
       this.controls = false;
       this.help = false;
       this.actions.closeEditor();
+      return;
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key === ',' && !this.actions.hasDialog()) {
+      event.preventDefault();
+      this.actions.settings();
       return;
     }
     if (
@@ -35,10 +41,6 @@ export class DeckInteractions {
     if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === 'q') {
       event.preventDefault();
       this.actions.toggleEdit();
-    }
-    if ((event.ctrlKey || event.metaKey) && event.key === ',') {
-      event.preventDefault();
-      this.actions.settings();
     }
     if (event.altKey && event.key === 'ArrowLeft') {
       event.preventDefault();

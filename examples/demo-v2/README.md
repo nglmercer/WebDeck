@@ -35,3 +35,5 @@ The capture command builds the frontend and Rust executable, starts an isolated 
 Output is written to `dist/demo-media/`: PNG screenshots, Playwright WebM recordings, replayable trace ZIPs and `manifest.json`. If a system `ffmpeg` is available, MP4 versions are exported too. No personal configuration is overwritten. Use `WEBDECK_DEMO_OUTPUT` to choose an output directory, `WEBDECK_DEMO_PORT` to change the server port, and `WEBDECK_CHROMIUM` to choose a browser executable. After a current build, `npm run demo:capture --prefix frontend -- --skip-build` skips rebuilding.
 
 Open a trace with `npx playwright show-trace ../dist/demo-media/desktop-trace.zip` from `frontend/`.
+
+For a shorter desktop story (home → media → editing → appearance settings), add `--short`: `npm run demo:capture --prefix frontend -- --short`. Mobile recording also demonstrates scrolling to the last row.

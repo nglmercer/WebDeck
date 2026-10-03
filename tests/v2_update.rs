@@ -250,7 +250,7 @@ fn portable_archive_upgrade_and_real_updater_rollback_preserve_user_data() {
 }
 #[test]
 fn release_selection_uses_only_verified_newer_maintainer_v2_prereleases() {
-    let platform = if cfg!(windows) { "windows" } else { "linux" };
+    let platform = webdeck::update::package_platform();
     let url=format!("https://github.com/nglmercer/WebDeck/releases/download/v2.0.0-alpha.2/WebDeck-2.0.0-alpha.2-{platform}-{}-portable.zip",std::env::consts::ARCH);
     let release = serde_json::json!({"draft":false,"prerelease":true,"tag_name":"v2.0.0-alpha.2","assets":[{"browser_download_url":url,"digest":format!("sha256:{}","a".repeat(64))}]});
     assert_eq!(

@@ -1,0 +1,35 @@
+{
+  "checked_on": "2026-10-03",
+  "status": "preliminary; native and physical-device gates pending",
+  "passed": {
+    "rust": 87,
+    "portable_upgrade_rollback": 1,
+    "frontend_unit": 54,
+    "desktop_chromium": 64,
+    "android_emulated_chromium": 3,
+    "tablet_emulated_chromium": 3,
+    "checks": [
+      "Svelte: zero errors/warnings",
+      "translations: 403 keys",
+      "contracts",
+      "Clippy all targets/features",
+      "format",
+      "bundle budget",
+      "Linux portable checksum and extracted UI",
+      "Linux .deb checksum and installed payload UI",
+      "embedded runtime without external JS runtime",
+      "diagnostic redaction",
+      "MP4 decoding"
+    ]
+  },
+  "pending": [
+    "native Windows/macOS CI execution and installer validation",
+    "Firefox/WebKit CI execution",
+    "physical Android/iPhone/tablet sign-off",
+    "publisher signing and notarization"
+  ],
+  "demo": {
+    "configuration": "examples/demo-v2/config.json",
+    "simulated_desktop_effects": true
+  }
+}

@@ -97,10 +97,12 @@
   const rotated = $derived(!paged && viewportWidth < viewportHeight && layout.columns > totalRows);
   const visualColumns = $derived(rotated ? totalRows : layout.columns);
   const visualRows = $derived(rotated ? layout.columns : totalRows);
-  const naturalWidth = $derived(visualColumns * 112 + Math.max(0, visualColumns - 1) * gap);
+  const naturalWidth = $derived(
+    coarse && fitted ? availableWidth : visualColumns * 112 + Math.max(0, visualColumns - 1) * gap,
+  );
   const naturalHeight = $derived(visualRows * rowHeight + Math.max(0, visualRows - 1) * gap);
   const scale = $derived(
-    fitted && viewportWidth && availableWidth
+    fitted && !coarse && viewportWidth && availableWidth
       ? fitDeck(
           naturalWidth,
           naturalHeight,
@@ -168,7 +170,10 @@
   bind:this={deckElement}
   class="deck-scroll"
   class:fitted
-  style:height={fitted ? `${naturalHeight * scale}px` : undefined}
+  class:touch-deck={coarse && fitted}
+  style:height={fitted
+    ? `${coarse ? Math.max(180, viewportHeight - 116) : naturalHeight * scale}px`
+    : undefined}
   role="region"
   aria-label={t('ui_control_deck')}
   tabindex="0"
@@ -185,6 +190,7 @@
     style:grid-template-columns={`repeat(${visualColumns}, minmax(72px, 1fr))`}
     style:gap={`${gap}px`}
     style:--deck-scale={scale}
+    style:--deck-label-height={coarse ? '52px' : '28px'}
     style:--button-height={`${rowHeight}px`}
     style:--button-radius={`${appearanceNumber(appearance.radius, 20, 0, 100)}px`}
   >
@@ -293,6 +299,11 @@
     display: flex;
     justify-content: flex-start;
     overflow: hidden;
+  }
+  .deck-scroll.touch-deck {
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
   }
   .fitted > .deck-grid {
     flex-shrink: 0;

@@ -106,3 +106,5 @@ See [implementation and validation status](docs/v2/STATUS.md) for platform gaps 
 The v2 deck adapts its visual orientation to portrait screens without rewriting saved cell positions. Q opens a fixed editing dock: tiles and labels keep their coordinates. Button settings are organized into Content, Appearance and Action tabs; host settings and the controls dialog also support keyboard-accessible tabs. Built-in icons use `icon:folder`, `icon:settings`, `icon:play`, and other SVG names available in the button icon picker. Uploaded `asset:` images remain supported.
 
 The frontend JavaScript budget is 235 KB uncompressed / 71 KB gzip. This includes the inline SVG icon library, icon chooser and accessible tab panels; the demo no longer requires raster files for its built-in icons.
+
+Start with [the v2 quickstart](docs/quickstart-v2.md). Preliminary native installers and remaining hardware checks are described in [release preparation](docs/v2/preliminary-release.md).

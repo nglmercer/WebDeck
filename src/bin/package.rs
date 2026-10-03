@@ -43,7 +43,7 @@ fn main() -> io::Result<()> {
         return Err(io::Error::other("Frontend build failed"));
     }
     let profile = if dev { "debug" } else { "release" };
-    let platform = if cfg!(windows) { "windows" } else { "linux" };
+    let platform = webdeck::update::package_platform();
     let arch = std::env::consts::ARCH;
     let name = format!(
         "WebDeck-{}-{platform}-{arch}{}-portable.zip",
@@ -69,7 +69,11 @@ fn main() -> io::Result<()> {
             ));
             fs::copy(&src, &temp)?;
             if !Command::new("strip")
-                .args(["--strip-debug"])
+                .arg(if cfg!(target_os = "macos") {
+                    "-S"
+                } else {
+                    "--strip-debug"
+                })
                 .arg(&temp)
                 .status()?
                 .success()

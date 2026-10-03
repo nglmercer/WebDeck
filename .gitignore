@@ -37,3 +37,5 @@ data.json
 # Canonical, isolated visual demo fixture
 !/examples/demo-v2/config.json
 /examples/demo-v2/config.lock
+
+/frontend/device-report/

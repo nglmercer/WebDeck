@@ -11,6 +11,7 @@
   import RuntimeSettings from './RuntimeSettings.svelte';
   import BackupSettings from './BackupSettings.svelte';
   let {
+    activeTab = $bindable('appearance'),
     editor,
     languages,
     transport = $bindable(),
@@ -21,6 +22,7 @@
     reload,
     notify,
   }: {
+    activeTab?: string;
     editor: Editor;
     languages: string[];
     transport: 'http' | 'socket';
@@ -31,7 +33,6 @@
     reload: () => Promise<void>;
     notify: (message: string) => void;
   } = $props();
-  let activeTab = $state('appearance');
   let connected = $state(false);
   onMount(() => onConnectionChange((value) => (connected = value)));
   const sections = [

@@ -6,6 +6,7 @@
   import { ApiError, setToken } from './lib/api/client';
   import { Session } from './lib/session.svelte';
   import { ButtonDraft } from './features/editor/button-draft.svelte';
+  import Modal from './components/Modal.svelte';
   import ButtonEditorDialog from './features/editor/ButtonEditorDialog.svelte';
   import DeckView from './features/deck/DeckView.svelte';
   import SettingsView from './features/settings/SettingsView.svelte';
@@ -22,6 +23,8 @@
   let error = $state(''),
     notice = $state(''),
     editing = $state(false),
+    discarding = $state(false),
+    settingsTab = $state('appearance'),
     transport = $state<'http' | 'socket'>('http');
   const session = new Session({
     error: (message) => (error = message),
@@ -48,8 +51,8 @@
     enabled: () => !!session.deck && navigation.panel === 'deck',
     hasDialog: () => !!draft.button,
     closeEditor: () => {
-      draft.button = null;
-      if (navigation.panel === 'settings') navigation.navigate(navigation.active);
+      closeButtonEditor();
+      if (!draft.button && navigation.panel === 'settings') navigation.navigate(navigation.active);
     },
     toggleEdit: () => {
       void attempt(toggleEdit);
@@ -69,6 +72,10 @@
   function openSettings() {
     navigation.settings();
     interactions.controls = false;
+  }
+  function closeButtonEditor() {
+    if (draft.dirty) discarding = true;
+    else draft.button = null;
   }
   async function toggleEdit() {
     if (!session.editor) return;
@@ -191,6 +198,8 @@
 >
 <div
   class="application"
+  style:--feedback-bottom={`${navigation.panel === 'deck' && session.editor ? (editing ? 180 : 100) : 12}px`}
+  style:--feedback-mobile-bottom={`${navigation.panel === 'deck' && session.editor ? 100 : 12}px`}
   style:background-image={session.backgroundUrls[0]
     ? `linear-gradient(#10121acc,#10121acc), url("${session.backgroundUrls[0]}")`
     : undefined}
@@ -254,6 +263,7 @@
           />{/if}
       {:else if navigation.panel === 'settings' && session.editor}
         <SettingsView
+          bind:activeTab={settingsTab}
           editor={session.editor}
           languages={session.languages}
           bind:transport
@@ -308,6 +318,21 @@
       void attempt(assets);
     }}
     {attempt}
-    close={() => (draft.button = null)}
+    close={closeButtonEditor}
   />
+{/if}
+
+{#if discarding}
+  <Modal label={t('ui_unsaved_button_changes')} close={() => (discarding = false)}>
+    <h2>{t('ui_unsaved_button_changes')}</h2>
+    <p>{t('ui_discard_button_help')}</p>
+    <button class="primary" onclick={() => (discarding = false)}>{t('ui_keep_editing')}</button>
+    <button
+      class="danger"
+      onclick={() => {
+        discarding = false;
+        draft.button = null;
+      }}>{t('ui_discard_changes')}</button
+    >
+  </Modal>
 {/if}

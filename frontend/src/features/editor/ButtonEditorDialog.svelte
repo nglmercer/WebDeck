@@ -166,7 +166,10 @@
 <div class="overlay">
   <dialog
     use:modal
-    oncancel={close}
+    oncancel={(event) => {
+      event.preventDefault();
+      close();
+    }}
     aria-modal="true"
     aria-labelledby="button-title"
     class="editor"

@@ -8,7 +8,7 @@ const root=path.resolve(import.meta.dirname,'../..');const archive=path.resolve(
 const sha256=createHash('sha256').update(readFileSync(archive)).digest('hex');
 if(!readFileSync(archive+'.sha256','utf8').startsWith(sha256))throw Error('Checksum mismatch');
 const temp=mkdtempSync(path.join(tmpdir(),'webdeck-portable-'));
-execFileSync('python3',['-c',`import zipfile,sys,pathlib,stat
+execFileSync(process.platform==='win32'?'python':'python3',['-c',`import zipfile,sys,pathlib,stat
 root=pathlib.Path(sys.argv[2])
 with zipfile.ZipFile(sys.argv[1]) as z:
  for e in z.infolist():

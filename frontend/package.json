@@ -17,7 +17,8 @@
     "format:check": "prettier --check src",
     "check:i18n": "node ../tools/validation/i18n.mjs",
     "check:budget": "node ../tools/validation/performance-budget.mjs",
-    "demo:capture": "node ../tools/demo/capture.mjs"
+    "demo:capture": "node ../tools/demo/capture.mjs",
+    "test:devices": "playwright test --config devices.config.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

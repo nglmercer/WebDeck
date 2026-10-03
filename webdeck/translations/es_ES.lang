@@ -958,3 +958,9 @@ ui_enable_plugin=Enable plugin
 ui_disable_plugin=Disable plugin
 ui_sandbox_plugin=Sandbox JavaScript
 ui_trusted_native_plugin=Trusted native process
+
+ui_folder_tools=Herramientas de carpeta
+ui_unsaved_button_changes=Cambios del botón sin aplicar
+ui_discard_button_help=Continúa editando para conservar tus cambios o descarta este borrador del botón. Los cambios ya aplicados al panel se conservan.
+ui_keep_editing=Continuar editando
+ui_discard_changes=Descartar cambios

@@ -10,6 +10,7 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const output = path.resolve(root, process.env.WEBDECK_DEMO_OUTPUT ?? 'dist/demo-media');
 const port = process.env.WEBDECK_DEMO_PORT ?? '59995';
 const baseURL = `http://127.0.0.1:${port}`;
+const short = process.argv.includes('--short');
 if (!process.argv.includes('--skip-build')) {
   execFileSync(process.execPath, ['node_modules/vite/bin/vite.js', 'build'], { cwd: path.join(root, 'frontend'), stdio: 'inherit' });
   execFileSync('cargo', ['build', '--locked', '--bin', 'webdeck'], { cwd: root, stdio: 'inherit' });
@@ -81,25 +82,26 @@ try {
     await page.getByRole('button', { name: 'Edit Folder 1', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Edit button', exact: true });
     await expect(dialog).toBeVisible();
-    for (const tab of ['Content', 'Appearance', 'Action']) {
+    for (const tab of short ? ['Appearance'] : ['Content', 'Appearance', 'Action']) {
       await dialog.getByRole('tab', { name: tab, exact: true }).click();
       await shot(`04-editor-${tab.toLowerCase()}`);
     }
     await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
     await page.keyboard.press('q');
     await page.keyboard.press('Control+,');
-    for (const tab of ['Appearance', 'Integrations', 'Devices', 'Backups', 'Runtime and plugins', 'Connection']) {
+    for (const tab of short ? ['Appearance'] : ['Appearance', 'Integrations', 'Devices', 'Backups', 'Runtime and plugins', 'Connection']) {
       await page.getByRole('tab', { name: tab, exact: true }).click();
       await shot(`05-settings-${tab.toLowerCase().replaceAll(' ', '-')}`);
     }
     await page.getByRole('button', { name: 'Back to deck', exact: true }).click();
-    await page.keyboard.press('F1');
-    await shot('06-shortcuts');
-    await page.keyboard.press('Escape');
+    if (!short) { await page.keyboard.press('F1'); await shot('06-shortcuts'); await page.keyboard.press('Escape'); }
     await shot('07-home-final');
   });
   await record('mobile', { width: 390, height: 844 }, true, async (page, shot) => {
     await shot('01-portrait');
+    await page.locator('.deck-scroll').evaluate(el => el.scrollTop = el.scrollHeight);
+    await shot('01-portrait-last-row');
+    await page.locator('.deck-scroll').evaluate(el => el.scrollTop = 0);
     await page.setViewportSize({ width: 844, height: 390 });
     await shot('02-landscape');
     await page.setViewportSize({ width: 390, height: 844 });

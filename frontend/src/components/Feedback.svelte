@@ -28,7 +28,7 @@
 <style>
   .notifications {
     position: fixed;
-    bottom: 12px;
+    bottom: var(--feedback-bottom, 12px);
     left: 50%;
     transform: translateX(-50%);
     width: max-content;
@@ -62,5 +62,10 @@
   .banner span {
     min-width: 0;
     overflow-wrap: anywhere;
+  }
+  @media (max-width: 640px), (pointer: coarse) {
+    .notifications {
+      bottom: var(--feedback-mobile-bottom, 12px);
+    }
   }
 </style>

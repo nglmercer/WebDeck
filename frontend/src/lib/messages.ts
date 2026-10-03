@@ -1,5 +1,12 @@
 // UI translation keys. Keep keys stable when editing the English copy.
 export const messages = {
+  ui_folder_tools: 'Folder tools',
+  ui_unsaved_button_changes: 'Unsaved button changes',
+  ui_discard_button_help:
+    'Keep editing to preserve your changes, or discard this button draft. Changes already applied to the deck are kept.',
+  ui_keep_editing: 'Keep editing',
+  ui_discard_changes: 'Discard changes',
+
   ui_enable_plugin: 'Enable plugin',
   ui_disable_plugin: 'Disable plugin',
   ui_sandbox_plugin: 'Sandbox JavaScript',

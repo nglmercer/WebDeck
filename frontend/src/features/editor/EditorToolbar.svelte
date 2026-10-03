@@ -2,6 +2,7 @@
   import Icon from '../../components/Icon.svelte';
   import { useTranslations } from '../../lib/i18n';
   const t = useTranslations();
+  let expanded = $state(false);
 
   import type { Editor } from './editor.svelte';
   import type { Folder } from '../../lib/contracts';
@@ -38,7 +39,7 @@
       <p class="folder-title">
         {editing ? t('ui_editing_folder', { label: current.label }) : current.label}
       </p>
-      {#if editing}<span class="save-status" aria-label={t('ui_save_status')}
+      {#if editing || editor.dirty}<span class="save-status" aria-label={t('ui_save_status')}
           ><span id="deck-save-status"
             >{editor.saving
               ? t('ui_saving')
@@ -64,6 +65,13 @@
           disabled={editor.saving}
           onclick={done}>{t('ui_done')}</button
         >
+        <button
+          class="tools-toggle"
+          aria-label={t('ui_folder_tools')}
+          aria-expanded={expanded}
+          aria-controls="folder-tools"
+          onclick={() => (expanded = !expanded)}><Icon name="settings" size={18} /></button
+        >
       {:else}<button onclick={done}><Icon name="edit" size={18} />{t('ui_edit')}</button>{/if}
     </div>
   </div>
@@ -72,7 +80,7 @@
         >{t('ui_undo_deletion')}</button
       >
     </div>{/if}
-  {#if editing}<div class="toolbar">
+  {#if editing}<div id="folder-tools" class="toolbar" class:expanded>
       <label
         >{t('ui_folder')}<select
           value={active}
@@ -118,8 +126,10 @@
     border: 1px solid #ffffff20;
     border-radius: 16px;
     box-shadow: 0 12px 40px #0006;
-    max-height: min(30dvh, 180px);
-    overflow: auto;
+    max-height: calc(100dvh - 24px);
+  }
+  .tools-toggle {
+    display: none !important;
   }
   .editor-toolbar .heading {
     margin-bottom: 8px;
@@ -141,5 +151,51 @@
     min-width: 130px;
     flex: 1;
     max-width: 240px;
+  }
+  @media (max-width: 640px), (pointer: coarse) {
+    .editor-toolbar {
+      bottom: max(8px, env(safe-area-inset-bottom));
+      left: 8px;
+      right: 8px;
+      padding: 10px 12px;
+    }
+    .editor-toolbar .heading {
+      flex-wrap: nowrap;
+      gap: 8px;
+      margin: 0;
+    }
+    .heading > div:first-child {
+      min-width: 0;
+    }
+    .folder-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 0.85rem;
+    }
+    .editor-toolbar .save-status {
+      font-size: 0.7rem;
+    }
+    .heading .row {
+      gap: 6px;
+      flex-wrap: nowrap;
+    }
+    .heading :global(button) {
+      padding: 8px;
+      font-size: 0.8rem;
+    }
+    .tools-toggle {
+      display: inline-flex !important;
+    }
+    .editor-toolbar .toolbar {
+      display: none;
+    }
+    .editor-toolbar .toolbar.expanded {
+      display: flex;
+      margin-top: 12px;
+      max-height: 40dvh;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
   }
 </style>

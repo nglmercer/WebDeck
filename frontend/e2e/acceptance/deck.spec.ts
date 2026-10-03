@@ -14,6 +14,11 @@ initial.layout.folders[0].buttons.push({
   extensions: {},
 });
 initial.layout.folders.push({ id: 'work', label: 'Work', buttons: [], extensions: {} });
+async function cancelButtonEditor(page: Page, label = 'Cancel') {
+  await page.getByRole('button', { name: label, exact: true }).click();
+  const confirm = page.getByRole('dialog', { name: /Unsaved button changes|Cambios del botón sin aplicar/ });
+  if (await confirm.isVisible()) await confirm.getByRole('button', { name: /Discard changes|Descartar cambios/ }).click();
+}
 async function captureState(page: Page, info: TestInfo, state: string) {
   for (const width of [360, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
@@ -303,7 +308,7 @@ test('cancelled placement edits leave the draft and neighboring cells unchanged'
   await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Edit Play / pause' }).click();
   await page.getByRole('button', { name: 'Move right', exact: true }).click();
-  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await cancelButtonEditor(page);
   await expect(settings.locator('..')).toHaveAttribute('data-cell', before!);
   await page.keyboard.press('q');
   await page.reload();
@@ -334,7 +339,7 @@ for (const width of [360, 768, 1440]) {
     await page.screenshot({ path: testInfo.outputPath('editing.png'), fullPage: true });
     await page.getByRole('button', { name: 'Edit Play / pause' }).click();
     await page.screenshot({ path: testInfo.outputPath('button-editor.png'), fullPage: true });
-    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await cancelButtonEditor(page);
     await page.keyboard.press('Control+,');
     await expect(page.getByRole('heading', { name: 'Appearance', exact: true })).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath('settings.png'), fullPage: true });
@@ -400,7 +405,7 @@ test('core screens have no automated WCAG A/AA violations', async ({ page }) => 
   await review();
   await page.getByRole('button', { name: 'Edit Play / pause' }).click();
   await review();
-  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await cancelButtonEditor(page);
   await page.keyboard.press('Control+,');
   await review();
 });
@@ -591,7 +596,7 @@ test('saving Spanish updates controls and action names while preserving configur
   await page.getByRole('combobox', { name: 'Categoría', exact: true }).selectOption('input');
   await page.getByRole('combobox', { name: 'Tipo', exact: true }).selectOption('key');
   await expect(page.getByRole('option', { name: 'Atajo de teclado', exact: true })).toHaveAttribute('value', 'key');
-  await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
+  await cancelButtonEditor(page, 'Cancelar');
   const unchanged = await (await request.get('/api/v2/config')).json();
   expect(unchanged.config.layout.folders[0].buttons[0].action.command.type).toBe('play_pause');
 });
@@ -734,7 +739,7 @@ test('cancelling span and collision edits preserves the full draft and host revi
   await page.getByLabel('Column span', { exact: true }).fill('3');
   await page.getByLabel('Row span', { exact: true }).fill('3');
   await page.getByRole('button', { name: 'Move right', exact: true }).click();
-  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await cancelButtonEditor(page);
   await expect(tile).toHaveAttribute('data-cell', '0');
   await expect(tile).toHaveCSS('grid-column-end', 'span 2');
   await expect(tile).toHaveCSS('grid-row-end', 'span 2');
@@ -761,7 +766,7 @@ test('browser navigation protects unapplied button edits without marking the hos
   await navigation;
   await expect(label).toHaveValue('Unapplied button edit');
   expect(await (await request.get('/api/v2/config')).json()).toEqual(stored);
-  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await cancelButtonEditor(page);
   await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toBeDisabled();
   await page.goto('about:blank');
   await expect(page).toHaveURL('about:blank');
@@ -782,6 +787,7 @@ test('saved notices and command errors remain visible and independently dismissi
   await page.goto('/');
   await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
   await page.keyboard.press('q');
+  await page.getByRole('button', { name: 'Folder tools', exact: true }).click();
   await page.getByLabel('Folder name', { exact: true }).fill('Notification test');
   await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(page.locator('.save-status')).toHaveText('All changes saved');
@@ -1116,7 +1122,7 @@ test('distant sparse rows stay bounded and retain button coordinates through edi
   await page.getByRole('region', { name: 'Control deck', exact: true }).focus();
   await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Edit Play / pause', exact: true }).click();
-  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await cancelButtonEditor(page);
   expect(await (await request.get('/api/v2/config')).json()).toEqual(original);
   await page.getByRole('region', { name: 'Control deck', exact: true }).focus();
   await page.keyboard.press('q');
@@ -1165,7 +1171,7 @@ test('the final supported cell remains visible in a partial row without changing
   await page.getByRole('region', { name: 'Control deck', exact: true }).focus();
   await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Edit Play / pause', exact: true }).click();
-  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await cancelButtonEditor(page);
   expect(await (await request.get('/api/v2/config')).json()).toEqual(original);
   expect(errors).toEqual([]);
 });
@@ -1277,7 +1283,7 @@ test('toolbar button creation stages a free cell and categories show readable la
   await page.keyboard.press('q');
   const toolbar = page.getByRole('region', { name: 'Deck editor', exact: true });
   await toolbar.getByRole('button', { name: 'Add button', exact: true }).click();
-  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await cancelButtonEditor(page);
   await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toBeDisabled();
   await toolbar.getByRole('button', { name: 'Add button', exact: true }).click();
   await page.getByRole('tab', { name: 'Action', exact: true }).click();

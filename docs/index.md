@@ -4,6 +4,8 @@ Build the frontend with `npm ci --prefix frontend` and `npm run build --prefix f
 
 | Guide | Contents |
 | --- | --- |
+| [First deck in five minutes](quickstart-v2.md) | Installation, editing, pairing and backups |
+| [Preliminary release](v2/preliminary-release.md) | Installers, CI gates and physical-device sign-off |
 | [Architecture](architecture.md) | Current modules and ownership |
 | [Contributing](../CONTRIBUTING.md) | Development setup, feature boundaries, checks, and diagnostics |
 | [Startup](startup.md) | Data directory, server and tray |

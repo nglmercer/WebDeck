@@ -333,13 +333,24 @@ pub fn trusted_artifact(url: &reqwest::Url) -> bool {
     if version.major != 2 || version.pre.is_empty() {
         return false;
     }
-    let platform = if cfg!(windows) { "windows" } else { "linux" };
+    let platform = package_platform();
     parts[6]
         == format!(
             "WebDeck-{version}-{platform}-{}-portable.zip",
             std::env::consts::ARCH
         )
 }
+/// Native platform label shared by portable packages and verified update URLs.
+pub const fn package_platform() -> &'static str {
+    if cfg!(windows) {
+        "windows"
+    } else if cfg!(target_os = "macos") {
+        "macos"
+    } else {
+        "linux"
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Release {
     pub version: String,

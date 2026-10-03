@@ -1112,3 +1112,9 @@ ui_trusted_native_plugin=Trusted native process
 
 ui_loading_failed=WebDeck could not load
 ui_loading_failed_help=Check the server connection and reload to try again.
+
+ui_folder_tools=Folder tools
+ui_unsaved_button_changes=Unsaved button changes
+ui_discard_button_help=Keep editing to preserve your changes, or discard this button draft. Changes already applied to the deck are kept.
+ui_keep_editing=Keep editing
+ui_discard_changes=Discard changes

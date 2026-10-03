@@ -54,7 +54,7 @@ export class ButtonDraft {
       action: { type: 'command', command: { type: 'play_pause' } },
       extensions: { appearance: { cell } },
     };
-    this.initialButton = '';
+    this.initialButton = JSON.stringify(this.button);
     this.initialFolder = this.folder;
   }
   move(delta: number) {
