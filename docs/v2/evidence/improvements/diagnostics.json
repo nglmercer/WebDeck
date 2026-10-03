@@ -1,0 +1,15 @@
+{
+  "verified_at": "2026-10-03T07:48:31.132Z",
+  "profile": "isolated development server; fake effects",
+  "result": "passed",
+  "terminal_events": 2,
+  "checks": [
+    "completed and rejected outcomes",
+    "request ID SHA-256 correlation",
+    "read capability category",
+    "finite nonnegative duration",
+    "exact allowlisted event fields",
+    "raw IDs, payload secret and private header absent"
+  ],
+  "scope": "HTTP executor diagnostics; no native effects or durable-log delivery claim"
+}

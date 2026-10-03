@@ -1,0 +1,108 @@
+{
+  "baseline_commit": "1a4083d30d96c075d7f55f20a5033b2da5a848c7",
+  "profile": "same process; controlled 1ms asynchronous asset provider; baseline sequential per-button traversal vs current AssetCache; five samples; no browser/HTTP speed claim",
+  "workloads": [
+    {
+      "buttons": 48,
+      "unique_assets": 8,
+      "samples": [
+        {
+          "baseline_ms": 52.90723,
+          "current_ms": 2.4645280000000014,
+          "retained_ms": 0.026803999999998496,
+          "baseline_requests": 48,
+          "current_requests": 8,
+          "retained_requests": 0,
+          "current_peak_concurrency": 4
+        },
+        {
+          "baseline_ms": 52.435948999999994,
+          "current_ms": 2.2577650000000062,
+          "retained_ms": 0.0382820000000379,
+          "baseline_requests": 48,
+          "current_requests": 8,
+          "retained_requests": 0,
+          "current_peak_concurrency": 4
+        },
+        {
+          "baseline_ms": 54.70879500000001,
+          "current_ms": 2.281248000000005,
+          "retained_ms": 0.021085999999968408,
+          "baseline_requests": 48,
+          "current_requests": 8,
+          "retained_requests": 0,
+          "current_peak_concurrency": 4
+        },
+        {
+          "baseline_ms": 52.47026999999997,
+          "current_ms": 2.2440860000000384,
+          "retained_ms": 0.01975500000003194,
+          "baseline_requests": 48,
+          "current_requests": 8,
+          "retained_requests": 0,
+          "current_peak_concurrency": 4
+        },
+        {
+          "baseline_ms": 53.523345000000006,
+          "current_ms": 2.3179569999999785,
+          "retained_ms": 0.027973000000031334,
+          "baseline_requests": 48,
+          "current_requests": 8,
+          "retained_requests": 0,
+          "current_peak_concurrency": 4
+        }
+      ]
+    },
+    {
+      "buttons": 1024,
+      "unique_assets": 8,
+      "samples": [
+        {
+          "baseline_ms": 1107.675773,
+          "current_ms": 2.2391479999998865,
+          "retained_ms": 0.027188999999907537,
+          "baseline_requests": 1024,
+          "current_requests": 8,
+          "retained_requests": 0,
+          "current_peak_concurrency": 4
+        },
+        {
+          "baseline_ms": 1108.633966,
+          "current_ms": 2.233197999999902,
+          "retained_ms": 0.037581000000045606,
+          "baseline_requests": 1024,
+          "current_requests": 8,
+          "retained_requests": 0,
+          "current_peak_concurrency": 4
+        },
+        {
+          "baseline_ms": 1109.5679760000003,
+          "current_ms": 2.25028199999997,
+          "retained_ms": 0.047079999999823485,
+          "baseline_requests": 1024,
+          "current_requests": 8,
+          "retained_requests": 0,
+          "current_peak_concurrency": 4
+        },
+        {
+          "baseline_ms": 1105.2917190000003,
+          "current_ms": 2.30283800000052,
+          "retained_ms": 0.04302999999981694,
+          "baseline_requests": 1024,
+          "current_requests": 8,
+          "retained_requests": 0,
+          "current_peak_concurrency": 4
+        },
+        {
+          "baseline_ms": 1103.2095040000004,
+          "current_ms": 2.316364000000249,
+          "retained_ms": 0.05013099999996484,
+          "baseline_requests": 1024,
+          "current_requests": 8,
+          "retained_requests": 0,
+          "current_peak_concurrency": 4
+        }
+      ]
+    }
+  ]
+}

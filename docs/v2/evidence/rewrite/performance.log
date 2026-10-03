@@ -1,0 +1,22 @@
+{
+  "profile": "development; isolated canonical defaults; fake effects; cached build; sequential requests",
+  "startup_to_boot_ms": 29.591046000000002,
+  "boot": {
+    "samples": 50,
+    "p50_ms": 1.7407149999999945,
+    "p95_ms": 2.32298999999999
+  },
+  "command": {
+    "samples": 50,
+    "p50_ms": 2.2732750000000124,
+    "p95_ms": 3.215751999999995
+  },
+  "usable_ui": {
+    "samples": 5,
+    "p50_ms": 130.61571600000002,
+    "p95_ms": 192.33738499999993
+  },
+  "bundle_js_bytes": 140474,
+  "bundle_gzip_bytes": 42664,
+  "comparison": "Historical measurements use different contracts and workloads; no before/after speed claim."
+}

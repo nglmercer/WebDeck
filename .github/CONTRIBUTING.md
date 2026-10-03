@@ -55,7 +55,7 @@ To set up the development environment, follow these steps:
 
 ## Rust
 
-- The backend lives in `src/` (see `docs/MIGRATION_RUST.md` for the module map).
+- The backend lives in `src/` (see `docs/architecture.md` for the module map).
 - Write clean, readable, and maintainable code.
 - Write descriptive doc comments for complex logic.
 - Avoid using deprecated functions and libraries.
@@ -64,7 +64,7 @@ To set up the development environment, follow these steps:
 
 ## Frontend (TypeScript)
 
-- The web UI lives in `frontend/` (custom zero-dependency framework + Vite build).
+- The web UI lives in `frontend/` (Svelte + TypeScript + Vite build).
 - `cd frontend && npm install` once, then `npm run build` so `GET /` can serve the bundle.
 - Before submitting, run `npm run typecheck` and `npm test` in `frontend/`.
 

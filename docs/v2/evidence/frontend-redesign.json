@@ -1,0 +1,6 @@
+{
+  "bundle_js_bytes": 232606,
+  "bundle_gzip_bytes": 70483,
+  "measurement": "Production Vite build, summed JavaScript files and gzipSync output",
+  "reason": "Inline SVG icon registry and picker, fixed editing dock, accessible settings/editor/controls tabs. Built-in demo icons no longer require raster image requests. Mobile scrolling, compact folder tools and explicit unsaved-draft protection."
+}

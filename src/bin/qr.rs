@@ -2,7 +2,7 @@
 //!
 //! Shows one QR bitmap plus an `EXIT` button in a native `minifb` window:
 //! no webview, no UI toolkit, no GPU. Spawned by the tray parent (see
-//! `tray::windows::show_qrcode`), but any process can reuse it:
+//! `desktop::run`), but any process can reuse it:
 //!
 //! ```sh
 //! webdeck-qr --png temp/qr.png --label "http://192.168.1.2:5000/"
@@ -20,7 +20,7 @@ use std::sync::mpsc;
 
 use clap::Parser;
 use minifb::{Key, KeyRepeat, MouseButton, MouseMode, Window, WindowOptions};
-use webdeck::app::utils::qr;
+use webdeck::qr;
 
 /// Lightweight QR viewer: one QR bitmap plus an EXIT button.
 #[derive(Parser, Debug)]

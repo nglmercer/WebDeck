@@ -1,0 +1,8 @@
+
+> webdeck-frontend@2.0.0-alpha.1 check:components
+> node ../tools/component-check/node_modules/svelte-check/bin/svelte-check --workspace . --tsconfig ./tsconfig.json
+
+Loading svelte-check in workspace: /workspace/WebDeck/frontend
+Getting Svelte diagnostics...
+
+svelte-check found 0 errors and 0 warnings

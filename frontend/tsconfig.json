@@ -1,18 +1,17 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "strict": true,
     "esModuleInterop": true,
-    // DOM-heavy 1:1 port: indexed DOM access stays unchecked like upstream.
     "noUncheckedIndexedAccess": true,
     "verbatimModuleSyntax": true,
     "exactOptionalPropertyTypes": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": []
+    "resolveJsonModule": true
   },
-  "include": ["src", "demo-3d", "vite.config.ts"]
+  "include": ["src", "vite.config.ts"]
 }

@@ -1,8 +1,8 @@
 [package]
 name = "webdeck"
-version = "1.8.7"
+version = "2.0.0-alpha.1"
 edition = "2021"
-description = "WebDeck — Rust port (1:1 migration of the Python app)"
+description = "WebDeck v2 desktop controller (prerelease)"
 license = "GPL-3.0-or-later"
 default-run = "webdeck"
 
@@ -31,16 +31,20 @@ name = "webdeck"
 path = "src/lib.rs"
 
 [dependencies]
+base64 = "0.22"
+futures-util = "0.3"
+tokio-tungstenite = { version = "0.30", features = ["rustls-tls-webpki-roots"] }
+napi-vm-plugin-host = { git = "https://github.com/nglmercer/napi-vm", rev = "881cc8f1cec262049b6d31fa499b0d601ba673c5" }
+napi-vm = { git = "https://github.com/nglmercer/napi-vm", rev = "881cc8f1cec262049b6d31fa499b0d601ba673c5", default-features = false }
 tokio = { version = "1", features = ["full"] }
 libc = "0.2"
 getrandom = "0.4.3"
 sha2 = "0.10.9"
+semver = "1.0.28"
 axum = { version = "0.8", features = ["multipart"] }
-# tower (ServiceExt/oneshot) is test-only → [dev-dependencies] below.
+# tower (ServiceExt/oneshot) is test-only; see dev-dependencies below.
 tower-http = { version = "0.6", features = ["fs"] }
 serde = { version = "1", features = ["derive"] }
-# preserve_order keeps config key order (Python dicts are insertion-ordered;
-# gridsize::unmatrix depends on folder order).
 serde_json = { version = "1", features = ["preserve_order"] }
 clap = { version = "4", features = ["derive"] }
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "query", "rustls", "webpki-roots"] }
@@ -49,22 +53,16 @@ sysinfo = "0.39.6"
 image = "0.25.10"
 qrcode = "0.14.1"
 minifb = "0.28"
-arboard = "3.6.1"
+arboard = { version = "3.6.1", features = ["wayland-data-control"] }
 enigo = "0.6.1"
-notify-rust = "4.18.0"
-rhai = { version = "1.26.1", features = ["sync"] }
 nvml-wrapper = "0.13.0"
-cpal = "0.18.2"
 rodio = "0.22.2"
 socketioxide = "0.18.7"
-rspotify = { version = "0.16.1", features = ["cli"] }
-obws = "0.15.0"
 rfd = { version = "0.17.2", default-features = false, features = ["common-controls-v6", "xdg-portal"] }
 
 [target.'cfg(windows)'.dependencies]
-# GUI stack (tray + config/QR/port windows).
+# Native tray event loop.
 tray-icon = "0.25.1"
-wry = "0.57.0"
 tao = "0.37.1"
 
 windows = { version = "0", features = [
@@ -85,14 +83,12 @@ windows = { version = "0", features = [
     "Win32_UI_Shell",
     "Win32_UI_WindowsAndMessaging",
 ] }
-winrt-notification = "0"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-# Same GUI stack on Linux (needs webkit2gtk + gtk system libraries).
+# GTK event loop for the native tray.
 # ksni (pure-Rust StatusNotifier) instead of libappindicator: native on
 # KDE/Wayland, no extra system libraries.
 tray-icon = { version = "0.25.1", default-features = false, features = ["ksni"] }
-wry = "0.57.0"
 tao = "0.37.1"
 # Color-picker capture without `screenshots`: it forces dbus/vendored, whose
 # libdbus build lacks HAVE_POLL, so any D-Bus call with an fd >= 1024 ends in
@@ -100,7 +96,7 @@ tao = "0.37.1"
 # ashpd portal (pure Rust) + raw xcb cover the same backends with no libdbus.
 xcb = "1"
 display-info = "0.4"
-ashpd = { version = "0.13", default-features = false, features = ["tokio", "screenshot"] }
+ashpd = { version = "0.13", default-features = false, features = ["tokio", "screenshot", "remote_desktop", "screencast"] }
 # Direct use: one fresh bus connection per portal capture (ashpd's cached
 # global connection cannot outlive our throwaway runtimes).
 zbus = "5"
@@ -111,9 +107,11 @@ zbus = "5"
 screenshots = "0.8.10"
 
 [dev-dependencies]
+napi-vm-plugin-sdk = { git = "https://github.com/nglmercer/napi-vm", rev = "881cc8f1cec262049b6d31fa499b0d601ba673c5" }
+tokio = { version = "1", features = ["test-util"] }
 # Router regression tests drive the real route table via `oneshot`.
 tower = { version = "0.5", features = ["util"] }
 
 [profile.release]
-# Single-file packaging parity with cx_Freeze is handled by packaging scripts
-# (see docs/MIGRATION_RUST.md); keep a plain release profile here.
+# Portable packaging is handled by src/bin/package.rs
+# (see docs/build-release.md); keep a plain release profile here.

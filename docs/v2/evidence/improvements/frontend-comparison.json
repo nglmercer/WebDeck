@@ -1,0 +1,44 @@
+{
+  "baseline_commit": "1a4083d30d96c075d7f55f20a5033b2da5a848c7",
+  "scope": "original and current frontend builds; same current fake-effect backend and shared-icon workloads; five fresh contexts each; not original whole-application historical latency",
+  "workloads": [
+    {
+      "buttons": 48,
+      "baseline_p95_ms": 382.53704000000016,
+      "current_p95_ms": 183.03812800000003,
+      "baseline_asset_requests": [
+        48,
+        48,
+        48,
+        48,
+        48
+      ],
+      "current_asset_requests": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "buttons": 1024,
+      "baseline_p95_ms": 5316.559777999999,
+      "current_p95_ms": 449.7975699999997,
+      "baseline_asset_requests": [
+        1024,
+        1024,
+        1024,
+        1024,
+        1024
+      ],
+      "current_asset_requests": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  ]
+}
