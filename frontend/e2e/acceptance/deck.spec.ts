@@ -1183,7 +1183,7 @@ test('touch dialog controls retain a 44 pixel target in both dimensions', async 
     await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
     await page.keyboard.press('q');
     await page.setViewportSize({ width: 768, height: 900 });
-    for (const name of ['Edit Play / pause', 'Remove Play / pause']) {
+    for (const name of ['Edit Play / pause']) {
       const bounds = await page.getByRole('button', { name, exact: true }).boundingBox();
       expect(bounds?.width).toBeGreaterThanOrEqual(44);
       expect(bounds?.height).toBeGreaterThanOrEqual(44);
@@ -1192,7 +1192,7 @@ test('touch dialog controls retain a 44 pixel target in both dimensions', async 
     await page.getByRole('button', { name: 'Edit Play / pause', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Edit button', exact: true });
     await expect(dialog).toBeVisible();
-    for (const name of ['Close editor', 'Apply to draft', 'Cancel']) {
+    for (const name of ['Close editor', 'Apply to draft', 'Cancel', 'Delete']) {
       const bounds = await dialog.getByRole('button', { name, exact: true }).boundingBox();
       expect(bounds?.width).toBeGreaterThanOrEqual(44);
       expect(bounds?.height).toBeGreaterThanOrEqual(44);

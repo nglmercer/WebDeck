@@ -118,7 +118,7 @@
     border: 1px solid #ffffff20;
     border-radius: 16px;
     box-shadow: 0 12px 40px #0006;
-    max-height: 30dvh;
+    max-height: min(30dvh, 180px);
     overflow: auto;
   }
   .editor-toolbar .heading {

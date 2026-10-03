@@ -57,6 +57,14 @@
     remove: (button: Button) => void;
     add: (cell: number) => void;
   } = $props();
+  let coarse = $state(false);
+  onMount(() => {
+    const media = matchMedia('(pointer: coarse)');
+    const update = () => (coarse = media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  });
   let viewportWidth = $state(0);
   let viewportHeight = $state(0);
   let availableWidth = $state(0);
@@ -93,7 +101,12 @@
   const naturalHeight = $derived(visualRows * rowHeight + Math.max(0, visualRows - 1) * gap);
   const scale = $derived(
     fitted && viewportWidth && availableWidth
-      ? fitDeck(naturalWidth, naturalHeight, availableWidth, Math.max(100, viewportHeight - 180))
+      ? fitDeck(
+          naturalWidth,
+          naturalHeight,
+          availableWidth,
+          Math.max(100, viewportHeight - (coarse ? 220 : 180)),
+        )
       : 1,
   );
   const startRow = $derived(paged ? Math.min(selectedRow, totalRows - 1) : 0);
@@ -187,7 +200,9 @@
             class:active={dynamic[b.id]?.active}
             class:blank={b.action.type === 'none'}
             disabled={!editing && (running[b.id] || !canRun(b))}
-            aria-label={dynamic[b.id]?.label ?? b.label}
+            aria-label={editing && coarse
+              ? t('ui_edit_named_button', { label: dynamic[b.id]?.label ?? b.label })
+              : (dynamic[b.id]?.label ?? b.label)}
             aria-describedby={reason(b) || running[b.id] || outcomeMessages[b.id]
               ? `state-${b.id}`
               : undefined}

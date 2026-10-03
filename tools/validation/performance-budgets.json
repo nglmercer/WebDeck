@@ -6,5 +6,5 @@
     "48": 350,
     "1024": 600
   },
-  "policy": "Bundle ceilings are 235000 raw / 71000 gzip bytes after the SVG and accessible-tabs refactor (measured 230603 / 69855; docs/v2/evidence/frontend-redesign.json). Local UI timing ceilings retain the original baseline and must be compared on the same machine/profile; CI enforces bundle size only. Budget changes require an explained new measurement."
+  "policy": "Bundle ceilings are 235000 raw / 71000 gzip bytes after the SVG and accessible-tabs refactor (measured 230877 / 69910; docs/v2/evidence/frontend-redesign.json). Local UI timing ceilings retain the original baseline and must be compared on the same machine/profile; CI enforces bundle size only. Budget changes require an explained new measurement."
 }

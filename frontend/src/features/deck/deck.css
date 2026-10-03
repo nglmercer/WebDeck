@@ -190,3 +190,9 @@ progress {
     height: calc(45px / var(--deck-scale, 1));
   }
 }
+
+@media (pointer: coarse) {
+  .cell-actions {
+    display: none;
+  }
+}
