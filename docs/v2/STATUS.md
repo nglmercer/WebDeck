@@ -11,7 +11,8 @@ and rejects the discarded application trees and protocols.
 | Revision-aware configuration and asset confinement | `src/storage.rs` |
 | Pairing, expiry, revocation and hashed credentials | `src/sessions.rs` |
 | Accepted work, bounded admission and shutdown drain | `src/executor.rs` |
-| Typed native actions, OS helpers and audio | `src/native.rs`, `src/native/` |
+| Embedded JavaScript command behavior | `runtime/src/`, `src/runtime/` |
+| Authorized OS, audio and transport primitives | `src/capabilities/` |
 | HTTP and correlated Socket.IO transport | `src/server.rs`, `src/server/realtime.rs` |
 | Native tray and QR viewer | `src/desktop.rs`, `src/qr.rs`, `src/bin/qr.rs` |
 | Verified staging, installation and rollback | `src/update.rs`, `src/bin/update.rs` |
@@ -20,13 +21,15 @@ and rejects the discarded application trees and protocols.
 ## Execution policy
 
 Admission bounds waiting and running requests together (16 accepted roots).
-Unrelated roots execute independently, so a blocked desktop or integration call
-does not hold up every button. Keyboard chords use their own input lock. Nested
-script and plugin calls inherit the root slot without acquiring another worker.
-Each nested call checks
-capabilities, depth and the deadline. Rhai additionally bounds operations, call
-levels, expressions, strings, arrays and maps. Plugin capabilities narrow the
-caller grant; plugin code and catalog metadata are compiled/loaded at startup.
+A single VM owner serializes ordinary command execution and synchronous native
+calls. Workflow parallel nodes overlap guest promises and timers, while host effects
+remain serialized. Metadata, authorization and direct usage queries have separate
+bounded workers. Keyboard chords retain their input lock. Nested script and plugin
+calls inherit the accepted root without reacquiring admission. Rust rechecks the
+original grant, depth and deadline at every host boundary. The embedded VM also
+bounds fuel, loops and execution time. Fresh script globals and separate persistent
+plugin interpreters prevent state sharing. Local administrators can inspect,
+enable/disable external actions and reload verified plugin packages.
 
 Acceptance transfers ownership to a server task before notifying the observer.
 Dropping an HTTP/socket observer does not cancel accepted work. Shutdown closes

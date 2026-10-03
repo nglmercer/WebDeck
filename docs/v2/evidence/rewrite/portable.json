@@ -1,6 +1,6 @@
 {
   "artifact": "WebDeck-2.0.0-alpha.1-linux-x86_64-dev-portable.zip",
-  "sha256": "4256c570794c434ede4b238da963eee28b6026ef8d680a2628106c15a41c39a3",
+  "sha256": "f4e17c392e5d5c54c8d13c0559c28b8da98392325ee2296840c3f0f3d1d0661b",
   "profile": "development",
   "checks": [
     "extracted outside repository",

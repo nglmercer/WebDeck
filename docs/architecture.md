@@ -9,19 +9,20 @@ The Rust library exposes feature modules directly from `src/lib.rs`.
 | Atomic config transactions and confined assets | `storage.rs` |
 | Device grants and hashed tokens | `sessions.rs` |
 | Admission, execution and shutdown | `executor.rs` |
-| Native effects and integrations | `native.rs` dispatch; `native/` input, processes, metrics, network, audio, system, capture, scripts and integrations |
+| JavaScript behavior and workflows | `runtime/src/`, embedded through `runtime/dist/` |
+| VM owner and isolated script/plugin contexts | `runtime/` Rust module |
+| Authorized native primitives | `capabilities/` input, processes, metrics, HTTP/WebSocket, audio, system, capture, scoped secrets/storage and trusted process host |
 | HTTP and Socket.IO | `server.rs` composition; `server/` auth, commands, configuration, devices, assets, integrations, metadata and realtime |
 | Tray and QR | `desktop.rs`, `qr.rs` |
 | Verified updates and rollback | `update.rs` |
 
-Async routes share bounded blocking admission without serializing unrelated native
-effects. Authorization and network policy have four slots, disk operations have four,
+Async routes share bounded blocking admission. Ordinary command effects pass through one VM owner, which serializes synchronous host calls. Authorization and network policy have four slots, disk operations have four,
 and hardware queries have two. Each worker retains its permit until completion even
 if its observer disconnects. HTTP and realtime use the same authorization helper;
 supplied credentials are checked against current grants on every invocation and never
 fall back to local administration. Saturation fails before effect admission.
 
-Native execution carries capability checks and a shared deadline through nested
+The VM bridge carries Rust capability checks and a shared deadline through nested
 commands. Subprocess helpers clamp their timeout to the remaining budget. Process
 and audio owners define shutdown and cleanup; prepared audio stays paused until all
 outputs are ready and the execution context still permits playback. Synchronous OS

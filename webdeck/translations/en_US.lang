@@ -908,7 +908,7 @@ ui_enter_a_chord_such_as_ctrl_c_desktop_permission_may_be_required=Enter a chord
 ui_type_text_on_the_host_computer_enable_send_to_press_enter_afterward=Type text on the host computer. Enable Send to press Enter afterward.
 ui_open_a_url_application_or_file_on_the_host_computer=Open a URL, application, or file on the host computer.
 ui_send_an_http_request_from_the_host_network_permission_is_required=Send an HTTP request from the host. Network permission is required.
-ui_run_a_rhai_script_with_the_permissions_granted_to_the_caller=Run a Rhai script with the permissions granted to the caller.
+ui_run_a_javascript_script_with_the_permissions_granted_to_the_caller=Run a JavaScript script with the permissions granted to the caller.
 ui_reference_another_configured_button_by_its_stable_id=Reference another configured button by its stable ID.
 ui_image_preview_could_not_be_loaded_your_draft_is_unchanged=Image preview could not be loaded. Your draft is unchanged.
 ui_button_height=Button height
@@ -1096,3 +1096,16 @@ ui_metric_no_data=No data
 
 ui_list_minimum=This list requires at least {count} items.
 ui_list_maximum=This list allows at most {count} items.
+
+ui_workflow=Workflow
+ui_runtime=Runtime and plugins
+ui_runtime_status=Runtime status
+ui_reload_plugins=Reload plugins
+ui_runtime_ready=Ready
+ui_runtime_failed=Unavailable
+ui_runtime_commands=Commands: {count}
+ui_runtime_no_plugins=No external plugins installed
+ui_enable_plugin=Enable plugin
+ui_disable_plugin=Disable plugin
+ui_sandbox_plugin=Sandbox JavaScript
+ui_trusted_native_plugin=Trusted native process

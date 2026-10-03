@@ -1351,7 +1351,7 @@ test('mobile settings navigation reaches its sections and keeps transport in adv
   await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
   await page.keyboard.press('Control+,');
   const navigation = page.getByRole('navigation', { name: 'Settings sections', exact: true });
-  await expect(navigation.getByRole('link')).toHaveCount(5);
+  await expect(navigation.getByRole('link')).toHaveCount(6);
   await navigation.getByRole('link', { name: 'Backups', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Backups', exact: true })).toBeInViewport();
   await navigation.getByRole('link', { name: 'Connection', exact: true }).click();
@@ -1447,4 +1447,33 @@ test('touch action fields keep full-size controls across specialized and generic
       expect(small, type).toEqual([]);
     }
   } finally { await context.close(); }
+});
+
+
+test('runtime settings inspect embedded packages and reload without losing config', async ({page,request}) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', {name:'Home',exact:true})).toBeVisible();
+  await page.keyboard.press('Control+,');
+  const runtime=page.locator('#settings-runtime');
+  await expect(runtime.getByText('Runtime status: Ready')).toBeVisible();
+  await expect(runtime.getByText(/builtin.obs/)).toBeVisible();
+  await runtime.getByRole('button',{name:'Reload plugins',exact:true}).click();
+  await expect(runtime.getByText('Runtime status: Ready')).toBeVisible();
+  const config=await (await request.get('/api/v2/config')).json();
+  expect(config.config.layout.folders[0].label).toBe('Home');
+});
+
+test('runtime button state events update presentation without editing config', async ({page,request}) => {
+  await page.goto('/');
+  const boot=await (await request.get('/api/v2/boot')).json();
+  const button=boot.layout.folders[0].buttons.find((b:any)=>b.label==='Play / pause');
+  await expect(page.getByRole('button',{name:'Play / pause',exact:true})).toBeVisible();
+  // Socket connection is established by the application before event observation.
+  await page.waitForTimeout(200);
+  const code=`ctx.emit({api_version:2,type:'button.stateChanged',button_id:${JSON.stringify(button.id)},label:'Now playing',active:true});`;
+  const result=await (await request.post('/api/v2/commands',{data:{request_id:'dynamic-state',command:{type:'script',language:'javascript',source:{type:'inline',code}}}})).json();
+  expect(result.state).toBe('completed');
+  await expect(page.getByRole('button',{name:'Now playing',exact:true})).toBeVisible();
+  const config=await (await request.get('/api/v2/config')).json();
+  expect(config.config.layout.folders[0].buttons.find((b:any)=>b.id===button.id).label).toBe('Play / pause');
 });

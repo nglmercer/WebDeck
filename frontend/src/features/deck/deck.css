@@ -164,3 +164,8 @@ progress {
     padding-bottom: 104px;
   }
 }
+
+.deck-button.active {
+  outline: 3px solid var(--button-foreground);
+  outline-offset: -5px;
+}

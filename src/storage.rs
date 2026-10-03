@@ -237,7 +237,7 @@ impl Assets {
     }
     pub fn upload(&self, extension: &str, bytes: &[u8]) -> Result<FileSource> {
         let allowed = [
-            "png", "jpg", "jpeg", "webp", "gif", "svg", "mp3", "wav", "ogg", "flac", "css", "rhai",
+            "png", "jpg", "jpeg", "webp", "gif", "svg", "mp3", "wav", "ogg", "flac", "css", "js",
             "txt",
         ];
         if !allowed.contains(&extension) || bytes.len() > 16 * 1024 * 1024 {

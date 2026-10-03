@@ -15,7 +15,7 @@
     CatalogResponse,
     PluginManifest,
   } from '../../lib/contracts';
-  import { commandSchema, defaultValue, upload, type Schema } from '../../lib/api/client';
+  import { commandSchema, defaultValue, resolve, upload, type Schema } from '../../lib/api/client';
   import Fields from './Fields.svelte';
   import ActionFields from './ActionFields.svelte';
   import ButtonContent from '../deck/ButtonContent.svelte';
@@ -246,18 +246,55 @@
             if (!button) return;
             const type = e.currentTarget.value;
             if (type === 'command') button.action = { type, command: defaultCommand() };
-            else if (type === 'metric')
+            else if (type === 'workflow')
+              button.action = {
+                type,
+                workflow: {
+                  type: 'sequence',
+                  steps: [{ type: 'command', command: defaultCommand() }],
+                },
+              };
+            else if (type === 'script')
+              button.action = {
+                type,
+                language: 'javascript',
+                source: { type: 'inline', code: '' },
+              };
+            else if (type === 'plugin') {
+              const manifest = catalog?.plugins[0];
+              if (manifest)
+                button.action = {
+                  type,
+                  plugin_id: manifest.id,
+                  version: manifest.version,
+                  action_id: manifest.actions[0]!.id,
+                  args: defaultValue(
+                    pluginActionSchema(manifest, manifest.actions[0]!.id),
+                  ) as Record<string, unknown>,
+                };
+            } else if (type === 'metric')
               button.action = { type, metric: 'cpu', target: '', interval_ms: 1000 };
             else if (type === 'folder')
               button.action = { type, folder_id: layout?.folders[0]?.id ?? 'home' };
             else button.action = { type } as ButtonAction;
           }}
-          >{#each ['command', 'folder', 'back', 'reload', 'fullscreen', 'settings', 'metric', 'edit', 'none'] as type}<option
+          >{#each ['command', 'workflow', 'script', 'plugin', 'folder', 'back', 'reload', 'fullscreen', 'settings', 'metric', 'edit', 'none'] as type}<option
               value={type}>{type}</option
             >{/each}</select
         ></label
       >
-      {#if button.action.type === 'metric'}
+      {#if button.action.type === 'workflow' || button.action.type === 'script' || button.action.type === 'plugin'}
+        <Fields
+          schema={resolve({ $ref: '#/$defs/ButtonAction' }).oneOf?.find(
+            (option) => option.properties?.type?.const === button!.action.type,
+          ) ?? {}}
+          value={button.action}
+          onchange={(action) => {
+            if (button) button.action = action as ButtonAction;
+          }}
+          label={t('ui_action')}
+        />
+      {:else if button.action.type === 'metric'}
         <label
           >{t('ui_metric')}<select bind:value={button.action.metric}
             >{#each ['cpu', 'memory', 'gpu', 'gpu_memory', 'disk', 'clock'] as metric}<option

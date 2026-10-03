@@ -30,6 +30,11 @@ jobs:
         run: node tools/validation/v2-only.mjs
       - run: cargo clippy --locked --all-targets --all-features -- -D warnings
       - run: cargo test --locked --all-targets
+      - run: cargo build --locked --example trusted-plugin
+      - name: Native trusted plugin and crash isolation
+        env:
+          WEBDECK_TRUSTED_FIXTURE: target/debug/examples/trusted-plugin
+        run: cargo test --locked --test runtime trusted_process_fixture -- --ignored
 
   frontend:
     runs-on: ubuntu-latest
@@ -44,6 +49,10 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      - run: npm ci --prefix ../runtime
+      - run: npm --prefix ../runtime run check
+      - run: npm --prefix ../runtime run build
+      - run: git diff --exit-code -- ../runtime/dist
       - run: npm ci --prefix ../tools/component-check
       - run: npm run format:check
       - run: npm run check:contracts
@@ -67,6 +76,27 @@ jobs:
       - run: cargo clippy --locked --all-targets --all-features -- -D warnings
       - name: Portable tests (live devices and integrations remain opt-in)
         run: cargo test --locked --all-targets
+      - run: cargo build --locked --example trusted-plugin
+      - name: Native executable plugin fixture
+        env:
+          WEBDECK_TRUSTED_FIXTURE: target/debug/examples/trusted-plugin.exe
+        run: cargo test --locked --test runtime trusted_process_fixture -- --ignored
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - run: cargo test --locked --all-targets
+      - run: cargo build --locked --example trusted-plugin
+      - name: Native executable plugin fixture
+        env:
+          WEBDECK_TRUSTED_FIXTURE: target/debug/examples/trusted-plugin
+        run: cargo test --locked --test runtime trusted_process_fixture -- --ignored
 
   acceptance:
     runs-on: ubuntu-latest
@@ -91,6 +121,8 @@ jobs:
         working-directory: frontend
       - run: npm run test:acceptance
         working-directory: frontend
+      - name: Embedded runtime without external JavaScript tools
+        run: node tools/validation/runtime.mjs
       - name: Redacted command diagnostic smoke
         run: node tools/validation/diagnostics.mjs
       - name: Build an explicitly labelled development portable artifact

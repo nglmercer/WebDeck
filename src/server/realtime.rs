@@ -34,6 +34,38 @@ async fn on_connect(app: App, socket: SocketRef, auth: Value) {
         let _ = socket.disconnect();
         return;
     }
+    if let Some(mut events) = app.executor.events() {
+        let stopping = Arc::new(tokio::sync::Notify::new());
+        let stop = stopping.clone();
+        socket.on_disconnect(async move || {
+            stop.notify_one();
+        });
+        let observer = socket.clone();
+        let owner = app.clone();
+        let credential = token.clone();
+        tokio::spawn(async move {
+            loop {
+                let received = tokio::select! { _ = stopping.notified() => break, result = events.recv() => result };
+                match received {
+                    Ok(event) => {
+                        if !observer.connected() {
+                            break;
+                        }
+                        if authorize(&owner, peer, credential.clone())
+                            .await
+                            .is_ok_and(|i| i.capabilities.contains(&Capability::Read))
+                        {
+                            let _ = observer.emit("runtime_event", &event);
+                        } else {
+                            break;
+                        }
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
+                    Err(_) => break,
+                }
+            }
+        });
+    }
     let commands = app.clone();
     let credential = token.clone();
     socket.on("command", move |s: SocketRef, Data(v): Data<Value>| {
@@ -73,7 +105,8 @@ async fn usage(app: App, socket: SocketRef, token: Option<String>, peer: IpAddr,
         .await
         .is_ok_and(|c| c.capabilities.contains(&Capability::Read))
     {
-        if let Ok(value) = blocking(app.queries.clone(), || Ok(crate::native::usage())).await {
+        if let Ok(value) = blocking(app.queries.clone(), || Ok(crate::capabilities::usage())).await
+        {
             let _ = socket.emit(
                 "usage_result",
                 &json!({"api_version":2,"request_id":id,"usage":value}),

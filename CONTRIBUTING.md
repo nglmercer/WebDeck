@@ -4,10 +4,12 @@ Start with the [source quickstart](README.md), [architecture](docs/architecture.
 
 ## Development setup
 
-Use the Rust toolchain and native libraries described in README, plus Node 22.18 or newer. Install both JavaScript tool directories:
+Use the Rust toolchain and native libraries described in README, plus Node 22.18 or newer. Install the frontend, runtime and component-check development tools:
 
 ```sh
 npm ci --prefix frontend
+npm ci --prefix runtime
+npm run build --prefix runtime
 npm ci --prefix tools/component-check
 npm run build --prefix frontend
 npm run check:budget --prefix frontend
@@ -34,7 +36,9 @@ The server serves the production frontend from disk. Rebuild the frontend after 
 | Shared visual tokens | `frontend/src/styles/tokens.css` |
 | Server composition and route policy | `src/server.rs`, `src/server/` |
 | Accepted execution ownership and admission | `src/executor.rs` |
-| Native command families and resource cleanup | `src/native.rs`, `src/native/` |
+| Command behavior and workflows | `runtime/src/` |
+| Authorized OS primitives and resource cleanup | `src/capabilities/` |
+| VM owner, sandbox and plugin host | `src/runtime/` |
 | Atomic persistence, grants, portable rollback | `src/storage.rs`, `src/sessions.rs`, `src/update.rs` |
 
 Keep App as composition. Components receive typed data and callbacks; avoid direct competing draft mutations. Stage button-dialog edits until Apply, then use the editor owner. Preserve unknown extensions and configured IDs. Move generated files only by updating the generator, imports, and checks together.

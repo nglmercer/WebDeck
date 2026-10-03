@@ -2,7 +2,7 @@ use super::*;
 
 /// Only children explicitly launched by WebDeck belong to this owner.
 #[derive(Default)]
-pub(in crate::native) struct ProcessOwner {
+pub(in crate::capabilities) struct ProcessOwner {
     state: Mutex<State>,
 }
 #[derive(Default)]
@@ -11,7 +11,7 @@ struct State {
     children: Vec<ManagedChild>,
 }
 impl ProcessOwner {
-    pub(in crate::native) fn spawn(&self, command: Process) -> Result<Value> {
+    pub(in crate::capabilities) fn spawn(&self, command: Process) -> Result<Value> {
         let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
         if state.closed {
             return Err(Error::new(
@@ -32,7 +32,7 @@ impl ProcessOwner {
         state.children.push(ManagedChild::spawn(command)?);
         Ok(json!({"launched":true}))
     }
-    pub(in crate::native) fn shutdown(&self) {
+    pub(in crate::capabilities) fn shutdown(&self) {
         let children = {
             let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
             state.closed = true;
@@ -49,13 +49,13 @@ impl Drop for ProcessOwner {
 }
 
 /// Guarantees cleanup on success, timeout, wait errors, and unwinding.
-pub(in crate::native) struct ManagedChild {
+pub(in crate::capabilities) struct ManagedChild {
     child: Child,
 }
 impl ManagedChild {
     /// Captures known system helpers with bounded pipes and one total deadline.
     #[cfg(any(target_os = "linux", all(test, unix)))]
-    pub(in crate::native) fn output(
+    pub(in crate::capabilities) fn output(
         mut command: Process,
         timeout: Duration,
     ) -> Result<std::process::Output> {
@@ -113,7 +113,7 @@ impl ManagedChild {
             stderr,
         })
     }
-    pub(in crate::native) fn spawn(mut command: Process) -> Result<Self> {
+    pub(in crate::capabilities) fn spawn(mut command: Process) -> Result<Self> {
         #[cfg(unix)]
         {
             use std::os::unix::process::CommandExt;
@@ -122,7 +122,7 @@ impl ManagedChild {
         let child = command.spawn().map_err(|_| Error::execution())?;
         Ok(Self { child })
     }
-    pub(in crate::native) fn wait(
+    pub(in crate::capabilities) fn wait(
         &mut self,
         timeout: Duration,
     ) -> Result<std::process::ExitStatus> {

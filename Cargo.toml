@@ -31,13 +31,18 @@ name = "webdeck"
 path = "src/lib.rs"
 
 [dependencies]
+base64 = "0.22"
+futures-util = "0.3"
+tokio-tungstenite = { version = "0.30", features = ["rustls-tls-webpki-roots"] }
+napi-vm-plugin-host = { git = "https://github.com/nglmercer/napi-vm", rev = "881cc8f1cec262049b6d31fa499b0d601ba673c5" }
+napi-vm = { git = "https://github.com/nglmercer/napi-vm", rev = "881cc8f1cec262049b6d31fa499b0d601ba673c5", default-features = false }
 tokio = { version = "1", features = ["full"] }
 libc = "0.2"
 getrandom = "0.4.3"
 sha2 = "0.10.9"
 semver = "1.0.28"
 axum = { version = "0.8", features = ["multipart"] }
-# tower (ServiceExt/oneshot) is test-only → [dev-dependencies] below.
+# tower (ServiceExt/oneshot) is test-only; see dev-dependencies below.
 tower-http = { version = "0.6", features = ["fs"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
@@ -50,12 +55,9 @@ qrcode = "0.14.1"
 minifb = "0.28"
 arboard = { version = "3.6.1", features = ["wayland-data-control"] }
 enigo = "0.6.1"
-rhai = { version = "1.26.1", features = ["sync", "serde"] }
 nvml-wrapper = "0.13.0"
 rodio = "0.22.2"
 socketioxide = "0.18.7"
-rspotify = { version = "0.16.1", features = ["cli"] }
-obws = "0.15.0"
 rfd = { version = "0.17.2", default-features = false, features = ["common-controls-v6", "xdg-portal"] }
 
 [target.'cfg(windows)'.dependencies]
@@ -105,6 +107,7 @@ zbus = "5"
 screenshots = "0.8.10"
 
 [dev-dependencies]
+napi-vm-plugin-sdk = { git = "https://github.com/nglmercer/napi-vm", rev = "881cc8f1cec262049b6d31fa499b0d601ba673c5" }
 tokio = { version = "1", features = ["test-util"] }
 # Router regression tests drive the real route table via `oneshot`.
 tower = { version = "0.5", features = ["util"] }

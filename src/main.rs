@@ -1,9 +1,10 @@
 use clap::Parser;
 use std::{net::SocketAddr, path::PathBuf, sync::Arc};
 use webdeck::{
+    capabilities::Platform,
     domain::Result,
-    executor::{Adapter, Executor, Fake},
-    native::Native,
+    executor::{Adapter, Executor},
+    runtime::{capabilities::NativeMetrics, VmAdapter, VmRuntime},
     server::{router, App},
     sessions::Sessions,
     storage::{Assets, ConfigStore},
@@ -43,18 +44,33 @@ async fn start() -> Result<()> {
     let sessions = Arc::new(Sessions::open(dir.join("devices.v2.json"))?);
     let assets = Assets { root: dir };
     let shutdown = Arc::new(tokio::sync::Notify::new());
-    let native = Arc::new(Native::new(
+    let native = Arc::new(Platform::new(
         config.clone(),
         assets.clone(),
         shutdown.clone(),
     )?);
-    let plugins = Arc::new(native.plugins.iter().map(|p| p.manifest.clone()).collect());
-    let adapter: Arc<dyn Adapter> =
+    let (loaded, rejected) = webdeck::runtime::plugins::discover_plugins(&assets)?;
+    if rejected > 0 {
+        eprintln!("WebDeck: {rejected} plugin packages were quarantined; migrate or repair their v2 manifests before reloading");
+    }
+    let plugins = Arc::new(
+        loaded
+            .iter()
+            .map(|plugin| plugin.manifest.clone())
+            .collect(),
+    );
+    let host: Arc<dyn webdeck::runtime::capabilities::CapabilityHost> =
         if cfg!(debug_assertions) && std::env::var("WEBDECK_FAKE_EFFECTS").as_deref() == Ok("1") {
-            Arc::new(Fake)
+            Arc::new(webdeck::capabilities::FakePlatform::new(native.clone()))
         } else {
-            Arc::new(native)
+            native
         };
+    let runtime = Arc::new(VmRuntime::with_plugins(
+        Arc::new(NativeMetrics),
+        host,
+        loaded,
+    )?);
+    let adapter: Arc<dyn Adapter> = Arc::new(VmAdapter::new(runtime));
     let executor = Arc::new(Executor::new(adapter, 16));
     let app = App {
         io: Arc::new(tokio::sync::Semaphore::new(4)),

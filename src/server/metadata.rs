@@ -90,17 +90,19 @@ fn boot_snapshot(a: App, i: Identity) -> Result<DeckBoot> {
         f.extensions.clear();
         for b in &mut f.buttons {
             b.extensions = presentation(&b.extensions);
-            if let ButtonAction::Command { command } = &mut b.action {
+            if let Some(command) = domain::action_command(&b.action) {
                 let r = resolve_request(
                     &a,
                     CommandRequest {
                         request_id: "boot".into(),
-                        command: command.clone(),
+                        command,
                     },
                 )?;
                 button_capabilities.insert(b.id.clone(), r.command.capability());
-                *command = Command::Button {
-                    button_id: b.id.clone(),
+                b.action = ButtonAction::Command {
+                    command: Command::Button {
+                        button_id: b.id.clone(),
+                    },
                 };
             }
         }

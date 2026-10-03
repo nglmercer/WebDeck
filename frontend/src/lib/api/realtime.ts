@@ -1,8 +1,15 @@
 import { io, type Socket } from 'socket.io-client';
-import type { Command, CommandEvent } from '../contracts';
+import type { Command, CommandEvent, RuntimeEvent } from '../contracts';
 import { contract } from '../schema';
 import { credential, request } from './http';
 import { id } from '../id';
+const eventListeners = new Set<(event: RuntimeEvent) => void>();
+export function onRuntimeEvent(listener: (event: RuntimeEvent) => void) {
+  eventListeners.add(listener);
+  return () => {
+    eventListeners.delete(listener);
+  };
+}
 const listeners = new Set<(connected: boolean) => void>();
 export function onConnectionChange(listener: (connected: boolean) => void) {
   listeners.add(listener);
@@ -36,6 +43,14 @@ export function connect() {
   socket = io('/v2', { auth: credential() ? { token: credential() } : {}, autoConnect: false });
   socket.on('connect', () => reportConnection(true));
   socket.on('connect_error', () => reportConnection(false));
+  socket.on('runtime_event', (value: unknown) => {
+    try {
+      const event = contract<RuntimeEvent>('RuntimeEvent', value);
+      eventListeners.forEach((listener) => listener(event));
+    } catch {
+      /* Ignore malformed events. */
+    }
+  });
   socket.on('command_result', (v: unknown) => {
     let event: CommandEvent;
     try {

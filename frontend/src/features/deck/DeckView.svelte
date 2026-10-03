@@ -1,4 +1,16 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+  import { onRuntimeEvent } from '../../lib/api/realtime';
+  let dynamic = $state<
+    Record<string, { label?: string | undefined; active?: boolean | undefined }>
+  >({});
+  onMount(() =>
+    onRuntimeEvent((event) => {
+      if (event.type === 'runtime.reloaded') dynamic = {};
+      else if (Object.keys(dynamic).length < 4096 || event.button_id in dynamic)
+        dynamic[event.button_id] = { label: event.label, active: event.active };
+    }),
+  );
   import { useTranslations } from '../../lib/i18n';
   const t = useTranslations();
 
@@ -130,9 +142,10 @@
         {#if slot.button}{@const b = slot.button}<button
             class="deck-button button"
             style={buttonStyle(b)}
+            class:active={dynamic[b.id]?.active}
             class:blank={b.action.type === 'none'}
             disabled={running[b.id] || !canRun(b)}
-            aria-label={b.label}
+            aria-label={dynamic[b.id]?.label ?? b.label}
             aria-describedby={reason(b) || running[b.id] || outcomeMessages[b.id]
               ? `state-${b.id}`
               : undefined}
@@ -141,7 +154,9 @@
               if (!editing) invoke(b);
             }}
             ><ButtonContent
-              button={b}
+              button={dynamic[b.id]?.label === undefined
+                ? b
+                : { ...b, label: dynamic[b.id]!.label! }}
               assetUrl={assetUrls[b.icon.slice(6)]}
               showLabels={appearance.show_labels !== false}
               {usage}

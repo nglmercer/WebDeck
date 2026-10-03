@@ -1,7 +1,7 @@
 use super::*;
 type Sound = (rodio::MixerDeviceSink, rodio::Player);
 #[derive(Default)]
-pub(in crate::native) struct AudioOwner {
+pub(in crate::capabilities) struct AudioOwner {
     state: Mutex<State>,
 }
 #[derive(Default)]
@@ -10,7 +10,7 @@ struct State {
     sounds: Vec<Sound>,
 }
 impl AudioOwner {
-    pub(in crate::native) fn play(
+    pub(in crate::capabilities) fn play(
         &self,
         targets: Vec<rodio::cpal::Device>,
         path: &std::path::Path,
@@ -53,10 +53,10 @@ impl AudioOwner {
         state.sounds.extend(prepared);
         Ok(json!({"playing":true}))
     }
-    pub(in crate::native) fn stop(&self) {
+    pub(in crate::capabilities) fn stop(&self) {
         self.clear(false);
     }
-    pub(in crate::native) fn shutdown(&self) {
+    pub(in crate::capabilities) fn shutdown(&self) {
         self.clear(true);
     }
     fn clear(&self, close: bool) {

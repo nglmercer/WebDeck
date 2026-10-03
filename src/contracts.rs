@@ -163,7 +163,11 @@ pub enum Command {
         timeout_seconds: u64,
     },
     #[serde(rename = "script")]
-    Script { source: ScriptSource },
+    Script {
+        source: ScriptSource,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        language: Option<String>,
+    },
     #[serde(rename = "shell")]
     Shell {
         source: ScriptSource,
@@ -188,6 +192,8 @@ pub enum Command {
     },
     #[serde(rename = "button")]
     Button { button_id: String },
+    #[serde(rename = "workflow")]
+    Workflow { workflow: Box<WorkflowNode> },
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", deny_unknown_fields)]
@@ -215,6 +221,20 @@ pub enum ButtonAction {
         metric: String,
         target: String,
         interval_ms: u64,
+    },
+    #[serde(rename = "workflow")]
+    Workflow { workflow: Box<WorkflowNode> },
+    #[serde(rename = "script")]
+    Script {
+        language: String,
+        source: ScriptSource,
+    },
+    #[serde(rename = "plugin")]
+    Plugin {
+        plugin_id: String,
+        version: String,
+        action_id: String,
+        args: BTreeMap<String, Value>,
     },
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -403,6 +423,10 @@ pub struct PluginManifest {
     pub version: String,
     pub entry: String,
     pub actions: Vec<PluginAction>,
+    pub backend: String,
+    pub digest: String,
+    pub origin: String,
+    pub contract: String,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -525,6 +549,83 @@ pub struct IntegrationStatus {
     pub spotify: IntegrationState,
     pub checked_at: u64,
 }
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", deny_unknown_fields)]
+pub enum WorkflowNode {
+    #[serde(rename = "command")]
+    Command {
+        command: Command,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        references: Option<BTreeMap<String, String>>,
+    },
+    #[serde(rename = "sequence")]
+    Sequence { steps: Vec<Box<WorkflowNode>> },
+    #[serde(rename = "parallel")]
+    Parallel { steps: Vec<Box<WorkflowNode>> },
+    #[serde(rename = "conditional")]
+    Conditional {
+        condition: Value,
+        if_true: Box<WorkflowNode>,
+        if_false: Box<WorkflowNode>,
+    },
+    #[serde(rename = "delay")]
+    Delay { milliseconds: u64 },
+    #[serde(rename = "retry")]
+    Retry {
+        attempts: u64,
+        step: Box<WorkflowNode>,
+    },
+    #[serde(rename = "timeout")]
+    Timeout {
+        milliseconds: u64,
+        step: Box<WorkflowNode>,
+    },
+    #[serde(rename = "variable")]
+    Variable { name: String, value: Value },
+    #[serde(rename = "result")]
+    Result { path: String },
+    #[serde(rename = "script")]
+    Script { source: ScriptSource },
+    #[serde(rename = "plugin")]
+    Plugin {
+        plugin_id: String,
+        version: String,
+        action_id: String,
+        args: BTreeMap<String, Value>,
+    },
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", deny_unknown_fields)]
+pub enum RuntimeEvent {
+    #[serde(rename = "button.stateChanged")]
+    ButtonStateChanged {
+        api_version: u64,
+        button_id: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        label: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        active: Option<bool>,
+    },
+    #[serde(rename = "runtime.reloaded")]
+    RuntimeReloaded { api_version: u64 },
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RuntimeSnapshot {
+    pub api_version: u64,
+    pub runtime: String,
+    pub healthy: bool,
+    pub commands: Vec<BTreeMap<String, Value>>,
+    pub plugins: Vec<PluginManifest>,
+    pub loaded_plugins: Vec<String>,
+    pub queue_capacity: u64,
+    pub disabled_plugins: Vec<String>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PluginState {
+    pub enabled: bool,
+}
 impl Command {
     pub fn capability(&self) -> Capability {
         match self {
@@ -571,6 +672,7 @@ impl Command {
             Self::Spotify { .. } => Capability::Network,
             Self::Plugin { .. } => Capability::Plugin,
             Self::Button { .. } => Capability::Read,
+            Self::Workflow { .. } => Capability::Read,
         }
     }
 }

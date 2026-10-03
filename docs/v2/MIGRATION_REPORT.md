@@ -19,8 +19,8 @@ were retained under the new owners; they contain no v1 application protocol.
 | `/upload_filepath`, `/upload_folderpath` | Local-only `/api/v2/native/selection` |
 | `/.config/...`, `**uploaded/...` | Protected asset IDs or explicit privileged external sources |
 | Stringified arrays/booleans/numbers and old grid slots | Typed layout/settings and stable ordered IDs |
-| Python/prefix plugin registry | Versioned manifests, typed arguments/results, Rhai `invoke_action` |
-| Python-named script command and shell argument parsing | Explicit inline/file Rhai and shell sources |
+| Python/prefix plugin registry | Versioned manifests, typed arguments/results, JavaScript `invoke_action` |
+| Python-named script command and shell argument parsing | Explicit inline/file JavaScript and shell sources |
 | Implicit saves, folder queues and global dispatch | ConfigStore transactions and feature-owned drafts |
 
 The source checkout and generated artifact contain one runtime. Rejection fixtures can mention old interfaces, but first-party production
