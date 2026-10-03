@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { contract, defaultValue, commandSchema } from './api';
+import { describe, it, expect, vi } from 'vitest';
+import { contract, defaultValue, commandSchema, execute } from './api';
 import config from '../../webdeck/config_default.json';
 describe('v2 contracts', () => {
   it('rejects the old command shape, unknown fields and invalid bounds', () => {
@@ -30,4 +30,18 @@ describe('v2 contracts', () => {
       contract('CommandEvent', { api_version: 2, request_id: 'abc', state: 'completed' }),
     ).toThrow();
   });
+});
+
+it('reports an HTTP timeout without replaying a native command', async () => {
+  const fetch = vi.fn().mockRejectedValue(new DOMException('Timed out', 'TimeoutError'));
+  vi.stubGlobal('fetch', fetch);
+  try {
+    await expect(execute({ type: 'play_pause' }, 'http')).rejects.toThrow(
+      'execution outcome is unknown',
+    );
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

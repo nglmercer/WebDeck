@@ -197,12 +197,6 @@ pub fn validate_config(c: &Config) -> Result<()> {
     let mut ids = HashSet::new();
     let folders: HashSet<_> = c.layout.folders.iter().map(|f| f.id.as_str()).collect();
     for f in &c.layout.folders {
-        if f.buttons.len() as u64 > c.layout.columns * c.layout.rows {
-            return Err(Error::new(
-                ErrorCode::InvalidInput,
-                "The grid is too small for its buttons",
-            ));
-        }
         if !ids.insert(&f.id) {
             return Err(Error::invalid());
         }

@@ -246,12 +246,12 @@ async fn boot(
     i.require(Capability::Read)?;
     let s = a.config.snapshot()?;
     let mut layout = s.config.layout;
-    layout.extensions.clear();
+    layout.extensions = presentation(&layout.extensions);
     let mut button_capabilities = std::collections::BTreeMap::new();
     for f in &mut layout.folders {
         f.extensions.clear();
         for b in &mut f.buttons {
-            b.extensions.clear();
+            b.extensions = presentation(&b.extensions);
             if let ButtonAction::Command { command } = &mut b.action {
                 let r = resolve_request(
                     &a,
@@ -276,6 +276,26 @@ async fn boot(
         capabilities: i.capabilities,
         button_capabilities,
     }))
+}
+fn presentation(
+    extensions: &std::collections::BTreeMap<String, Value>,
+) -> std::collections::BTreeMap<String, Value> {
+    let mut result = std::collections::BTreeMap::new();
+    if let Some(appearance) = extensions.get("appearance").and_then(Value::as_object) {
+        let clean: serde_json::Map<String, Value> = appearance
+            .iter()
+            .filter(|(key, value)| {
+                matches!(
+                    key.as_str(),
+                    "gap" | "button_height" | "radius" | "icon_size" | "columns" | "rows" | "cell"
+                ) && value.is_number()
+                    || matches!(key.as_str(), "show_labels" | "show_label") && value.is_boolean()
+            })
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+        result.insert("appearance".into(), Value::Object(clean));
+    }
+    result
 }
 fn resolve_request(a: &App, mut r: CommandRequest) -> Result<CommandRequest> {
     for _ in 0..=8 {

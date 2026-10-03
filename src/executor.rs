@@ -7,7 +7,7 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::sync::{Mutex, Semaphore};
+use tokio::sync::Semaphore;
 #[derive(Clone)]
 pub struct Context {
     pub capabilities: Vec<Capability>,
@@ -41,7 +41,6 @@ pub trait Adapter: Send + Sync + 'static {
 pub struct Executor {
     adapter: Arc<dyn Adapter>,
     admission: Arc<Semaphore>,
-    gate: Arc<Mutex<()>>,
     capacity: usize,
 }
 impl Executor {
@@ -50,7 +49,6 @@ impl Executor {
         Self {
             adapter,
             admission: Arc::new(Semaphore::new(capacity)),
-            gate: Arc::new(Mutex::new(())),
             capacity,
         }
     }
@@ -82,19 +80,26 @@ impl Executor {
             )
         })?;
         let adapter = self.adapter.clone();
-        let gate = self.gate.clone();
         // Ownership transfers before acceptance is observed. Cancellation drops observation only.
         let task = tokio::spawn(async move {
-            let lock = gate.lock_owned().await;
             tokio::task::spawn_blocking(move || {
-                let _owned = (permit, lock);
+                let _owned = permit;
+                context.check(r.command.capability())?;
                 adapter.execute(&r.command, &context)
             })
             .await
             .map_err(|_| Error::execution())?
         });
         accepted();
-        task.await.map_err(|_| Error::execution())?
+        tokio::time::timeout(Duration::from_secs(30), task)
+            .await
+            .map_err(|_| {
+                Error::new(
+                    ErrorCode::ExecutionFailed,
+                    "Action timed out; execution outcome is unknown. No retry was sent",
+                )
+            })?
+            .map_err(|_| Error::execution())?
     }
     pub async fn drain(&self) {
         self.admission.close();

@@ -35,6 +35,7 @@
     type Schema,
   } from './api';
   import Fields from './Fields.svelte';
+  import { metricReading, appearanceNumber, gridCells, preserveCells } from './deck';
   import { Editor, clone } from './editor.svelte';
   let deck = $state<DeckBoot | null>(null),
     editor = $state<Editor | null>(null),
@@ -44,10 +45,11 @@
     loading = $state(true),
     pairing = $state(false),
     credential = $state('');
-  let panel = $state<'deck' | 'settings' | 'usage'>('deck'),
+  let panel = $state<'deck' | 'settings'>('deck'),
     editing = $state(false),
     button = $state<Button | null>(null),
     buttonFolder = $state(''),
+    buttonOrigin = $state(''),
     transport = $state<'http' | 'socket'>('http');
   let running = $state<Record<string, boolean>>({}),
     devices = $state<Device[]>([]),
@@ -88,7 +90,126 @@
         )
       : undefined,
   );
-  const busy = $derived(Object.values(running).some(Boolean));
+  let help = $state(false);
+  const cells = $derived(
+    gridCells(current?.buttons ?? [], layout?.columns ?? 4, layout?.rows ?? 3),
+  );
+  function freezeCells() {
+    for (const f of editor?.draft.layout.folders ?? [])
+      preserveCells(f.buttons, layout?.columns ?? 4, layout?.rows ?? 3);
+  }
+  function deleteCell(b: Button) {
+    freezeCells();
+    if (current) current.buttons = current.buttons.filter((v) => v.id !== b.id);
+    change();
+  }
+  let controls = $state(false),
+    now = $state(Date.now());
+  let hold: ReturnType<typeof setTimeout> | undefined;
+  let holdPoint: { x: number; y: number } | undefined;
+  const appearance = $derived((layout?.extensions.appearance ?? {}) as Record<string, unknown>);
+  const rootFolder = $derived(layout?.folders[0]?.id ?? 'home');
+  const usageButtons = $derived(
+    (current?.buttons ?? []).filter((b) => b.action.type === 'usage' || b.action.type === 'metric'),
+  );
+  function navigate(folder: string, replace = false) {
+    if (!layout?.folders.some((f) => f.id === folder)) return;
+    active = folder;
+    panel = 'deck';
+    controls = false;
+    const url = `#folder=${encodeURIComponent(folder)}`;
+    if (replace) history.replaceState(null, '', url);
+    else history.pushState(null, '', url);
+  }
+  function route() {
+    if (location.hash === '#settings' && editor) {
+      panel = 'settings';
+      void getDevices();
+    } else {
+      panel = 'deck';
+      active = decodeURIComponent(location.hash.replace(/^#folder=/, '')) || rootFolder;
+    }
+  }
+  function back() {
+    if (active !== rootFolder) navigate(rootFolder);
+    else panel = 'deck';
+  }
+  function openSettings() {
+    if (!editor) return;
+    controls = false;
+    panel = 'settings';
+    history.pushState(null, '', '#settings');
+    void getDevices();
+  }
+  async function toggleEdit() {
+    if (!editor) return;
+    if (editing && (editor.dirty || savingPromise)) await persist();
+    controls = false;
+    panel = 'deck';
+    editing = !editing;
+  }
+  function keyboard(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      controls = false;
+      help = false;
+      button = null;
+      if (panel === 'settings') navigate(active);
+      return;
+    }
+    if (
+      e.target instanceof HTMLElement &&
+      e.target.closest('input,textarea,select,[contenteditable]')
+    )
+      return;
+    if (e.key === 'F1') {
+      e.preventDefault();
+      help = !help;
+      return;
+    }
+    if (button || help || e.repeat) return;
+    if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === 'q') {
+      e.preventDefault();
+      void attempt(toggleEdit);
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === ',') {
+      e.preventDefault();
+      openSettings();
+    }
+    if (e.altKey && e.key === 'ArrowLeft') {
+      e.preventDefault();
+      back();
+    }
+  }
+  function context(e: MouseEvent) {
+    if (panel !== 'deck' || button) return;
+    e.preventDefault();
+    controls = true;
+  }
+  function startHold(e: PointerEvent) {
+    if (e.pointerType !== 'touch' || panel !== 'deck' || button) return;
+    holdPoint = { x: e.clientX, y: e.clientY };
+    hold = setTimeout(() => {
+      controls = true;
+    }, 600);
+  }
+  function stopHold() {
+    if (hold) clearTimeout(hold);
+    holdPoint = undefined;
+  }
+  function moveHold(e: PointerEvent) {
+    if (holdPoint && Math.hypot(e.clientX - holdPoint.x, e.clientY - holdPoint.y) > 8) stopHold();
+  }
+  function buttonStyle(b: Button) {
+    const a = (b.extensions.appearance ?? {}) as Record<string, unknown>;
+    return `--button-color:${b.color};--icon-size:${appearanceNumber(a.icon_size, appearanceNumber(appearance.icon_size, 42, 0, 200), 0, 200)}px;grid-column:span ${appearanceNumber(a.columns, 1, 1, layout?.columns ?? 4)};grid-row:span ${appearanceNumber(a.rows, 1, 1, 128)};`;
+  }
+  function setAppearance(key: string, value: unknown, target = false) {
+    const owner = target ? button : editor?.draft.layout;
+    if (!owner) return;
+    const a = (owner.extensions.appearance ?? {}) as Record<string, unknown>;
+    owner.extensions.appearance = { ...a, [key]: value };
+    if (!target) change();
+  }
   async function attempt(work: () => Promise<void>) {
     error = '';
     try {
@@ -103,7 +224,9 @@
     try {
       deck = await boot();
       pairing = false;
-      active = deck.layout.folders[0]?.id ?? 'home';
+      active = deck.layout.folders.some((f) => f.id === active)
+        ? active
+        : (deck.layout.folders[0]?.id ?? 'home');
       const tr = await request<TranslationsResponse>('translations', 'TranslationsResponse');
       translation = tr.translations;
       languages = tr.languages;
@@ -111,6 +234,7 @@
       if (deck.can_edit) editor = new Editor(await config());
       await assets();
       connect();
+      route();
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) pairing = true;
       error = e instanceof Error ? e.message : String(e);
@@ -153,15 +277,18 @@
     }
   }
   async function invoke(b: Button) {
+    if (controls) return;
     if (editing) {
+      freezeCells();
       button = clone(b);
       buttonFolder = current?.id ?? '';
+      buttonOrigin = buttonFolder;
       return;
     }
     if (running[b.id]) return;
     const a = b.action;
     if (a.type === 'folder') {
-      active = a.folder_id;
+      navigate(a.folder_id);
       return;
     }
     if (a.type === 'reload') {
@@ -174,19 +301,29 @@
       return;
     }
     if (a.type === 'settings') {
-      panel = 'settings';
-      await getDevices();
+      openSettings();
       return;
     }
-    if (a.type === 'usage') {
-      await showUsage();
+    if (a.type === 'back') {
+      back();
+      return;
+    }
+    if (a.type === 'edit') {
+      return;
+    }
+    if (a.type === 'none') return;
+    if (a.type === 'usage' || a.type === 'metric') {
+      await refreshUsage();
       return;
     }
     running = { ...running, [b.id]: true };
     try {
-      const event = await execute(a.command, transport);
+      const event = await execute({ type: 'button', button_id: b.id }, transport);
       if (event.state === 'failed') throw new Error(event.message);
       notice = t('success', 'Completed');
+      setTimeout(() => {
+        if (notice === t('success', 'Completed')) notice = '';
+      }, 1800);
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     } finally {
@@ -196,23 +333,38 @@
   function change() {
     editor?.change();
   }
-  function newButton() {
+  function newButton(cell: number) {
+    freezeCells();
     buttonFolder = current?.id ?? 'home';
+    buttonOrigin = buttonFolder;
     button = {
       id: id(),
       label: 'New button',
       icon: '✦',
       color: '#6654e8',
       action: { type: 'command', command: { type: 'play_pause' } },
-      extensions: {},
+      extensions: { appearance: { cell } },
     };
   }
   function commitButton() {
     if (!editor || !button) return;
     try {
       contract('Button', button);
+      freezeCells();
       const f = editor.draft.layout.folders.find((f) => f.id === buttonFolder);
       if (!f) return;
+      if (buttonOrigin !== buttonFolder) {
+        const cell =
+          gridCells(f.buttons, layout?.columns ?? 4, layout?.rows ?? 3).find(
+            (c) => !c.button && !c.covered,
+          )?.cell ?? f.buttons.length;
+        button.extensions.appearance = {
+          ...((button.extensions.appearance as Record<string, unknown>) ?? {}),
+          cell,
+        };
+        const origin = editor.draft.layout.folders.find((f) => f.id === buttonOrigin);
+        if (origin) origin.buttons = origin.buttons.filter((b) => b.id !== button?.id);
+      }
       const index = f.buttons.findIndex((b) => b.id === button?.id);
       if (index < 0) f.buttons.push(clone(button));
       else f.buttons[index] = clone(button);
@@ -224,16 +376,52 @@
   }
   function removeButton() {
     if (!editor || !button) return;
-    const f = editor.draft.layout.folders.find((f) => f.id === buttonFolder);
-    if (f) f.buttons = f.buttons.filter((b) => b.id !== button?.id);
+    freezeCells();
+    for (const f of editor.draft.layout.folders)
+      f.buttons = f.buttons.filter((b) => b.id !== button?.id);
     change();
     button = null;
   }
   function newFolder() {
     if (!editor) return;
-    const f = { id: id(), label: 'New folder', buttons: [], extensions: {} };
+    freezeCells();
+    const parent = current;
+    const cell = cells.find((c) => !c.button && !c.covered)?.cell ?? cells.length;
+    const f = {
+      id: id(),
+      label: 'New folder',
+      buttons: [
+        {
+          id: id(),
+          label: 'Back',
+          icon: '↩',
+          color: '#273549',
+          action: { type: 'folder' as const, folder_id: parent?.id ?? rootFolder },
+          extensions: {},
+        },
+      ],
+      extensions: {},
+    };
     editor.draft.layout.folders.push(f);
-    active = f.id;
+    parent?.buttons.push({
+      id: id(),
+      label: f.label,
+      icon: '▦',
+      color: '#273549',
+      action: { type: 'folder', folder_id: f.id },
+      extensions: { appearance: { cell } },
+    });
+    navigate(f.id);
+    change();
+  }
+  function renameFolder(label: string) {
+    if (!current || !editor) return;
+    const previous = current.label;
+    current.label = label;
+    for (const f of editor.draft.layout.folders)
+      for (const b of f.buttons)
+        if (b.action.type === 'folder' && b.action.folder_id === current.id && b.label === previous)
+          b.label = label;
     change();
   }
   function removeFolder() {
@@ -243,19 +431,26 @@
       error = 'The deck needs at least one folder';
       return;
     }
-    if (
-      editor.draft.layout.folders.some((f) =>
-        f.buttons.some((b) => b.action.type === 'folder' && b.action.folder_id === id),
-      )
-    ) {
-      error = 'Remove links to this folder before deleting it';
-      return;
-    }
+    freezeCells();
+    for (const f of editor.draft.layout.folders)
+      f.buttons = f.buttons.filter(
+        (b) => !(b.action.type === 'folder' && b.action.folder_id === id),
+      );
     editor.draft.layout.folders = editor.draft.layout.folders.filter((f) => f.id !== id);
     active = editor.draft.layout.folders[0]?.id ?? 'home';
     change();
   }
+  let savingPromise: Promise<void> | null = null;
   async function persist() {
+    if (savingPromise) return savingPromise;
+    savingPromise = persistOnce();
+    try {
+      await savingPromise;
+    } finally {
+      savingPromise = null;
+    }
+  }
+  async function persistOnce() {
     if (!editor) return;
     contract('Config', editor.draft);
     const snapshot = await save(editor.revision, editor.draft);
@@ -264,8 +459,7 @@
     notice = t('saved', 'Saved');
     await assets();
   }
-  async function showUsage() {
-    panel = 'usage';
+  async function refreshUsage() {
     usage = await request<UsageResponse>('usage', 'UsageResponse');
   }
   async function getDevices() {
@@ -297,27 +491,34 @@
     if (!editor || !button) return;
     const f = editor.draft.layout.folders.find((f) => f.id === buttonFolder);
     if (!f) return;
-    const i = f.buttons.findIndex((b) => b.id === button?.id),
-      j = i + delta;
-    if (i < 0 || j < 0 || j >= f.buttons.length) return;
-    const b = f.buttons.splice(i, 1)[0];
-    if (b) f.buttons.splice(j, 0, b);
+    freezeCells();
+    const oldCell = Number((button.extensions.appearance as Record<string, unknown>)?.cell ?? 0);
+    const newCell = Math.max(0, oldCell + delta);
+    const other = f.buttons.find(
+      (b) =>
+        b.id !== button?.id &&
+        (b.extensions.appearance as Record<string, unknown>)?.cell === newCell,
+    );
+    if (other)
+      other.extensions.appearance = {
+        ...(other.extensions.appearance as Record<string, unknown>),
+        cell: oldCell,
+      };
+    button.extensions.appearance = {
+      ...((button.extensions.appearance as Record<string, unknown>) ?? {}),
+      cell: newCell,
+    };
     change();
   }
   function canRun(b: Button) {
     if (editing) return true;
-    if (b.action.type === 'settings') return deck?.can_edit ?? false;
+    if (b.action.type === 'settings' || b.action.type === 'edit') return deck?.can_edit ?? false;
     if (b.action.type === 'command') {
       const capability = deck?.button_capabilities[b.id];
-      if (capability && !deck?.capabilities.includes(capability)) return false;
-      const c = catalog?.commands.find(
-        (c) => b.action.type === 'command' && c.id === b.action.command.type,
-      );
-      return !!c && !!deck?.capabilities.includes(c.capability);
+      return !capability || !!deck?.capabilities.includes(capability);
     }
     return true;
   }
-  const bytes = (n: number) => `${(n / 1024 ** 3).toFixed(1)} GB`;
   async function addDevice() {
     grant = await approve({
       name: deviceName,
@@ -379,21 +580,32 @@
     };
   }
   $effect(() => {
-    if (panel !== 'usage') return;
-    let disposed = false;
-    let inFlight = false;
-    const timer = setInterval(async () => {
-      if (inFlight) return;
+    if (panel !== 'deck' || !usageButtons.length) return;
+    const interval = Math.min(
+      ...usageButtons.map((b) => (b.action.type === 'metric' ? b.action.interval_ms : 1000)),
+    );
+    const needsUsage = usageButtons.some(
+      (b) => b.action.type !== 'metric' || b.action.metric !== 'clock',
+    );
+    let disposed = false,
+      inFlight = false;
+    async function update() {
+      now = Date.now();
+      if (inFlight || !needsUsage || document.hidden) return;
       inFlight = true;
       try {
-        const value = await request<UsageResponse>('usage', 'UsageResponse');
+        const value = await request<UsageResponse>('usage', 'UsageResponse', {
+          signal: AbortSignal.timeout(5000),
+        });
         if (!disposed) usage = value;
       } catch (e) {
-        if (!disposed) error = e instanceof Error ? e.message : String(e);
+        if (!disposed) console.warn('Usage refresh:', e);
       } finally {
         inFlight = false;
       }
-    }, 1000);
+    }
+    void update();
+    const timer = setInterval(() => void update(), interval);
     return () => {
       disposed = true;
       clearInterval(timer);
@@ -402,11 +614,22 @@
   onMount(() => {
     void load();
     return () => {
+      stopHold();
       for (const u of [...themeUrls, ...backgroundUrls, ...Object.values(assetUrls)])
         URL.revokeObjectURL(u);
     };
   });
 </script>
+
+<svelte:window
+  onkeydown={keyboard}
+  onpopstate={route}
+  onhashchange={route}
+  oncontextmenu={context}
+  onpointerdown={startHold}
+  onpointerup={stopHold}
+  onpointermove={moveHold}
+/>
 
 <svelte:head
   ><title>WebDeck · v2</title>{#each themeUrls as href}<link
@@ -420,21 +643,6 @@
     ? `linear-gradient(#10121acc,#10121acc), url("${backgroundUrls[0]}")`
     : undefined}
 >
-  <header>
-    <a class="brand" href="/">W<span>WebDeck</span><small>v2</small></a>
-    <nav aria-label="Main navigation">
-      <button class:active={panel === 'deck'} onclick={() => (panel = 'deck')}
-        >{t('buttons', 'Deck')}</button
-      ><button onclick={() => attempt(showUsage)}>{t('usage', 'Usage')}</button
-      >{#if deck?.can_edit}<button
-          onclick={() => {
-            panel = 'settings';
-            void getDevices();
-          }}>{t('settings', 'Settings')}</button
-        >{/if}
-    </nav>
-    <span class="status">{busy ? 'Running' : 'Ready'}</span>
-  </header>
   {#if error}<div class="banner error" role="alert">
       {error}<button aria-label="Dismiss error" onclick={() => (error = '')}>×</button>
     </div>{/if}
@@ -458,79 +666,135 @@
       >
     </main>
   {:else if deck}
-    <aside>
-      <h2>{t('folders', 'Folders')}</h2>
-      {#each layout?.folders ?? [] as f}<button
-          class:active={f.id === current?.id}
-          onclick={() => (active = f.id)}
-          >▦ <span>{f.label}</span><small>{f.buttons.length}</small></button
-        >{/each}{#if editing}<button onclick={newFolder}>+ Add folder</button>{/if}<label
-        >Connection<select bind:value={transport}
-          ><option value="http">HTTP</option><option value="socket">Realtime</option></select
-        ></label
-      >
-    </aside>
     <main>
       {#if panel === 'deck'}
-        <div class="heading">
-          <div>
-            <p class="eyebrow">YOUR CONTROL SPACE</p>
-            <h1>{current?.label ?? 'Deck'}</h1>
-          </div>
-          {#if editor}<div class="row">
-              <button onclick={() => (editing = !editing)}
-                >{editing ? t('done', 'Done') : t('edit', 'Edit deck')}</button
-              >{#if editor.dirty}<button class="primary" onclick={() => attempt(persist)}
-                  >{t('save', 'Save changes')}</button
+        <h1 class="sr-only">{current?.label ?? 'Deck'}</h1>
+        {#if editing && current && editor}<details class="edit-options" open>
+            <summary>Folder options</summary>
+            <div class="toolbar">
+              {#if editor.dirty}<button class="primary" onclick={() => attempt(persist)}
+                  >Save changes</button
                 >{/if}
-            </div>{/if}
-        </div>
-        {#if editing && current && editor}<div class="toolbar">
-            <label>Folder name<input bind:value={current.label} oninput={change} /></label><button
-              onclick={newButton}>+ Add button</button
-            ><button class="danger" onclick={removeFolder}>Delete folder</button>
-          </div>{/if}
+              <label
+                >Folder<select value={active} onchange={(e) => navigate(e.currentTarget.value)}
+                  >{#each layout?.folders ?? [] as f}<option value={f.id}>{f.label}</option
+                    >{/each}</select
+                ></label
+              >
+              <label
+                >Folder name<input
+                  value={current.label}
+                  oninput={(e) => renameFolder(e.currentTarget.value)}
+                /></label
+              >
+
+              <button onclick={newFolder}>+ Add folder</button>
+              <button onclick={openSettings}>Settings</button>
+              <button class="danger" onclick={removeFolder}>Delete folder</button>
+            </div>
+          </details>{/if}
         <div
           class="deck-grid all-buttons"
-          style:grid-template-columns={`repeat(${layout?.columns ?? 4}, minmax(100px, 1fr))`}
+          style:grid-template-columns={`repeat(${layout?.columns ?? 4}, minmax(0, 1fr))`}
+          style:gap={`${appearanceNumber(appearance.gap, 10, 0, 100)}px`}
+          style:--button-height={`${appearanceNumber(appearance.button_height, 140, 24, 800)}px`}
+          style:--button-radius={`${appearanceNumber(appearance.radius, 8, 0, 100)}px`}
         >
-          {#each current?.buttons ?? [] as b (b.id)}<button
-              class="deck-button button"
-              style:--button-color={b.color}
-              disabled={running[b.id] || !canRun(b)}
-              aria-label={editing ? `Edit ${b.label}` : b.label}
-              onclick={() => attempt(() => invoke(b))}
-              >{#if b.icon.startsWith('asset:') && assetUrls[b.icon.slice(6)]}<img
-                  src={assetUrls[b.icon.slice(6)]}
-                  alt=""
-                />{:else}<span class="button-icon" aria-hidden="true">{b.icon}</span>{/if}<span
-                >{b.label}</span
-              ><small
-                >{running[b.id]
-                  ? 'Running…'
-                  : editing
-                    ? 'Edit'
-                    : b.action.type === 'folder'
-                      ? 'Open folder'
-                      : ' '}</small
-              ></button
-            >{/each}
-          {#each Array.from( { length: Math.max(0, (layout?.columns ?? 4) * (layout?.rows ?? 3) - (current?.buttons.length ?? 0)) } ) as _, index}{#if editing}<button
-                class="deck-button add"
-                onclick={newButton}
-                aria-label={`Add button in slot ${index + 1}`}>+<span>Add button</span></button
-              >{:else}<div class="deck-slot" aria-hidden="true"></div>{/if}{/each}
+          {#each cells.filter((c) => !c.covered) as slot (slot.cell)}<div
+              class="deck-cell"
+              data-cell={slot.cell}
+              style:grid-column={`${(slot.cell % (layout?.columns ?? 4)) + 1} / span ${slot.columns}`}
+              style:grid-row={`${Math.floor(slot.cell / (layout?.columns ?? 4)) + 1} / span ${slot.rows}`}
+            >
+              {#if slot.button}{@const b = slot.button}<button
+                  class="deck-button button"
+                  style={buttonStyle(b)}
+                  class:blank={b.action.type === 'none'}
+                  disabled={running[b.id] || !canRun(b)}
+                  aria-label={b.label}
+                  onclick={() => {
+                    if (!editing) void attempt(() => invoke(b));
+                  }}
+                  >{#if b.icon.startsWith('asset:') && assetUrls[b.icon.slice(6)]}<img
+                      src={assetUrls[b.icon.slice(6)]}
+                      alt=""
+                    />{:else}<span class="button-icon" aria-hidden="true">{b.icon}</span>{/if}<span
+                    class:hidden-label={appearance.show_labels === false ||
+                      (b.extensions.appearance as Record<string, unknown> | undefined)
+                        ?.show_label === false}>{b.label}</span
+                  >{#if b.action.type === 'metric' || b.action.type === 'usage'}{@const reading =
+                      metricReading(b, usage?.usage, now)}<strong class="metric-value"
+                      >{reading.text}</strong
+                    >{#if reading.percent !== undefined}<progress
+                        max="100"
+                        value={reading.percent}
+                        aria-label={`${b.label} usage`}
+                      ></progress>{/if}{/if}<small>{running[b.id] ? 'Running…' : ''}</small></button
+                >
+                {#if editing}<div class="cell-actions">
+                    <button aria-label={`Edit ${b.label}`} onclick={() => attempt(() => invoke(b))}
+                      >Edit</button
+                    ><button aria-label={`Remove ${b.label}`} onclick={() => deleteCell(b)}
+                      >Remove</button
+                    >
+                  </div>{/if}
+              {:else if editing}<button
+                  class="deck-button add"
+                  onclick={() => newButton(slot.cell)}
+                  aria-label={`Add button in cell ${slot.cell + 1}`}>+</button
+                >{:else}<div class="empty-cell" aria-hidden="true"></div>{/if}
+            </div>{/each}
         </div>
-        {#if !current?.buttons.length}<p class="empty">
-            This folder is ready for your controls.
-          </p>{/if}
       {:else if panel === 'settings' && editor}
         <div class="heading">
           <h1>{t('settings', 'Settings')}</h1>
+          <button onclick={() => navigate(active)}>Back to deck</button>
           <button class="primary" onclick={() => attempt(persist)}>Save changes</button>
         </div>
         <section>
           <h2>Appearance</h2>
+          <label
+            >Connection<select bind:value={transport}
+              ><option value="http">HTTP</option><option value="socket">Realtime</option></select
+            ></label
+          >
+          <div class="row">
+            <label
+              >Button height<input
+                type="number"
+                value={appearance.button_height ?? 140}
+                oninput={(e) => setAppearance('button_height', +e.currentTarget.value)}
+              /></label
+            >
+            <label
+              >Gap<input
+                type="number"
+                value={appearance.gap ?? 10}
+                oninput={(e) => setAppearance('gap', +e.currentTarget.value)}
+              /></label
+            >
+            <label
+              >Corner radius<input
+                type="number"
+                value={appearance.radius ?? 8}
+                oninput={(e) => setAppearance('radius', +e.currentTarget.value)}
+              /></label
+            >
+            <label
+              >Icon size<input
+                type="number"
+                value={appearance.icon_size ?? 42}
+                oninput={(e) => setAppearance('icon_size', +e.currentTarget.value)}
+              /></label
+            >
+            <label class="check"
+              ><input
+                type="checkbox"
+                checked={appearance.show_labels !== false}
+                onchange={(e) => setAppearance('show_labels', e.currentTarget.checked)}
+              />Show button labels</label
+            >
+          </div>
           <div class="row">
             <label
               >Columns<input
@@ -708,33 +972,44 @@
               })}>Reload configuration</button
           >
         </section>
-      {:else if panel === 'usage'}<div class="heading">
-          <h1>System usage</h1>
-          <button onclick={() => attempt(showUsage)}>Refresh</button>
-        </div>
-        {#if usage}<section>
-            <h2>CPU</h2>
-            <progress max="100" value={usage.usage.cpu_percent}></progress>
-            <p>{usage.usage.cpu_percent.toFixed(1)}%</p>
-            <h2>Memory</h2>
-            <progress max={usage.usage.memory_total} value={usage.usage.memory_used}></progress>
-            <p>{bytes(usage.usage.memory_used)} / {bytes(usage.usage.memory_total)}</p>
-          </section>
-          <section>
-            <h2>Disks</h2>
-            {#each usage.usage.disks as d}<h3>{d.name}</h3>
-              <progress max={d.total} value={d.total - d.available}></progress>
-              <p>{bytes(d.available)} available / {bytes(d.total)}</p>{/each}
-          </section>
-          {#each usage.usage.gpus as g}<section>
-              <h2>{g.name}</h2>
-              <progress max="100" value={g.usage}></progress>
-              <p>{g.usage.toFixed(1)}% · {bytes(g.memory_used)} / {bytes(g.memory_total)}</p>
-            </section>{/each}{/if}{/if}
+      {/if}
     </main>
   {/if}
-  <footer>WebDeck · 2.0.0-alpha.1</footer>
 </div>
+{#if controls}
+  <div class="overlay">
+    <dialog open class="deck-menu" aria-label="Deck controls">
+      <button aria-label="Close controls" onclick={() => (controls = false)}>×</button>
+      <button
+        onclick={() => {
+          back();
+          controls = false;
+        }}>Back</button
+      >
+      <button onclick={() => navigate(rootFolder)}>Home</button>
+      {#if editor}<button onclick={openSettings}>Settings</button>{/if}
+      <button
+        onclick={() => {
+          controls = false;
+          void attempt(load);
+        }}>Reload</button
+      >
+      <p>Right-click or hold the deck for controls. Q toggles editing; F1 shows all shortcuts.</p>
+    </dialog>
+  </div>
+{/if}
+{#if help}<div class="overlay">
+    <dialog open class="deck-menu" aria-label="Keyboard shortcuts">
+      <button onclick={() => (help = false)}>Close</button>
+      <h2>Shortcuts</h2>
+      <p>Q — toggle edit mode (saves changes when leaving)</p>
+      <p>F1 — show or hide shortcuts</p>
+      <p>Ctrl+, — settings</p>
+      <p>Alt+Left — return to home folder</p>
+      <p>Escape — close a dialog or settings</p>
+      <p>Right-click or touch and hold — deck controls</p>
+    </dialog>
+  </div>{/if}
 {#if button}
   <div class="overlay">
     <dialog
@@ -748,6 +1023,11 @@
         <h2 id="button-title">Edit button</h2>
         <button aria-label="Close editor" onclick={() => (button = null)}>×</button>
       </div>
+      <label
+        >Button folder<select bind:value={buttonFolder}
+          >{#each layout?.folders ?? [] as f}<option value={f.id}>{f.label}</option>{/each}</select
+        ></label
+      >
       <label>Label<input bind:value={button.label} /></label><label
         >Icon<input bind:value={button.icon} /></label
       ><label
@@ -763,16 +1043,71 @@
             if (!button) return;
             const type = e.currentTarget.value;
             if (type === 'command') button.action = { type, command: defaultCommand() };
+            else if (type === 'metric')
+              button.action = { type, metric: 'cpu', target: '', interval_ms: 1000 };
             else if (type === 'folder')
               button.action = { type, folder_id: layout?.folders[0]?.id ?? 'home' };
             else button.action = { type } as ButtonAction;
           }}
-          >{#each ['command', 'folder', 'reload', 'fullscreen', 'settings', 'usage'] as type}<option
+          >{#each ['command', 'folder', 'back', 'reload', 'fullscreen', 'settings', 'metric', 'none'] as type}<option
               value={type}>{type}</option
             >{/each}</select
         ></label
       >
-      {#if button.action.type === 'folder'}<label
+      <div class="row">
+        <label
+          >Column span<input
+            type="number"
+            value={(button.extensions.appearance as Record<string, unknown> | undefined)?.columns ??
+              1}
+            oninput={(e) => setAppearance('columns', +e.currentTarget.value, true)}
+          /></label
+        >
+        <label
+          >Row span<input
+            type="number"
+            value={(button.extensions.appearance as Record<string, unknown> | undefined)?.rows ?? 1}
+            oninput={(e) => setAppearance('rows', +e.currentTarget.value, true)}
+          /></label
+        >
+        <label
+          >Icon size<input
+            type="number"
+            value={(button.extensions.appearance as Record<string, unknown> | undefined)
+              ?.icon_size ?? 42}
+            oninput={(e) => setAppearance('icon_size', +e.currentTarget.value, true)}
+          /></label
+        >
+        <label class="check"
+          ><input
+            type="checkbox"
+            checked={(button.extensions.appearance as Record<string, unknown> | undefined)
+              ?.show_label !== false}
+            onchange={(e) => setAppearance('show_label', e.currentTarget.checked, true)}
+          />Show label</label
+        >
+      </div>
+      {#if button.action.type === 'metric'}
+        <label
+          >Metric<select bind:value={button.action.metric}
+            >{#each ['cpu', 'memory', 'gpu', 'gpu_memory', 'disk', 'clock'] as metric}<option
+                value={metric}>{metric}</option
+              >{/each}</select
+          ></label
+        >
+        <label
+          >Device name or index (empty uses default)<input
+            bind:value={button.action.target}
+          /></label
+        >
+        <label
+          >Update interval (ms)<input
+            type="number"
+            min="250"
+            bind:value={button.action.interval_ms}
+          /></label
+        >
+      {:else if button.action.type === 'folder'}<label
           >Destination<select bind:value={button.action.folder_id}
             >{#each layout?.folders ?? [] as f}<option value={f.id}>{f.label}</option
               >{/each}</select

@@ -28,7 +28,7 @@
             "id": "media",
             "label": "Play / pause",
             "icon": "\u25b6",
-            "color": "#6654e8",
+            "color": "#242424",
             "action": {
               "type": "command",
               "command": {
@@ -41,9 +41,139 @@
             "id": "settings",
             "label": "Settings",
             "icon": "\u2699",
-            "color": "#273549",
+            "color": "#242424",
             "action": {
               "type": "settings"
+            },
+            "extensions": {}
+          },
+          {
+            "id": "usage-cpu",
+            "label": "CPU",
+            "icon": "\u25c9",
+            "color": "#242424",
+            "action": {
+              "type": "metric",
+              "metric": "cpu",
+              "target": "",
+              "interval_ms": 1000
+            },
+            "extensions": {}
+          },
+          {
+            "id": "usage-memory",
+            "label": "Memory",
+            "icon": "\u25a4",
+            "color": "#242424",
+            "action": {
+              "type": "metric",
+              "metric": "memory",
+              "target": "",
+              "interval_ms": 1000
+            },
+            "extensions": {}
+          },
+          {
+            "id": "usage-gpu",
+            "label": "GPU",
+            "icon": "\u25a7",
+            "color": "#242424",
+            "action": {
+              "type": "metric",
+              "metric": "gpu",
+              "target": "",
+              "interval_ms": 1000
+            },
+            "extensions": {}
+          },
+          {
+            "id": "fullscreen",
+            "label": "Fullscreen",
+            "icon": "\u26f6",
+            "color": "#242424",
+            "action": {
+              "type": "fullscreen"
+            },
+            "extensions": {}
+          },
+          {
+            "id": "media-folder",
+            "label": "Media",
+            "icon": "\u25a6",
+            "color": "#242424",
+            "action": {
+              "type": "folder",
+              "folder_id": "media-controls"
+            },
+            "extensions": {}
+          }
+        ],
+        "extensions": {}
+      },
+      {
+        "id": "media-controls",
+        "label": "Media",
+        "buttons": [
+          {
+            "id": "media-back",
+            "label": "Back",
+            "icon": "\u21a9",
+            "color": "#242424",
+            "action": {
+              "type": "folder",
+              "folder_id": "home"
+            },
+            "extensions": {}
+          },
+          {
+            "id": "media-previous",
+            "label": "Previous",
+            "icon": "\u23ee",
+            "color": "#242424",
+            "action": {
+              "type": "command",
+              "command": {
+                "type": "previous"
+              }
+            },
+            "extensions": {}
+          },
+          {
+            "id": "media-toggle",
+            "label": "Play / pause",
+            "icon": "\u25b6",
+            "color": "#242424",
+            "action": {
+              "type": "command",
+              "command": {
+                "type": "play_pause"
+              }
+            },
+            "extensions": {}
+          },
+          {
+            "id": "media-next",
+            "label": "Next",
+            "icon": "\u23ed",
+            "color": "#242424",
+            "action": {
+              "type": "command",
+              "command": {
+                "type": "next"
+              }
+            },
+            "extensions": {}
+          },
+          {
+            "id": "media-mute",
+            "label": "Mute",
+            "icon": "\u266a",
+            "color": "#242424",
+            "action": {
+              "type": "command",
+              "command": {
+                "type": "mute"
+              }
             },
             "extensions": {}
           }

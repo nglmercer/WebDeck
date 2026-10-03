@@ -204,6 +204,18 @@ pub enum ButtonAction {
     Settings,
     #[serde(rename = "usage")]
     Usage,
+    #[serde(rename = "back")]
+    Back,
+    #[serde(rename = "edit")]
+    Edit,
+    #[serde(rename = "none")]
+    None,
+    #[serde(rename = "metric")]
+    Metric {
+        metric: String,
+        target: String,
+        interval_ms: u64,
+    },
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

@@ -19,10 +19,11 @@ and rejects the discarded application trees and protocols.
 
 ## Execution policy
 
-Admission bounds waiting and running requests together (16 accepted roots). A
-single native execution gate deliberately serializes root effects. Nested script
-and plugin calls inherit that root's slot and gate, so they cannot bypass
-serialization or deadlock while acquiring another worker. Each nested call checks
+Admission bounds waiting and running requests together (16 accepted roots).
+Unrelated roots execute independently, so a blocked desktop or integration call
+does not hold up every button. Keyboard chords use their own input lock. Nested
+script and plugin calls inherit the root slot without acquiring another worker.
+Each nested call checks
 capabilities, depth and the deadline. Rhai additionally bounds operations, call
 levels, expressions, strings, arrays and maps. Plugin capabilities narrow the
 caller grant; plugin code and catalog metadata are compiled/loaded at startup.

@@ -15,13 +15,19 @@ cargo run --locked --bin webdeck -- --no-tray
 Open `http://127.0.0.1:5000`. Run without `--no-tray` for the native tray and QR
 viewer. Linux builds require GTK 3, ALSA, XCB and pkg-config development packages.
 Audio and desktop actions also depend on the desktop session and installed tools
-such as PipeWire/PulseAudio, playerctl and wmctrl.
+such as PipeWire/PulseAudio and wmctrl. Media controls use MPRIS directly.
+On Wayland, keyboard actions request host approval through the desktop portal;
+WebDeck retains that session while running.
 
 For LAN access, start with `--host 0.0.0.0`. Approve a device in Settings from the
 local browser, choose its capabilities and expiry, and enter its token on the
 controller. Tokens never go in URLs. A controller cannot retrieve integration
 credentials or the source of configured actions: it invokes button references,
 and the server resolves and authorizes them on each request. Use a trusted network when transporting credentials.
+
+The normal view is just the button grid. Usage readings live in buttons, folders
+open as pages, and settings/edit shortcuts can be removed like any other button.
+Right-click or hold the deck for controls, `Q` to edit, or `Ctrl+,` for settings.
 
 ## Configuration and backups
 

@@ -17,6 +17,6 @@ There are no prefix aliases or text parsing rules.
 | Admin | firewall (local only; never grantable to a paired device) |
 | Settings | configuration, uploads, catalogued device settings and editor operations |
 
-Frontend actions are separately typed: folder navigation, reload, fullscreen,
-settings and usage. They do not go through a native text-command dispatcher.
+Frontend actions are separately typed: folder/back navigation, reload, fullscreen,
+settings, edit, blank slots and live metric buttons. They do not go through a native text-command dispatcher.
 OS-specific availability and runtime validation limits are documented in `STATUS.md`.

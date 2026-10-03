@@ -134,7 +134,18 @@ export async function request<T>(path: string, name: string, init: RequestInit =
   if (token) headers.set('Authorization', `Bearer ${token}`);
   if (init.body && !(init.body instanceof FormData))
     headers.set('Content-Type', 'application/json');
-  const r = await fetch(`/api/v2/${path}`, { ...init, headers });
+  let r: Response;
+  try {
+    r = await fetch(`/api/v2/${path}`, {
+      ...init,
+      headers,
+      signal: init.signal ?? AbortSignal.timeout(35000),
+    });
+  } catch (e) {
+    if (e instanceof DOMException && (e.name === 'TimeoutError' || e.name === 'AbortError'))
+      throw new Error('Request timed out; execution outcome is unknown. No retry was sent.');
+    throw e;
+  }
   const v: unknown = await r.json();
   if (!r.ok) {
     const e = v as { message?: string };

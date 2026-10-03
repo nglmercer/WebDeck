@@ -215,6 +215,40 @@ pub fn resolve_viewer_binary() -> PathBuf {
     PathBuf::from("webdeck-qr")
 }
 
+/// Show a QR window directly, including when only the main binary was built.
+pub fn show(url: &str) -> crate::domain::Result<()> {
+    use minifb::{Key, MouseButton, MouseMode, Window, WindowOptions};
+    let gray = render_qr_luma(url, QR_DISPLAY_SIZE).ok_or_else(crate::domain::Error::execution)?;
+    let (w, h) = (310, 360);
+    let frame = compose_frame(&gray, w, h);
+    let mut window = Window::new(
+        &format!("WebDeck · {url}"),
+        w as usize,
+        h as usize,
+        WindowOptions::default(),
+    )
+    .map_err(|e| {
+        crate::domain::Error::new(
+            crate::contracts::ErrorCode::ExecutionFailed,
+            format!("Cannot open QR window: {e}"),
+        )
+    })?;
+    window.set_target_fps(30);
+    while window.is_open() && !window.is_key_down(Key::Escape) {
+        if window.get_mouse_down(MouseButton::Left)
+            && window
+                .get_mouse_pos(MouseMode::Discard)
+                .is_some_and(|(x, y)| hit_test(x, y, button_rect(w, h)))
+        {
+            break;
+        }
+        window
+            .update_with_buffer(&frame, w as usize, h as usize)
+            .map_err(|_| crate::domain::Error::execution())?;
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

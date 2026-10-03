@@ -424,6 +424,14 @@ async fn controller_boot_redacts_inline_action_secrets_and_both_http_actions_che
     a.config
         .mutate(s.revision, |c| {
             c.settings.obs.password = "integration-secret".into();
+            c.layout.extensions.insert(
+                "appearance".into(),
+                json!({"gap":0,"show_labels":false,"secret":"presentation-secret"}),
+            );
+            c.layout.folders[0].buttons[0].extensions.insert(
+                "appearance".into(),
+                json!({"columns":2,"secret":"presentation-secret"}),
+            );
             c.layout.folders[0].buttons[0].action = ButtonAction::Command {
                 command: Command::Fetch {
                     method: "GET".into(),
@@ -464,7 +472,16 @@ async fn controller_boot_redacts_inline_action_secrets_and_both_http_actions_che
     let text = String::from_utf8(bytes.to_vec()).unwrap();
     assert!(!text.contains("integration-secret"));
     assert!(!text.contains("action-secret"));
+    assert!(!text.contains("presentation-secret"));
     let v: Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(
+        v["layout"]["extensions"]["appearance"],
+        json!({"gap":0,"show_labels":false})
+    );
+    assert_eq!(
+        v["layout"]["folders"][0]["buttons"][0]["extensions"]["appearance"],
+        json!({"columns":2})
+    );
     assert_eq!(
         v["layout"]["folders"][0]["buttons"][0]["action"]["command"],
         json!({"type":"button","button_id":"media"})
@@ -514,4 +531,135 @@ fn invalid_and_cyclic_configured_button_references_are_rejected_before_publicati
         },
     };
     assert!(domain::validate_config(&c).is_err());
+}
+
+#[tokio::test]
+async fn stalled_action_does_not_block_an_unrelated_action() {
+    use std::sync::Barrier;
+    struct Stall {
+        start: Arc<Barrier>,
+        release: Arc<Barrier>,
+    }
+    impl Adapter for Stall {
+        fn execute(&self, c: &Command, _: &Context) -> domain::Result<Value> {
+            if matches!(c, Command::PlayPause) {
+                self.start.wait();
+                self.release.wait();
+            }
+            Ok(json!({}))
+        }
+    }
+    let start = Arc::new(Barrier::new(2));
+    let release = Arc::new(Barrier::new(2));
+    let executor = Arc::new(Executor::new(
+        Arc::new(Stall {
+            start: start.clone(),
+            release: release.clone(),
+        }),
+        2,
+    ));
+    let owner = executor.clone();
+    let stalled = tokio::spawn(async move {
+        owner
+            .execute(
+                CommandRequest {
+                    request_id: "stalled".into(),
+                    command: Command::PlayPause,
+                },
+                vec![Capability::Audio],
+                || {},
+            )
+            .await
+    });
+    tokio::task::spawn_blocking(move || start.wait())
+        .await
+        .unwrap();
+    let result = tokio::time::timeout(
+        std::time::Duration::from_secs(1),
+        executor.execute(
+            CommandRequest {
+                request_id: "responsive".into(),
+                command: Command::Debug {
+                    data: Default::default(),
+                },
+            },
+            vec![Capability::Read],
+            || {},
+        ),
+    )
+    .await;
+    tokio::task::spawn_blocking(move || release.wait())
+        .await
+        .unwrap();
+    assert!(result.unwrap().is_ok());
+    stalled.await.unwrap().unwrap();
+}
+
+#[test]
+fn grid_dimensions_do_not_limit_button_count() {
+    let mut config: Config =
+        serde_json::from_str(include_str!("../webdeck/config_default.json")).unwrap();
+    config.layout.columns = 1;
+    config.layout.rows = 1;
+    domain::validate_config(&config).unwrap();
+    assert!(config.layout.folders[0].buttons.len() > 1);
+}
+
+#[tokio::test(start_paused = true)]
+async fn stalled_action_observation_times_out_without_releasing_owned_capacity() {
+    use std::sync::Barrier;
+    struct Stall {
+        start: Arc<Barrier>,
+        release: Arc<Barrier>,
+    }
+    impl Adapter for Stall {
+        fn execute(&self, _: &Command, _: &Context) -> domain::Result<Value> {
+            self.start.wait();
+            self.release.wait();
+            Ok(json!({}))
+        }
+    }
+    let start = Arc::new(Barrier::new(2));
+    let release = Arc::new(Barrier::new(2));
+    let executor = Arc::new(Executor::new(
+        Arc::new(Stall {
+            start: start.clone(),
+            release: release.clone(),
+        }),
+        1,
+    ));
+    let owner = executor.clone();
+    let observer = tokio::spawn(async move {
+        owner
+            .execute(
+                CommandRequest {
+                    request_id: "timeout".into(),
+                    command: Command::PlayPause,
+                },
+                vec![Capability::Audio],
+                || {},
+            )
+            .await
+    });
+    tokio::task::spawn_blocking(move || start.wait())
+        .await
+        .unwrap();
+    tokio::time::advance(std::time::Duration::from_secs(31)).await;
+    let error = observer.await.unwrap().unwrap_err();
+    let second = executor
+        .execute(
+            CommandRequest {
+                request_id: "capacity".into(),
+                command: Command::PlayPause,
+            },
+            vec![Capability::Audio],
+            || {},
+        )
+        .await;
+    tokio::task::spawn_blocking(move || release.wait())
+        .await
+        .unwrap();
+    assert!(error.message.contains("outcome is unknown"));
+    assert_eq!(second.unwrap_err().code, ErrorCode::CapacityExhausted);
+    executor.drain().await;
 }

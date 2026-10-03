@@ -28,8 +28,8 @@ test('new deck edits typed actions, folders, themes and keeps conflict drafts', 
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Work folder', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Work', exact: true })).toBeVisible();
-  await page.locator('aside').getByRole('button', { name: /Home/ }).click();
-  await page.getByRole('button', { name: 'Edit deck' }).click();
+  await page.keyboard.press('Alt+ArrowLeft');
+  await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Edit Play / pause' }).click();
   await page.getByLabel('Label', { exact: true }).fill('My music');
   await page.getByRole('button', { name: 'Apply to draft' }).click();
@@ -37,7 +37,7 @@ test('new deck edits typed actions, folders, themes and keeps conflict drafts', 
   await expect(page.getByRole('status')).toContainText('Saved');
   await page.reload();
   await expect(page.getByRole('button', { name: 'My music', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Edit deck' }).click();
+  await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Edit My music' }).click();
   await page.getByLabel('Label', { exact: true }).fill('Unsaved draft');
   await page.getByRole('button', { name: 'Apply to draft' }).click();
@@ -61,7 +61,7 @@ test('theme and image uploads, folder creation and settings round trip', async (
   await page.getByLabel('Upload a theme').setInputFiles({
     name: 'theme.css',
     mimeType: 'text/css',
-    buffer: Buffer.from('.brand{--test-theme:loaded}'),
+    buffer: Buffer.from('.deck-grid{--test-theme:loaded}'),
   });
   const image = {
     name: 'image.png',
@@ -76,29 +76,23 @@ test('theme and image uploads, folder creation and settings round trip', async (
   await page.getByRole('button', { name: /^Save( changes)?$/, exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Saved');
   await page.reload();
-  await expect(page.locator('.brand')).toHaveCSS('--test-theme', 'loaded');
-  await page.getByRole('button', { name: 'Edit deck' }).click();
+  await page.getByRole('button', { name: 'Back to deck' }).click();
+  await expect(page.locator('.deck-grid')).toHaveCSS('--test-theme', 'loaded');
+  await page.keyboard.press('q');
   await page.getByRole('button', { name: /Add folder/ }).click();
   await page.getByLabel('Folder name').fill('Studio');
   await page.getByRole('button', { name: /^Save( changes)?$/, exact: true }).click();
   await page.reload();
-  await expect(page.locator('aside').getByRole('button', { name: /Studio/ })).toBeVisible();
-  await page
-    .locator('aside')
-    .getByRole('button', { name: /Studio/ })
-    .click();
-  await page.getByRole('button', { name: 'Edit deck' }).click();
-  await page.getByRole('button', { name: /^\+ Add button$/ }).click();
+  await expect(page.getByRole('heading', { name: 'Studio', exact: true })).toBeVisible();
+  await page.keyboard.press('q');
+  await page.getByRole('button', { name: /Add button in cell/ }).first().click();
   await page.getByLabel('Label', { exact: true }).fill('Image button');
   await page.getByLabel('Upload image').setInputFiles(image);
   await expect(page.getByLabel('Icon', { exact: true })).toHaveValue(/^asset:/);
   await page.getByRole('button', { name: 'Apply to draft' }).click();
   await page.getByRole('button', { name: /^Save( changes)?$/ }).click();
   await page.reload();
-  await page
-    .locator('aside')
-    .getByRole('button', { name: /Studio/ })
-    .click();
+
   await expect(
     page.getByRole('button', { name: 'Image button', exact: true }).locator('img'),
   ).toBeVisible();
@@ -132,7 +126,9 @@ test('typed realtime correlation, retired routes, revoked sessions and offline c
   }
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+  await page.keyboard.press('Control+,');
   await page.getByLabel('Connection').selectOption('socket');
+  await page.getByRole('button', { name: 'Back to deck' }).click();
   await page.waitForTimeout(300);
   await page.getByRole('button', { name: 'Play / pause', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Completed');
@@ -174,7 +170,7 @@ test('paired controller never receives integration settings and revocation rejec
   await page.addInitScript((token) => sessionStorage.setItem('webdeck.device', token), grant.token);
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Edit deck' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Edit deck', exact: true })).toHaveCount(0);
   expect((await request.delete(`/api/v2/devices/${grant.device.id}`)).ok()).toBeTruthy();
   expect((await request.get('/api/v2/boot', { headers })).status()).toBe(401);
   await page.reload();
@@ -191,12 +187,82 @@ test('live usage returns typed metrics and the UI presents memory and CPU', asyn
   expect(v.usage.memory_total).toBeGreaterThan(0);
   expect(Array.isArray(v.usage.gpus)).toBe(true);
   await page.goto('/');
-  await page.getByRole('button', { name: 'Usage', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'System usage' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Memory', exact: true })).toBeVisible();
-  await expect(page.getByRole('progressbar')).toHaveCount(
-    2 + v.usage.disks.length + v.usage.gpus.length,
-  );
-  await page.getByRole('button', { name: 'Deck', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+  await expect(page.locator('header, aside, footer')).toHaveCount(0);
+  const cpu = page.getByRole('button', { name: 'CPU', exact: true });
+  await expect(cpu.locator('.metric-value')).toContainText('%');
+  await expect(cpu.getByRole('progressbar')).toHaveCount(1);
+  await expect(
+    page.getByRole('button', { name: 'Memory', exact: true }).locator('.metric-value'),
+  ).toContainText('%');
+  await expect(page.getByRole('heading', { name: 'System usage' })).toHaveCount(0);
+});
+
+test('empty decks retain hidden editing access and new folders get navigation buttons', async ({
+  page,
+  request,
+}) => {
+  const snapshot = await (await request.get('/api/v2/config')).json();
+  snapshot.config.layout.folders = [{ id: 'empty', label: 'Empty', buttons: [], extensions: {} }];
+  expect(
+    (
+      await request.put('/api/v2/config', {
+        data: { revision: snapshot.revision, config: snapshot.config },
+      })
+    ).ok(),
+  ).toBeTruthy();
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Empty', exact: true })).toBeVisible();
+  await expect(page.locator('.deck-grid button')).toHaveCount(0);
+  await page.keyboard.press('q');
+  await page.getByRole('button', { name: '+ Add folder', exact: true }).click();
+  await page.getByLabel('Folder name').fill('Nested');
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await page.keyboard.press('q');
+  await page.getByRole('button', { name: 'Back', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Nested', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Nested', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Nested', exact: true })).toBeVisible();
+  await page.mouse.click(1, 1, { button: 'right' });
+  await expect(page.getByRole('dialog', { name: 'Deck controls' })).toBeVisible();
+});
+
+test('touch hold opens controls without invoking the held button', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
+  let executions = 0;
+  page.on('request', (r) => {
+    if (r.method() === 'POST' && r.url().endsWith('/commands')) executions++;
+  });
+  await page
+    .getByRole('button', { name: 'Play / pause', exact: true })
+    .dispatchEvent('pointerdown', { pointerType: 'touch', clientX: 50, clientY: 50 });
+  await page.dispatchEvent('.deck-grid', 'pointermove', {
+    pointerType: 'touch',
+    clientX: 53,
+    clientY: 51,
+  });
+  await expect(page.getByRole('dialog', { name: 'Deck controls' })).toBeVisible();
+  await page.dispatchEvent('.deck-grid', 'pointerup', { pointerType: 'touch' });
+  expect(executions).toBe(0);
+});
+
+test('Q edits fixed cells, F1 shows shortcuts, and removing preserves neighboring positions', async ({page}) => {
+  await page.goto('/');
+  await page.getByRole('button', {name:'Play / pause', exact:true}).waitFor();
+  const before = await page.getByRole('button', {name:'CPU', exact:true}).locator('..').getAttribute('data-cell');
+  await page.keyboard.press('F1');
+  await expect(page.getByRole('dialog', {name:'Keyboard shortcuts'})).toContainText('Q');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('q');
+  await page.getByRole('button', {name:'Remove Settings', exact:true}).click();
+  await expect(page.getByRole('button', {name:'CPU', exact:true}).locator('..')).toHaveAttribute('data-cell', before!);
+  await page.keyboard.press('q');
+  await page.reload();
+  await page.getByRole('button', {name:'CPU', exact:true}).waitFor();
+  await expect(page.getByRole('button', {name:'CPU', exact:true}).locator('..')).toHaveAttribute('data-cell', before!);
+  await page.keyboard.press('q');
+  await page.getByRole('button', {name:'Add button in cell 2', exact:true}).click();
+  await page.getByLabel('Label', {exact:true}).fill('Replacement');
+  await page.getByRole('button', {name:'Apply to draft'}).click();
+  await expect(page.getByRole('button', {name:'Replacement', exact:true}).locator('..')).toHaveAttribute('data-cell','1');
 });

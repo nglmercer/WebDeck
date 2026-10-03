@@ -110,13 +110,20 @@ async fn spotify_action(
     change: &VolumeChange,
 ) -> Result<()> {
     use rspotify::prelude::*;
-    let current = spotify_get(c, "me/player/currently-playing".into(), Default::default()).await?;
-    let track = current["item"]["id"]
-        .as_str()
-        .ok_or_else(Error::execution)?;
-    let uri = current["item"]["uri"]
-        .as_str()
-        .ok_or_else(Error::execution)?;
+    let needs_track = !matches!(action, "volume" | "play_song" | "play_playlist");
+    let current = if needs_track {
+        spotify_get(c, "me/player/currently-playing".into(), Default::default()).await?
+    } else {
+        Value::Null
+    };
+    let track = current["item"]["id"].as_str().unwrap_or("");
+    let uri = current["item"]["uri"].as_str().unwrap_or("");
+    if needs_track && (track.is_empty() || uri.is_empty()) {
+        return Err(Error::new(
+            ErrorCode::ExecutionFailed,
+            "This Spotify action needs a current track",
+        ));
+    }
     match action {
         "save_song" => {
             c.api_put("me/tracks", &json!({"ids":[track]}))
@@ -242,4 +249,75 @@ async fn spotify_get(
     use rspotify::prelude::*;
     let s = c.api_get(&path, &q).await.map_err(|_| Error::execution())?;
     serde_json::from_str(&s).map_err(|_| Error::execution())
+}
+
+#[cfg(target_os = "linux")]
+pub(super) fn media(action: &str) -> Result<Value> {
+    let method = match action {
+        "play-pause" => "PlayPause",
+        "next" => "Next",
+        "previous" => "Previous",
+        _ => return Err(Error::invalid()),
+    };
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|_| Error::execution())?;
+    rt.block_on(async {
+        tokio::time::timeout(Duration::from_secs(5), async {
+            let connection = zbus::Connection::session()
+                .await
+                .map_err(|_| Error::execution())?;
+            let bus = zbus::fdo::DBusProxy::new(&connection)
+                .await
+                .map_err(|_| Error::execution())?;
+            let names = bus.list_names().await.map_err(|_| Error::execution())?;
+            let mut players = names
+                .into_iter()
+                .filter(|n| n.as_str().starts_with("org.mpris.MediaPlayer2."))
+                .collect::<Vec<_>>();
+            players.sort_by(|a, b| a.as_str().cmp(b.as_str()));
+            let mut chosen = None;
+            for name in players {
+                let player = zbus::Proxy::new(
+                    &connection,
+                    name,
+                    "/org/mpris/MediaPlayer2",
+                    "org.mpris.MediaPlayer2.Player",
+                )
+                .await
+                .map_err(|_| Error::execution())?;
+                let playing = player
+                    .get_property::<String>("PlaybackStatus")
+                    .await
+                    .is_ok_and(|s| s == "Playing");
+                if chosen.is_none() || playing {
+                    chosen = Some(player);
+                }
+                if playing {
+                    break;
+                }
+            }
+            let player = chosen.ok_or_else(|| {
+                Error::new(
+                    ErrorCode::ExecutionFailed,
+                    "No media player is available; open a player on the host desktop",
+                )
+            })?;
+            player.call::<_, _, ()>(method, &()).await.map_err(|_| {
+                Error::new(
+                    ErrorCode::ExecutionFailed,
+                    "The media player rejected the action",
+                )
+            })?;
+            Ok(json!({}))
+        })
+        .await
+        .map_err(|_| {
+            Error::new(
+                ErrorCode::ExecutionFailed,
+                "Media player did not respond within 5 seconds",
+            )
+        })?
+    })
 }

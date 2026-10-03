@@ -48,7 +48,7 @@ sysinfo = "0.39.6"
 image = "0.25.10"
 qrcode = "0.14.1"
 minifb = "0.28"
-arboard = "3.6.1"
+arboard = { version = "3.6.1", features = ["wayland-data-control"] }
 enigo = "0.6.1"
 rhai = { version = "1.26.1", features = ["sync", "serde"] }
 nvml-wrapper = "0.13.0"
@@ -94,7 +94,7 @@ tao = "0.37.1"
 # ashpd portal (pure Rust) + raw xcb cover the same backends with no libdbus.
 xcb = "1"
 display-info = "0.4"
-ashpd = { version = "0.13", default-features = false, features = ["tokio", "screenshot"] }
+ashpd = { version = "0.13", default-features = false, features = ["tokio", "screenshot", "remote_desktop", "screencast"] }
 # Direct use: one fresh bus connection per portal capture (ashpd's cached
 # global connection cannot outlive our throwaway runtimes).
 zbus = "5"
@@ -105,6 +105,7 @@ zbus = "5"
 screenshots = "0.8.10"
 
 [dev-dependencies]
+tokio = { version = "1", features = ["test-util"] }
 # Router regression tests drive the real route table via `oneshot`.
 tower = { version = "0.5", features = ["util"] }
 

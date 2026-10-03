@@ -1057,6 +1057,77 @@
           "required": [
             "type"
           ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "back"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "edit"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "none"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "metric"
+            },
+            "metric": {
+              "type": "string",
+              "enum": [
+                "cpu",
+                "memory",
+                "gpu",
+                "gpu_memory",
+                "disk",
+                "clock"
+              ]
+            },
+            "target": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "interval_ms": {
+              "type": "integer",
+              "minimum": 250,
+              "maximum": 3600000
+            }
+          },
+          "required": [
+            "type",
+            "metric",
+            "target",
+            "interval_ms"
+          ]
         }
       ]
     },

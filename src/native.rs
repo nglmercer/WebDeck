@@ -2,6 +2,8 @@ mod integrations;
 mod scripts;
 use scripts::load_plugins;
 mod capture;
+#[cfg(target_os = "linux")]
+mod input;
 #[cfg(windows)]
 mod policy_config;
 #[cfg(windows)]
@@ -56,6 +58,29 @@ impl Native {
         x.check(c.capability())?;
         domain::validate_command(c)?;
         use Command::*;
+        // Keep clipboard-plus-paste and complete key chords atomic without
+        // serializing media, network, or unrelated desktop effects.
+        let _input = if matches!(
+            c,
+            Key { .. }
+                | Write { .. }
+                | Copy { .. }
+                | Paste { .. }
+                | Cut
+                | Clipboard
+                | ClearClipboard
+                | SpeechRecognition
+                | CloseFocused
+        ) {
+            Some(INPUT_LOCK.try_lock().map_err(|_| {
+                Error::new(
+                    ErrorCode::ExecutionFailed,
+                    "Input is busy; check the host desktop permission dialog",
+                )
+            })?)
+        } else {
+            None
+        };
         match c {
             Command::Button { button_id } => {
                 let config = self.config.snapshot()?.config;
@@ -83,6 +108,10 @@ impl Native {
             Usage => Ok(usage()),
             Key { keys } => key(keys),
             Write { text, send } => {
+                #[cfg(target_os = "linux")]
+                if input::wayland() {
+                    return input::text(text, *send);
+                }
                 let mut a = agent()?;
                 a.text(text).map_err(|_| Error::execution())?;
                 if *send {
@@ -280,6 +309,7 @@ impl Adapter for Arc<Native> {
         self.exec(c, x)
     }
     fn shutdown(&self) {
+        CLIPBOARD.lock().unwrap_or_else(|p| p.into_inner()).take();
         for child in self
             .children
             .lock()
@@ -324,12 +354,12 @@ fn agent() -> Result<Enigo> {
 }
 fn map_key(s: &str) -> Result<Key> {
     Ok(match s.to_lowercase().as_str() {
-        "ctrl" => Key::Control,
+        "ctrl" | "control" => Key::Control,
         "shift" => Key::Shift,
         "alt" => Key::Alt,
-        "meta" => Key::Meta,
-        "enter" => Key::Return,
-        "escape" => Key::Escape,
+        "meta" | "super" | "win" | "windows" => Key::Meta,
+        "enter" | "return" => Key::Return,
+        "escape" | "esc" => Key::Escape,
         "tab" => Key::Tab,
         "space" => Key::Space,
         "backspace" => Key::Backspace,
@@ -362,7 +392,12 @@ fn map_key(s: &str) -> Result<Key> {
         }
     })
 }
+static INPUT_LOCK: Mutex<()> = Mutex::new(());
 fn key(s: &[String]) -> Result<Value> {
+    #[cfg(target_os = "linux")]
+    if input::wayland() {
+        return input::keys(s);
+    }
     let keys: Vec<_> = s.iter().map(|s| map_key(s)).collect::<Result<_>>()?;
     let mut a = agent()?;
     let mut pressed = Vec::new();
@@ -378,9 +413,20 @@ fn key(s: &[String]) -> Result<Value> {
     }
     result
 }
+static CLIPBOARD: Mutex<Option<arboard::Clipboard>> = Mutex::new(None);
 fn clipboard(s: &str) -> Result<Value> {
-    arboard::Clipboard::new()
-        .and_then(|mut c| c.set_text(s.to_owned()))
+    let mut slot = CLIPBOARD.lock().unwrap_or_else(|p| p.into_inner());
+    if slot.is_none() {
+        *slot = Some(arboard::Clipboard::new().map_err(|_| {
+            Error::new(
+                ErrorCode::ExecutionFailed,
+                "Cannot connect to the host clipboard",
+            )
+        })?);
+    }
+    slot.as_mut()
+        .expect("initialized clipboard")
+        .set_text(s.to_owned())
         .map_err(|_| Error::execution())?;
     Ok(json!({}))
 }
@@ -402,20 +448,31 @@ fn run(program: &str, args: &[&str]) -> Result<Value> {
         use std::os::unix::process::CommandExt;
         p.process_group(0);
     }
-    let mut child = p.spawn().map_err(|_| Error::execution())?;
-    let deadline = Instant::now() + Duration::from_secs(30);
+    let mut child = p.spawn().map_err(|e| {
+        Error::new(
+            ErrorCode::ExecutionFailed,
+            format!("Cannot launch {program}: {e}"),
+        )
+    })?;
+    let deadline = Instant::now() + Duration::from_secs(5);
     loop {
         if let Some(status) = child.try_wait().map_err(|_| Error::execution())? {
             stop(&mut child);
             return if status.success() {
                 Ok(json!({}))
             } else {
-                Err(Error::execution())
+                Err(Error::new(
+                    ErrorCode::ExecutionFailed,
+                    format!("{program} exited with {status}"),
+                ))
             };
         }
         if Instant::now() >= deadline {
             stop(&mut child);
-            return Err(Error::execution());
+            return Err(Error::new(
+                ErrorCode::ExecutionFailed,
+                format!("{program} timed out"),
+            ));
         }
         std::thread::sleep(Duration::from_millis(10));
     }
@@ -434,7 +491,7 @@ fn media(action: &str, k: Key) -> Result<Value> {
             return run("pactl", &["set-sink-mute", "@DEFAULT_SINK@", "toggle"]);
         }
         let _ = k;
-        run("playerctl", &[action])
+        integrations::media(action)
     }
     #[cfg(not(target_os = "linux"))]
     {
@@ -470,7 +527,8 @@ pub fn usage() -> Value {
         .get_or_init(|| Mutex::new(sysinfo::System::new_all()))
         .lock()
         .unwrap_or_else(|p| p.into_inner());
-    s.refresh_all();
+    s.refresh_cpu_usage();
+    s.refresh_memory();
     let usage = UsageSnapshot {
         memory_used: s.used_memory(),
         memory_total: s.total_memory(),
