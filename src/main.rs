@@ -60,9 +60,10 @@ async fn start() -> Result<()> {
                 "VM migration mode is available in development builds only",
             ));
         }
-        Arc::new(VmAdapter::new(Arc::new(VmRuntime::new(Arc::new(
-            NativeMetrics,
-        ))?)))
+        Arc::new(VmAdapter::new(Arc::new(VmRuntime::with_host(
+            Arc::new(NativeMetrics),
+            native.clone(),
+        )?)))
     } else if cfg!(debug_assertions) && std::env::var("WEBDECK_FAKE_EFFECTS").as_deref() == Ok("1")
     {
         Arc::new(Fake)

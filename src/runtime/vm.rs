@@ -1,4 +1,8 @@
-use super::{bridge::Bridge, capabilities::Metrics, errors, modules};
+use super::{
+    bridge::Bridge,
+    capabilities::{CapabilityHost, Metrics, UnavailableHost},
+    errors, modules,
+};
 use crate::{
     contracts::{Command, ErrorCode},
     domain::{self, Error, Result},
@@ -35,12 +39,15 @@ pub struct VmRuntime {
 impl VmRuntime {
     /// Boot synchronously so startup failure cannot silently select native dispatch.
     pub fn new(metrics: Arc<dyn Metrics>) -> Result<Self> {
+        Self::with_host(metrics, Arc::new(UnavailableHost))
+    }
+    pub fn with_host(metrics: Arc<dyn Metrics>, host: Arc<dyn CapabilityHost>) -> Result<Self> {
         let (sender, receiver) = mpsc::sync_channel(QUEUE_CAPACITY);
         let (ready, booted) = mpsc::channel();
         let thread = thread::Builder::new()
             .name("webdeck-vm".into())
             .spawn(move || {
-                let initialized = Machine::boot(metrics);
+                let initialized = Machine::boot(metrics, host.clone());
                 match initialized {
                     Ok(mut machine) => {
                         if ready.send(Ok(())).is_err() {
@@ -58,6 +65,7 @@ impl VmRuntime {
                                 Request::Shutdown => break,
                             }
                         }
+                        host.shutdown();
                     }
                     Err(error) => {
                         let _ = ready.send(Err(error));
@@ -124,12 +132,18 @@ struct Machine {
     invoke: PreparedProgram,
 }
 impl Machine {
-    fn boot(metrics: Arc<dyn Metrics>) -> Result<Self> {
+    fn boot(metrics: Arc<dyn Metrics>, host: Arc<dyn CapabilityHost>) -> Result<Self> {
         let bridge = Rc::new(Bridge {
+            this: std::cell::OnceCell::new(),
             context: RefCell::new(None),
             error: RefCell::new(None),
             metrics,
+            host,
         });
+        bridge
+            .this
+            .set(Rc::downgrade(&bridge))
+            .map_err(|_| errors::unavailable())?;
         let mut vm = Interpreter::with_builtins();
         vm.set_host_bridge(bridge.clone());
         vm.set_fuel_budget(1_000_000);
@@ -145,13 +159,6 @@ impl Machine {
     }
     fn invoke(&mut self, command: &Command, context: &Context) -> Result<Value> {
         context.check(command.capability())?;
-        // This milestone intentionally exposes only debug and usage.
-        if !matches!(command, Command::Debug { .. } | Command::Usage) {
-            return Err(Error::new(
-                ErrorCode::InvalidInput,
-                "Command has not migrated to the VM",
-            ));
-        }
         let remaining = context.remaining(command.capability(), Duration::from_secs(30))?;
         self.vm.set_execution_timeout(Some(remaining));
         *self.bridge.context.borrow_mut() = Some(context.clone());
@@ -187,9 +194,10 @@ impl Machine {
             .borrow_mut()
             .set("__webdeckContext", GuestValue::Undefined);
         *self.bridge.context.borrow_mut() = None;
-        match self.bridge.error.borrow_mut().take() {
-            Some(error) => Err(error),
-            None => result,
+        let error = self.bridge.error.borrow_mut().take();
+        match (result, error) {
+            (Err(_), Some(error)) => Err(error),
+            (result, _) => result,
         }
     }
 }

@@ -1,3 +1,6 @@
+import { execute as executeScript } from "webdeck:scripts";
+import { call } from "webdeck:host";
+import { fetch } from "webdeck:network";
 import { usage } from "webdeck:metrics";
 const commands = new Map();
 commands.set("debug", {
@@ -9,6 +12,57 @@ commands.set("debug", {
     },
 });
 commands.set("usage", { capability: "read", execute: () => usage() });
+commands.set("fetch", {
+    capability: "network",
+    execute(command) {
+        if (command.type !== "fetch")
+            throw new Error("Invalid command");
+        return fetch({ method: command.method, url: command.url, headers: command.headers, body: command.body, timeoutMs: Math.min(30000, command.timeout_seconds * 1000) });
+    },
+});
+const primitiveCommands = {
+    exit: { capability: "power", execute: () => call("system.exit", {}) },
+    key: { capability: "input", execute: c => call("input.perform", { steps: [{ kind: "press", keys: c.keys }] }) },
+    write: { capability: "input", execute: c => call("input.perform", { steps: [{ kind: "text", text: c.text }, ...(c.send ? [{ kind: "press", keys: ["enter"] }] : [])] }) },
+    copy: { capability: "input", execute: c => call("input.perform", { steps: c.use_selection ? [{ kind: "press", keys: ["ctrl", "c"] }] : [{ kind: "clipboard", text: c.text }] }) },
+    paste: { capability: "input", execute: c => call("input.perform", { steps: [...(c.use_selection ? [] : [{ kind: "clipboard", text: c.text }]), { kind: "press", keys: ["ctrl", "v"] }] }) },
+    cut: { capability: "input", execute: () => call("input.perform", { steps: [{ kind: "press", keys: ["ctrl", "x"] }] }) },
+    clipboard: { capability: "input", execute: () => call("input.perform", { steps: [{ kind: "press", keys: ["meta", "v"] }] }) },
+    clear_clipboard: { capability: "input", execute: () => call("input.perform", { steps: [{ kind: "clipboard", text: "" }] }) },
+    speech_recognition: { capability: "input", execute: () => call("input.perform", { steps: [{ kind: "press", keys: ["meta", "h"] }] }) },
+    open: { capability: "window", execute: c => call("window.open", { target: c.target }) },
+    foreground: { capability: "window", execute: c => call("window.foreground", { target: c.target }) },
+    close_focused: { capability: "window", execute: () => call("window.closeFocused", {}) },
+    kill: { capability: "window", execute: c => call("window.kill", { target: c.target }) },
+    restart: { capability: "window", execute: c => { call("window.kill", { target: c.target }); return call("process.spawn", { executable: c.target, args: [] }); } },
+    restart_desktop: { capability: "window", execute: () => call("window.restartDesktop", {}) },
+    color_picker: { capability: "window", execute: () => call("capture.pick", {}) },
+    screensaver_settings: { capability: "power", execute: () => call("system.screensaverSettings", {}) },
+    screensaver: { capability: "power", execute: c => call("system.screensaver", { mode: c.mode }) },
+    firewall: { capability: "admin", execute: () => call("system.firewall", {}) },
+    volume: { capability: "audio", execute: c => call("audio.volume", { change: c.change }) },
+    app_volume: { capability: "audio", execute: c => call("audio.appVolume", { application: c.application, change: c.change }) },
+    microphone: { capability: "audio", execute: c => call("audio.endpoint", { device: c.device, input: true }) },
+    speakers: { capability: "audio", execute: c => call("audio.endpoint", { device: c.device, input: false }) },
+    play_sound: { capability: "audio", execute: c => call("audio.play", { source: c.source, volume: c.volume, outputDevice: c.output_device, microphone: c.microphone, localOnly: c.local_only }) },
+    stop_sound: { capability: "audio", execute: () => call("audio.stopAll", {}) },
+    shell: { capability: "script", execute: c => call("process.shell", { source: call("storage.source", { source: c.source }), timeoutMs: Math.min(30000, c.timeout_seconds * 1000) }) },
+};
+for (const [id, definition] of Object.entries(primitiveCommands))
+    commands.set(id, definition);
+function powerCommand(verb) { return { capability: "power", execute: () => call("system.power", { verb }) }; }
+for (const [id, verb] of Object.entries({ shutdown: "poweroff", reboot: "reboot", sleep: "suspend", hibernate: "hibernate", lock: "lock" })) {
+    commands.set(id, powerCommand(verb));
+}
+function mediaCommand(action) { return { capability: "audio", execute: () => call("audio.media", { action }) }; }
+for (const [id, action] of Object.entries({ play_pause: "play-pause", previous: "previous", next: "next", mute: "mute" })) {
+    commands.set(id, mediaCommand(action));
+}
+commands.set("script", { capability: "script", execute(command) {
+        if (command.type !== "script")
+            throw new Error("Invalid script");
+        return { value: executeScript(call("storage.source", { source: command.source })) };
+    } });
 const app = Object.freeze({
     invoke(command, context) {
         const definition = commands.get(command.type);
@@ -21,3 +75,4 @@ const app = Object.freeze({
     },
 });
 globalThis.__webdeckRuntime = app;
+globalThis.__webdeckDispatch = app.invoke;

@@ -3,6 +3,7 @@ mod bridge;
 pub mod capabilities;
 mod errors;
 mod modules;
+mod sandbox;
 mod vm;
 
 pub use adapter::VmAdapter;
