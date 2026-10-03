@@ -27,7 +27,7 @@
           {
             "id": "index-0",
             "label": "Folder 1",
-            "icon": "asset:folder.png",
+            "icon": "icon:folder",
             "color": "#ffffff",
             "action": {
               "type": "folder",
@@ -43,7 +43,7 @@
           {
             "id": "index-1",
             "label": "Spotify",
-            "icon": "asset:spotify.png",
+            "icon": "icon:spotify",
             "color": "#ffffff",
             "action": {
               "type": "folder",
@@ -59,7 +59,7 @@
           {
             "id": "index-2",
             "label": "Open demo folder",
-            "icon": "asset:folder.png",
+            "icon": "icon:folder",
             "color": "#ffffff",
             "action": {
               "type": "command",
@@ -78,7 +78,7 @@
           {
             "id": "index-3",
             "label": "Enable screen saver",
-            "icon": "asset:screensaver.png",
+            "icon": "icon:monitor",
             "color": "#ffffff",
             "action": {
               "type": "command",
@@ -97,7 +97,7 @@
           {
             "id": "index-4",
             "label": "Enable hard screen saver",
-            "icon": "asset:screensaver-full.png",
+            "icon": "icon:monitor",
             "color": "#ffffff",
             "action": {
               "type": "command",
@@ -153,7 +153,7 @@
           {
             "id": "index-7",
             "label": "restart explorer",
-            "icon": "asset:restart_explorer.png",
+            "icon": "icon:folder",
             "color": "#ffffff",
             "action": {
               "type": "command",
@@ -209,7 +209,7 @@
           {
             "id": "index-24",
             "label": "Settings",
-            "icon": "asset:settings2.png",
+            "icon": "icon:settings",
             "color": "#ffffff",
             "action": {
               "type": "settings"
@@ -224,7 +224,7 @@
           {
             "id": "index-25",
             "label": "Refresh",
-            "icon": "asset:reload.png",
+            "icon": "icon:refresh",
             "color": "#ffffff",
             "action": {
               "type": "reload"
@@ -239,7 +239,7 @@
           {
             "id": "index-26",
             "label": "Fullscreen",
-            "icon": "asset:fullscreen2.png",
+            "icon": "icon:fullscreen",
             "color": "#ffffff",
             "action": {
               "type": "fullscreen"
@@ -299,7 +299,7 @@
           {
             "id": "folder1-0",
             "label": "back to index",
-            "icon": "asset:folder.png",
+            "icon": "icon:folder",
             "color": "#ffffff",
             "action": {
               "type": "folder",
@@ -356,7 +356,7 @@
           {
             "id": "spotify-6",
             "label": "Play/Pause",
-            "icon": "asset:playpause2.png",
+            "icon": "icon:play",
             "color": "#1ed664",
             "action": {
               "type": "command",

@@ -16,19 +16,15 @@ export function modal(dialog: HTMLDialogElement) {
       dialog.focus();
       return;
     }
-    if (
-      event.shiftKey &&
-      (document.activeElement === first || !dialog.contains(document.activeElement))
-    ) {
-      event.preventDefault();
-      last.focus();
-    } else if (
-      !event.shiftKey &&
-      (document.activeElement === last || !dialog.contains(document.activeElement))
-    ) {
-      event.preventDefault();
-      first.focus();
-    }
+    event.preventDefault();
+    const index = targets.findIndex((target) => target === document.activeElement);
+    const next =
+      index < 0
+        ? event.shiftKey
+          ? targets.length - 1
+          : 0
+        : (index + (event.shiftKey ? -1 : 1) + targets.length) % targets.length;
+    targets[next]?.focus();
   };
   dialog.addEventListener('keydown', keydown);
   return {

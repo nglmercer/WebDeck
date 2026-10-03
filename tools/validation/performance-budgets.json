@@ -1,10 +1,10 @@
 {
   "baseline": "docs/v2/evidence/improvements/browser-performance.json",
-  "bundle_js_bytes": 225000,
-  "bundle_gzip_bytes": 69000,
+  "bundle_js_bytes": 235000,
+  "bundle_gzip_bytes": 71000,
   "usable_ui_p95_ms": {
     "48": 350,
     "1024": 600
   },
-  "policy": "Bundle ceilings round approximately 10% above measured 204227/62676 bytes. Local UI ceilings round 50% above this baseline p95 to the next 50 ms. Compare timings on the same machine/profile; CI enforces bundle size only. Budget changes require an explained new measurement."
+  "policy": "Bundle ceilings are 235000 raw / 71000 gzip bytes after the SVG and accessible-tabs refactor (measured 230603 / 69855; docs/v2/evidence/frontend-redesign.json). Local UI timing ceilings retain the original baseline and must be compared on the same machine/profile; CI enforces bundle size only. Budget changes require an explained new measurement."
 }

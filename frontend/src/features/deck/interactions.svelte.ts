@@ -49,7 +49,7 @@ export class DeckInteractions {
     if (
       !this.actions.enabled() ||
       this.actions.hasDialog() ||
-      !(event.target instanceof HTMLElement) ||
+      !(event.target instanceof Element) ||
       event.target.closest('input,textarea,select,[contenteditable],.editor-toolbar')
     )
       return;
@@ -61,7 +61,7 @@ export class DeckInteractions {
       event.pointerType !== 'touch' ||
       !this.actions.enabled() ||
       this.actions.hasDialog() ||
-      !(event.target instanceof HTMLElement) ||
+      !(event.target instanceof Element) ||
       !event.target.closest('.deck-grid')
     )
       return;

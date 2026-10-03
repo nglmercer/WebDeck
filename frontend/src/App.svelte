@@ -212,7 +212,8 @@
     <main>
       {#if navigation.panel === 'deck'}
         <h1 class="sr-only">{current?.label ?? 'Deck'}</h1>
-        {#if editing && current && session.editor}<EditorToolbar
+        {#if current && session.editor}<EditorToolbar
+            {editing}
             editor={session.editor}
             {current}
             active={navigation.active}

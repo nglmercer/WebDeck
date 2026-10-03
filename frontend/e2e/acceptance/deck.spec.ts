@@ -82,6 +82,7 @@ test('theme and image uploads, folder creation and settings round trip', async (
     ),
   };
   await page.getByLabel('Upload a background').setInputFiles(image);
+  await page.getByRole('tab', { name: 'Appearance', exact: true }).click();
   await page.getByLabel('Columns', { exact: true }).fill('3');
   await page.getByRole('button', { name: /^Save( changes)?$/, exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: /^Saved/ })).toBeVisible();
@@ -142,6 +143,7 @@ test('typed realtime correlation, retired routes, revoked sessions and offline c
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
   await page.keyboard.press('Control+,');
+  await page.getByRole('tab', { name: 'Connection', exact: true }).click();
   await page.locator('#settings-connection select').selectOption('socket');
   await expect(page.getByLabel('Realtime connection', { exact: true })).toHaveText('Connected');
   await page.getByRole('button', { name: 'Back to deck' }).click();
@@ -244,7 +246,7 @@ test('empty decks retain hidden editing access and new folders get navigation bu
   await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(page.locator('.save-status')).toHaveText('All changes saved');
   await page.keyboard.press('q');
-  await expect(page.getByRole('region', { name: 'Deck editor' })).toHaveCount(0);
+  await expect(page.locator('.deck-grid')).not.toHaveClass(/editing/);
   await page.getByRole('button', { name: 'Back', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Nested', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Nested', exact: true }).click();
@@ -421,20 +423,29 @@ test('integration checks save settings and explain failures without exposing sec
   await expect(page.locator('.deck-grid')).toBeVisible();
   await page.keyboard.press('q');
   await page.getByRole('region', { name: 'Deck editor', exact: true }).getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await expect(page.getByLabel('OBS connection status')).toHaveText('Not checked');
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await page.getByLabel('Host', { exact: true }).fill('invalid host');
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await page.getByLabel('Password', { exact: true }).fill('obs-test-secret');
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'password');
   await page.getByRole('button', { name: 'Reveal OBS password' }).click();
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'text');
   await page.getByRole('button', { name: 'Hide OBS password' }).click();
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await page.getByRole('button', { name: 'Save and check OBS connection' }).click();
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await expect(page.getByLabel('OBS connection status')).toContainText('Connection failed');
   const persisted = await (await request.get('/api/v2/config')).json();
   expect(persisted.config.settings.obs.host).toBe('invalid host');
   const status = await (await request.get('/api/v2/integrations/status')).text();
   expect(status).not.toContain('obs-test-secret');
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await expect(page.getByLabel('Port', { exact: true })).toHaveAttribute('min', '1');
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await expect(page.getByLabel('Port', { exact: true })).toHaveAttribute('max', '65535');
 });
 
@@ -447,6 +458,7 @@ test('backup inspection and cancellation preserve drafts and applying requires a
   const backup = structuredClone(initial);
   backup.layout.folders[0].label = 'Restored home';
   backup.extensions = { retained: { custom: true } };
+  await page.getByRole('tab', { name: 'Backups', exact: true }).click();
   const input = page.getByLabel('Restore a v2 backup');
   await input.setInputFiles({ name: 'candidate.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) });
   await expect(page.getByText('candidate.json', { exact: true })).toBeVisible();
@@ -474,7 +486,9 @@ test('shortcut controls stage typed keys and deletion undo restores a duplicate'
   await expect(page.locator('.deck-grid')).toBeVisible();
   await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Edit Play / pause' }).click();
+  await page.getByRole('tab', { name: 'Action', exact: true }).click();
   await page.getByRole('combobox', { name: 'Category', exact: true }).selectOption('input');
+  await page.getByRole('tab', { name: 'Action', exact: true }).click();
   await page.getByRole('combobox', { name: 'Type', exact: true }).selectOption('key');
   await page.getByRole('button', { name: 'Use copy shortcut' }).click();
   await expect(page.getByLabel('Key 1', { exact: true })).toHaveValue('ctrl');
@@ -547,6 +561,7 @@ test('long translations and missing keys remain usable at 200 percent browser zo
   await page.keyboard.press('Control+,');
   await expect(page.getByRole('heading', { name: settingsTitle, exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Back to deck', exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Appearance', exact: true }).click();
   await page.getByLabel('Columns', { exact: true }).fill('');
   await expect(page.getByLabel('Columns', { exact: true })).toHaveAttribute('aria-invalid', 'true');
   await expect(page.getByText('Bitte eine Zahl zwischen 1 und 128 eingeben.')).toBeVisible();
@@ -564,6 +579,7 @@ test('saving Spanish updates controls and action names while preserving configur
   await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Configuración', exact: true })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'es');
+  await page.getByRole('tab', { name: 'Dispositivos', exact: true }).click();
   await expect(page.getByRole('checkbox', { name: 'Ver el panel y las mediciones', exact: true })).toBeVisible();
   const snapshot = await (await request.get('/api/v2/config')).json();
   expect(snapshot.config.settings.language).toBe('es_ES');
@@ -571,6 +587,7 @@ test('saving Spanish updates controls and action names while preserving configur
   await expect(page.getByRole('button', { name: 'Play / pause', exact: true })).toBeVisible();
   await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Editar Play / pause', exact: true }).click();
+  await page.getByRole('tab', { name: 'Acción', exact: true }).click();
   await page.getByRole('combobox', { name: 'Categoría', exact: true }).selectOption('input');
   await page.getByRole('combobox', { name: 'Tipo', exact: true }).selectOption('key');
   await expect(page.getByRole('option', { name: 'Atajo de teclado', exact: true })).toHaveAttribute('value', 'key');
@@ -633,6 +650,7 @@ test('a delayed token copy cannot clear a newer device approval', async ({ page 
       }) },
     });
   });
+  await page.getByRole('tab', { name: 'Devices', exact: true }).click();
   await page.getByLabel('Device name', { exact: true }).fill('First approval');
   await page.getByRole('button', { name: 'Approve device', exact: true }).click();
   const token = page.locator('#settings-devices .token');
@@ -640,6 +658,7 @@ test('a delayed token copy cannot clear a newer device approval', async ({ page 
   const first = await token.textContent();
   await page.getByRole('button', { name: 'Copy token', exact: true }).click();
   await expect.poll(() => page.evaluate(() => typeof Reflect.get(window, 'finishTokenCopy'))).toBe('function');
+  await page.getByRole('tab', { name: 'Devices', exact: true }).click();
   await page.getByLabel('Device name', { exact: true }).fill('Second approval');
   await page.getByRole('button', { name: 'Approve device', exact: true }).click();
   await expect(token).not.toHaveText(first!);
@@ -654,9 +673,11 @@ test('declining reload preserves an unsaved settings draft', async ({ page }) =>
   await page.goto('/');
   await page.getByRole('heading', { name: 'Home', exact: true }).waitFor();
   await page.keyboard.press('Control+,');
+  await page.getByRole('tab', { name: 'Appearance', exact: true }).click();
   const columns = page.getByLabel('Columns', { exact: true });
   await columns.fill('5');
   const confirmation = page.waitForEvent('dialog');
+  await page.getByRole('tab', { name: 'Backups', exact: true }).click();
   const reload = page.getByRole('button', { name: 'Reload configuration', exact: true }).click();
   const dialog = await confirmation;
   expect(dialog.type()).toBe('confirm');
@@ -670,6 +691,7 @@ test('browser navigation warns about unsaved work and dismissal preserves the dr
   await page.goto('/');
   await page.getByRole('heading', { name: 'Home', exact: true }).waitFor();
   await page.keyboard.press('Control+,');
+  await page.getByRole('tab', { name: 'Appearance', exact: true }).click();
   const columns = page.getByLabel('Columns', { exact: true });
   await columns.fill('5');
   const warning = page.waitForEvent('dialog');
@@ -690,7 +712,7 @@ test('missing uploaded icons show a placeholder instead of an asset identifier',
   expect((await request.put('/api/v2/config', { data: { revision: snapshot.revision, config } })).ok()).toBeTruthy();
   await page.goto('/');
   const tile = page.getByRole('button', { name: 'Play / pause', exact: true });
-  await expect(tile.locator('.button-icon')).toHaveText('▧');
+  await expect(tile.locator('.button-icon')).toHaveCount(1);
   await expect(tile).not.toContainText('asset:');
   await expect(page.getByRole('status')).toContainText('Some deck assets are unavailable');
 });
@@ -708,6 +730,7 @@ test('cancelling span and collision edits preserves the full draft and host revi
   await expect(tile).toHaveCSS('grid-row-end', 'span 2');
   await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Edit Play / pause', exact: true }).click();
+  await page.getByRole('tab', { name: 'Appearance', exact: true }).click();
   await page.getByLabel('Column span', { exact: true }).fill('3');
   await page.getByLabel('Row span', { exact: true }).fill('3');
   await page.getByRole('button', { name: 'Move right', exact: true }).click();
@@ -789,7 +812,9 @@ test('Spotify continuation links cannot outlive credential edits during authoriz
   await page.goto('/');
   await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
   await page.keyboard.press('Control+,');
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await page.getByLabel('Client ID', { exact: true }).fill('first-client');
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await page.getByLabel('Client secret', { exact: true }).fill('first-secret');
   let release!: () => void;
   let observed!: () => void;
@@ -806,20 +831,26 @@ test('Spotify continuation links cannot outlive credential edits during authoriz
       api_version: 2, url: `https://accounts.spotify.com/authorize?state=attempt-${attempt}`,
     }) });
   });
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await page.getByRole('button', { name: 'Connect Spotify', exact: true }).click();
   await pending;
   await expect(page.getByRole('button', { name: 'Save and check OBS connection', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Save and check OBS connection', exact: true })).toHaveAccessibleDescription('Preparing authorization…');
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await page.getByLabel('Client secret', { exact: true }).fill('new-secret');
   release();
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Connect Spotify', exact: true })).toBeEnabled();
   const continuation = page.getByRole('link', { name: 'Continue to Spotify', exact: true });
   await expect(continuation).toHaveCount(0);
   expect((await (await request.get('/api/v2/config')).json()).config.settings.spotify.client_secret).toBe('first-secret');
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await expect(page.getByLabel('Client secret', { exact: true })).toHaveValue('new-secret');
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await page.getByRole('button', { name: 'Connect Spotify', exact: true }).click();
   await expect(continuation).toHaveAttribute('href', /state=attempt-2$/);
   expect((await (await request.get('/api/v2/config')).json()).config.settings.spotify.client_secret).toBe('new-secret');
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await page.getByLabel('Client ID', { exact: true }).fill('third-client');
   await expect(continuation).toHaveCount(0);
   expect(attempts).toBe(2);
@@ -849,7 +880,9 @@ test('a late initial integration snapshot cannot replace an explicit OBS check',
   await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
   await page.keyboard.press('Control+,');
   await pending;
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await page.getByRole('button', { name: 'Save and check OBS connection', exact: true }).click();
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await expect(page.getByLabel('OBS connection status')).toContainText('Connection failed');
   const response = page.waitForResponse('**/api/v2/integrations/status');
   release();
@@ -857,6 +890,7 @@ test('a late initial integration snapshot cannot replace an explicit OBS check',
   await (await response).finished();
   // Drain the browser's response handling before inspecting the displayed result.
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await expect(page.getByLabel('OBS connection status')).toContainText('Connection failed');
 });
 
@@ -907,7 +941,7 @@ test('keyboard-only editing saves a staged button with reduced motion and restor
   await expect(page.locator('.save-status')).toHaveText('All changes saved');
   await tabTo(page.getByRole('button', { name: 'Done', exact: true }));
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('region', { name: 'Deck editor', exact: true })).toHaveCount(0);
+  await expect(page.locator('.deck-grid')).not.toHaveClass(/editing/);
   const stored = await (await request.get('/api/v2/config')).json();
   expect(stored.config.layout.folders[0].buttons[0].label).toBe('Keyboard music');
   expect(commands).toBe(0);
@@ -935,10 +969,12 @@ test('declining backup replacement retains the full unsaved draft and candidate 
   await page.goto('/');
   await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
   await page.keyboard.press('Control+,');
+  await page.getByRole('tab', { name: 'Appearance', exact: true }).click();
   await page.getByLabel('Columns', { exact: true }).fill('5');
   const backup = structuredClone(original.config);
   backup.layout.columns = 7;
   backup.extensions = { restored: { retained: true } };
+  await page.getByRole('tab', { name: 'Backups', exact: true }).click();
   await page.getByLabel('Restore a v2 backup', { exact: true }).setInputFiles({
     name: 'replacement.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)),
   });
@@ -954,6 +990,7 @@ test('declining backup replacement retains the full unsaved draft and candidate 
   await expect(page.getByRole('button', { name: 'Apply backup to draft', exact: true })).toBeVisible();
   expect(await (await request.get('/api/v2/config')).json()).toEqual(original);
   const downloadEvent = page.waitForEvent('download');
+  await page.getByRole('tab', { name: 'Backups', exact: true }).click();
   await page.getByRole('button', { name: 'Download backup', exact: true }).click();
   const downloaded = await (await downloadEvent).path();
   expect(downloaded).not.toBeNull();
@@ -994,6 +1031,7 @@ test('device loading failures stay distinct from an empty list and support retry
   await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
   await page.keyboard.press('Control+,');
   await pending;
+  await page.getByRole('tab', { name: 'Devices', exact: true }).click();
   const devices = page.locator('#settings-devices');
   await expect(devices.getByRole('button', { name: 'Approve device' })).toBeDisabled();
   await expect(devices.getByRole('button', { name: 'Approve device' })).toHaveAccessibleDescription('Enter a device name and select at least one permission to approve it.');
@@ -1242,9 +1280,11 @@ test('toolbar button creation stages a free cell and categories show readable la
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toBeDisabled();
   await toolbar.getByRole('button', { name: 'Add button', exact: true }).click();
+  await page.getByRole('tab', { name: 'Action', exact: true }).click();
   const category = page.getByRole('combobox', { name: 'Category', exact: true });
   await expect(category.locator('option[value="input"]')).toHaveText('Keyboard and text');
   await category.selectOption('input');
+  await page.getByRole('tab', { name: 'Content', exact: true }).click();
   await page.getByLabel('Label', { exact: true }).fill('Toolbar button');
   await page.getByRole('button', { name: 'Apply to draft', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Edit Toolbar button', exact: true })).toBeVisible();
@@ -1266,6 +1306,7 @@ test('invalid JSON blocks Apply and exposes a field description until corrected'
   await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
   await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Edit Play / pause', exact: true }).click();
+  await page.getByRole('tab', { name: 'Action', exact: true }).click();
   await page.getByRole('combobox', { name: 'Type', exact: true }).selectOption('debug');
   await page.getByRole('button', { name: 'Add field', exact: true }).click();
   const data = page.getByLabel('field1', { exact: true });
@@ -1299,6 +1340,7 @@ test('live preview and numeric validation preserve the host until a valid draft 
   const preview = page.getByRole('img', { name: 'Button preview', exact: true });
   await expect(preview).toContainText('Preview label');
   await expect(preview).toHaveCSS('color', 'rgb(0, 0, 0)');
+  await page.getByRole('tab', { name: 'Appearance', exact: true }).click();
   const span = page.getByLabel('Column span', { exact: true });
   await span.fill('');
   await expect(span).toHaveAttribute('aria-invalid', 'true');
@@ -1326,6 +1368,7 @@ test('pattern validation blocks a malformed reference and accepts a corrected st
   await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
   await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Edit Play / pause', exact: true }).click();
+  await page.getByRole('tab', { name: 'Action', exact: true }).click();
   await page.getByRole('combobox', { name: 'Type', exact: true }).selectOption('button');
   const reference = page.getByLabel('button id', { exact: true });
   await reference.fill('../invalid');
@@ -1350,11 +1393,11 @@ test('mobile settings navigation reaches its sections and keeps transport in adv
   await page.goto('/');
   await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
   await page.keyboard.press('Control+,');
-  const navigation = page.getByRole('navigation', { name: 'Settings sections', exact: true });
-  await expect(navigation.getByRole('link')).toHaveCount(6);
-  await navigation.getByRole('link', { name: 'Backups', exact: true }).click();
+  const navigation = page.getByRole('tablist', { name: 'Settings sections', exact: true });
+  await expect(navigation.getByRole('tab')).toHaveCount(6);
+  await navigation.getByRole('tab', { name: 'Backups', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Backups', exact: true })).toBeInViewport();
-  await navigation.getByRole('link', { name: 'Connection', exact: true }).click();
+  await navigation.getByRole('tab', { name: 'Connection', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Advanced connection', exact: true })).toBeInViewport();
   await expect(page.locator('#settings-connection').getByRole('combobox', { name: 'Connection', exact: true })).toBeVisible();
   await expect(page.locator('#settings-appearance').getByRole('combobox', { name: 'Connection', exact: true })).toHaveCount(0);
@@ -1367,6 +1410,7 @@ test('pending device revocation explains its disabled state and becomes visibly 
   await page.goto('/');
   await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
   await page.keyboard.press('Control+,');
+  await page.getByRole('tab', { name: 'Devices', exact: true }).click();
   const row = page.locator('#settings-devices .row').filter({ hasText: 'Revoke description' });
   const revoke = row.getByRole('button', { name: 'Revoke', exact: true });
   let release!: () => void;
@@ -1413,14 +1457,18 @@ test('touch settings controls expose usable targets including checkbox labels an
     await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
     await page.keyboard.press('Control+,');
     await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
-    const targets = await page.locator('main').evaluate(main => Array.from(main.querySelectorAll('button,input,select,textarea,nav a')).filter(element => {
+    const targets = [];
+    for (const tab of ['Appearance', 'Integrations', 'Devices', 'Backups', 'Runtime and plugins', 'Connection']) {
+    await page.getByRole('tab', { name: tab, exact: true }).click();
+    targets.push(...await page.locator('main').evaluate(main => Array.from(main.querySelectorAll('button,input,select,textarea,nav a')).filter(element => {
       const rect = element.getBoundingClientRect();
       return rect.width > 0 && rect.height > 0;
     }).map(element => {
       const target = element instanceof HTMLInputElement && element.type === 'checkbox' ? element.closest('label') ?? element : element;
       const rect = target.getBoundingClientRect();
       return { label: target.textContent?.trim() || element.getAttribute('aria-label') || element.tagName, width: rect.width, height: rect.height };
-    }));
+    })));
+    }
     expect(targets.length).toBeGreaterThan(20);
     expect(targets.filter(target => target.width < 44 || target.height < 44)).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -1437,6 +1485,7 @@ test('touch action fields keep full-size controls across specialized and generic
     await page.getByRole('button', { name: 'Edit Play / pause', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Edit button', exact: true });
     for (const type of ['write', 'key', 'button', 'debug']) {
+  await page.getByRole('tab', { name: 'Action', exact: true }).click();
       await dialog.getByRole('combobox', { name: 'Type', exact: true }).selectOption(type);
       if (type === 'debug') await dialog.getByRole('button', { name: 'Add field', exact: true }).click();
       const small = await dialog.evaluate(root => Array.from(root.querySelectorAll('button,input,select,textarea')).filter(element => {
@@ -1452,8 +1501,9 @@ test('touch action fields keep full-size controls across specialized and generic
 
 test('runtime settings inspect embedded packages and reload without losing config', async ({page,request}) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', {name:'Home',exact:true})).toBeVisible();
+  await expect(page.getByRole('button', {name:'Play / pause',exact:true})).toBeVisible();
   await page.keyboard.press('Control+,');
+  await page.getByRole('tab', { name: 'Runtime and plugins', exact: true }).click();
   const runtime=page.locator('#settings-runtime');
   await expect(runtime.getByText('Runtime status: Ready')).toBeVisible();
   await expect(runtime.getByText(/builtin.obs/)).toBeVisible();

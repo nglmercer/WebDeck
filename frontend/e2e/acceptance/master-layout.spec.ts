@@ -50,3 +50,24 @@ test('a failed boot offers recovery instead of an empty screen', async ({ page }
   await page.getByRole('button', { name: 'Reload', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Folder 1', exact: true })).toBeVisible();
 });
+
+test('Q preserves tile geometry and orientation changes never mutate the saved layout', async ({ page, request }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Got it', exact: true }).click();
+  const tile = page.locator('[data-cell="0"] > .deck-button');
+  const before = await tile.boundingBox();
+  await page.keyboard.press('q');
+  expect(await tile.boundingBox()).toEqual(before);
+  await page.screenshot({ path: '/tmp/webdeck-redesign-editor.png', fullPage: true });
+  await expect(page.locator('.editor-toolbar')).toHaveCount(1);
+  await expect(tile.locator('svg')).toHaveCount(1);
+  await page.keyboard.press('q');
+  expect(await tile.boundingBox()).toEqual(before);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => page.locator('.deck-grid').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length)).toBe(4);
+  expect((await (await request.get('/api/v2/config')).json()).config.layout.columns).toBe(8);
+  await page.screenshot({ path: '/tmp/webdeck-redesign-mobile.png', fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.screenshot({ path: '/tmp/webdeck-redesign-desktop.png', fullPage: true });
+});

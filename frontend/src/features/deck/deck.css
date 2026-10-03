@@ -107,64 +107,31 @@ progress {
 }
 .cell-actions {
   position: absolute;
-  bottom: 6px;
-  left: 6px;
+  top: 6px;
   right: 6px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  display: flex;
+  gap: 4px;
+  z-index: 2;
 }
 .cell-actions button {
-  padding: 6px;
-  background: #171717ed;
-  font-size: 0.75rem;
-}
-.deck-cell:has(.cell-actions) > .deck-button {
-  padding: 6px 8px 42px;
-  gap: 3px;
-}
-.deck-cell:has(.cell-actions) .button-icon {
-  font-size: min(var(--icon-size, 42px), 32px);
-}
-.deck-cell:has(.cell-actions) img {
-  width: min(var(--icon-size, 42px), 32px);
-  height: min(var(--icon-size, 42px), 32px);
-}
-@media (pointer: coarse) {
-  .deck-grid.editing {
-    grid-auto-rows: max(var(--button-height, 140px), 220px);
-  }
-  .cell-actions {
-    grid-template-columns: 1fr;
-  }
-  .cell-actions button {
-    min-height: 44px;
-  }
-  .deck-cell:has(.cell-actions) > .deck-button {
-    padding-bottom: 104px;
-  }
-}
-.deck-grid.editing {
+  width: 30px;
+  height: 30px;
+  padding: 5px;
   min-height: 0;
+  background: #10121eee;
+  border: 1px solid #ffffff30;
+  border-radius: 9px;
+  color: white;
 }
-@media (max-width: 600px) {
-  .deck-grid.editing {
-    grid-auto-rows: max(var(--button-height, 140px), 220px);
-  }
-  .cell-actions {
-    grid-template-columns: 1fr;
-  }
-  .cell-actions button {
-    min-width: 0;
-    min-height: 44px;
-    padding: 4px 2px;
-    font-size: 0.7rem;
-  }
-  .deck-cell:has(.cell-actions) > .deck-button {
-    padding-bottom: 104px;
-  }
+.deck-grid.editing .deck-cell > .deck-button {
+  outline: 1px solid #a99aff60;
+  outline-offset: -1px;
 }
-
+.deck-button .button-icon svg {
+  width: var(--icon-size, 42px);
+  height: var(--icon-size, 42px);
+  max-width: 100%;
+}
 .deck-button.active {
   outline: 3px solid var(--button-foreground);
   outline-offset: -5px;
@@ -184,12 +151,12 @@ progress {
   display: block;
   margin-top: 6px;
   color: #b3b3b3;
-  font-size: 12px;
+  font-size: max(12px, calc(12px / var(--deck-scale, 1)));
   text-align: center;
-  line-height: 1.4;
+  line-height: 1.2;
   overflow: hidden;
   white-space: normal;
-  max-height: 34px;
+  max-height: max(34px, calc(28px / var(--deck-scale, 1)));
   overflow-wrap: anywhere;
 }
 .master-layout .empty-cell {
@@ -215,4 +182,11 @@ progress {
   height: 1px;
   overflow: hidden;
   clip-path: inset(50%);
+}
+
+@media (pointer: coarse) {
+  .cell-actions button {
+    width: calc(45px / var(--deck-scale, 1));
+    height: calc(45px / var(--deck-scale, 1));
+  }
 }

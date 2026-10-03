@@ -189,3 +189,7 @@ button:active:not(:disabled) {
   font-size: 0.85rem;
   line-height: 1.5;
 }
+
+[hidden] {
+  display: none !important;
+}

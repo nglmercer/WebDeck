@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Icon from '../../components/Icon.svelte';
   import { useTranslations } from '../../lib/i18n';
   const t = useTranslations();
   import type { Button, UsageResponse } from '../../lib/contracts';
@@ -20,10 +21,12 @@
 </script>
 
 {#if button.icon.startsWith('asset:')}
-  {#if assetUrl}<img src={assetUrl} alt="" />{:else}<span class="button-icon" aria-hidden="true"
-      >▧</span
+  {#if assetUrl}<img src={assetUrl} alt="" />{:else if button.icon}<span
+      class="button-icon"
+      aria-hidden="true"><Icon name="image" /></span
     >{/if}
-{:else}<span class="button-icon" aria-hidden="true">{button.icon}</span>{/if}
+{:else if button.icon}<span class="button-icon" aria-hidden="true"><Icon name={button.icon} /></span
+  >{/if}
 <span class:hidden-label={!showLabels || appearanceOf(button).show_label === false}
   >{button.label}</span
 >

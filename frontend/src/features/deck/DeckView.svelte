@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Icon from '../../components/Icon.svelte';
   import { onMount } from 'svelte';
   import { onRuntimeEvent } from '../../lib/api/realtime';
   let dynamic = $state<
@@ -84,12 +85,15 @@
   const totalRows = $derived(Math.ceil(count / layout.columns));
   const gap = $derived(appearanceNumber(appearance.gap, 20, 0, 100));
   const rowHeight = $derived(appearanceNumber(appearance.button_height, 140, 24, 800));
-  const fitted = $derived(!editing && !paged && totalRows <= 32 && appearance.fit !== false);
-  const naturalWidth = $derived(layout.columns * 112 + Math.max(0, layout.columns - 1) * gap);
-  const naturalHeight = $derived(totalRows * rowHeight + Math.max(0, totalRows - 1) * gap);
+  const fitted = $derived(!paged && totalRows <= 32 && appearance.fit !== false);
+  const rotated = $derived(!paged && viewportWidth < viewportHeight && layout.columns > totalRows);
+  const visualColumns = $derived(rotated ? totalRows : layout.columns);
+  const visualRows = $derived(rotated ? layout.columns : totalRows);
+  const naturalWidth = $derived(visualColumns * 112 + Math.max(0, visualColumns - 1) * gap);
+  const naturalHeight = $derived(visualRows * rowHeight + Math.max(0, visualRows - 1) * gap);
   const scale = $derived(
     fitted && viewportWidth && availableWidth
-      ? fitDeck(naturalWidth, naturalHeight, availableWidth, Math.max(100, viewportHeight - 32))
+      ? fitDeck(naturalWidth, naturalHeight, availableWidth, Math.max(100, viewportHeight - 180))
       : 1,
   );
   const startRow = $derived(paged ? Math.min(selectedRow, totalRows - 1) : 0);
@@ -159,43 +163,44 @@
   <div
     class="deck-grid all-buttons"
     class:editing
-    class:master-layout={!editing}
+    class:master-layout={true}
     style:width={fitted ? `${naturalWidth}px` : undefined}
     style:transform={fitted
       ? `translateX(${(availableWidth - naturalWidth * scale) / 2}px) scale(${scale})`
       : undefined}
     style:transform-origin={'top left'}
-    style:grid-template-columns={`repeat(${layout?.columns ?? 4}, minmax(72px, 1fr))`}
+    style:grid-template-columns={`repeat(${visualColumns}, minmax(72px, 1fr))`}
     style:gap={`${gap}px`}
+    style:--deck-scale={scale}
     style:--button-height={`${rowHeight}px`}
-    style:--button-radius={`${appearanceNumber(appearance.radius, editing ? 8 : 20, 0, 100)}px`}
+    style:--button-radius={`${appearanceNumber(appearance.radius, 20, 0, 100)}px`}
   >
     {#each cells.filter((c) => !c.covered) as slot (slot.cell)}<div
         class="deck-cell"
         data-cell={slot.cell}
-        style:grid-column={`${(slot.cell % (layout?.columns ?? 4)) + 1} / span ${slot.columns}`}
-        style:grid-row={`${Math.max(1, Math.floor(slot.cell / layout.columns) - startRow + 1)} / span ${visibleRows(slot.cell, slot.rows)}`}
+        style:grid-column={`${(rotated ? Math.floor(slot.cell / layout.columns) : slot.cell % layout.columns) + 1} / span ${rotated ? slot.rows : slot.columns}`}
+        style:grid-row={`${Math.max(1, (rotated ? slot.cell % layout.columns : Math.floor(slot.cell / layout.columns) - startRow) + 1)} / span ${rotated ? slot.columns : visibleRows(slot.cell, slot.rows)}`}
       >
         {#if slot.button}{@const b = slot.button}<button
             class="deck-button button wd_button"
             style={buttonStyle(b)}
             class:active={dynamic[b.id]?.active}
             class:blank={b.action.type === 'none'}
-            disabled={running[b.id] || !canRun(b)}
+            disabled={!editing && (running[b.id] || !canRun(b))}
             aria-label={dynamic[b.id]?.label ?? b.label}
             aria-describedby={reason(b) || running[b.id] || outcomeMessages[b.id]
               ? `state-${b.id}`
               : undefined}
             title={reason(b) || (outcomeMessages[b.id] ? t(outcomeMessages[b.id]!) : undefined)}
             onclick={() => {
-              if (!editing) invoke(b);
+              invoke(b);
             }}
             ><ButtonContent
               button={dynamic[b.id]?.label === undefined
                 ? b
                 : { ...b, label: dynamic[b.id]!.label! }}
               assetUrl={assetUrls[b.icon.slice(6)]}
-              showLabels={editing && appearance.show_labels !== false}
+              showLabels={false}
               {usage}
               {now}
             /><small
@@ -215,7 +220,7 @@
                       : ''}</small
             ></button
           >
-          {#if !editing && appearance.show_labels !== false && appearanceOf(b).show_label !== false}<span
+          {#if appearance.show_labels !== false && appearanceOf(b).show_label !== false}<span
               class="buttontext"
               aria-hidden="true">{dynamic[b.id]?.label ?? b.label}</span
             >{/if}
@@ -228,16 +233,17 @@
           {#if editing}<div class="cell-actions">
               <button
                 aria-label={t('ui_edit_named_button', { label: b.label })}
-                onclick={() => invoke(b)}>{t('ui_edit')}</button
+                onclick={() => invoke(b)}><Icon name="edit" size={18} /></button
               ><button
                 aria-label={t('ui_remove_named_button', { label: b.label })}
-                onclick={() => remove(b)}>{t('ui_remove')}</button
+                onclick={() => remove(b)}><Icon name="trash" size={18} /></button
               >
             </div>{/if}
         {:else if editing}<button
             class="deck-button add"
             onclick={() => add(slot.cell)}
-            aria-label={t('ui_add_button_at_cell', { cell: slot.cell + 1 })}>+</button
+            aria-label={t('ui_add_button_at_cell', { cell: slot.cell + 1 })}
+            ><Icon name="plus" /></button
           >{:else}<div class="empty-cell" aria-hidden="true"></div>{/if}
       </div>{/each}
   </div>
