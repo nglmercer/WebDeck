@@ -66,5 +66,4 @@ Their failures are returned explicitly instead of reporting success. The Linux
 artifact requires compatible native system libraries. Signed release artifacts
 and automatic-update distribution have not been validated or published.
 
-Current evidence is under `docs/v2/evidence/rewrite/`. Evidence under `v2-only/`
-and the historical proposal describes the superseded partial implementation.
+Current rewrite evidence is under `docs/v2/evidence/rewrite/`. Superseded partial-migration reports have been removed. The subsequent asset/documentation cleanup is recorded in `evidence/rewrite/cleanup.json` and `cleanup-portable.json`.

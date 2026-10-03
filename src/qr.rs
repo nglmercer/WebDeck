@@ -22,8 +22,7 @@ pub const DEFAULT_WIN_H: u32 = 360;
 const WHITE: u32 = 0xffffff;
 const BLACK: u32 = 0x000000;
 
-/// Port of `generate_qr_code` (moved from `tray::windows` so the child
-/// binary can reuse it): EC-L QR PNG bytes for `url`, ~290px,
+/// Shared QR generation: EC-L PNG bytes for `url`, approximately 290px,
 /// black-on-white.
 pub fn generate_qr_code_png(url: &str) -> Option<Vec<u8>> {
     let image = render_qr_luma(url, QR_DISPLAY_SIZE)?;

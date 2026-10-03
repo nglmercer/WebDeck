@@ -3,9 +3,7 @@ config.json
 temp.json
 temp/*
 .vscode/settings.json
-.config/user_uploads
-.config/themes
-.config/plugins
+/.config/
 
 # compiled files
 build/
@@ -15,7 +13,6 @@ dist/
 
 # backup files
 *copy.*
-!copy.png
 
 # misc
 .logs/*
@@ -24,9 +21,6 @@ target/
 data.json
 /frontend/node_modules
 /frontend/dist
-/frontend/demo/*.mp4
-/frontend/demo/*.webm
-/frontend/demo/.frames-3d
 /frontend/e2e/test-results
 /node_modules
 

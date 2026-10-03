@@ -226,7 +226,7 @@ pub fn validate_config(c: &Config) -> Result<()> {
 }
 pub fn decode_config(bytes: &[u8]) -> Result<Config> {
     let v: Value = serde_json::from_slice(bytes).map_err(|_| Error::invalid())?;
-    if v["schema_version"] != 2 {
+    if v["schema_version"] != 2 || v.get("front").is_some() {
         return Err(Error::new(
             ErrorCode::UnsupportedSchema,
             "Only canonical schema version 2 is supported; no conversion was performed",

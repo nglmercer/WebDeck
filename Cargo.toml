@@ -109,5 +109,5 @@ screenshots = "0.8.10"
 tower = { version = "0.5", features = ["util"] }
 
 [profile.release]
-# Single-file packaging parity with cx_Freeze is handled by packaging scripts
-# (see docs/MIGRATION_RUST.md); keep a plain release profile here.
+# Portable packaging is handled by src/bin/package.rs
+# (see docs/build-release.md); keep a plain release profile here.

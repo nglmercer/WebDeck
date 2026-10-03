@@ -681,6 +681,10 @@ async fn translations(
     let languages = std::fs::read_dir(root)
         .map_err(|_| Error::execution())?
         .flatten()
+        .filter(|e| {
+            e.file_type().is_ok_and(|t| t.is_file())
+                && e.path().extension().is_some_and(|ext| ext == "lang")
+        })
         .filter_map(|e| {
             e.path()
                 .file_stem()

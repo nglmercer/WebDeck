@@ -1,8 +1,0 @@
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.39s
-     Running `target/debug/package --dev`
-package: WebDeck v2.0.0-alpha.1
-package: cargo build --profile=dev --bin webdeck --bin update --bin webdeck-qr
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.37s
-package: rebuilding frontend/dist from the current sources
-package: portable build zipped as 'dist/WebDeck-2.0.0-alpha.1-linux-x86_64-dev-portable.zip'
-Build done! 0m 41s

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "format": "prettier --write src",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "knip": "knip",

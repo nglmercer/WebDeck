@@ -23,8 +23,7 @@ were retained under the new owners; they contain no v1 application protocol.
 | Python-named script command and shell argument parsing | Explicit inline/file Rhai and shell sources |
 | Implicit saves, folder queues and global dispatch | ConfigStore transactions and feature-owned drafts |
 
-The source checkout and generated artifact contain one runtime. Historical docs
-and rejection fixtures can mention old interfaces, but first-party production
+The source checkout and generated artifact contain one runtime. Rejection fixtures can mention old interfaces, but first-party production
 clients cannot call them. Existing incompatible user configuration is rejected
 without conversion or deletion.
 
@@ -38,9 +37,6 @@ HTTP headers/body/timeouts and script/file sources.
 Validation results and limits are recorded in `evidence/rewrite/checks.json` and
 `STATUS.md`. Tests use isolated user data and fake native effects; destructive
 native actions were not invoked. The extracted portable package and real updater
-rollback are validated separately from source/browser tests. Historical performance
-measurements used different contracts and workloads, so this report makes no
-before/after speed claim.
+rollback are validated separately from source/browser tests. This report makes no before/after performance claim.
 
-The only PR is updated in place; the deprecated v1 branch, repository settings,
-release publication and artifact upload are outside this change.
+Repository settings, release publication and artifact upload are outside this change.

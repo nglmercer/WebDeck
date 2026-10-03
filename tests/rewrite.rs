@@ -90,6 +90,18 @@ fn configuration_validates_full_shape_and_preserves_extensions() {
     assert!(domain::decode_config(br#"{"settings":{},"front":{}}"#).is_err());
 }
 #[test]
+fn old_layout_with_v2_marker_is_rejected_and_preserved() {
+    let t = Temp::new();
+    let path = t.0.join("config.json");
+    let bytes = br#"{"schema_version":2,"settings":{},"front":{},"url":{}}"#;
+    std::fs::write(&path, bytes).unwrap();
+    let error = ConfigStore::open(path.clone()).err().unwrap();
+    assert_eq!(error.code, ErrorCode::UnsupportedSchema);
+    assert!(error.message.contains(path.to_str().unwrap()));
+    assert!(error.message.contains("--config-dir"));
+    assert_eq!(std::fs::read(path).unwrap(), bytes);
+}
+#[test]
 fn disk_conflicts_and_invalid_reload_leave_last_valid_and_user_bytes() {
     let t = Temp::new();
     let s = store(&t);

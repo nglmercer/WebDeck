@@ -86,14 +86,22 @@ fn main() -> io::Result<()> {
         )?;
         zip.write_all(&bytes)?;
     }
-    for root in ["webdeck", "static", "frontend/dist"] {
-        for file in collect(Path::new(root))? {
-            zip.start_file(
-                format!("WebDeck/{}", file.to_string_lossy().replace('\\', "/")),
-                options.unix_permissions(0o644),
-            )?;
-            zip.write_all(&fs::read(file)?)?;
+    let mut assets = vec![
+        PathBuf::from("webdeck/config_default.json"),
+        PathBuf::from("webdeck/version.json"),
+    ];
+    for root in ["webdeck/translations", "static/icons", "frontend/dist"] {
+        assets.extend(collect(Path::new(root))?);
+    }
+    for file in assets {
+        if fs::symlink_metadata(&file)?.file_type().is_symlink() {
+            return Err(io::Error::other("Symlink in package inputs"));
         }
+        zip.start_file(
+            format!("WebDeck/{}", file.to_string_lossy().replace('\\', "/")),
+            options.unix_permissions(0o644),
+        )?;
+        zip.write_all(&fs::read(file)?)?;
     }
     zip.finish()?.sync_all()?;
     let path = Path::new("dist").join(&name);

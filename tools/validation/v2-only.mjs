@@ -15,6 +15,6 @@ function scan(directory){if(!fs.existsSync(directory))return;for(const e of fs.r
 for(const d of ['src','frontend/src','frontend/e2e','tools/validation','examples/plugins'])scan(path.join(root,d));
 const schema=JSON.parse(fs.readFileSync(path.join(root,'contracts/v2.schema.json'),'utf8'));
 if(schema.$defs.CommandRequest.properties.message||!schema.$defs.CommandRequest.properties.command?.$ref)violations.push({surface:'untyped command request',file:'contracts/v2.schema.json'});
-for(const retired of ['src/app','src/application','src/adapters','src/domain/transport.rs','frontend/src/views','frontend/src/framework','contracts/legacy-commands.json','webdeck/commands.json'])if(fs.existsSync(path.join(root,retired)))violations.push({surface:'discarded runtime still present',file:retired});
+for(const retired of ['static/icons/icon_black.ico','static/css','static/img','frontend/demo','webdeck/colors.json','webdeck/translations/misc','docs/v2/HISTORICAL_PROPOSAL.md','docs/v2/IMPLEMENTATION_PLAN.md','docs/v2/evidence/v2-only','src/app','src/application','src/adapters','src/domain/transport.rs','frontend/src/views','frontend/src/framework','contracts/legacy-commands.json','webdeck/commands.json'])if(fs.existsSync(path.join(root,retired)))violations.push({surface:'deprecated artifact still present',file:retired});
 const report={complete:violations.length===0,violations};
 console.log(process.argv.includes('--json')?JSON.stringify(report,null,2):`V2-only migration guard: ${violations.length} violations`);process.exitCode=violations.length?1:0;

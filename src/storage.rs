@@ -108,7 +108,15 @@ impl ConfigStore {
             protected_write(&path, b)?;
         }
         let b = read(&path)?;
-        let c = domain::decode_config(&b)?;
+        let c = domain::decode_config(&b).map_err(|e| {
+            Error::new(
+                e.code,
+                format!(
+                    "Cannot load {}: {}. File preserved; to start with v2 defaults, move this file to a backup and restart, or use --config-dir with an empty directory",
+                    path.display(), e.message
+                ),
+            )
+        })?;
         Ok(Self {
             path,
             state: Mutex::new(State {
