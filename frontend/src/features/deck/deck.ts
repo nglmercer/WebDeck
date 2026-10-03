@@ -149,3 +149,19 @@ export function gridWindow(
   );
   return { cells, crossing, totalRows, startRow };
 }
+
+/** Keep the configured columns intact while fitting ordinary decks like master. */
+export function fitDeck(
+  width: number,
+  height: number,
+  availableWidth: number,
+  availableHeight: number,
+) {
+  if (
+    ![width, height, availableWidth, availableHeight].every(Number.isFinite) ||
+    width <= 0 ||
+    height <= 0
+  )
+    return 1;
+  return Math.max(0.01, Math.min(availableWidth / width, availableHeight / height));
+}

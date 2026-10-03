@@ -152,3 +152,11 @@ it('renders the last supported cell for every canonical column count without uns
   }
   expect(fixed).toEqual(original);
 });
+
+it('fits the master demo proportionally without changing column placement', async () => {
+  const { fitDeck } = await import('./deck');
+  expect(fitDeck(1036, 620, 1440, 900)).toBeCloseTo(1440 / 1036);
+  expect(fitDeck(1036, 620, 360, 900)).toBeCloseTo(360 / 1036);
+  expect(fitDeck(1036, 620, 1440, 400)).toBeCloseTo(400 / 620);
+  expect(fitDeck(0, 0, 360, 900)).toBe(1);
+});

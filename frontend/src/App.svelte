@@ -93,6 +93,7 @@
     }
   }
   async function load() {
+    error = '';
     if (await session.load()) navigation.route();
   }
   async function assets() {
@@ -263,6 +264,18 @@
           notify={(message) => (notice = message)}
         />
       {/if}
+    </main>
+  {:else}
+    <main>
+      <section role="status">
+        <h1>{t('ui_loading_failed')}</h1>
+        <p>{t('ui_loading_failed_help')}</p>
+        <button
+          onclick={() => {
+            void load();
+          }}>{t('ui_reload')}</button
+        >
+      </section>
     </main>
   {/if}
 </div>

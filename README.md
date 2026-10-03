@@ -12,6 +12,15 @@ npm run build --prefix frontend
 cargo run --locked --bin webdeck -- --no-tray
 ```
 
+Rebuild the frontend after pulling changes. `cargo run` compiles Rust, not the
+browser bundle. WebDeck checks the bundle's contract fingerprint and explains
+how to rebuild an incompatible frontend instead of serving a blank deck.
+
+To run the master-style 8 × 4 demo with v2 navigation and dialogs, run
+`node tools/demo/run.mjs` after installing frontend dependencies. The launcher
+builds both parts and uses a temporary configuration with simulated desktop
+effects. See [the demo guide](examples/demo-v2/README.md).
+
 Open `http://127.0.0.1:5000`. Run without `--no-tray` for the native tray and QR
 viewer. Linux builds require GTK 3, ALSA, XCB and pkg-config development packages.
 Audio and desktop actions also depend on the desktop session and installed tools

@@ -181,6 +181,22 @@ async fn http_executor_vm_metrics_response_and_drain() {
             root: temp.0.clone(),
         },
     };
+    let mut catalog_request = Request::builder()
+        .uri("/api/v2/commands")
+        .header("host", "127.0.0.1:5000")
+        .body(Body::empty())
+        .unwrap();
+    catalog_request.extensions_mut().insert(ConnectInfo(
+        "127.0.0.1:35000".parse::<std::net::SocketAddr>().unwrap(),
+    ));
+    let response = router(app.clone()).oneshot(catalog_request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let catalog: Value =
+        serde_json::from_slice(&to_bytes(response.into_body(), 1024 * 1024).await.unwrap())
+            .unwrap();
+    domain::validate("CatalogResponse", &catalog).unwrap();
+    assert_eq!(catalog["plugins"].as_array().unwrap().len(), 4);
+
     for (command, expected) in [
         (
             json!({"type":"debug", "data":{"a":[1,2]}}),

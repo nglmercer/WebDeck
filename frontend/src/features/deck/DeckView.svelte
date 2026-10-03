@@ -15,7 +15,7 @@
   const t = useTranslations();
 
   import type { Button, Layout, UsageResponse } from '../../lib/contracts';
-  import { appearanceNumber, gridCells, gridWindow, placeButtons } from './deck';
+  import { appearanceNumber, fitDeck, gridCells, gridWindow, placeButtons } from './deck';
   import { appearanceOf, tileColors } from '../editor/appearance';
   import ButtonContent from './ButtonContent.svelte';
   import NumberField from '../../components/NumberField.svelte';
@@ -56,6 +56,17 @@
     remove: (button: Button) => void;
     add: (cell: number) => void;
   } = $props();
+  let viewportWidth = $state(0);
+  let viewportHeight = $state(0);
+  let availableWidth = $state(0);
+  let deckElement: HTMLDivElement;
+  onMount(() => {
+    const observer = new ResizeObserver(([entry]) => {
+      availableWidth = entry?.contentRect.width ?? 0;
+    });
+    observer.observe(deckElement);
+    return () => observer.disconnect();
+  });
   let selectedRow = $state(0);
   $effect(() => {
     folderId;
@@ -71,6 +82,16 @@
   const count = $derived(placementState.placement?.count ?? 0);
   const paged = $derived(count > 16384);
   const totalRows = $derived(Math.ceil(count / layout.columns));
+  const gap = $derived(appearanceNumber(appearance.gap, 20, 0, 100));
+  const rowHeight = $derived(appearanceNumber(appearance.button_height, 140, 24, 800));
+  const fitted = $derived(!editing && !paged && totalRows <= 32 && appearance.fit !== false);
+  const naturalWidth = $derived(layout.columns * 112 + Math.max(0, layout.columns - 1) * gap);
+  const naturalHeight = $derived(totalRows * rowHeight + Math.max(0, totalRows - 1) * gap);
+  const scale = $derived(
+    fitted && viewportWidth && availableWidth
+      ? fitDeck(naturalWidth, naturalHeight, availableWidth, Math.max(100, viewportHeight - 32))
+      : 1,
+  );
   const startRow = $derived(paged ? Math.min(selectedRow, totalRows - 1) : 0);
   const window = $derived(
     paged ? gridWindow(buttons, layout.columns, layout.rows, startRow, 128) : null,
@@ -94,6 +115,8 @@
     return `--button-color:${b.color};--button-foreground:${tileColors(b.color).foreground};--icon-size:${appearanceNumber(a.icon_size, appearanceNumber(appearance.icon_size, 42, 0, 200), 0, 200)}px;`;
   }
 </script>
+
+<svelte:window bind:innerWidth={viewportWidth} bind:innerHeight={viewportHeight} />
 
 {#if placementState.error}<p role="alert">{t(placementState.error)}</p>{/if}
 {#if paged}<div class="row-range" role="group" aria-label={t('ui_grid_row_navigation')}>
@@ -124,14 +147,28 @@
     </p>
   </div>{/if}
 <!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable fixed-cell decks need a keyboard focus target for arrow-key panning.) -->
-<div class="deck-scroll" role="region" aria-label={t('ui_control_deck')} tabindex="0">
+<div
+  bind:this={deckElement}
+  class="deck-scroll"
+  class:fitted
+  style:height={fitted ? `${naturalHeight * scale}px` : undefined}
+  role="region"
+  aria-label={t('ui_control_deck')}
+  tabindex="0"
+>
   <div
     class="deck-grid all-buttons"
     class:editing
+    class:master-layout={!editing}
+    style:width={fitted ? `${naturalWidth}px` : undefined}
+    style:transform={fitted
+      ? `translateX(${(availableWidth - naturalWidth * scale) / 2}px) scale(${scale})`
+      : undefined}
+    style:transform-origin={'top left'}
     style:grid-template-columns={`repeat(${layout?.columns ?? 4}, minmax(72px, 1fr))`}
-    style:gap={`${appearanceNumber(appearance.gap, 10, 0, 100)}px`}
-    style:--button-height={`${appearanceNumber(appearance.button_height, 140, 24, 800)}px`}
-    style:--button-radius={`${appearanceNumber(appearance.radius, 8, 0, 100)}px`}
+    style:gap={`${gap}px`}
+    style:--button-height={`${rowHeight}px`}
+    style:--button-radius={`${appearanceNumber(appearance.radius, editing ? 8 : 20, 0, 100)}px`}
   >
     {#each cells.filter((c) => !c.covered) as slot (slot.cell)}<div
         class="deck-cell"
@@ -140,7 +177,7 @@
         style:grid-row={`${Math.max(1, Math.floor(slot.cell / layout.columns) - startRow + 1)} / span ${visibleRows(slot.cell, slot.rows)}`}
       >
         {#if slot.button}{@const b = slot.button}<button
-            class="deck-button button"
+            class="deck-button button wd_button"
             style={buttonStyle(b)}
             class:active={dynamic[b.id]?.active}
             class:blank={b.action.type === 'none'}
@@ -158,7 +195,7 @@
                 ? b
                 : { ...b, label: dynamic[b.id]!.label! }}
               assetUrl={assetUrls[b.icon.slice(6)]}
-              showLabels={appearance.show_labels !== false}
+              showLabels={editing && appearance.show_labels !== false}
               {usage}
               {now}
             /><small
@@ -178,6 +215,10 @@
                       : ''}</small
             ></button
           >
+          {#if !editing && appearance.show_labels !== false && appearanceOf(b).show_label !== false}<span
+              class="buttontext"
+              aria-hidden="true">{dynamic[b.id]?.label ?? b.label}</span
+            >{/if}
           {#if reason(b) || running[b.id] || outcomeMessages[b.id]}<span
               id={`state-${b.id}`}
               class="sr-only"
@@ -226,6 +267,14 @@
   .deck-scroll {
     width: 100%;
     overflow-x: auto;
+  }
+  .deck-scroll.fitted {
+    display: flex;
+    justify-content: flex-start;
+    overflow: hidden;
+  }
+  .fitted > .deck-grid {
+    flex-shrink: 0;
   }
   .deck-scroll:focus-visible {
     outline: 2px solid var(--accent);

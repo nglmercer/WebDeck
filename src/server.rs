@@ -128,7 +128,15 @@ pub fn router(a: App) -> Router {
 }
 async fn home() -> Response {
     match tokio::fs::read("frontend/dist/index.html").await {
-        Ok(b) => ([("content-type", "text/html; charset=utf-8")], b).into_response(),
+        Ok(b) if frontend_matches_contract(&b) => (
+            [("content-type", "text/html; charset=utf-8"), ("cache-control", "no-store")],
+            b,
+        ).into_response(),
+        Ok(_) => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            [("cache-control", "no-store")],
+            "Frontend build is out of date. Run npm ci --prefix frontend && npm run build --prefix frontend, then reload WebDeck. Your configuration is unchanged.",
+        ).into_response(),
         Err(_) => (
             StatusCode::SERVICE_UNAVAILABLE,
             "Build the frontend before starting WebDeck",
@@ -137,9 +145,35 @@ async fn home() -> Response {
     }
 }
 
+fn frontend_matches_contract(html: &[u8]) -> bool {
+    use sha2::{Digest, Sha256};
+    let digest = format!(
+        "{:x}",
+        Sha256::digest(include_bytes!("../contracts/v2.schema.json"))
+    );
+    String::from_utf8_lossy(html)
+        .contains(&format!("name=\"webdeck-contract\" content=\"{digest}\""))
+}
+
 #[cfg(test)]
 mod blocking_tests {
     use super::*;
+
+    #[test]
+    fn frontend_build_must_match_the_compiled_contract() {
+        use sha2::{Digest, Sha256};
+        let digest = format!(
+            "{:x}",
+            Sha256::digest(include_bytes!("../contracts/v2.schema.json"))
+        );
+        assert!(frontend_matches_contract(
+            format!("<meta name=\"webdeck-contract\" content=\"{digest}\">").as_bytes()
+        ));
+        assert!(!frontend_matches_contract(
+            b"<meta name=\"webdeck-contract\" content=\"old\">"
+        ));
+        assert!(!frontend_matches_contract(b"<html>old bundle</html>"));
+    }
 
     #[tokio::test]
     async fn cancelled_observer_does_not_release_blocking_capacity() {

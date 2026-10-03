@@ -1,9 +1,10 @@
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, cpSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 const root = path.resolve('..');
 const directory = mkdtempSync(path.join(tmpdir(), 'webdeck-acceptance-'));
+cpSync(path.join(root, 'examples/demo-v2/user_uploads'), path.join(directory, 'user_uploads'), { recursive: true });
 const config = JSON.parse(readFileSync(path.join(root, 'webdeck/config_default.json'), 'utf8'));
 config.layout.folders[0].buttons.push({
   id: 'work-link',

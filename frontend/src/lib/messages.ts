@@ -430,4 +430,6 @@ export const messages = {
   ui_metric_no_data: 'No data',
   ui_list_minimum: 'This list requires at least {count} items.',
   ui_list_maximum: 'This list allows at most {count} items.',
+  ui_loading_failed: 'WebDeck could not load',
+  ui_loading_failed_help: 'Check the server connection and reload to try again.',
 } as const;

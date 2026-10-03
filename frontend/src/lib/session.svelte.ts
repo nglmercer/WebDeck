@@ -58,7 +58,12 @@ export class Session {
       const deck = await this.api.boot();
       const [translations, catalog, snapshot] = await Promise.all([
         this.api.translations(),
-        this.api.catalog(),
+        this.api.catalog().catch((error: unknown) => {
+          if (error instanceof ApiError && error.status === 401) throw error;
+          if (generation === this.generation)
+            this.feedback.error(error instanceof Error ? error.message : String(error));
+          return null;
+        }),
         deck.can_edit ? this.api.config() : Promise.resolve(null),
       ]);
       if (generation !== this.generation) return false;

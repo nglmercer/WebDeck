@@ -117,3 +117,17 @@ it('an obsolete post-save refresh failure cannot report a failure after a newer 
   expect(session.deck?.revision).toBe(4);
   session.dispose();
 });
+
+it('keeps a usable deck when the optional command catalog fails validation', async () => {
+  const client = api(),
+    error = vi.fn();
+  client.catalog = vi.fn().mockRejectedValue(new Error('Invalid CatalogResponse response'));
+  const session = new Session({ error, notice: vi.fn() }, client);
+  expect(await session.load()).toBe(true);
+  expect(session.deck?.layout.folders.length).toBeGreaterThan(0);
+  expect(session.catalog).toBeNull();
+  expect(session.loading).toBe(false);
+  expect(error).toHaveBeenCalledWith('Invalid CatalogResponse response');
+  expect(client.connect).toHaveBeenCalledTimes(1);
+  session.dispose();
+});

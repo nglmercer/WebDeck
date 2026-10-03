@@ -1109,3 +1109,6 @@ ui_enable_plugin=Enable plugin
 ui_disable_plugin=Disable plugin
 ui_sandbox_plugin=Sandbox JavaScript
 ui_trusted_native_plugin=Trusted native process
+
+ui_loading_failed=WebDeck could not load
+ui_loading_failed_help=Check the server connection and reload to try again.

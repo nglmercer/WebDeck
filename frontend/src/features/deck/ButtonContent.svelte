@@ -29,6 +29,11 @@
 >
 {#if button.action.type === 'metric' || button.action.type === 'usage'}{@const reading =
     metricReading(button, usage?.usage, now)}
+  {#if !showLabels}<span class="metric-title"
+      >{typeof appearanceOf(button).metric_label === 'string'
+        ? appearanceOf(button).metric_label
+        : button.label}</span
+    >{/if}
   <strong class="metric-value"
     >{reading.text === 'Unavailable' ? t('ui_metric_no_data') : reading.text}</strong
   >

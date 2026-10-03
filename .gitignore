@@ -33,3 +33,7 @@ data.json
 !/runtime/dist/
 !/runtime/dist/**
 /runtime/dist/generated/
+
+# Canonical, isolated visual demo fixture
+!/examples/demo-v2/config.json
+/examples/demo-v2/config.lock

@@ -169,3 +169,50 @@ progress {
   outline: 3px solid var(--button-foreground);
   outline-offset: -5px;
 }
+
+/* Master's compact tiles, with names below and transparent unassigned slots. */
+.deck-grid.master-layout {
+  min-height: 0;
+}
+.master-layout .deck-cell > .deck-button {
+  height: calc(100% - 28px);
+  padding: 12px;
+  border-radius: var(--button-radius, 20px);
+  box-shadow: 0 1px 3px #0003;
+}
+.master-layout .buttontext {
+  display: block;
+  margin-top: 6px;
+  color: #b3b3b3;
+  font-size: 12px;
+  text-align: center;
+  line-height: 1.4;
+  overflow: hidden;
+  white-space: normal;
+  max-height: 34px;
+  overflow-wrap: anywhere;
+}
+.master-layout .empty-cell {
+  background: transparent;
+  border: 0;
+}
+.master-layout .deck-button:hover {
+  transform: translateY(-1px);
+}
+.master-layout .deck-button .button-icon,
+.master-layout .deck-button img {
+  max-height: 65%;
+}
+
+.master-layout .metric-title,
+.master-layout .metric-value {
+  font-weight: 700;
+  font-size: 16px;
+}
+.master-layout progress {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
