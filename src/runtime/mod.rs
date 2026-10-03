@@ -3,6 +3,7 @@ mod bridge;
 pub mod capabilities;
 mod errors;
 mod modules;
+pub mod plugins;
 mod sandbox;
 mod vm;
 

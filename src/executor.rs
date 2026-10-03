@@ -12,6 +12,8 @@ use std::{
 use tokio::sync::Semaphore;
 #[derive(Clone)]
 pub struct Context {
+    pub principal: Option<String>,
+    pub owner_id: String,
     pub capabilities: Vec<Capability>,
     pub deadline: Instant,
     pub depth: u8,
@@ -21,6 +23,9 @@ impl Context {
         if !self.capabilities.contains(&c) {
             return Err(Error::new(ErrorCode::Forbidden, "Capability denied"));
         }
+        self.check_budget()
+    }
+    pub fn check_budget(&self) -> Result<()> {
         if self.depth > 8 || Instant::now() > self.deadline {
             return Err(Error::new(
                 ErrorCode::ExecutionFailed,
@@ -49,6 +54,18 @@ impl Context {
 }
 pub trait Adapter: Send + Sync + 'static {
     fn execute(&self, c: &Command, context: &Context) -> Result<Value>;
+    fn management(
+        &self,
+        _plugins: Option<Vec<crate::runtime::plugins::RuntimePlugin>>,
+    ) -> Result<Value> {
+        Err(Error::execution())
+    }
+    fn plugin_enabled(&self, _id: &str, _enabled: bool) -> Result<Value> {
+        Err(Error::execution())
+    }
+    fn events(&self) -> Option<tokio::sync::broadcast::Receiver<Value>> {
+        None
+    }
     fn shutdown(&self) {}
 }
 pub struct Executor {
@@ -65,6 +82,18 @@ impl Executor {
             capacity,
         }
     }
+    pub fn management(
+        &self,
+        plugins: Option<Vec<crate::runtime::plugins::RuntimePlugin>>,
+    ) -> Result<Value> {
+        self.adapter.management(plugins)
+    }
+    pub fn plugin_enabled(&self, id: &str, enabled: bool) -> Result<Value> {
+        self.adapter.plugin_enabled(id, enabled)
+    }
+    pub fn events(&self) -> Option<tokio::sync::broadcast::Receiver<Value>> {
+        self.adapter.events()
+    }
     pub async fn execute(
         &self,
         r: CommandRequest,
@@ -79,6 +108,8 @@ impl Executor {
             )?;
             domain::validate_command(&r.command)?;
             let context = Context {
+                principal: None,
+                owner_id: domain::id()?,
                 capabilities: caps,
                 deadline: Instant::now() + Duration::from_secs(30),
                 depth: 0,
@@ -143,20 +174,14 @@ impl Executor {
         self.adapter.shutdown();
     }
 }
-pub struct Fake;
-impl Adapter for Fake {
-    fn execute(&self, c: &Command, x: &Context) -> Result<Value> {
-        x.check(c.capability())?;
-        Ok(serde_json::json!({"effect":"simulated"}))
-    }
-}
-
 #[cfg(test)]
 mod budget_tests {
     use super::*;
     #[test]
     fn remaining_checks_policy_and_clamps_helper_budget() {
         let context = Context {
+            principal: None,
+            owner_id: "test-root".into(),
             capabilities: vec![Capability::Audio],
             deadline: Instant::now() + Duration::from_secs(60),
             depth: 0,
@@ -175,6 +200,8 @@ mod budget_tests {
             ErrorCode::Forbidden
         );
         let short = Context {
+            principal: None,
+            owner_id: "test-root".into(),
             deadline: Instant::now() + Duration::from_secs(1),
             ..context
         };
@@ -188,6 +215,8 @@ mod budget_tests {
     #[test]
     fn expired_and_nested_over_budget_contexts_cannot_start_helpers() {
         let context = Context {
+            principal: None,
+            owner_id: "test-root".into(),
             capabilities: vec![Capability::Audio],
             deadline: Instant::now() - Duration::from_millis(1),
             depth: 0,
@@ -200,6 +229,8 @@ mod budget_tests {
             ErrorCode::ExecutionFailed
         );
         let deep = Context {
+            principal: None,
+            owner_id: "test-root".into(),
             deadline: Instant::now() + Duration::from_secs(60),
             depth: 9,
             ..context

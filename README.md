@@ -55,12 +55,14 @@ JSON object, for example:
 The console accepts one such command object per line (without the request wrapper).
 Use `WEBDECK_URL` and `WEBDECK_DEVICE_TOKEN` for a paired console.
 
-Rhai scripts use structured `invoke(#{type: "debug", data: #{value: 42}})` calls.
-Plugins require a versioned v2 JSON manifest and a Rhai entry point; copy the
-[example plugin](examples/plugins/echo.json) and its `.rhai` file into the selected
-data directory's `plugins` folder, then restart. Python plugins and command-prefix
-registries are unsupported. Plugins execute with the intersection of their
-manifest capabilities and the caller's capabilities.
+JavaScript scripts call structured actions with `ctx.invoke({type: "debug", data: {value: 42}})`.
+The embedded napi-vm runtime requires no Node, Bun or npm installation.
+Copy the [example plugin directory](examples/plugins/echo) to `<config-dir>/plugins/echo`.
+Plugins use a v2 `webdeck.json` manifest, verified JavaScript source and declared capabilities.
+The local Settings page can inspect and reload plugins. Executable native plugins use
+napi-vm's trusted process host and require explicit installation; their processes have
+ordinary OS privileges. See the [runtime migration guide](docs/v2/NAPI_VM_MIGRATION.md)
+for workflows, package formats and manual migration of earlier scripts.
 
 ## Validation and packaging
 

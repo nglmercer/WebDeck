@@ -1,5 +1,18 @@
 // UI translation keys. Keep keys stable when editing the English copy.
 export const messages = {
+  ui_enable_plugin: 'Enable plugin',
+  ui_disable_plugin: 'Disable plugin',
+  ui_sandbox_plugin: 'Sandbox JavaScript',
+  ui_trusted_native_plugin: 'Trusted native process',
+
+  ui_runtime: 'Runtime and plugins',
+  ui_runtime_status: 'Runtime status',
+  ui_reload_plugins: 'Reload plugins',
+  ui_runtime_ready: 'Ready',
+  ui_runtime_failed: 'Unavailable',
+  ui_runtime_commands: 'Commands: {count}',
+  ui_runtime_no_plugins: 'No external plugins installed',
+
   ui_webdeck_v2: 'WebDeck \u00b7 v2',
   ui_loading_webdeck: 'Loading WebDeck\u2026',
   ui_dismiss_error: 'Dismiss error',
@@ -210,6 +223,7 @@ export const messages = {
   ui_apps_and_windows: 'Apps and windows',
   ui_power_and_system: 'Power and system',
   ui_scripts: 'Scripts',
+  ui_workflow: 'Workflow',
   ui_network: 'Network',
   ui_plugins: 'Plugins',
   ui_deck_settings: 'Deck settings',
@@ -229,8 +243,8 @@ export const messages = {
     'Open a URL, application, or file on the host computer.',
   ui_send_an_http_request_from_the_host_network_permission_is_required:
     'Send an HTTP request from the host. Network permission is required.',
-  ui_run_a_rhai_script_with_the_permissions_granted_to_the_caller:
-    'Run a Rhai script with the permissions granted to the caller.',
+  ui_run_a_javascript_script_with_the_permissions_granted_to_the_caller:
+    'Run a JavaScript script with the permissions granted to the caller.',
   ui_reference_another_configured_button_by_its_stable_id:
     'Reference another configured button by its stable ID.',
   ui_image_preview_could_not_be_loaded_your_draft_is_unchanged:

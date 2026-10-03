@@ -31,6 +31,5 @@ data.json
 
 /runtime/node_modules/
 !/runtime/dist/
-!/runtime/dist/*.js
-
+!/runtime/dist/**
 /runtime/dist/generated/

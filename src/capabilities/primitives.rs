@@ -16,12 +16,24 @@ enum InputStep {
     #[serde(rename = "clipboard")]
     Clipboard { text: String },
 }
-impl CapabilityHost for Native {
+impl CapabilityHost for Platform {
+    fn reload_plugins(&self) {
+        self.trusted.shutdown();
+    }
     fn call(&self, operation: &str, input: &Value, context: &Context) -> Result<Value> {
         let capability = required_capability(operation)?;
         context.check(capability)?;
         match operation {
+            "storage.pluginGet" | "storage.pluginSet" => {
+                self.plugin_storage(operation, input, context)
+            }
             "network.fetch" => self.network_request(input, context),
+            "network.wsOpen" | "network.wsSend" | "network.wsReceive" | "network.wsClose" => {
+                self.websockets.call(operation, input, context)
+            }
+            "secrets.integration" => self.secret(input, context),
+            "secrets.saveSpotifyToken" => self.save_token(input, context),
+            "crypto.sha256Base64" | "crypto.base64" => secrets::crypto(operation, input),
             "input.perform" => {
                 let steps: Vec<InputStep> = field(input, "steps")?;
                 if steps.len() > 32 {
@@ -200,7 +212,7 @@ impl CapabilityHost for Native {
                     .flat_map(|f| &f.buttons)
                     .find(|b| b.id == id)
                     .ok_or_else(Error::invalid)?;
-                if let ButtonAction::Command { command } = &button.action {
+                if let Some(command) = domain::action_command(&button.action) {
                     context.check(command.capability())?;
                     serde_json::to_value(command).map_err(|_| Error::invalid())
                 } else {
@@ -210,7 +222,21 @@ impl CapabilityHost for Native {
             _ => Err(Error::invalid()),
         }
     }
+    fn trusted_plugin(
+        &self,
+        plugin: &crate::runtime::plugins::RuntimePlugin,
+        action: &str,
+        args: &Value,
+        context: &Context,
+    ) -> Result<Value> {
+        self.trusted.invoke(plugin, action, args, context)
+    }
+    fn finish_root(&self, context: &Context) {
+        self.websockets.finish_root(context);
+    }
     fn shutdown(&self) {
+        self.trusted.shutdown();
+        self.websockets.shutdown();
         CLIPBOARD.lock().unwrap_or_else(|p| p.into_inner()).take();
         self.processes.shutdown();
         self.audio.shutdown();

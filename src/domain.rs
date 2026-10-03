@@ -204,11 +204,11 @@ pub fn validate_config(c: &Config) -> Result<()> {
             if !ids.insert(&b.id) {
                 return Err(Error::invalid());
             }
+            if let Some(command) = action_command(&b.action) {
+                validate_command(&command)?;
+                validate_reference(c, &command, &mut HashSet::new())?;
+            }
             match &b.action {
-                ButtonAction::Command { command } => {
-                    validate_command(command)?;
-                    validate_reference(c, command, &mut HashSet::new())?;
-                }
                 ButtonAction::Folder { folder_id } if !folders.contains(folder_id.as_str()) => {
                     return Err(Error::invalid())
                 }
@@ -268,15 +268,63 @@ fn validate_reference(c: &Config, command: &Command, visited: &mut HashSet<Strin
             .iter()
             .flat_map(|f| &f.buttons)
             .find(|b| &b.id == button_id)
-            .and_then(|b| {
-                if let ButtonAction::Command { command } = &b.action {
-                    Some(command)
-                } else {
-                    None
-                }
-            })
+            .and_then(|b| action_command(&b.action))
             .ok_or_else(Error::invalid)?;
-        validate_reference(c, command, visited)?;
+        validate_reference(c, &command, visited)?;
+        visited.remove(button_id);
+    }
+    if let Command::Workflow { workflow } = command {
+        validate_workflow_references(c, workflow, visited)?;
     }
     Ok(())
+}
+fn validate_workflow_references(
+    c: &Config,
+    node: &WorkflowNode,
+    visited: &mut HashSet<String>,
+) -> Result<()> {
+    match node {
+        WorkflowNode::Command { command, .. } => validate_reference(c, command, visited)?,
+        WorkflowNode::Sequence { steps } | WorkflowNode::Parallel { steps } => {
+            for step in steps {
+                validate_workflow_references(c, step, visited)?;
+            }
+        }
+        WorkflowNode::Conditional {
+            if_true, if_false, ..
+        } => {
+            validate_workflow_references(c, if_true, visited)?;
+            validate_workflow_references(c, if_false, visited)?;
+        }
+        WorkflowNode::Retry { step, .. } | WorkflowNode::Timeout { step, .. } => {
+            validate_workflow_references(c, step, visited)?
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+pub fn action_command(action: &ButtonAction) -> Option<Command> {
+    match action {
+        ButtonAction::Command { command } => Some(command.clone()),
+        ButtonAction::Workflow { workflow } => Some(Command::Workflow {
+            workflow: workflow.clone(),
+        }),
+        ButtonAction::Script { source, language } => Some(Command::Script {
+            source: source.clone(),
+            language: Some(language.clone()),
+        }),
+        ButtonAction::Plugin {
+            plugin_id,
+            version,
+            action_id,
+            args,
+        } => Some(Command::Plugin {
+            plugin_id: plugin_id.clone(),
+            version: version.clone(),
+            action_id: action_id.clone(),
+            args: args.clone(),
+        }),
+        _ => None,
+    }
 }

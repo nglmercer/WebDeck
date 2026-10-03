@@ -101,6 +101,12 @@ pub fn router(a: App) -> Router {
                 .post(command)
                 .layer(DefaultBodyLimit::max(65536)),
         )
+        .route(
+            "/api/v2/runtime/plugins/{id}",
+            axum::routing::put(plugin_enabled),
+        )
+        .route("/api/v2/runtime", get(runtime_status))
+        .route("/api/v2/runtime/reload", post(runtime_reload))
         .route("/api/v2/usage", get(usage))
         .route("/api/v2/audio/devices", get(audio_devices))
         .route("/api/v2/translations", get(translations))

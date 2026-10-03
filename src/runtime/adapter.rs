@@ -19,6 +19,15 @@ impl Adapter for VmAdapter {
     fn execute(&self, command: &Command, context: &Context) -> Result<Value> {
         self.runtime.invoke(command, context)
     }
+    fn management(&self, plugins: Option<Vec<super::plugins::RuntimePlugin>>) -> Result<Value> {
+        self.runtime.management(plugins)
+    }
+    fn plugin_enabled(&self, id: &str, enabled: bool) -> Result<Value> {
+        self.runtime.plugin_enabled(id, enabled)
+    }
+    fn events(&self) -> Option<tokio::sync::broadcast::Receiver<Value>> {
+        Some(self.runtime.events())
+    }
     fn shutdown(&self) {
         self.runtime.shutdown();
     }

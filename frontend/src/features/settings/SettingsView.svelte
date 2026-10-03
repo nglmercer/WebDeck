@@ -8,6 +8,7 @@
   import AppearanceSettings from './AppearanceSettings.svelte';
   import IntegrationSettings from './IntegrationSettings.svelte';
   import DeviceSettings from './DeviceSettings.svelte';
+  import RuntimeSettings from './RuntimeSettings.svelte';
   import BackupSettings from './BackupSettings.svelte';
   let {
     editor,
@@ -37,6 +38,7 @@
     ['integrations', 'ui_integrations'],
     ['devices', 'ui_devices'],
     ['backups', 'ui_backups'],
+    ['runtime', 'ui_runtime'],
     ['connection', 'ui_connection'],
   ] as const;
 </script>
@@ -75,6 +77,7 @@
 <div class="settings-sections">
   <AppearanceSettings {editor} {languages} {assets} {attempt} />
   <IntegrationSettings {editor} {persist} {attempt} />
+  <RuntimeSettings {attempt} {reload} />
   <DeviceSettings {attempt} />
   <BackupSettings {editor} {reload} {notify} />
   <section id="settings-connection" aria-labelledby="connection-title">

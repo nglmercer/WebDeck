@@ -792,6 +792,12 @@
             },
             "source": {
               "$ref": "#/$defs/ScriptSource"
+            },
+            "language": {
+              "type": "string",
+              "enum": [
+                "javascript"
+              ]
             }
           },
           "required": [
@@ -859,7 +865,8 @@
                 "start_virtual_camera",
                 "stop_virtual_camera",
                 "scene",
-                "hotkey"
+                "hotkey",
+                "get_version"
               ]
             },
             "target": {
@@ -968,6 +975,23 @@
           "required": [
             "type",
             "button_id"
+          ],
+          "x-capability": "read"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "workflow"
+            },
+            "workflow": {
+              "$ref": "#/$defs/WorkflowNode"
+            }
+          },
+          "required": [
+            "type",
+            "workflow"
           ],
           "x-capability": "read"
         }
@@ -1127,6 +1151,77 @@
             "metric",
             "target",
             "interval_ms"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "workflow"
+            },
+            "workflow": {
+              "$ref": "#/$defs/WorkflowNode"
+            }
+          },
+          "required": [
+            "type",
+            "workflow"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "script"
+            },
+            "language": {
+              "const": "javascript"
+            },
+            "source": {
+              "$ref": "#/$defs/ScriptSource"
+            }
+          },
+          "required": [
+            "type",
+            "language",
+            "source"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "plugin"
+            },
+            "plugin_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "action_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "args": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "required": [
+            "type",
+            "plugin_id",
+            "version",
+            "action_id",
+            "args"
           ]
         }
       ]
@@ -1795,6 +1890,26 @@
           },
           "minItems": 1,
           "maxItems": 256
+        },
+        "backend": {
+          "enum": [
+            "sandbox_js",
+            "trusted_process"
+          ],
+          "type": "string"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "origin": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "contract": {
+          "type": "string",
+          "maxLength": 128
         }
       },
       "required": [
@@ -1802,7 +1917,11 @@
         "id",
         "version",
         "entry",
-        "actions"
+        "actions",
+        "backend",
+        "digest",
+        "origin",
+        "contract"
       ]
     },
     "PluginAction": {
@@ -2191,6 +2310,381 @@
           "minimum": 0
         }
       }
+    },
+    "WorkflowNode": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "command"
+            },
+            "command": {
+              "$ref": "#/$defs/Command"
+            },
+            "references": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "maxLength": 256
+              }
+            }
+          },
+          "required": [
+            "type",
+            "command"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "sequence"
+            },
+            "steps": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/WorkflowNode"
+              },
+              "maxItems": 32,
+              "minItems": 1
+            }
+          },
+          "required": [
+            "type",
+            "steps"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "parallel"
+            },
+            "steps": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/WorkflowNode"
+              },
+              "maxItems": 32,
+              "minItems": 1
+            }
+          },
+          "required": [
+            "type",
+            "steps"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "conditional"
+            },
+            "condition": {},
+            "if_true": {
+              "$ref": "#/$defs/WorkflowNode"
+            },
+            "if_false": {
+              "$ref": "#/$defs/WorkflowNode"
+            }
+          },
+          "required": [
+            "type",
+            "condition",
+            "if_true",
+            "if_false"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "delay"
+            },
+            "milliseconds": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 30000
+            }
+          },
+          "required": [
+            "type",
+            "milliseconds"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "retry"
+            },
+            "attempts": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            },
+            "step": {
+              "$ref": "#/$defs/WorkflowNode"
+            }
+          },
+          "required": [
+            "type",
+            "attempts",
+            "step"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "timeout"
+            },
+            "milliseconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 30000
+            },
+            "step": {
+              "$ref": "#/$defs/WorkflowNode"
+            }
+          },
+          "required": [
+            "type",
+            "milliseconds",
+            "step"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "variable"
+            },
+            "name": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$"
+            },
+            "value": {}
+          },
+          "required": [
+            "type",
+            "name",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "result"
+            },
+            "path": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "script"
+            },
+            "source": {
+              "$ref": "#/$defs/ScriptSource"
+            }
+          },
+          "required": [
+            "type",
+            "source"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "plugin"
+            },
+            "plugin_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "action_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "args": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "required": [
+            "type",
+            "plugin_id",
+            "version",
+            "action_id",
+            "args"
+          ]
+        }
+      ]
+    },
+    "RuntimeEvent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "api_version": {
+              "const": 2
+            },
+            "type": {
+              "const": "button.stateChanged"
+            },
+            "button_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "label": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "active": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "api_version",
+            "type",
+            "button_id"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "api_version": {
+              "const": 2
+            },
+            "type": {
+              "const": "runtime.reloaded"
+            }
+          },
+          "required": [
+            "api_version",
+            "type"
+          ]
+        }
+      ]
+    },
+    "RuntimeSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "api_version": {
+          "const": 2
+        },
+        "runtime": {
+          "const": "napi-vm"
+        },
+        "healthy": {
+          "type": "boolean"
+        },
+        "commands": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "maxLength": 128
+              },
+              "capability": {
+                "$ref": "#/$defs/Capability"
+              }
+            },
+            "required": [
+              "id",
+              "capability"
+            ]
+          }
+        },
+        "plugins": {
+          "type": "array",
+          "maxItems": 68,
+          "items": {
+            "$ref": "#/$defs/PluginManifest"
+          }
+        },
+        "loaded_plugins": {
+          "type": "array",
+          "maxItems": 68,
+          "items": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "queue_capacity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "disabled_plugins": {
+          "type": "array",
+          "maxItems": 68,
+          "items": {
+            "type": "string",
+            "maxLength": 128
+          }
+        }
+      },
+      "required": [
+        "api_version",
+        "runtime",
+        "healthy",
+        "commands",
+        "plugins",
+        "loaded_plugins",
+        "queue_capacity",
+        "disabled_plugins"
+      ]
+    },
+    "PluginState": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "enabled"
+      ]
     }
   }
 }

@@ -1,8 +1,8 @@
+pub mod capabilities;
 pub mod contracts;
 pub mod desktop;
 pub mod domain;
 pub mod executor;
-pub mod native;
 pub mod qr;
 pub mod runtime;
 pub mod server;

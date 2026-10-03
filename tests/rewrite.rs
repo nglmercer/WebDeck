@@ -351,25 +351,34 @@ fn independent_session_owners_keep_grants_and_observe_revocation() {
 }
 #[tokio::test]
 async fn scripts_and_plugins_obey_nested_policy_and_budget_without_native_effects() {
-    use webdeck::native::Native;
+    use sha2::{Digest, Sha256};
+    use webdeck::{
+        capabilities::Platform,
+        runtime::{capabilities::NativeMetrics, VmAdapter, VmRuntime},
+    };
     let t = Temp::new();
-    std::fs::create_dir(t.0.join("plugins")).unwrap();
-    let manifest = json!({"schema_version":2,"id":"example","version":"2.0.0","entry":"example.rhai","actions":[{"id":"echo","label":"Echo","capabilities":["read"],"arguments":{"text":{"type":"string","required":true}},"result":{"type":"object","required":true}}]});
-    std::fs::write(t.0.join("plugins/example.json"), manifest.to_string()).unwrap();
+    std::fs::create_dir_all(t.0.join("plugins/example")).unwrap();
+    let source = r#"export function invoke_action(action,args){return invoke({type:"debug",data:{text:args.text}})}"#;
+    let digest = format!("{:x}", Sha256::digest(source.as_bytes()));
+    let manifest = json!({"schema_version":2,"id":"example","version":"2.0.0","entry":"index.js","backend":"sandbox_js","digest":digest,"origin":"local","contract":"","actions":[{"id":"echo","label":"Echo","capabilities":["read"],"arguments":{"text":{"type":"string","required":true}},"result":{"type":"object","required":true}}]});
     std::fs::write(
-        t.0.join("plugins/example.rhai"),
-        r#"fn invoke_action(action,args){invoke(#{type:"debug",data:#{text:args.text}})}"#,
+        t.0.join("plugins/example/webdeck.json"),
+        manifest.to_string(),
     )
     .unwrap();
+    std::fs::write(t.0.join("plugins/example/index.js"), source).unwrap();
     let native = Arc::new(
-        Native::new(
+        Platform::new(
             store(&t),
             Assets { root: t.0.clone() },
             Arc::new(tokio::sync::Notify::new()),
         )
         .unwrap(),
     );
-    let executor = Executor::new(Arc::new(native), 1);
+    let plugins = webdeck::runtime::plugins::load_plugins(&Assets { root: t.0.clone() }).unwrap();
+    let runtime =
+        Arc::new(VmRuntime::with_plugins(Arc::new(NativeMetrics), native, plugins).unwrap());
+    let executor = Executor::new(Arc::new(VmAdapter::new(runtime)), 1);
     let r = || CommandRequest {
         request_id: "test".into(),
         command: Command::Plugin {
@@ -395,8 +404,9 @@ async fn scripts_and_plugins_obey_nested_policy_and_budget_without_native_effect
     let forbidden = CommandRequest {
         request_id: "nested".into(),
         command: Command::Script {
+            language: None,
             source: ScriptSource::Inline {
-                code: r#"invoke(#{type:"write",text:"never type this",send:false})"#.into(),
+                code: r#"invoke({type:"write",text:"never type this",send:false})"#.into(),
             },
         },
     };
@@ -407,8 +417,9 @@ async fn scripts_and_plugins_obey_nested_policy_and_budget_without_native_effect
     let looped = CommandRequest {
         request_id: "loop".into(),
         command: Command::Script {
+            language: None,
             source: ScriptSource::Inline {
-                code: "loop {}".into(),
+                code: "while (true) {}".into(),
             },
         },
     };
@@ -697,6 +708,13 @@ async fn paired_settings_credentials_never_become_local_administrators() {
                 .unwrap(),
             ),
             ("GET", "/api/v2/devices", json!(null)),
+            ("GET", "/api/v2/runtime", json!(null)),
+            ("POST", "/api/v2/runtime/reload", json!(null)),
+            (
+                "PUT",
+                "/api/v2/runtime/plugins/echo",
+                json!({"enabled":false}),
+            ),
         ] {
             assert_eq!(
                 call(&a, method, path, body, remote, Some(&grant.token), host)

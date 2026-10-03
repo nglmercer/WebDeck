@@ -29,6 +29,7 @@
     fetch: 'ui_http_request',
     plugin: 'ui_plugin_action',
     button: 'ui_run_another_button',
+    workflow: 'ui_workflow',
     debug: 'ui_debug_data',
   };
   const descriptions: Record<string, string> = {
@@ -36,7 +37,7 @@
     write: 'ui_type_text_on_the_host_computer_enable_send_to_press_enter_afterward',
     open: 'ui_open_a_url_application_or_file_on_the_host_computer',
     fetch: 'ui_send_an_http_request_from_the_host_network_permission_is_required',
-    script: 'ui_run_a_rhai_script_with_the_permissions_granted_to_the_caller',
+    script: 'ui_run_a_javascript_script_with_the_permissions_granted_to_the_caller',
     button: 'ui_reference_another_configured_button_by_its_stable_id',
   };
   const options = commandSchema.oneOf ?? [];

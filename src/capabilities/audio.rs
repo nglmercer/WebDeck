@@ -2,7 +2,7 @@ use super::*;
 mod owner;
 pub(super) use owner::AudioOwner;
 
-impl Native {
+impl Platform {
     pub(super) fn play(
         &self,
         s: &FileSource,
@@ -49,6 +49,7 @@ impl Native {
     }
 }
 
+#[cfg(windows)]
 pub(super) fn percent(v: &VolumeChange, current: i64) -> i64 {
     match v {
         VolumeChange::Set { percent } => *percent as i64,
@@ -180,6 +181,8 @@ mod tests {
     #[test]
     fn endpoint_rejects_expired_and_denied_work_before_host_access() {
         let context = Context {
+            principal: None,
+            owner_id: "test-root".into(),
             capabilities: vec![Capability::Audio],
             deadline: Instant::now() - Duration::from_secs(1),
             depth: 0,
@@ -202,6 +205,8 @@ mod tests {
             ErrorCode::ExecutionFailed
         );
         let denied = Context {
+            principal: None,
+            owner_id: "test-root".into(),
             capabilities: vec![Capability::Read],
             deadline: Instant::now() + Duration::from_secs(30),
             depth: 0,

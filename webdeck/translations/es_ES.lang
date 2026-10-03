@@ -945,3 +945,16 @@ ui_metric_no_data=Sin datos
 
 ui_list_minimum=Esta lista requiere al menos {count} elementos.
 ui_list_maximum=Esta lista permite como máximo {count} elementos.
+
+ui_workflow=Flujo de trabajo
+ui_runtime=Runtime and plugins
+ui_runtime_status=Runtime status
+ui_reload_plugins=Reload plugins
+ui_runtime_ready=Ready
+ui_runtime_failed=Unavailable
+ui_runtime_commands=Commands: {count}
+ui_runtime_no_plugins=No external plugins installed
+ui_enable_plugin=Enable plugin
+ui_disable_plugin=Disable plugin
+ui_sandbox_plugin=Sandbox JavaScript
+ui_trusted_native_plugin=Trusted native process

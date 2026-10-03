@@ -76,12 +76,12 @@ pub fn run(url: String, shutdown: Arc<tokio::sync::Notify>) -> Result<()> {
                 });
             }
             Event::UserEvent(TrayEvent::Menu(e)) if e.id == settings.id() => {
-                if let Err(e) = crate::native::open(&format!("{url}#settings")) {
+                if let Err(e) = crate::capabilities::open(&format!("{url}#settings")) {
                     eprintln!("Tray: {e}");
                 }
             }
             Event::UserEvent(TrayEvent::Menu(e)) if e.id == deck.id() => {
-                if let Err(e) = crate::native::open(&url) {
+                if let Err(e) = crate::capabilities::open(&url) {
                     eprintln!("Tray: {e}");
                 }
             }
@@ -90,7 +90,7 @@ pub fn run(url: String, shutdown: Arc<tokio::sync::Notify>) -> Result<()> {
                 button_state: MouseButtonState::Up,
                 ..
             })) => {
-                if let Err(e) = crate::native::open(&url) {
+                if let Err(e) = crate::capabilities::open(&url) {
                     eprintln!("Tray: {e}");
                 }
             }

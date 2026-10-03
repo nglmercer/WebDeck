@@ -1,6 +1,6 @@
 use super::*;
 
-pub(super) fn fetch(
+fn fetch_response(
     method: &str,
     url: &str,
     headers: &BTreeMap<String, String>,
@@ -18,19 +18,37 @@ pub(super) fn fetch(
     }
     let r = r.send().map_err(|_| Error::execution())?;
     let status = r.status();
+    let response_headers: BTreeMap<String, String> = r
+        .headers()
+        .iter()
+        .take(128)
+        .filter_map(|(name, value)| {
+            value
+                .to_str()
+                .ok()
+                .map(|value| (name.to_string(), value.to_owned()))
+        })
+        .collect();
+    if response_headers
+        .iter()
+        .map(|(k, v)| k.len() + v.len())
+        .sum::<usize>()
+        > 16384
+    {
+        return Err(Error::execution());
+    }
     let mut b = Vec::new();
     r.take(65537)
         .read_to_end(&mut b)
         .map_err(|_| Error::execution())?;
-    if !status.is_success() {
-        return Err(Error::execution());
-    }
     let truncated = b.len() > 65536;
     b.truncate(65536);
-    Ok(json!({"status":status.as_u16(),"body":String::from_utf8_lossy(&b),"truncated":truncated}))
+    Ok(
+        json!({"status":status.as_u16(),"body":String::from_utf8_lossy(&b),"truncated":truncated,"headers":response_headers}),
+    )
 }
 
-impl Native {
+impl Platform {
     pub(super) fn network_request(&self, input: &Value, context: &Context) -> Result<Value> {
         let operation = "network.fetch";
         context.check(crate::runtime::capabilities::required_capability(
@@ -47,8 +65,18 @@ impl Native {
                 {
                     return Err(Error::invalid());
                 }
-                let headers = serde_json::from_value(input["headers"].clone())
-                    .map_err(|_| Error::invalid())?;
+                let headers: BTreeMap<String, String> =
+                    serde_json::from_value(input["headers"].clone())
+                        .map_err(|_| Error::invalid())?;
+                if headers.len() > 128
+                    || headers
+                        .iter()
+                        .map(|(k, v)| k.len() + v.len())
+                        .sum::<usize>()
+                        > 16384
+                {
+                    return Err(Error::invalid());
+                }
                 let body = input["body"].as_str().ok_or_else(Error::invalid)?;
                 if body.len() > 65536 {
                     return Err(Error::invalid());
@@ -57,7 +85,7 @@ impl Native {
                     .as_u64()
                     .filter(|n| *n > 0 && *n <= 30000)
                     .ok_or_else(Error::invalid)?;
-                fetch(
+                fetch_response(
                     method,
                     url,
                     &headers,

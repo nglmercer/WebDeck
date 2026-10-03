@@ -12,13 +12,7 @@ pub(super) fn resolve_request(a: &App, mut r: CommandRequest) -> Result<CommandR
             .iter()
             .flat_map(|f| &f.buttons)
             .find(|b| &b.id == button_id)
-            .and_then(|b| {
-                if let ButtonAction::Command { command } = &b.action {
-                    Some(command.clone())
-                } else {
-                    None
-                }
-            })
+            .and_then(|b| domain::action_command(&b.action))
             .ok_or_else(Error::invalid)?;
     }
     Err(Error::new(
@@ -40,10 +34,87 @@ pub(super) async fn catalog(
     axum::Extension(i): axum::Extension<Identity>,
 ) -> Result<Json<Value>> {
     i.require(Capability::Read)?;
-    let catalog: Vec<Value> = serde_json::from_str(include_str!("../../contracts/catalog.json"))
-        .expect("generated catalog");
+    let owner = a.clone();
+    let snapshot = blocking(a.queries.clone(), move || owner.executor.management(None))
+        .await
+        .ok();
+    let mut catalog: Vec<Value> =
+        serde_json::from_str(include_str!("../../contracts/catalog.json"))
+            .expect("generated catalog");
+    if let Some(snapshot) = &snapshot {
+        catalog.retain(|c| {
+            snapshot["commands"]
+                .as_array()
+                .is_some_and(|items| items.iter().any(|entry| entry["id"] == c["id"]))
+        });
+    }
+    let disabled = snapshot
+        .as_ref()
+        .and_then(|v| v["disabled_plugins"].as_array())
+        .cloned()
+        .unwrap_or_default();
+    let plugins = snapshot
+        .and_then(|v| serde_json::from_value::<Vec<PluginManifest>>(v["plugins"].clone()).ok())
+        .unwrap_or_else(|| a.plugins.as_ref().clone());
+    let plugins = plugins
+        .into_iter()
+        .filter_map(|mut p| {
+            if disabled.contains(&json!(p.id)) || !i.capabilities.contains(&Capability::Plugin) {
+                return None;
+            }
+            p.actions.retain(|action| {
+                action
+                    .capabilities
+                    .iter()
+                    .all(|c| i.capabilities.contains(c))
+            });
+            (!p.actions.is_empty()).then_some(p)
+        })
+        .collect::<Vec<_>>();
     Ok(Json(
-        json!({"api_version":2,"plugins":a.plugins.iter().filter(|p|p.actions.iter().any(|a|a.capabilities.iter().all(|c|i.capabilities.contains(c)))).collect::<Vec<_>>(),"commands":catalog.into_iter().filter(|c|serde_json::from_value::<Capability>(c["capability"].clone()).is_ok_and(|c|i.capabilities.contains(&c))).collect::<Vec<_>>()}),
+        json!({"api_version":2,"plugins":plugins,"commands":catalog.into_iter().filter(|c|serde_json::from_value::<Capability>(c["capability"].clone()).is_ok_and(|c|i.capabilities.contains(&c))).collect::<Vec<_>>()}),
+    ))
+}
+pub(super) async fn runtime_status(
+    State(a): State<App>,
+    axum::Extension(i): axum::Extension<Identity>,
+) -> Result<Json<Value>> {
+    i.local()?;
+    i.require(Capability::Settings)?;
+    Ok(Json(
+        blocking(a.queries.clone(), move || a.executor.management(None)).await?,
+    ))
+}
+pub(super) async fn runtime_reload(
+    State(a): State<App>,
+    axum::Extension(i): axum::Extension<Identity>,
+) -> Result<Json<Value>> {
+    i.local()?;
+    i.require(Capability::Settings)?;
+    Ok(Json(
+        blocking(a.io.clone(), move || {
+            let plugins = crate::runtime::plugins::load_plugins(&a.assets)?;
+            a.executor.management(Some(plugins))
+        })
+        .await?,
+    ))
+}
+
+pub(super) async fn plugin_enabled(
+    State(a): State<App>,
+    axum::Extension(i): axum::Extension<Identity>,
+    axum::extract::Path(id): axum::extract::Path<String>,
+    Json(state): Json<Value>,
+) -> Result<Json<Value>> {
+    i.local()?;
+    i.require(Capability::Settings)?;
+    domain::validate("PluginState", &state)?;
+    let enabled = state["enabled"].as_bool().ok_or_else(Error::invalid)?;
+    Ok(Json(
+        blocking(a.io.clone(), move || {
+            a.executor.plugin_enabled(&id, enabled)
+        })
+        .await?,
     ))
 }
 pub(super) fn command_event(id: String, result: Result<Value>) -> Value {
@@ -82,6 +153,6 @@ pub(super) async fn usage(
     axum::Extension(i): axum::Extension<Identity>,
 ) -> Result<Json<Value>> {
     i.require(Capability::Read)?;
-    let v = blocking(a.queries.clone(), || Ok(crate::native::usage())).await?;
+    let v = blocking(a.queries.clone(), || Ok(crate::capabilities::usage())).await?;
     Ok(Json(json!({"api_version":2,"usage":v})))
 }

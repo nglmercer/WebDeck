@@ -10,7 +10,7 @@ pub struct NativeMetrics;
 impl Metrics for NativeMetrics {
     fn usage(&self, context: &Context) -> Result<Value> {
         context.check(Capability::Read)?;
-        let value = crate::native::usage();
+        let value = crate::capabilities::usage();
         context.check(Capability::Read)?;
         Ok(value)
     }
@@ -19,6 +19,20 @@ impl Metrics for NativeMetrics {
 /// Stable product primitives, never a raw Command dispatcher.
 pub trait CapabilityHost: Send + Sync + 'static {
     fn call(&self, operation: &str, input: &Value, context: &Context) -> Result<Value>;
+    fn trusted_plugin(
+        &self,
+        _plugin: &crate::runtime::plugins::RuntimePlugin,
+        _action: &str,
+        _args: &Value,
+        _context: &Context,
+    ) -> Result<Value> {
+        Err(crate::domain::Error::new(
+            crate::contracts::ErrorCode::ExecutionFailed,
+            "Trusted plugin host unavailable",
+        ))
+    }
+    fn reload_plugins(&self) {}
+    fn finish_root(&self, _context: &Context) {}
     fn shutdown(&self) {}
 }
 pub struct UnavailableHost;
@@ -33,7 +47,15 @@ impl CapabilityHost for UnavailableHost {
 
 pub fn required_capability(operation: &str) -> Result<Capability> {
     match operation {
-        "network.fetch" => Ok(Capability::Network),
+        "network.fetch"
+        | "network.wsOpen"
+        | "network.wsSend"
+        | "network.wsReceive"
+        | "network.wsClose"
+        | "secrets.integration"
+        | "secrets.saveSpotifyToken"
+        | "crypto.sha256Base64"
+        | "crypto.base64" => Ok(Capability::Network),
         "input.perform" => Ok(Capability::Input),
         "window.open"
         | "window.foreground"
@@ -49,7 +71,8 @@ pub fn required_capability(operation: &str) -> Result<Capability> {
         "audio.volume" | "audio.appVolume" | "audio.media" | "audio.endpoint" | "audio.play"
         | "audio.stopAll" => Ok(Capability::Audio),
         "process.shell" | "storage.source" => Ok(Capability::Script),
-        "storage.button" => Ok(Capability::Read),
+        "storage.button" | "storage.pluginGet" => Ok(Capability::Read),
+        "storage.pluginSet" => Ok(Capability::Plugin),
         _ => Err(crate::domain::Error::invalid()),
     }
 }
