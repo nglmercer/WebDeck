@@ -36,6 +36,7 @@
     usageStatus,
     canRun,
     invoke,
+    edit,
     remove,
     add,
   }: {
@@ -54,6 +55,7 @@
     usageStatus: string;
     canRun: (button: Button) => boolean;
     invoke: (button: Button) => void;
+    edit: (button: Button) => void;
     remove: (button: Button) => void;
     add: (cell: number) => void;
   } = $props();
@@ -206,7 +208,7 @@
             class:active={dynamic[b.id]?.active}
             class:blank={b.action.type === 'none'}
             disabled={!editing && (running[b.id] || !canRun(b))}
-            aria-label={editing && coarse
+            aria-label={editing && coarse && b.action.type !== 'folder' && b.action.type !== 'back'
               ? t('ui_edit_named_button', { label: dynamic[b.id]?.label ?? b.label })
               : (dynamic[b.id]?.label ?? b.label)}
             aria-describedby={reason(b) || running[b.id] || outcomeMessages[b.id]
@@ -251,10 +253,13 @@
               >{reason(b) ||
                 (running[b.id] ? t('ui_running') : t(outcomeMessages[b.id] ?? ''))}</span
             >{/if}
-          {#if editing}<div class="cell-actions">
+          {#if editing}<div
+              class="cell-actions"
+              class:folder-navigation={b.action.type === 'folder' || b.action.type === 'back'}
+            >
               <button
                 aria-label={t('ui_edit_named_button', { label: b.label })}
-                onclick={() => invoke(b)}><Icon name="edit" size={18} /></button
+                onclick={() => edit(b)}><Icon name="edit" size={18} /></button
               ><button
                 aria-label={t('ui_remove_named_button', { label: b.label })}
                 onclick={() => remove(b)}><Icon name="trash" size={18} /></button

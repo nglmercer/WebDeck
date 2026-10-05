@@ -35,14 +35,6 @@ export class ButtonDraft {
     this.initialButton = JSON.stringify(this.button);
     this.initialFolder = this.folder;
   }
-  createNext() {
-    const editor = this.editor(),
-      folder = this.current();
-    if (!editor || !folder) return;
-    this.create(
-      placeButtons(folder.buttons, editor.draft.layout.columns, editor.draft.layout.rows).firstFree,
-    );
-  }
   create(cell: number) {
     if (!this.editor() || !this.current()) return;
     this.folder = this.origin = this.current()!.id;

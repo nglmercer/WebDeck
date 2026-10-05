@@ -19,6 +19,17 @@ async function cancelButtonEditor(page: Page, label = 'Cancel') {
   const confirm = page.getByRole('dialog', { name: /Unsaved button changes|Cambios del botón sin aplicar/ });
   if (await confirm.isVisible()) await confirm.getByRole('button', { name: /Discard changes|Descartar cambios/ }).click();
 }
+async function renameFolder(page: Page, name: string) {
+  await page.getByRole('button', { name: 'Rename folder', exact: true }).click();
+  const input = page.getByLabel('Folder name', { exact: true });
+  await input.fill(name);
+  await input.press('Enter');
+}
+async function createFolder(page: Page, name: string) {
+  await page.getByRole('button', { name: /^(Deck|Folder) actions$/ }).click();
+  await page.getByRole('menuitem', { name: 'New folder', exact: true }).click();
+  await renameFolder(page, name);
+}
 async function captureState(page: Page, info: TestInfo, state: string) {
   for (const width of [360, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
@@ -96,8 +107,7 @@ test('theme and image uploads, folder creation and settings round trip', async (
   await expect(page.locator('.deck-grid')).toHaveCSS('--test-theme', 'loaded');
   await expect(page.locator('.deck-button').first()).toHaveCSS('border-top-width', '3px');
   await page.keyboard.press('q');
-  await page.getByRole('button', { name: /Add folder/ }).click();
-  await page.getByLabel('Folder name').fill('Studio');
+  await createFolder(page, 'Studio');
   await page.getByRole('button', { name: /^Save( changes)?$/, exact: true }).click();
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Studio', exact: true })).toBeVisible();
@@ -246,8 +256,7 @@ test('empty decks retain hidden editing access and new folders get navigation bu
   await expect(page.locator('.deck-grid button')).toHaveCount(0);
   await captureState(page, testInfo, 'empty');
   await page.keyboard.press('q');
-  await page.getByRole('button', { name: '+ Add folder', exact: true }).click();
-  await page.getByLabel('Folder name').fill('Nested');
+  await createFolder(page, 'Nested');
   await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(page.locator('.save-status')).toHaveText('All changes saved');
   await page.keyboard.press('q');
@@ -351,7 +360,8 @@ test('edits made during a pending save remain dirty and can be saved afterward',
   await page.goto('/');
   await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
   await page.keyboard.press('q');
-  await page.getByLabel('Folder name', { exact: true }).fill('Saved version');
+  await page.getByRole('button', { name: 'Work folder', exact: true }).click();
+  await renameFolder(page, 'Saved version');
   let release!: () => void;
   let observed!: () => void;
   const gate = new Promise<void>((resolve) => release = resolve);
@@ -367,14 +377,14 @@ test('edits made during a pending save remain dirty and can be saved afterward',
   await sent;
   await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toHaveAccessibleDescription('Saving…');
   await expect(page.getByRole('button', { name: 'Done', exact: true })).toHaveAccessibleDescription('Saving…');
-  await page.getByLabel('Folder name', { exact: true }).fill('Later edit');
+  await renameFolder(page, 'Later edit');
   release();
   await expect(page.getByLabel('Save status', { exact: true })).toHaveText('Unsaved changes');
-  await expect(page.getByLabel('Folder name', { exact: true })).toHaveValue('Later edit');
+  await expect(page.locator('.folder-title')).toHaveText('Later edit');
   await page.unroute('**/api/v2/config');
   await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(page.getByLabel('Save status', { exact: true })).toHaveText('All changes saved');
-  await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toHaveAccessibleDescription('All changes saved');
+  await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toHaveCount(0);
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Later edit', exact: true })).toBeVisible();
 });
@@ -427,7 +437,7 @@ test('integration checks save settings and explain failures without exposing sec
   await page.goto('/');
   await expect(page.locator('.deck-grid')).toBeVisible();
   await page.keyboard.press('q');
-  await page.getByRole('region', { name: 'Deck editor', exact: true }).getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('region', { name: 'Deck editor', exact: true }).getByRole('button', { name: 'Deck settings', exact: true }).click();
   await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
   await expect(page.getByLabel('OBS connection status')).toHaveText('Not checked');
   await page.getByRole('tab', { name: 'Integrations', exact: true }).click();
@@ -459,7 +469,7 @@ test('backup inspection and cancellation preserve drafts and applying requires a
   await page.goto('/');
   await expect(page.locator('.deck-grid')).toBeVisible();
   await page.keyboard.press('q');
-  await page.getByRole('region', { name: 'Deck editor', exact: true }).getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('region', { name: 'Deck editor', exact: true }).getByRole('button', { name: 'Deck settings', exact: true }).click();
   const backup = structuredClone(initial);
   backup.layout.folders[0].label = 'Restored home';
   backup.extensions = { retained: { custom: true } };
@@ -744,7 +754,7 @@ test('cancelling span and collision edits preserves the full draft and host revi
   await expect(tile).toHaveCSS('grid-column-end', 'span 2');
   await expect(tile).toHaveCSS('grid-row-end', 'span 2');
   await expect(neighbor).toHaveAttribute('data-cell', '2');
-  await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toHaveCount(0);
   const unchanged = await (await request.get('/api/v2/config')).json();
   expect(unchanged.revision).toBe(stored.revision);
   expect(unchanged.config).toEqual(stored.config);
@@ -767,7 +777,7 @@ test('browser navigation protects unapplied button edits without marking the hos
   await expect(label).toHaveValue('Unapplied button edit');
   expect(await (await request.get('/api/v2/config')).json()).toEqual(stored);
   await cancelButtonEditor(page);
-  await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toHaveCount(0);
   await page.goto('about:blank');
   await expect(page).toHaveURL('about:blank');
 });
@@ -787,8 +797,9 @@ test('saved notices and command errors remain visible and independently dismissi
   await page.goto('/');
   await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
   await page.keyboard.press('q');
-  await page.getByRole('button', { name: 'Folder tools', exact: true }).click();
-  await page.getByLabel('Folder name', { exact: true }).fill('Notification test');
+  await page.getByRole('button', { name: 'Edit Play / pause', exact: true }).click();
+  await page.getByLabel('Color', { exact: true }).fill('#112233');
+  await page.getByRole('button', { name: 'Apply to draft', exact: true }).click();
   await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(page.locator('.save-status')).toHaveText('All changes saved');
   await page.getByRole('button', { name: 'Done', exact: true }).click();
@@ -959,13 +970,15 @@ test('folder deletion undo restores incoming links, contents, and the complete s
   await page.getByRole('button', { name: 'Work folder', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Work', exact: true })).toBeVisible();
   await page.keyboard.press('q');
-  await page.getByRole('button', { name: 'Delete folder', exact: true }).click();
+  await page.getByRole('button', { name: 'Folder actions', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Delete folder', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Delete folder', exact: true }).getByRole('button', { name: 'Delete folder', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Work folder', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Undo deletion', exact: true })).toBeVisible();
   expect(await (await request.get('/api/v2/config')).json()).toEqual(original);
   await page.getByRole('button', { name: 'Undo deletion', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Work folder', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toHaveCount(0);
   await expect(page.locator('.save-status')).toHaveText('All changes saved');
   expect(await (await request.get('/api/v2/config')).json()).toEqual(original);
 });
@@ -1058,17 +1071,18 @@ test('a failed subsequent save clears the previous saved notice and preserves th
   await page.goto('/');
   await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
   await page.keyboard.press('q');
-  await page.getByLabel('Folder name', { exact: true }).fill('Saved folder');
+  await page.getByRole('button', { name: 'Work folder', exact: true }).click();
+  await renameFolder(page, 'Saved folder');
   await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: /^Saved/ })).toBeVisible();
-  await page.getByLabel('Folder name', { exact: true }).fill('New unsaved folder');
+  await renameFolder(page, 'New unsaved folder');
   const latest = await (await request.get('/api/v2/config')).json();
   latest.config.layout.rows = 4;
   expect((await request.put('/api/v2/config', { data: { revision: latest.revision, config: latest.config } })).ok()).toBeTruthy();
   await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('draft');
   await expect(page.getByRole('status').filter({ hasText: /^Saved/ })).toHaveCount(0);
-  await expect(page.getByLabel('Folder name', { exact: true })).toHaveValue('New unsaved folder');
+  await expect(page.locator('.folder-title')).toHaveText('New unsaved folder');
 });
 
 
@@ -1077,16 +1091,16 @@ test('reverting a folder edit removes the unsaved warning without writing to the
   await page.goto('/');
   await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
   await page.keyboard.press('q');
-  const field = page.getByLabel('Folder name', { exact: true });
-  await field.fill('Temporary edit');
+  await page.getByRole('button', { name: 'Work folder', exact: true }).click();
+  await renameFolder(page, 'Temporary edit');
   await expect(page.locator('.save-status')).toHaveText('Unsaved changes');
-  await field.fill('Home');
+  await renameFolder(page, 'Work');
   await expect(page.locator('.save-status')).toHaveText('All changes saved');
-  await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toHaveCount(0);
   const dialogs: string[] = [];
   page.on('dialog', async dialog => { dialogs.push(dialog.type()); await dialog.dismiss(); });
   await page.reload();
-  await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Work', exact: true }).waitFor();
   expect(dialogs).toEqual([]);
   expect(await (await request.get('/api/v2/config')).json()).toEqual(original);
 });
@@ -1276,16 +1290,18 @@ test('dismissed first-use tips stay dismissed after reload without adding deck c
 });
 
 
-test('toolbar button creation stages a free cell and categories show readable labels', async ({ page, request }) => {
+test('grid button creation stages a free cell and categories show readable labels', async ({ page, request }) => {
   const original = await (await request.get('/api/v2/config')).json();
   await page.goto('/');
   await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
   await page.keyboard.press('q');
   const toolbar = page.getByRole('region', { name: 'Deck editor', exact: true });
-  await toolbar.getByRole('button', { name: 'Add button', exact: true }).click();
+  await expect(toolbar.getByRole('button', { name: 'Add button', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: /Add button in cell/ }).first().click();
   await cancelButtonEditor(page);
-  await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toBeDisabled();
-  await toolbar.getByRole('button', { name: 'Add button', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toHaveCount(0);
+  await expect(toolbar.getByRole('button', { name: 'Add button', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: /Add button in cell/ }).first().click();
   await page.getByRole('tab', { name: 'Action', exact: true }).click();
   const category = page.getByRole('combobox', { name: 'Category', exact: true });
   await expect(category.locator('option[value="input"]')).toHaveText('Keyboard and text');
@@ -1620,4 +1636,74 @@ test('local imports survive removal of the source file and URL imports offer liv
   await expect(page.getByRole('button', { name: 'Play / pause', exact: true })).toBeVisible();
   const config = await (await request.get('/api/v2/config')).json();
   expect(config.config.layout.folders[0].buttons.find((b: { id: string }) => b.id === 'media').icon).toBe(icon);
+});
+
+test('compact toolbar follows folder context and stages on-demand rename without root deletion', async ({ page, request }, info) => {
+  const initial = await (await request.get('/api/v2/config')).json();
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+  await page.keyboard.press('q');
+  const toolbar = page.getByRole('region', { name: 'Deck editor', exact: true });
+  await expect(toolbar.locator('select')).toHaveCount(0);
+  await expect(toolbar.locator('input')).toHaveCount(0);
+  await expect(toolbar.getByRole('button', { name: 'Add button', exact: true })).toHaveCount(0);
+  await expect(toolbar.getByRole('button', { name: 'Save changes', exact: true })).toHaveCount(0);
+  await expect(toolbar.getByRole('button', { name: 'Rename folder', exact: true })).toHaveCount(0);
+  await expect(toolbar.getByRole('button', { name: 'Folder settings', exact: true })).toHaveCount(0);
+  await expect(toolbar.getByRole('button', { name: 'Deck settings', exact: true })).toHaveCount(1);
+  expect((await toolbar.boundingBox())!.height).toBeLessThanOrEqual(72);
+  const actions = toolbar.getByRole('button', { name: 'Deck actions', exact: true });
+  await actions.focus();
+  await page.keyboard.press('ArrowDown');
+  await expect(page.getByRole('menuitem', { name: 'New folder', exact: true })).toBeFocused();
+  await expect(page.getByRole('menuitem', { name: 'Delete folder', exact: true })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(actions).toBeFocused();
+  await page.getByRole('button', { name: 'Work folder', exact: true }).click();
+  await expect(toolbar.locator('.folder-title')).toHaveText('Work');
+  await expect(toolbar.getByRole('button', { name: 'Deck settings', exact: true })).toHaveCount(0);
+  await expect(toolbar.getByRole('button', { name: 'Folder settings', exact: true })).toHaveCount(1);
+  await toolbar.getByRole('button', { name: 'Rename folder', exact: true }).click();
+  const field = toolbar.getByLabel('Folder name', { exact: true });
+  await field.fill('');
+  await field.press('Enter');
+  await expect(field).toHaveAttribute('aria-invalid', 'true');
+  await expect(toolbar.getByRole('alert')).toBeVisible();
+  await toolbar.getByRole('button', { name: 'Cancel rename', exact: true }).click();
+  await expect(toolbar.locator('.folder-title')).toHaveText('Work');
+  await toolbar.getByRole('button', { name: 'Rename folder', exact: true }).click();
+  await field.fill('Discard this name');
+  await field.press('Escape');
+  await expect(toolbar.locator('input')).toHaveCount(0);
+  expect(await (await request.get('/api/v2/config')).json()).toEqual(initial);
+  await renameFolder(page, 'Studio');
+  await expect(toolbar.locator('.save-status')).toHaveText('Unsaved changes');
+  await expect(toolbar.getByRole('button', { name: 'Save changes', exact: true })).toBeVisible();
+  await toolbar.getByRole('button', { name: 'Folder actions', exact: true }).click();
+  await page.keyboard.press('ArrowDown');
+  await expect(page.getByRole('menuitem', { name: 'Delete folder', exact: true })).toBeFocused();
+  await page.keyboard.press('Enter');
+  const confirmation = page.getByRole('dialog', { name: 'Delete folder', exact: true });
+  await confirmation.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(toolbar.locator('.folder-title')).toHaveText('Studio');
+  await toolbar.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(page.locator('.deck-grid')).not.toHaveClass(/editing/);
+  const saved = await (await request.get('/api/v2/config')).json();
+  expect(saved.config.layout.folders.find((folder: { id: string }) => folder.id === 'work').label).toBe('Studio');
+  await page.getByRole('button', { name: 'Edit', exact: true }).click();
+  for (const width of [1440, 768, 360]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(toolbar.getByRole('button', { name: 'Done', exact: true })).toBeInViewport();
+    expect((await toolbar.boundingBox())!.height).toBeLessThanOrEqual(width > 640 ? 72 : 104);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await toolbar.getByRole('button', { name: 'Rename folder', exact: true }).click();
+    expect((await field.boundingBox())!.width).toBeGreaterThanOrEqual(80);
+    await field.press('Enter');
+    await expect(toolbar.locator('.save-status')).toHaveText('All changes saved');
+    await page.screenshot({ path: info.outputPath(`toolbar-folder-${width}.png`) });
+  }
+  await page.keyboard.press('Alt+ArrowLeft');
+  await expect(toolbar.locator('.folder-title')).toHaveText('Home');
+  await expect(toolbar.getByRole('button', { name: 'Rename folder', exact: true })).toHaveCount(0);
+  await expect(toolbar.getByRole('button', { name: 'Folder actions', exact: true })).toHaveCount(0);
 });

@@ -109,6 +109,14 @@
   async function invoke(b: Button) {
     if (interactions.controls) return;
     if (editing) {
+      if (b.action.type === 'folder') {
+        navigate(b.action.folder_id);
+        return;
+      }
+      if (b.action.type === 'back') {
+        navigation.back();
+        return;
+      }
       draft.open(b);
       return;
     }
@@ -150,7 +158,8 @@
     if (session.editor && current) navigate(session.editor.createFolder(current.id).id);
   }
   function removeFolder() {
-    if (!session.editor || !current) return;
+    if (!session.editor || !current || current.id === navigation.root || current.id === 'home')
+      return;
     void attempt(async () => {
       session.editor!.removeFolder(current!.id);
       navigate(session.editor!.draft.layout.folders[0]!.id, true);
@@ -225,12 +234,8 @@
             {editing}
             editor={session.editor}
             {current}
-            active={navigation.active}
-            {navigate}
+            rootId={navigation.root}
             add={newFolder}
-            addButton={() => {
-              void attempt(async () => draft.createNext());
-            }}
             settings={openSettings}
             remove={removeFolder}
             save={() => {
@@ -258,6 +263,7 @@
             invoke={(b) => {
               void attempt(() => invoke(b));
             }}
+            edit={(button) => draft.open(button)}
             remove={(button) => session.editor?.removeButton(button.id)}
             add={(cell) => draft.create(cell)}
           />{/if}

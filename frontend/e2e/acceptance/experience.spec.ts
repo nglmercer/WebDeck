@@ -32,19 +32,20 @@ test('applied drafts survive folder navigation and settings until explicitly sav
   await page.goto('/');
   await page.getByRole('button', { name: 'Folder 1', exact: true }).waitFor();
   await page.keyboard.press('q');
-  const tools = page.getByRole('button', { name: 'Folder tools', exact: true });
-  if (await tools.isVisible()) await tools.click();
-  await page.getByLabel('Folder name', { exact: true }).fill('My unsaved home');
-  await page.getByRole('combobox', { name: 'Folder', exact: true }).selectOption('spotify');
+  await page.getByRole('button', { name: 'Folder 1', exact: true }).click();
+  await page.getByRole('button', { name: 'Rename folder', exact: true }).click();
+  await page.getByLabel('Folder name', { exact: true }).fill('My unsaved folder');
+  await page.getByLabel('Folder name', { exact: true }).press('Enter');
   await page.keyboard.press('Control+,');
   await page.getByRole('button', { name: 'Back to deck', exact: true }).click();
-  if (await tools.isVisible()) await tools.click();
-  await page.getByRole('combobox', { name: 'Folder', exact: true }).selectOption('index');
-  await expect(page.getByLabel('Folder name', { exact: true })).toHaveValue('My unsaved home');
-  expect((await (await request.get('/api/v2/config')).json()).config.layout.folders[0].label).toBe('Home');
+  await page.keyboard.press('Alt+ArrowLeft');
+  await page.getByRole('button', { name: 'My unsaved folder', exact: true }).click();
+  await expect(page.locator('.folder-title')).toHaveText('My unsaved folder');
+  expect((await (await request.get('/api/v2/config')).json()).config.layout.folders[1].label).toBe('Folder 1');
   await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(page.locator('.save-status')).toHaveText('All changes saved');
-  expect((await (await request.get('/api/v2/config')).json()).config.layout.folders[0].label).toBe('My unsaved home');
+  await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toHaveCount(0);
+  expect((await (await request.get('/api/v2/config')).json()).config.layout.folders[1].label).toBe('My unsaved folder');
 });
 
 test('touch decks retain readable labels, reachable cells and a fixed primary editing dock', async ({ page, isMobile }) => {
@@ -58,10 +59,10 @@ test('touch decks retain readable labels, reachable cells and a fixed primary ed
   const dock = page.locator('.editor-toolbar');
   await expect(page.getByRole('button', { name: 'Done', exact: true })).toBeInViewport();
   expect(await dock.evaluate(el => el.scrollHeight <= el.clientHeight)).toBe(true);
-  await page.getByRole('button', { name: 'Folder tools', exact: true }).click();
-  await page.locator('#folder-tools').evaluate(el => el.scrollTop = el.scrollHeight);
+  await page.getByRole('button', { name: 'Deck actions', exact: true }).click();
+  await expect(page.getByRole('menuitem', { name: 'New folder', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
   await expect(page.getByRole('button', { name: 'Done', exact: true })).toBeInViewport();
-  await page.getByRole('button', { name: 'Folder tools', exact: true }).click();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await page.locator('.deck-scroll').evaluate(el => el.scrollTop = el.scrollHeight);
   await expect(page.getByRole('button', { name: 'GPU usage', exact: true })).toBeInViewport();

@@ -1134,3 +1134,12 @@ ui_image_import_help=Imports save a copy in your icon library. Choose a public H
 ui_refresh_live_image=Refresh live image
 ui_refresh_live_image_help=Refresh updates the saved image for every button using it. Other open devices display the update after reloading.
 ui_importing_image=Importing or refreshing image…
+
+ui_rename_folder=Rename folder
+ui_confirm_folder_name=Confirm folder name
+ui_cancel_rename=Cancel rename
+ui_invalid_folder_name=Enter a valid folder name.
+ui_folder_settings=Folder settings
+ui_folder_actions=Folder actions
+ui_deck_actions=Deck actions
+ui_delete_folder_help=Delete {label} and its contents from the draft? Save changes to make the deletion permanent.

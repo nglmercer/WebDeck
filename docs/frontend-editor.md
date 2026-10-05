@@ -20,6 +20,17 @@ Configuration editing, integration checks, device approval/revocation, and nativ
 
 Dirty state compares the JSON-shaped draft with a cloned persisted baseline on editor changes and save completion. Returning a value to its saved value clears dirty; object key ordering does not affect the comparison, while array ordering and unknown extension values do. Generation still advances on edits to preserve save-race ownership.
 
-On touch pointers, Edit and Remove controls stack inside each cell and editing rows have a 220px minimum height so both controls remain reachable in narrow columns. This changes only the editing presentation; saved grid positions and spans remain intact.
+Folder and Back tiles navigate during editing; their existing pencil remains available, including on touch pointers, to edit the link itself. Other tiles retain their existing editing behavior. Empty grid cells are the only button-creation entry point; saved positions, spans and grid fitting are unchanged.
 
 Generic schema fields keep numeric, JSON and identifier-pattern errors beside their controls and expose those errors through accessible descriptions. Invalid input blocks Apply until corrected. Schema array fields show translated minimum/maximum item guidance and associate it with Remove/Add controls. Device rows expose Approved, Revoking and Revoked state; pairing describes where to obtain a token and retains it after a recoverable failure.
+
+
+## Contextual command bar
+
+`EditorToolbar.svelte` reads the current folder and root ID from the existing navigation state. It is a fixed 64px command bar on desktop and a compact two-row bar on narrow screens. The root shows Editing and the deck name; nested folders show Folder and the current name. There is no global folder selector, permanent name field, Add button, or disabled clean Save button.
+
+The pencil opens a temporary rename input. Enter confirms, Escape cancels, and blur confirms valid names. Canonical Folder validation runs before the existing `renameFolder` handler; confirming an unchanged name does not mutate the draft. Root rename and deletion controls are absent. Root deletion is also rejected by the editor mutation handler.
+
+The overflow menu holds New folder and, inside a folder only, Delete folder. Folder creation still calls `createFolder` and creates the existing parent link and Back button. Deletion uses the shared confirmation dialog before calling the existing removal handler, and its original undo snapshot remains available. Menu arrows/Home/End move focus, Enter activates, Escape closes and restores trigger focus, and outside clicks dismiss it.
+
+Save status distinguishes saved, dirty, saving, conflict and failure states. Save changes appears only for a dirty editor draft and is disabled during an in-flight save. Done keeps the existing save-before-exit behavior and remains disabled while saving. One icon-only settings action uses a context-specific accessible label. No autosave, routing, contract or storage-format change is introduced.

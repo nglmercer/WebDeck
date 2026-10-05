@@ -72,6 +72,12 @@
     },
     "layers": {
       "path": "M2 8l10-5 10 5-10 5zM2 12l10 5 10-5M2 16l10 5 10-5"
+    },
+    "check": {
+      "path": "M5 12l4 4L19 6"
+    },
+    "more": {
+      "path": "M5 11h.01v2H5zM12 11h.01v2H12zM19 11h.01v2H19z"
     }
   },
   "aliases": {

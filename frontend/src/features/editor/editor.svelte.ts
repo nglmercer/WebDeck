@@ -176,6 +176,8 @@ export class Editor {
   removeFolder(folderId: string) {
     if (this.draft.layout.folders.length <= 1)
       throw new Error('The deck needs at least one folder');
+    if (folderId === this.draft.layout.folders[0]?.id || folderId === 'home')
+      throw new Error('The root deck cannot be deleted');
     if (!this.draft.layout.folders.some((folder) => folder.id === folderId)) return;
     this.recovery = clone(this.draft);
     this.freezeCells();

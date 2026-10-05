@@ -184,3 +184,12 @@ it('stages resizing and preserves IDs, order and extensions on commit', () => {
   expect(placement.count).toBeGreaterThan(editor.draft.layout.columns);
   expect(folder.buttons).toEqual(persisted);
 });
+
+it('cannot delete the root deck even when other folders exist', () => {
+  const editor = new Editor(snapshot());
+  const before = clone(editor.draft);
+  expect(() => editor.removeFolder(before.layout.folders[0]!.id)).toThrow('root deck');
+  expect(editor.draft).toEqual(before);
+  expect(editor.dirty).toBe(false);
+  expect(editor.canUndoDeletion).toBe(false);
+});

@@ -1,5 +1,15 @@
 // UI translation keys. Keep keys stable when editing the English copy.
 export const messages = {
+  ui_rename_folder: 'Rename folder',
+  ui_confirm_folder_name: 'Confirm folder name',
+  ui_cancel_rename: 'Cancel rename',
+  ui_invalid_folder_name: 'Enter a valid folder name.',
+  ui_folder_settings: 'Folder settings',
+  ui_folder_actions: 'Folder actions',
+  ui_deck_actions: 'Deck actions',
+  ui_delete_folder_help:
+    'Delete {label} and its contents from the draft? Save changes to make the deletion permanent.',
+
   ui_image_url: 'Image URL',
   ui_live_image: 'Keep URL for manual refresh',
   ui_import_image_url: 'Import image URL',

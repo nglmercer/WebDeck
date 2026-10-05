@@ -224,3 +224,18 @@ progress {
   width: 100%;
   height: 100%;
 }
+
+@media (pointer: coarse) {
+  .cell-actions.folder-navigation {
+    display: flex;
+    top: auto;
+    bottom: 0;
+    right: 0;
+  }
+  .cell-actions.folder-navigation > button + button {
+    display: none;
+  }
+  .deck-cell:has(.folder-navigation) > .buttontext {
+    padding-right: 45px;
+  }
+}
