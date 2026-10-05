@@ -1118,3 +1118,8 @@ ui_unsaved_button_changes=Unsaved button changes
 ui_discard_button_help=Keep editing to preserve your changes, or discard this button draft. Changes already applied to the deck are kept.
 ui_keep_editing=Keep editing
 ui_discard_changes=Discard changes
+
+ui_search_icons=Search icons
+ui_uploaded_icons=Uploaded icons
+ui_select_uploaded_icon=Select uploaded icon
+ui_icon_library_unavailable=The icon library could not be loaded. You can still upload an image.

@@ -235,6 +235,38 @@ impl Assets {
     pub fn read(&self, id: &str) -> Result<Vec<u8>> {
         read(&self.path(id)?)
     }
+    pub fn image_ids(&self) -> Result<Vec<String>> {
+        let root = self.root.join("user_uploads");
+        if !root.exists() {
+            return Ok(Vec::new());
+        }
+        if fs::symlink_metadata(&root)
+            .map_err(|_| failed())?
+            .file_type()
+            .is_symlink()
+        {
+            return Err(Error::invalid());
+        }
+        let mut ids = Vec::new();
+        for entry in fs::read_dir(root).map_err(|_| failed())? {
+            let entry = entry.map_err(|_| failed())?;
+            if !entry.file_type().map_err(|_| failed())?.is_file() {
+                continue;
+            }
+            let Some(id) = entry.file_name().to_str().map(str::to_owned) else {
+                continue;
+            };
+            let extension = id.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
+            if ["png", "jpg", "jpeg", "webp", "gif", "svg"].contains(&extension.as_str())
+                && self.path(&id).is_ok()
+            {
+                ids.push(id);
+            }
+        }
+        ids.sort();
+        ids.truncate(128);
+        Ok(ids)
+    }
     pub fn upload(&self, extension: &str, bytes: &[u8]) -> Result<FileSource> {
         let allowed = [
             "png", "jpg", "jpeg", "webp", "gif", "svg", "mp3", "wav", "ogg", "flac", "css", "js",

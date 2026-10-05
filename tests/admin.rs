@@ -129,6 +129,23 @@ impl Adapter for FakeAdapter {
                     _ => json!({}),
                 })
             }
+            Command::Plugin {
+                plugin_id,
+                version,
+                action_id,
+                ..
+            } if plugin_id == "devices" => {
+                let value = match action_id.as_str() {
+                    "discover" => {
+                        json!({"devices":[{"id":"a","name":"Alpha"},{"id":"b","name":"Beta"}]})
+                    }
+                    "health" => json!({"ready":true}),
+                    _ => json!({}),
+                };
+                Ok(
+                    json!({"plugin_id":plugin_id,"version":version,"action_id":action_id,"value":value}),
+                )
+            }
             Command::Debug { data } => Ok(json!({"debug": data})),
             _ => Ok(json!({"ok": true})),
         }
@@ -192,6 +209,7 @@ fn spawn() -> TestServer {
             let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
             let port = listener.local_addr().unwrap().port();
             let app = App {
+                integration_health: Default::default(),
                 io: Arc::new(tokio::sync::Semaphore::new(4)),
                 queries: Arc::new(tokio::sync::Semaphore::new(2)),
                 authorization: Arc::new(tokio::sync::Semaphore::new(4)),
@@ -849,4 +867,398 @@ async fn live_server_status() {
     let url = std::env::var("WEBDECK_URL").expect("WEBDECK_URL must point at a running server");
     let client = client(&url);
     doctor::status(&client).await.expect("live status");
+}
+
+#[tokio::test]
+async fn cached_health_survives_reads_and_invalidates_only_relevant_settings() {
+    let server = spawn();
+    let client = client(&server.url);
+    let checked = client.obs_check().await.unwrap();
+    assert_eq!(checked.obs, webdeck::contracts::IntegrationState::Connected);
+    assert!(checked.checked_at > 0);
+    let reloaded = client.integration_status().await.unwrap();
+    assert_eq!(checked, reloaded);
+    let doctor = doctor::doctor(&client).await.unwrap();
+    assert!(doctor.data["checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|c| c["id"] == "integrations.obs" && c["level"] == "pass"));
+    let mut current = client.get_config().await.unwrap();
+    current.config.settings.spotify.client_id = "changed".into();
+    client
+        .put_settings(current.revision, current.config.settings)
+        .await
+        .unwrap();
+    assert_eq!(client.integration_status().await.unwrap().obs, checked.obs);
+    client
+        .obs()
+        .configure(None, Some(4456), false, None, false)
+        .await
+        .unwrap();
+    let untested = client.integration_status().await.unwrap();
+    assert_eq!(
+        untested.obs,
+        webdeck::contracts::IntegrationState::NotTested
+    );
+    assert_eq!(untested.integrations.unwrap()["obs"].checked_at, 0);
+    server.adapter.obs_fail.store(true, Ordering::SeqCst);
+    client.obs_check().await.unwrap();
+    assert_eq!(
+        client.integration_status().await.unwrap().obs,
+        webdeck::contracts::IntegrationState::Failed
+    );
+}
+
+fn automation_manifest() -> PluginManifest {
+    serde_json::from_str(include_str!("../examples/plugins/devices/webdeck.json")).unwrap()
+}
+
+#[tokio::test]
+async fn plugin_metadata_drives_health_provisioning_output_and_cli_without_special_cases() {
+    let server = spawn();
+    let client = client(&server.url);
+    server
+        .adapter
+        .manifests
+        .lock()
+        .unwrap()
+        .push(automation_manifest());
+    let catalog = client.catalog().await.unwrap();
+    assert!(catalog
+        .automation
+        .as_ref()
+        .unwrap()
+        .button_recipes
+        .iter()
+        .any(|r| r.id == "devices.select"));
+    let checked = webdeck::admin::integrations::check(&client, "devices.connection")
+        .await
+        .unwrap();
+    assert_eq!(checked.data["health"]["state"], "connected");
+    assert_eq!(
+        client
+            .integration_status()
+            .await
+            .unwrap()
+            .integrations
+            .unwrap()["devices.connection"]
+            .state,
+        webdeck::contracts::IntegrationState::Connected
+    );
+    let original = client.get_config().await.unwrap();
+    let dry =
+        webdeck::admin::provisioning::ensure(&client, "devices.select", "devices", None, true)
+            .await
+            .unwrap();
+    assert_eq!(dry.data["created"].as_array().unwrap().len(), 2);
+    assert_eq!(client.get_config().await.unwrap(), original);
+    let created = webdeck::admin::provisioning::ensure(
+        &client,
+        "devices.select",
+        "devices",
+        Some(original.revision),
+        false,
+    )
+    .await
+    .unwrap();
+    assert_eq!(created.data["applied"], true);
+    let ensured = client.get_config().await.unwrap();
+    assert_eq!(
+        ensured
+            .config
+            .layout
+            .folders
+            .iter()
+            .find(|f| f.id == "devices")
+            .unwrap()
+            .buttons
+            .len(),
+        2
+    );
+    let repeated =
+        webdeck::admin::provisioning::ensure(&client, "devices.select", "devices", None, false)
+            .await
+            .unwrap();
+    assert_eq!(repeated.data["applied"], false);
+    assert_eq!(client.get_config().await.unwrap(), ensured);
+    let stale = webdeck::admin::provisioning::ensure(
+        &client,
+        "devices.select",
+        "devices",
+        Some(original.revision),
+        false,
+    )
+    .await
+    .unwrap_err();
+    assert_eq!(stale.kind(), ErrorKind::RevisionConflict);
+    let action = actions::run(
+        &client,
+        Some("devices.select"),
+        None,
+        Some(r#"{"device":"a"}"#),
+        &[],
+        false,
+    )
+    .await
+    .unwrap();
+    assert_eq!(action.human, "Device selected (device: a).");
+    assert_eq!(action.data["result"]["value"], json!({}));
+    let invalid = actions::run(
+        &client,
+        Some("devices.select"),
+        None,
+        Some(r#"{"device":false}"#),
+        &[],
+        true,
+    )
+    .await
+    .unwrap_err();
+    assert!(invalid.to_string().contains("wrong type"));
+    assert!(buttons::list(&client, Some("devices"))
+        .await
+        .unwrap()
+        .human
+        .contains("Alpha"));
+    assert!(folders::list(&client)
+        .await
+        .unwrap()
+        .human
+        .contains("Devices"));
+    let status = doctor::status(&client).await.unwrap();
+    assert!(status.human.contains("active sessions"));
+    assert!(status.human.contains("devices.connection: connected"));
+    client.set_plugin_enabled("devices", false).await.unwrap();
+    assert!(!client
+        .integration_status()
+        .await
+        .unwrap()
+        .integrations
+        .unwrap()
+        .contains_key("devices.connection"));
+    assert!(!client
+        .catalog()
+        .await
+        .unwrap()
+        .automation
+        .unwrap()
+        .button_recipes
+        .iter()
+        .any(|r| r.id == "devices.select"));
+    client.set_plugin_enabled("devices", true).await.unwrap();
+    assert_eq!(
+        client
+            .integration_status()
+            .await
+            .unwrap()
+            .integrations
+            .unwrap()["devices.connection"]
+            .state,
+        webdeck::contracts::IntegrationState::NotTested
+    );
+}
+
+#[tokio::test]
+async fn recipes_validate_items_before_any_write_and_preserve_existing_scene_buttons() {
+    let server = spawn();
+    let client = client(&server.url);
+    let catalog = client.catalog().await.unwrap();
+    let recipe = catalog
+        .automation
+        .as_ref()
+        .unwrap()
+        .button_recipes
+        .iter()
+        .find(|r| r.id == "obs-scenes")
+        .unwrap();
+    let original = client.get_config().await.unwrap();
+    for result in [
+        json!({}),
+        json!({"scenes":[{"sceneName":"Desk"},{"sceneName":"Desk"}]}),
+        json!({"scenes":[{"sceneName":"Desk"},{"missing":"name"}]}),
+    ] {
+        assert!(webdeck::admin::provisioning::plan(
+            &original.config,
+            &catalog,
+            recipe,
+            &result,
+            "scenes"
+        )
+        .is_err());
+        assert_eq!(client.get_config().await.unwrap(), original);
+    }
+    client
+        .obs()
+        .ensure_buttons("scenes", None, false)
+        .await
+        .unwrap();
+    let created = client.get_config().await.unwrap();
+    let outcome = client
+        .obs()
+        .ensure_buttons("scenes", None, false)
+        .await
+        .unwrap();
+    assert_eq!(outcome.data["applied"], false);
+    assert_eq!(client.get_config().await.unwrap(), created);
+    let output = actions::run(
+        &client,
+        Some("obs"),
+        None,
+        Some(r#"{"action":"scene","target":"Desk"}"#),
+        &[],
+        false,
+    )
+    .await
+    .unwrap();
+    assert_eq!(output.human, "OBS scene selected (scene: Desk).");
+}
+
+#[test]
+fn automation_rejects_invalid_pointers_cross_plugin_commands_and_reserved_bindings() {
+    let manifest = automation_manifest();
+    webdeck::automation::validate_plugin(&manifest).unwrap();
+    let mut invalid = manifest.clone();
+    invalid.automation.as_mut().unwrap().button_recipes[0]
+        .bindings
+        .insert("/type".into(), "/id".into());
+    assert!(webdeck::automation::validate_plugin(&invalid).is_err());
+    let mut invalid = manifest.clone();
+    invalid.automation.as_mut().unwrap().integrations[0].probe = Some(Command::Obs {
+        action: "get_version".into(),
+        target: String::new(),
+    });
+    assert!(webdeck::automation::validate_plugin(&invalid).is_err());
+    let mut invalid = manifest.clone();
+    invalid.automation.as_mut().unwrap().integrations[0].authorization_asset =
+        Some("../secret".into());
+    assert!(webdeck::automation::validate_plugin(&invalid).is_err());
+    for pointer in ["not-a-pointer", "/bad~escape", "/bad~"] {
+        assert!(!webdeck::automation::valid_pointer(pointer));
+    }
+    assert!(webdeck::automation::valid_pointer("/escaped~1key/~0"));
+}
+
+#[test]
+fn cli_discovers_generates_and_checks_plugin_automation() {
+    let server = spawn();
+    server
+        .adapter
+        .manifests
+        .lock()
+        .unwrap()
+        .push(automation_manifest());
+    let home = Temp::new();
+    for args in [
+        vec!["button", "recipes"],
+        vec!["integration", "list"],
+        vec!["integration", "check", "devices.connection"],
+        vec![
+            "button",
+            "generate",
+            "--recipe",
+            "devices.select",
+            "--folder",
+            "devices",
+            "--dry-run",
+        ],
+        vec![
+            "action",
+            "run",
+            "devices.select",
+            "--args",
+            r#"{"device":"a"}"#,
+        ],
+    ] {
+        let mut args = args;
+        args.extend(["--url", &server.url, "--json"]);
+        let output = run_cli(&args, &home.path);
+        assert_eq!(output.code, 0, "{}", output.stderr);
+        let value: Value = serde_json::from_str(&output.stdout).unwrap();
+        assert_eq!(value["ok"], true);
+    }
+}
+
+#[tokio::test]
+async fn button_wrapper_diagnostics_are_schema_driven_and_accept_existing_action_variants() {
+    let server = spawn();
+    let client = client(&server.url);
+    let file = server.config_dir.join("button-input.json");
+    for action in [
+        json!({"type":"obs","action":"scene","target":"Desk"}),
+        json!({"type":"write","text":"hello","send":false}),
+    ] {
+        std::fs::write(
+            &file,
+            json!({"id":"diagnostic","action":action}).to_string(),
+        )
+        .unwrap();
+        let error = buttons::ensure(&client, "home", file.to_str(), None, None, true)
+            .await
+            .unwrap_err();
+        assert_eq!(error.kind(), ErrorKind::Validation);
+        assert!(error.to_string().contains("action wrapper"));
+    }
+    std::fs::write(&file, json!({"id":"diagnostic","action":{"type":"plugin","plugin_id":"echo","version":"2.0.0","action_id":"echo","args":{"text":"hello"}}}).to_string()).unwrap();
+    let planned = buttons::ensure(&client, "home", file.to_str(), None, None, true)
+        .await
+        .unwrap();
+    assert!(planned.ok);
+}
+
+#[test]
+fn generic_result_renderer_uses_columns_and_handles_empty_payloads_without_metadata() {
+    let manifest = automation_manifest();
+    let mut metadata = webdeck::automation::collect(std::slice::from_ref(&manifest), &[]).unwrap();
+    metadata.presentations.push(
+        serde_json::from_value(json!({
+            "selector":{"type":"plugin","plugin_id":"devices","action_id":"discover"},
+            "label":"Devices","arguments":{},"result_pointer":"/value",
+            "result_view":{"items_pointer":"/devices","columns":{"Device":"/name","ID":"/id"}}
+        }))
+        .unwrap(),
+    );
+    let catalog = webdeck::contracts::CatalogResponse {
+        api_version: 2,
+        commands: serde_json::from_str(include_str!("../contracts/catalog.json")).unwrap(),
+        plugins: vec![manifest],
+        automation: Some(metadata),
+    };
+    let command: Command = serde_json::from_value(json!({"type":"plugin","plugin_id":"devices","version":"1.0.0","action_id":"discover","args":{}})).unwrap();
+    let rendered = webdeck::admin::output::render_command(
+        &command,
+        &json!({"value":{"devices":[{"id":"a","name":"Alpha"}]}}),
+        Some(&catalog),
+    );
+    assert_eq!(rendered, "Device\tID\nAlpha\ta");
+    let malformed = json!({"value":{"devices":[{"name":"Alpha"}]}});
+    let rendered = webdeck::admin::output::render_command(&command, &malformed, Some(&catalog));
+    assert!(rendered.contains("Alpha"));
+    assert!(!rendered.starts_with("Device\tID"));
+    assert_eq!(
+        webdeck::admin::output::render_command(&command, &json!({}), None),
+        "Action 'plugin' completed."
+    );
+    assert_eq!(
+        webdeck::admin::output::render_command(&command, &Value::Null, Some(&catalog)),
+        "Devices completed."
+    );
+}
+
+#[tokio::test]
+async fn saved_icon_library_lists_images_without_exposing_other_uploads() {
+    let server = spawn();
+    let assets = Assets {
+        root: server.config_dir.clone(),
+    };
+    let image = assets.upload("svg", b"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='10'/></svg>").unwrap();
+    assets.upload("txt", b"private non-image upload").unwrap();
+    let webdeck::contracts::FileSource::Asset { id } = image else {
+        panic!("expected uploaded asset")
+    };
+    let response = reqwest::get(format!("{}/api/v2/assets", server.url))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    let library: webdeck::contracts::ImageAssetList = response.json().await.unwrap();
+    assert_eq!(library.images, vec![id]);
 }

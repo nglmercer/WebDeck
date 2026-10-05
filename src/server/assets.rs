@@ -1,5 +1,17 @@
 use super::*;
 
+pub(super) async fn image_assets(
+    State(a): State<App>,
+    axum::Extension(i): axum::Extension<Identity>,
+) -> Result<Json<ImageAssetList>> {
+    i.local()?;
+    i.require(Capability::Settings)?;
+    let images = blocking(a.io.clone(), move || a.assets.image_ids()).await?;
+    Ok(Json(ImageAssetList {
+        api_version: 2,
+        images,
+    }))
+}
 pub(super) async fn upload(
     State(a): State<App>,
     axum::Extension(i): axum::Extension<Identity>,

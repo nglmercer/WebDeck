@@ -30,13 +30,36 @@ for(const [n,s] of Object.entries(defs)) {
  else if(s.oneOf) {
   if(s.oneOf.every(x=>x.$ref)) rust+=`${derives}\n#[serde(untagged)]\npub enum ${n} {\n${s.oneOf.map(x=>{let t=rs(x);return ` ${t}(${t}),`;}).join('\n')}\n}\n`;
   else rust+=`${derives}\n#[serde(tag = "type", deny_unknown_fields)]\npub enum ${n} {\n${s.oneOf.map(x=>{const v=x.properties.type.const; const f=Object.entries(x.properties).filter(([k])=>k!=='type');return ` #[serde(rename = ${JSON.stringify(v)})] ${title(v)}${f.length?` { ${f.map(([k,t])=>`${!x.required?.includes(k) ? '#[serde(default, skip_serializing_if = "Option::is_none")] ' : ''}${k === "type" ? "r#type" : k}: ${x.required?.includes(k) ? rs(t) : `Option<${rs(t)}>`}`).join(', ')} }`:''},`;}).join('\n')}\n}\n`;
- } else if(s.properties) rust+=`${derives}\n#[serde(deny_unknown_fields)]\npub struct ${n} {\n${Object.entries(s.properties).map(([k,t])=>` pub ${k === "type" ? "r#type" : k}: ${rs(t)},`).join('\n')}\n}\n`;
+ } else if(s.properties) rust+=`${derives}\n#[serde(deny_unknown_fields)]\npub struct ${n} {\n${Object.entries(s.properties).map(([k,t])=>` ${!s.required?.includes(k) ? '#[serde(default, skip_serializing_if = "Option::is_none")]\n' : ''} pub ${k === "type" ? "r#type" : k}: ${s.required?.includes(k) ? rs(t) : `Option<${rs(t)}>`},`).join('\n')}\n}\n`;
 }
 const variants=defs.Command.oneOf;
 rust+=`impl Command { pub fn capability(&self) -> Capability { match self { ${variants.map(s=>{let n=title(s.properties.type.const);return `Self::${n}${Object.keys(s.properties).length>1?' { .. }':''} => Capability::${title(s['x-capability'])},`;}).join('\n')} } } }\n`;
 rust=execFileSync('rustfmt',['--emit','stdout','--edition','2021'],{input:rust,encoding:'utf8'});
-const catalog=variants.map(s=>({id:s.properties.type.const,capability:s['x-capability'],schema:s}));
-for(const [p,c] of [['src/contracts.rs',rust],['frontend/src/lib/contracts.ts',types],['runtime/src/generated/contracts.ts',types],['contracts/catalog.json',JSON.stringify(catalog,null,2)+'\n']]) {
+const catalog=variants.map(s=>({id:s.properties.type.const,label:s.title ?? title(s.properties.type.const),result_schema:s["x-result"],capability:s['x-capability'],schema:s}));
+// Share repeated data objects without changing schemas or adding reference depth.
+// The frontend reads this immutable graph; canonical JSON remains authoritative.
+const occurrences = new Map();
+function countData(value) {
+ if (!value || typeof value !== 'object') return;
+ const key = JSON.stringify(value);
+ occurrences.set(key, (occurrences.get(key) ?? 0) + 1);
+ for (const child of Object.values(value)) countData(child);
+}
+countData(defs);
+const shared = [...occurrences].filter(([key, count]) => count > 1 && key.length >= 50)
+ .sort(([a], [b]) => a.length - b.length || a.localeCompare(b));
+const names = new Map(shared.map(([key], index) => [key, `s${index}`]));
+function emitData(value, own) {
+ if (!value || typeof value !== 'object') return JSON.stringify(value);
+ const name = names.get(JSON.stringify(value));
+ if (name && name !== own) return name;
+ if (Array.isArray(value)) return `[${value.map(child => emitData(child)).join(',')}]`;
+ return `{${Object.entries(value).map(([key, child]) => `${JSON.stringify(key)}:${emitData(child)}`).join(',')}}`;
+}
+const browserSchema = '// Generated. Edit contracts/v2.schema.json and run the generator.\n'
+ + shared.map(([key]) => `const ${names.get(key)} = ${emitData(JSON.parse(key), names.get(key))};\n`).join('')
+ + `export default { $defs: ${emitData(defs)} };\n`;
+for(const [p,c] of [['src/contracts.rs',rust],['frontend/src/lib/generated-schema.ts',browserSchema],['frontend/src/lib/contracts.ts',types],['runtime/src/generated/contracts.ts',types],['contracts/catalog.json',JSON.stringify(catalog,null,2)+'\n']]) {
  const target=path.join(root,p);
  if(process.argv.includes('--check')) {if(!fs.existsSync(target)||fs.readFileSync(target,'utf8')!==c) throw Error(`Contract drift: ${p}`);}
  else {fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,c);}

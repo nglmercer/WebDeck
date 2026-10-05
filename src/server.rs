@@ -36,6 +36,7 @@ use std::{
 use tower_http::services::ServeDir;
 #[derive(Clone)]
 pub struct App {
+    pub integration_health: Arc<std::sync::Mutex<integrations::IntegrationHealthCache>>,
     pub port: u16,
     pub plugins: Arc<Vec<PluginManifest>>,
     pub config: Arc<ConfigStore>,
@@ -113,11 +114,11 @@ pub fn router(a: App) -> Router {
         .route("/api/v2/translations", get(translations))
         .route("/api/v2/devices", get(devices).post(approve))
         .route("/api/v2/devices/{id}", delete(revoke))
-        .route("/api/v2/assets", post(upload))
+        .route("/api/v2/assets", get(image_assets).post(upload))
         .route("/api/v2/assets/{id}", get(asset))
         .route("/api/v2/native/selection", post(selection))
         .route("/api/v2/integrations/status", get(integration_status))
-        .route("/api/v2/integrations/obs/check", post(check_obs))
+        .route("/api/v2/integrations/{id}/check", post(check_integration))
         .route("/api/v2/spotify/connect", post(spotify_connect))
         .route("/api/v2/spotify/callback", get(spotify_callback))
         .nest_service("/assets", ServeDir::new("frontend/dist/assets"))

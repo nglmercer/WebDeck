@@ -98,9 +98,24 @@ pub async fn list(client: &WebDeckAdminClient) -> Result<Outcome> {
         })
         .collect();
     let count = folders.len();
+    let rows = folders
+        .iter()
+        .map(|b| {
+            format!(
+                "{}\t{}\t{} button(s)",
+                b["id"].as_str().unwrap_or(""),
+                b["label"].as_str().unwrap_or(""),
+                b["button_count"]
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
     Ok(Outcome::ok(
         json!({"revision": response.revision, "folders": folders}),
-        format!("{count} folder(s) at revision {}.", response.revision),
+        format!(
+            "{count} folder(s) at revision {}.\n{rows}",
+            response.revision
+        ),
     ))
 }
 

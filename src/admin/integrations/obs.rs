@@ -53,11 +53,11 @@ fn input_names(result: &Value) -> Vec<String> {
 impl<'a> ObsService<'a> {
     pub async fn status(&self) -> Result<Outcome> {
         let status = self.client.integration_status().await?;
-        let label = format!("{:?}", status.obs).to_lowercase();
+        let label = super::state_label(status.obs);
         Ok(Outcome::ok(
             json!({
                 "obs": status.obs,
-                "checked_at": status.checked_at,
+                "checked_at": super::states(&status).get("obs").map(|h| h.checked_at).unwrap_or(0),
                 "configured": status.obs != IntegrationState::NotConfigured
             }),
             format!("OBS integration state: {label}."),
@@ -66,10 +66,10 @@ impl<'a> ObsService<'a> {
 
     pub async fn check(&self) -> Result<Outcome> {
         let status = self.client.obs_check().await?;
-        let label = format!("{:?}", status.obs).to_lowercase();
+        let label = super::state_label(status.obs);
         let data = json!({
             "obs": status.obs,
-            "checked_at": status.checked_at,
+            "checked_at": super::states(&status).get("obs").map(|h| h.checked_at).unwrap_or(0),
             "configured": status.obs != IntegrationState::NotConfigured
         });
         if status.obs == IntegrationState::Failed {
@@ -220,6 +220,16 @@ impl<'a> ObsService<'a> {
             json!({"action": "get_scenes", "state": "completed", "result": result}),
             human,
         ))
+    }
+
+    pub async fn ensure_buttons(
+        &self,
+        folder_id: &str,
+        revision: Option<u64>,
+        dry_run: bool,
+    ) -> Result<Outcome> {
+        super::super::provisioning::ensure(self.client, "obs-scenes", folder_id, revision, dry_run)
+            .await
     }
 
     pub async fn current_scene(&self) -> Result<Outcome> {

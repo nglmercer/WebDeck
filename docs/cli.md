@@ -195,6 +195,23 @@ Package rules:
 - `enable`/`disable` are runtime scoped and reset when the runtime reloads or
   the server restarts. `builtin.*` plugins cannot be disabled or uninstalled.
 
+## Catalog automation
+
+```bash
+webdeckctl integration list
+webdeckctl integration status
+webdeckctl integration check INTEGRATION_ID
+webdeckctl button recipes
+webdeckctl button generate --recipe RECIPE_ID --folder FOLDER_ID --dry-run
+webdeckctl button generate --recipe RECIPE_ID --folder FOLDER_ID --revision REVISION
+```
+
+Plugins and built-ins publish the same metadata. Qualified plugin action IDs can
+be run directly: `webdeckctl action run devices.select --args '{"device":"a"}'`.
+Button generation is atomic, preserves existing buttons, and is idempotent.
+See [catalog-driven automation](automation.md) for metadata and a working plugin.
+Human folder/button lists display details; `--json` retains structured output.
+
 ## OBS
 
 ```bash
@@ -202,6 +219,7 @@ webdeckctl obs status
 webdeckctl obs check
 webdeckctl obs configure --host 127.0.0.1 --port 4455 --password-stdin
 webdeckctl obs scenes
+webdeckctl obs ensure-buttons --folder obs-scenes
 webdeckctl obs current-scene
 webdeckctl obs inputs
 webdeckctl obs hotkeys

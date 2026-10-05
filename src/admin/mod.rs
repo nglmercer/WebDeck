@@ -8,6 +8,7 @@ pub mod folders;
 pub mod integrations;
 pub mod output;
 pub mod plugins;
+pub mod provisioning;
 
 pub use client::{MutationReport, WebDeckAdminClient};
 pub use error::{AdminError, ErrorKind, ExitCode, Result};

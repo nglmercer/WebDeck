@@ -6,9 +6,10 @@
 
   import { localActionNames } from '../../lib/action-labels';
   import { modal } from '../../lib/modal';
-  import { onDestroy } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
+  import { matchingIcons, iconKey } from '../../lib/icons';
   import { AssetCache } from '../../lib/assets';
-  import { asset } from '../../lib/api/client';
+  import { asset, request } from '../../lib/api/client';
   import type {
     Button,
     ButtonAction,
@@ -16,6 +17,7 @@
     Layout,
     CatalogResponse,
     PluginManifest,
+    ImageAssetList,
   } from '../../lib/contracts';
   import { commandSchema, defaultValue, resolve, upload, type Schema } from '../../lib/api/client';
   import Fields from './Fields.svelte';
@@ -49,6 +51,32 @@
     close: () => void;
     attempt: (work: () => Promise<void>) => Promise<void>;
   } = $props();
+  let iconSearch = $state('');
+  const availableIcons = $derived(matchingIcons(iconSearch));
+  let imageIds = $state<string[]>([]);
+  let imagePage = $state(0);
+  let libraryUrls = $state<Record<string, string>>({});
+  let libraryError = $state('');
+  const libraryAssets = new AssetCache(asset);
+  const pageIds = $derived(imageIds.slice(imagePage * 24, (imagePage + 1) * 24));
+  onMount(() => {
+    void request<ImageAssetList>('assets', 'ImageAssetList')
+      .then((value) => {
+        if (!destroyed) imageIds = [...new Set([...imageIds, ...value.images])];
+      })
+      .catch(() => {
+        if (!destroyed) libraryError = 'ui_icon_library_unavailable';
+      });
+  });
+  $effect(() => {
+    let stale = false;
+    void libraryAssets.load(pageIds).then((result) => {
+      if (!stale && result) libraryUrls = result.urls;
+    });
+    return () => {
+      stale = true;
+    };
+  });
   const defaultCommand = () => defaultValue(commandSchema) as Command;
   let destroyed = false;
   const previewAssets = new AssetCache(asset);
@@ -81,6 +109,7 @@
   onDestroy(() => {
     destroyed = true;
     previewAssets.dispose();
+    libraryAssets.dispose();
   });
   let formError = $state('');
   const appearance = $derived(appearanceOf(button));
@@ -131,7 +160,11 @@
     if (f && button) {
       const candidate = button;
       const s = await upload(f);
-      if (!destroyed && button === candidate && s.type === 'asset') button.icon = `asset:${s.id}`;
+      if (!destroyed && button === candidate && s.type === 'asset') {
+        button.icon = `asset:${s.id}`;
+        imageIds = [s.id, ...imageIds.filter((id) => id !== s.id)];
+        imagePage = 0;
+      }
     }
   }
   function pluginCommand(m: PluginManifest) {
@@ -242,11 +275,12 @@
         <label>{t('ui_label')}<input bind:value={button.label} /></label><label
           >{t('ui_icon')}<input bind:value={button.icon} /></label
         >
+        <label>{t('ui_search_icons')}<input type="search" bind:value={iconSearch} /></label>
         <div class="icon-picker">
-          {#each ['play', 'settings', 'folder', 'fullscreen', 'refresh', 'cpu', 'memory', 'grid', 'monitor', 'music', 'home', 'back'] as icon}<button
+          {#each availableIcons as icon}<button
               type="button"
               aria-label={icon}
-              aria-pressed={button.icon === `icon:${icon}`}
+              aria-pressed={iconKey(button.icon) === icon}
               onclick={() => (button.icon = `icon:${icon}`)}><Icon name={icon} /></button
             >{/each}
         </div>
@@ -256,7 +290,35 @@
             accept="image/*"
             onchange={(e) => attempt(() => image(e))}
           /></label
-        ><label>{t('ui_color')}<input type="color" bind:value={button.color} /></label>
+        >
+        <h3>{t('ui_uploaded_icons')}</h3>
+        {#if libraryError}<p role="status">{t(libraryError)}</p>{/if}
+        <div class="icon-picker">
+          {#each pageIds as id}<button
+              type="button"
+              aria-label={`${t('ui_select_uploaded_icon')} ${id}`}
+              aria-pressed={button.icon === `asset:${id}`}
+              onclick={() => (button.icon = `asset:${id}`)}
+            >
+              {#if libraryUrls[id]}<img
+                  src={libraryUrls[id]}
+                  alt=""
+                  width="32"
+                  height="32"
+                />{:else}<Icon name="image" />{/if}
+            </button>{/each}
+        </div>
+        {#if imageIds.length > 24}
+          <button type="button" disabled={imagePage === 0} onclick={() => imagePage--}
+            >{t('ui_previous')}</button
+          >
+          <button
+            type="button"
+            disabled={(imagePage + 1) * 24 >= imageIds.length}
+            onclick={() => imagePage++}>{t('ui_next')}</button
+          >
+        {/if}
+        <label>{t('ui_color')}<input type="color" bind:value={button.color} /></label>
       </div>
       <div
         role="tabpanel"

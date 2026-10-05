@@ -3,7 +3,6 @@ use super::error::{AdminError, ErrorKind, Result};
 use super::output::Outcome;
 use super::read_value;
 use crate::contracts::Command;
-use crate::domain;
 use serde_json::{json, Value};
 
 fn object_from_args(
@@ -65,6 +64,16 @@ pub async fn list(client: &WebDeckAdminClient) -> Result<Outcome> {
         })
         .collect();
     let action_count = actions.len();
+    let mut rows = catalog
+        .commands
+        .iter()
+        .map(|c| format!("{}\t{}", c.id, c.label.as_deref().unwrap_or(&c.id)))
+        .collect::<Vec<_>>();
+    rows.extend(catalog.plugins.iter().flat_map(|p| {
+        p.actions
+            .iter()
+            .map(move |a| format!("{}\t{}", plugin_action_id(&p.id, &a.id), a.label))
+    }));
     Ok(Outcome::ok(
         json!({
             "api_version": catalog.api_version,
@@ -72,8 +81,9 @@ pub async fn list(client: &WebDeckAdminClient) -> Result<Outcome> {
             "plugins": plugins
         }),
         format!(
-            "{action_count} action type(s), {} plugin(s).",
-            plugins.len()
+            "{action_count} action type(s), {} plugin(s).\n{}",
+            plugins.len(),
+            rows.join("\n")
         ),
     ))
 }
@@ -98,10 +108,10 @@ pub async fn describe(client: &WebDeckAdminClient, action_id: &str) -> Result<Ou
                     "result": action.result,
                     "label": action.label
                 });
-                Ok(Outcome::ok(
-                    data,
-                    format!("Plugin action '{action_id}' (plugin '{plugin_id}')."),
-                ))
+                let pretty = serde_json::to_string_pretty(&data).map_err(|_| {
+                    AdminError::new(ErrorKind::Generic, "Cannot encode action schema")
+                })?;
+                Ok(Outcome::ok(data, pretty))
             }
             None => Err(AdminError::with_details(
                 ErrorKind::NotFound,
@@ -113,7 +123,9 @@ pub async fn describe(client: &WebDeckAdminClient, action_id: &str) -> Result<Ou
     let data = json!({
         "id": entry.id,
         "capability": entry.capability,
-        "schema": entry.schema
+        "schema": entry.schema,
+        "label": entry.label,
+        "result_schema": entry.result_schema
     });
     let pretty = serde_json::to_string_pretty(&entry.schema)
         .map_err(|_| AdminError::new(ErrorKind::Generic, "Cannot encode schema"))?;
@@ -135,7 +147,29 @@ pub async fn run(
     args: &[(String, String)],
     dry_run: bool,
 ) -> Result<Outcome> {
-    let value = object_from_args(action, file, args_json, args)?;
+    let catalog = client.catalog().await?;
+    let mut value = object_from_args(action, file, args_json, args)?;
+    if let Some(id) = value["type"]
+        .as_str()
+        .filter(|id| !catalog.commands.iter().any(|c| c.id == *id))
+    {
+        let matches = catalog
+            .plugins
+            .iter()
+            .flat_map(|p| p.actions.iter().map(move |a| (p, a)))
+            .filter(|(p, a)| plugin_action_id(&p.id, &a.id) == id || a.id == id)
+            .collect::<Vec<_>>();
+        if matches.len() > 1 {
+            return Err(AdminError::invalid_arguments(
+                "Ambiguous plugin action; use plugin_id.action_id",
+            ));
+        }
+        if let Some((plugin, action)) = matches.first() {
+            let mut arguments = value.as_object().cloned().unwrap_or_default();
+            arguments.remove("type");
+            value = json!({"type":"plugin", "plugin_id":plugin.id, "version":plugin.version, "action_id":action.id, "args":arguments});
+        }
+    }
     let command: Command = serde_json::from_value(value.clone()).map_err(|e| {
         AdminError::with_details(
             ErrorKind::InvalidArguments,
@@ -143,7 +177,8 @@ pub async fn run(
             json!({"reason": e.to_string()}),
         )
     })?;
-    domain::validate_command(&command).map_err(AdminError::from_domain)?;
+    crate::automation::validate_catalog_command(&command, &catalog)
+        .map_err(AdminError::from_domain)?;
     let command_type = value
         .get("type")
         .and_then(|v| v.as_str())
@@ -161,9 +196,8 @@ pub async fn run(
             format!("Dry run: would run '{command_type}'."),
         ));
     }
-    let result = client.run_command(command).await?;
-    let pretty = serde_json::to_string_pretty(&result)
-        .map_err(|_| AdminError::new(ErrorKind::Generic, "Cannot encode result"))?;
+    let result = client.run_command(command.clone()).await?;
+    let human = super::output::render_command(&command, &result, Some(&catalog));
     Ok(Outcome::ok(
         json!({
             "operation": "action_run",
@@ -171,6 +205,6 @@ pub async fn run(
             "state": "completed",
             "result": result
         }),
-        pretty,
+        human,
     ))
 }

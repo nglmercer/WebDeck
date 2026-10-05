@@ -1,0 +1,118 @@
+{
+  "schema_version": 2,
+  "id": "devices",
+  "version": "1.0.0",
+  "entry": "index.js",
+  "backend": "sandbox_js",
+  "digest": "57b67d8c3d95def682fd7cd62f5b69f6ec1cb6eefbed9d31fd7383aad82e07ea",
+  "origin": "local",
+  "contract": "",
+  "actions": [
+    {
+      "id": "discover",
+      "label": "Discover devices",
+      "capabilities": [
+        "read"
+      ],
+      "arguments": {},
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "select",
+      "label": "Select device",
+      "capabilities": [
+        "read",
+        "plugin"
+      ],
+      "arguments": {
+        "device": {
+          "type": "string",
+          "required": true
+        }
+      },
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "health",
+      "label": "Check devices",
+      "capabilities": [
+        "read"
+      ],
+      "arguments": {},
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    }
+  ],
+  "automation": {
+    "integrations": [
+      {
+        "id": "devices.connection",
+        "label": "Devices",
+        "required_settings": [],
+        "configuration": [],
+        "probe": {
+          "type": "plugin",
+          "plugin_id": "devices",
+          "version": "1.0.0",
+          "action_id": "health",
+          "args": {}
+        },
+        "success": {
+          "pointer": "/value/ready",
+          "equals": true
+        }
+      }
+    ],
+    "button_recipes": [
+      {
+        "id": "devices.select",
+        "label": "Device buttons",
+        "folder_label": "Devices",
+        "discovery": {
+          "type": "plugin",
+          "plugin_id": "devices",
+          "version": "1.0.0",
+          "action_id": "discover",
+          "args": {}
+        },
+        "items_pointer": "/value/devices",
+        "identity_pointer": "/id",
+        "label_pointer": "/name",
+        "command": {
+          "type": "plugin",
+          "plugin_id": "devices",
+          "version": "1.0.0",
+          "action_id": "select",
+          "args": {
+            "device": ""
+          }
+        },
+        "bindings": {
+          "/args/device": "/id"
+        }
+      }
+    ],
+    "presentations": [
+      {
+        "selector": {
+          "type": "plugin",
+          "plugin_id": "devices",
+          "action_id": "select"
+        },
+        "label": "Device selected",
+        "arguments": {
+          "device": "/args/device"
+        },
+        "result_pointer": "/value"
+      }
+    ]
+  }
+}

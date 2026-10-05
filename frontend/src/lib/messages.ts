@@ -1,5 +1,11 @@
 // UI translation keys. Keep keys stable when editing the English copy.
 export const messages = {
+  ui_search_icons: 'Search icons',
+  ui_uploaded_icons: 'Uploaded icons',
+  ui_select_uploaded_icon: 'Select uploaded icon',
+  ui_icon_library_unavailable:
+    'The icon library could not be loaded. You can still upload an image.',
+
   ui_folder_tools: 'Folder tools',
   ui_unsaved_button_changes: 'Unsaved button changes',
   ui_discard_button_help:

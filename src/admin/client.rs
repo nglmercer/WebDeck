@@ -366,10 +366,21 @@ impl WebDeckAdminClient {
         self.get_typed("integrations/status").await
     }
     pub async fn obs_check(&self) -> Result<IntegrationStatus> {
+        self.integration_check("obs").await
+    }
+    pub async fn integration_check(&self, id: &str) -> Result<IntegrationStatus> {
+        if id.is_empty()
+            || id.len() > 128
+            || !id
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b"_.-".contains(&b))
+        {
+            return Err(AdminError::invalid_arguments("Invalid integration id"));
+        }
         let response = self
             .request(
                 reqwest::Method::POST,
-                "integrations/obs/check",
+                &format!("integrations/{id}/check"),
                 Some(json!({})),
             )
             .await?;

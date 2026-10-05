@@ -1,10 +1,10 @@
 {
   "baseline": "docs/v2/evidence/improvements/browser-performance.json",
   "bundle_js_bytes": 235000,
-  "bundle_gzip_bytes": 71000,
+  "bundle_gzip_bytes": 73000,
   "usable_ui_p95_ms": {
     "48": 350,
     "1024": 600
   },
-  "policy": "Bundle ceilings are 235000 raw / 71000 gzip bytes after the SVG and accessible-tabs refactor (measured 232606 / 70483; docs/v2/evidence/frontend-redesign.json). Local UI timing ceilings retain the original baseline and must be compared on the same machine/profile; CI enforces bundle size only. Budget changes require an explained new measurement."
+  "policy": "Bundle ceilings are 235000 raw / 71000 gzip bytes after the SVG and accessible-tabs refactor (measured 232606 / 70483; docs/v2/evidence/frontend-redesign.json). Local UI timing ceilings retain the original baseline and must be compared on the same machine/profile; CI enforces bundle size only. Budget changes require an explained new measurement. Catalog automation adds validated plugin metadata and health/recipe/result contracts. Shared generated schema objects reduce the measured raw bundle to 229577 bytes; gzip is 71309 bytes versus the prior 70483-byte baseline. The raw ceiling stays 235000; the gzip ceiling is 72000 to cover this measured contract expansion. The searchable shared icon registry and reusable uploaded-image picker add approximately 3 KB raw / 1 KB gzip; their measured build is 232501 raw / 72276 gzip. The raw ceiling remains 235000 and the compressed ceiling is 73000 for these additional controls."
 }

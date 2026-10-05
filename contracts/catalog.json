@@ -1,6 +1,7 @@
 [
   {
     "id": "debug",
+    "label": "Debug",
     "capability": "read",
     "schema": {
       "type": "object",
@@ -23,6 +24,7 @@
   },
   {
     "id": "exit",
+    "label": "Exit",
     "capability": "power",
     "schema": {
       "type": "object",
@@ -40,6 +42,7 @@
   },
   {
     "id": "usage",
+    "label": "Usage",
     "capability": "read",
     "schema": {
       "type": "object",
@@ -57,6 +60,7 @@
   },
   {
     "id": "stop_sound",
+    "label": "StopSound",
     "capability": "audio",
     "schema": {
       "type": "object",
@@ -74,6 +78,7 @@
   },
   {
     "id": "play_sound",
+    "label": "PlaySound",
     "capability": "audio",
     "schema": {
       "type": "object",
@@ -114,6 +119,7 @@
   },
   {
     "id": "shutdown",
+    "label": "Shutdown",
     "capability": "power",
     "schema": {
       "type": "object",
@@ -131,6 +137,7 @@
   },
   {
     "id": "reboot",
+    "label": "Reboot",
     "capability": "power",
     "schema": {
       "type": "object",
@@ -148,6 +155,7 @@
   },
   {
     "id": "sleep",
+    "label": "Sleep",
     "capability": "power",
     "schema": {
       "type": "object",
@@ -165,6 +173,7 @@
   },
   {
     "id": "hibernate",
+    "label": "Hibernate",
     "capability": "power",
     "schema": {
       "type": "object",
@@ -182,6 +191,7 @@
   },
   {
     "id": "lock",
+    "label": "Lock",
     "capability": "power",
     "schema": {
       "type": "object",
@@ -199,6 +209,7 @@
   },
   {
     "id": "screensaver_settings",
+    "label": "ScreensaverSettings",
     "capability": "power",
     "schema": {
       "type": "object",
@@ -216,6 +227,7 @@
   },
   {
     "id": "screensaver",
+    "label": "Screensaver",
     "capability": "power",
     "schema": {
       "type": "object",
@@ -242,6 +254,7 @@
   },
   {
     "id": "key",
+    "label": "Key",
     "capability": "input",
     "schema": {
       "type": "object",
@@ -270,6 +283,7 @@
   },
   {
     "id": "write",
+    "label": "Write",
     "capability": "input",
     "schema": {
       "type": "object",
@@ -296,6 +310,7 @@
   },
   {
     "id": "copy",
+    "label": "Copy",
     "capability": "input",
     "schema": {
       "type": "object",
@@ -322,6 +337,7 @@
   },
   {
     "id": "paste",
+    "label": "Paste",
     "capability": "input",
     "schema": {
       "type": "object",
@@ -348,6 +364,7 @@
   },
   {
     "id": "cut",
+    "label": "Cut",
     "capability": "input",
     "schema": {
       "type": "object",
@@ -365,6 +382,7 @@
   },
   {
     "id": "clipboard",
+    "label": "Clipboard",
     "capability": "input",
     "schema": {
       "type": "object",
@@ -382,6 +400,7 @@
   },
   {
     "id": "clear_clipboard",
+    "label": "ClearClipboard",
     "capability": "input",
     "schema": {
       "type": "object",
@@ -399,6 +418,7 @@
   },
   {
     "id": "speech_recognition",
+    "label": "SpeechRecognition",
     "capability": "input",
     "schema": {
       "type": "object",
@@ -416,6 +436,7 @@
   },
   {
     "id": "restart_desktop",
+    "label": "RestartDesktop",
     "capability": "window",
     "schema": {
       "type": "object",
@@ -433,6 +454,7 @@
   },
   {
     "id": "close_focused",
+    "label": "CloseFocused",
     "capability": "window",
     "schema": {
       "type": "object",
@@ -450,6 +472,7 @@
   },
   {
     "id": "color_picker",
+    "label": "ColorPicker",
     "capability": "window",
     "schema": {
       "type": "object",
@@ -467,6 +490,7 @@
   },
   {
     "id": "kill",
+    "label": "Kill",
     "capability": "window",
     "schema": {
       "type": "object",
@@ -490,6 +514,7 @@
   },
   {
     "id": "restart",
+    "label": "Restart",
     "capability": "window",
     "schema": {
       "type": "object",
@@ -513,6 +538,7 @@
   },
   {
     "id": "foreground",
+    "label": "Foreground",
     "capability": "window",
     "schema": {
       "type": "object",
@@ -536,6 +562,7 @@
   },
   {
     "id": "open",
+    "label": "Open",
     "capability": "window",
     "schema": {
       "type": "object",
@@ -559,6 +586,7 @@
   },
   {
     "id": "volume",
+    "label": "Volume",
     "capability": "audio",
     "schema": {
       "type": "object",
@@ -580,6 +608,7 @@
   },
   {
     "id": "app_volume",
+    "label": "AppVolume",
     "capability": "audio",
     "schema": {
       "type": "object",
@@ -607,6 +636,7 @@
   },
   {
     "id": "mute",
+    "label": "Mute",
     "capability": "audio",
     "schema": {
       "type": "object",
@@ -624,6 +654,7 @@
   },
   {
     "id": "play_pause",
+    "label": "PlayPause",
     "capability": "audio",
     "schema": {
       "type": "object",
@@ -641,6 +672,7 @@
   },
   {
     "id": "previous",
+    "label": "Previous",
     "capability": "audio",
     "schema": {
       "type": "object",
@@ -658,6 +690,7 @@
   },
   {
     "id": "next",
+    "label": "Next",
     "capability": "audio",
     "schema": {
       "type": "object",
@@ -675,6 +708,7 @@
   },
   {
     "id": "microphone",
+    "label": "Microphone",
     "capability": "audio",
     "schema": {
       "type": "object",
@@ -698,6 +732,7 @@
   },
   {
     "id": "speakers",
+    "label": "Speakers",
     "capability": "audio",
     "schema": {
       "type": "object",
@@ -721,6 +756,7 @@
   },
   {
     "id": "fetch",
+    "label": "Fetch",
     "capability": "network",
     "schema": {
       "type": "object",
@@ -776,6 +812,7 @@
   },
   {
     "id": "script",
+    "label": "Script",
     "capability": "script",
     "schema": {
       "type": "object",
@@ -803,6 +840,7 @@
   },
   {
     "id": "shell",
+    "label": "Shell",
     "capability": "script",
     "schema": {
       "type": "object",
@@ -830,6 +868,7 @@
   },
   {
     "id": "firewall",
+    "label": "Firewall",
     "capability": "admin",
     "schema": {
       "type": "object",
@@ -847,6 +886,7 @@
   },
   {
     "id": "obs",
+    "label": "Obs",
     "capability": "network",
     "schema": {
       "type": "object",
@@ -900,6 +940,7 @@
   },
   {
     "id": "spotify",
+    "label": "Spotify",
     "capability": "network",
     "schema": {
       "type": "object",
@@ -943,6 +984,7 @@
   },
   {
     "id": "plugin",
+    "label": "Plugin",
     "capability": "plugin",
     "schema": {
       "type": "object",
@@ -985,6 +1027,7 @@
   },
   {
     "id": "button",
+    "label": "Button",
     "capability": "read",
     "schema": {
       "type": "object",
@@ -1009,6 +1052,7 @@
   },
   {
     "id": "workflow",
+    "label": "Workflow",
     "capability": "read",
     "schema": {
       "type": "object",

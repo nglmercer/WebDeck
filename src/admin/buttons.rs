@@ -7,6 +7,17 @@ use crate::domain;
 use serde_json::{json, Map, Value};
 
 fn typed_button(value: Value) -> Result<Button> {
+    if let Some(action) = value.get("action") {
+        if domain::validate("ButtonAction", action).is_err()
+            && domain::validate("Command", action).is_ok()
+        {
+            return Err(AdminError::with_details(
+                ErrorKind::Validation,
+                "Button commands require an action wrapper: {\"type\":\"command\",\"command\":{...}}",
+                json!({"path": "action", "example": {"type": "command", "command": action}}),
+            ));
+        }
+    }
     let button: Button = serde_json::from_value(value).map_err(|e| {
         AdminError::with_details(
             ErrorKind::Validation,
@@ -109,9 +120,25 @@ pub async fn list(client: &WebDeckAdminClient, folder: Option<&str>) -> Result<O
         }
     }
     let count = buttons.len();
+    let rows = buttons
+        .iter()
+        .map(|b| {
+            format!(
+                "{}\t{}\t{}\t{}",
+                b["id"].as_str().unwrap_or(""),
+                b["label"].as_str().unwrap_or(""),
+                b["folder"].as_str().unwrap_or(""),
+                b["action"]
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
     Ok(Outcome::ok(
         json!({"revision": response.revision, "buttons": buttons}),
-        format!("{count} button(s) at revision {}.", response.revision),
+        format!(
+            "{count} button(s) at revision {}.\n{rows}",
+            response.revision
+        ),
     ))
 }
 

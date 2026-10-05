@@ -19,10 +19,18 @@ pub(super) async fn replace(
     i.require(Capability::Settings)?;
     Ok(Json(
         blocking(a.io.clone(), move || {
-            a.config.mutate(r.revision, |c| {
+            let previous = a.config.last_valid().config.settings;
+            let response = a.config.mutate(r.revision, |c| {
                 *c = r.config;
                 Ok(())
-            })
+            })?;
+            if previous != response.config.settings {
+                a.integration_health
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .invalidate_changed(&response.config.settings);
+            }
+            Ok(response)
         })
         .await?,
     ))
@@ -36,10 +44,18 @@ pub(super) async fn settings(
     i.require(Capability::Settings)?;
     Ok(Json(
         blocking(a.io.clone(), move || {
-            a.config.mutate(r.revision, |c| {
+            let previous = a.config.last_valid().config.settings;
+            let response = a.config.mutate(r.revision, |c| {
                 c.settings = r.settings;
                 Ok(())
-            })
+            })?;
+            if previous != response.config.settings {
+                a.integration_health
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .invalidate_changed(&response.config.settings);
+            }
+            Ok(response)
         })
         .await?,
     ))

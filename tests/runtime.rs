@@ -169,6 +169,7 @@ async fn http_executor_vm_metrics_response_and_drain() {
     let runtime = Arc::new(VmRuntime::new(metrics.clone()).unwrap());
     let executor = Arc::new(Executor::new(Arc::new(VmAdapter::new(runtime.clone())), 2));
     let app = App {
+        integration_health: Default::default(),
         io: Arc::new(tokio::sync::Semaphore::new(4)),
         queries: Arc::new(tokio::sync::Semaphore::new(2)),
         authorization: Arc::new(tokio::sync::Semaphore::new(4)),
@@ -1060,4 +1061,47 @@ fn workflow_timeout_and_parallel_references_retain_deadlines_and_prior_results()
     let command:Command=serde_json::from_value(json!({"type":"workflow","workflow":{"type":"timeout","milliseconds":1,"step":{"type":"delay","milliseconds":20}}})).unwrap();
     assert!(runtime.invoke(&command, &context()).is_err());
     assert!(runtime.invoke(&Command::Usage, &context()).is_ok());
+}
+
+#[test]
+fn automation_plugin_package_loads_and_executes_declared_actions() {
+    let temp = Temp::new();
+    let root = temp.0.join("plugins/devices");
+    std::fs::create_dir_all(&root).unwrap();
+    std::fs::write(
+        root.join("index.js"),
+        include_str!("../examples/plugins/devices/index.js"),
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("webdeck.json"),
+        include_str!("../examples/plugins/devices/webdeck.json"),
+    )
+    .unwrap();
+    let plugins = webdeck::runtime::plugins::load_plugins(&Assets {
+        root: temp.0.clone(),
+    })
+    .unwrap();
+    assert!(plugins[0].manifest.automation.is_some());
+    let runtime =
+        VmRuntime::with_plugins(Arc::new(FakeMetrics::default()), native(&temp), plugins).unwrap();
+    let allowed = Context {
+        capabilities: vec![Capability::Read, Capability::Plugin],
+        ..context()
+    };
+    for (action_id, args, expected) in [
+        (
+            "discover",
+            json!({}),
+            json!({"devices":[{"id":"a","name":"Alpha"},{"id":"b","name":"Beta"}]}),
+        ),
+        ("health", json!({}), json!({"ready":true})),
+        ("select", json!({"device":"a"}), json!({})),
+    ] {
+        let command: Command = serde_json::from_value(json!({"type":"plugin","plugin_id":"devices","version":"1.0.0","action_id":action_id,"args":args})).unwrap();
+        assert_eq!(
+            runtime.invoke(&command, &allowed).unwrap()["value"],
+            expected
+        );
+    }
 }

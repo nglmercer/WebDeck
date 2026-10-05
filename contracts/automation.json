@@ -1,0 +1,83 @@
+{
+  "integrations": [
+    {
+      "id": "obs",
+      "label": "OBS",
+      "required_settings": [
+        "/obs/host"
+      ],
+      "configuration": [
+        "/obs"
+      ],
+      "probe": {
+        "type": "obs",
+        "action": "get_version",
+        "target": ""
+      },
+      "success": {
+        "pointer": "/obsVersion"
+      }
+    },
+    {
+      "id": "spotify",
+      "label": "Spotify",
+      "required_settings": [
+        "/spotify/client_id",
+        "/spotify/client_secret"
+      ],
+      "configuration": [
+        "/spotify"
+      ],
+      "authorization_asset": "spotify-token.json"
+    }
+  ],
+  "button_recipes": [
+    {
+      "id": "obs-scenes",
+      "label": "OBS scene buttons",
+      "discovery": {
+        "type": "obs",
+        "action": "get_scenes",
+        "target": ""
+      },
+      "items_pointer": "/scenes",
+      "identity_pointer": "/sceneName",
+      "label_pointer": "/sceneName",
+      "command": {
+        "type": "obs",
+        "action": "scene",
+        "target": ""
+      },
+      "bindings": {
+        "/target": "/sceneName"
+      },
+      "folder_label": "OBS Scenes"
+    }
+  ],
+  "presentations": [
+    {
+      "selector": {
+        "type": "obs",
+        "action": "scene"
+      },
+      "label": "OBS scene selected",
+      "arguments": {
+        "scene": "/target"
+      }
+    },
+    {
+      "selector": {
+        "type": "obs",
+        "action": "get_scenes"
+      },
+      "label": "OBS scenes",
+      "arguments": {},
+      "result_view": {
+        "items_pointer": "/scenes",
+        "columns": {
+          "Scene": "/sceneName"
+        }
+      }
+    }
+  ]
+}

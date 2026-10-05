@@ -18,6 +18,11 @@ pub async fn status(client: &WebDeckAdminClient) -> Result<Outcome> {
     let boot = client.boot().await?;
     let runtime = client.runtime_status().await?;
     let integrations = client.integration_status().await?;
+    let integration_rows = super::integrations::states(&integrations)
+        .iter()
+        .map(|(id, health)| format!("{id}: {}", super::integrations::state_label(health.state)))
+        .collect::<Vec<_>>()
+        .join(", ");
     let folders = boot.layout.folders.len();
     let buttons: usize = boot.layout.folders.iter().map(|f| f.buttons.len()).sum();
     let data = json!({
@@ -38,11 +43,12 @@ pub async fn status(client: &WebDeckAdminClient) -> Result<Outcome> {
         "integrations": {
             "obs": integrations.obs,
             "spotify": integrations.spotify,
-            "checked_at": integrations.checked_at
+            "checked_at": integrations.checked_at,
+            "items": super::integrations::states(&integrations)
         }
     });
     let human = format!(
-        "WebDeck {} at {}\nrevision {}, healthy: {}, edit: {}\nfolders: {folders}, buttons: {buttons}\nplugins: {} total, {} loaded, {} disabled\nobs: {}, spotify: {}",
+        "WebDeck {} at {}\nrevision {}, healthy: {}, edit: {}\nfolders: {folders}, buttons: {buttons}\nplugins: {} available, {} active sessions (loaded on first use), {} disabled\n{}",
         version.version,
         client.base_url(),
         boot.revision,
@@ -51,8 +57,7 @@ pub async fn status(client: &WebDeckAdminClient) -> Result<Outcome> {
         runtime.plugins.len(),
         runtime.loaded_plugins.len(),
         runtime.disabled_plugins.len(),
-        format!("{:?}", integrations.obs).to_lowercase(),
-        format!("{:?}", integrations.spotify).to_lowercase()
+        integration_rows
     );
     Ok(Outcome::ok(data, human))
 }
@@ -166,16 +171,18 @@ pub async fn doctor(client: &WebDeckAdminClient) -> Result<Outcome> {
     }
     match client.integration_status().await {
         Ok(status) => {
-            for (id, state) in [
-                ("integrations.obs", status.obs),
-                ("integrations.spotify", status.spotify),
-            ] {
+            for (id, health) in super::integrations::states(&status) {
+                let state = health.state;
                 let level = match state {
                     crate::contracts::IntegrationState::Connected => "pass",
                     crate::contracts::IntegrationState::Failed => "warn",
                     _ => "warn",
                 };
-                checks.push(check(id, level, format!("{:?}", state).to_lowercase()));
+                checks.push(check(
+                    &format!("integrations.{id}"),
+                    level,
+                    super::integrations::state_label(state),
+                ));
             }
         }
         Err(e) => checks.push(check(

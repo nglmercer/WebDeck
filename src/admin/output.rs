@@ -133,3 +133,99 @@ impl Emitter {
         exit
     }
 }
+
+/// Render data with optional catalog presentation; JSON output always keeps the raw result.
+pub fn render_command(
+    command: &crate::contracts::Command,
+    result: &Value,
+    catalog: Option<&crate::contracts::CatalogResponse>,
+) -> String {
+    let fallback_label = catalog.and_then(|catalog| {
+        if let crate::contracts::Command::Plugin {
+            plugin_id,
+            action_id,
+            ..
+        } = command
+        {
+            catalog
+                .plugins
+                .iter()
+                .find(|p| &p.id == plugin_id)
+                .and_then(|p| p.actions.iter().find(|a| &a.id == action_id))
+                .map(|a| a.label.as_str())
+        } else {
+            let value = serde_json::to_value(command).ok()?;
+            catalog
+                .commands
+                .iter()
+                .find(|c| value["type"] == c.id)
+                .and_then(|c| c.label.as_deref())
+        }
+    });
+    let metadata = catalog.and_then(|c| c.automation.as_ref());
+    let command = serde_json::to_value(command).expect("serializable command");
+    let presentation = metadata.and_then(|m| {
+        m.presentations
+            .iter()
+            .filter(|p| crate::automation::matches(&p.selector, &command))
+            .max_by_key(|p| p.selector.len())
+    });
+    let result = presentation
+        .and_then(|p| p.result_pointer.as_ref())
+        .and_then(|pointer| result.pointer(pointer))
+        .unwrap_or(result);
+    if let Some(view) = presentation.and_then(|p| p.result_view.as_ref()) {
+        if let Some(items) = result
+            .pointer(&view.items_pointer)
+            .and_then(Value::as_array)
+        {
+            if !view.columns.is_empty()
+                && items
+                    .iter()
+                    .all(|item| view.columns.values().all(|p| item.pointer(p).is_some()))
+            {
+                let mut lines = vec![view.columns.keys().cloned().collect::<Vec<_>>().join("\t")];
+                lines.extend(items.iter().map(|item| {
+                    view.columns
+                        .values()
+                        .map(|p| display_value(item.pointer(p).expect("checked pointer")))
+                        .collect::<Vec<_>>()
+                        .join("\t")
+                }));
+                return lines.join("\n");
+            }
+        }
+    }
+    if result.is_null() || result.as_object().is_some_and(|o| o.is_empty()) {
+        if let Some(presentation) = presentation {
+            let args = presentation
+                .arguments
+                .iter()
+                .filter_map(|(label, pointer)| {
+                    command
+                        .pointer(pointer)
+                        .map(|v| format!("{label}: {}", display_value(v)))
+                })
+                .collect::<Vec<_>>();
+            return if args.is_empty() {
+                format!("{} completed.", presentation.label)
+            } else {
+                format!("{} ({}).", presentation.label, args.join(", "))
+            };
+        }
+        if let Some(label) = fallback_label {
+            return format!("{label} completed.");
+        }
+        return format!(
+            "Action '{}' completed.",
+            command["type"].as_str().unwrap_or("unknown")
+        );
+    }
+    serde_json::to_string_pretty(result).unwrap_or_else(|_| "Action completed.".into())
+}
+fn display_value(value: &Value) -> String {
+    value
+        .as_str()
+        .map(str::to_owned)
+        .unwrap_or_else(|| value.to_string())
+}

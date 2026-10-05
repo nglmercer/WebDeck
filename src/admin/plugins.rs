@@ -243,7 +243,7 @@ impl PluginService {
                 "disabled": snapshot.disabled_plugins
             }),
             format!(
-                "{count} plugin(s), {disabled} disabled, healthy: {}.",
+                "{count} available plugin(s), {disabled} disabled, healthy: {}. Sessions load on first use.",
                 snapshot.healthy
             ),
         ))

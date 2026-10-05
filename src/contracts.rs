@@ -427,6 +427,8 @@ pub struct PluginManifest {
     pub digest: String,
     pub origin: String,
     pub contract: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub automation: Option<AutomationMetadata>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -480,6 +482,8 @@ pub struct CatalogResponse {
     pub api_version: u64,
     pub commands: Vec<CatalogEntry>,
     pub plugins: Vec<PluginManifest>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub automation: Option<AutomationMetadata>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -525,6 +529,10 @@ pub struct CatalogEntry {
     pub id: String,
     pub capability: Capability,
     pub schema: BTreeMap<String, Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result_schema: Option<BTreeMap<String, Value>>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Eq, Hash, Copy)]
 pub enum IntegrationState {
@@ -548,6 +556,8 @@ pub struct IntegrationStatus {
     pub obs: IntegrationState,
     pub spotify: IntegrationState,
     pub checked_at: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub integrations: Option<BTreeMap<String, IntegrationHealth>>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", deny_unknown_fields)]
@@ -631,6 +641,76 @@ pub struct PluginState {
 pub struct ServerVersion {
     pub api_version: u64,
     pub version: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResultPredicate {
+    pub pointer: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub equals: Option<Value>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct IntegrationDefinition {
+    pub id: String,
+    pub label: String,
+    pub required_settings: Vec<String>,
+    pub configuration: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub authorization_asset: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub probe: Option<Command>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub success: Option<ResultPredicate>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ButtonRecipe {
+    pub id: String,
+    pub label: String,
+    pub discovery: Command,
+    pub items_pointer: String,
+    pub identity_pointer: String,
+    pub label_pointer: String,
+    pub command: Command,
+    pub bindings: BTreeMap<String, String>,
+    pub folder_label: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResultView {
+    pub items_pointer: String,
+    pub columns: BTreeMap<String, String>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CommandPresentation {
+    pub selector: BTreeMap<String, Value>,
+    pub label: String,
+    pub arguments: BTreeMap<String, String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result_view: Option<ResultView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result_pointer: Option<String>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AutomationMetadata {
+    pub integrations: Vec<IntegrationDefinition>,
+    pub button_recipes: Vec<ButtonRecipe>,
+    pub presentations: Vec<CommandPresentation>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct IntegrationHealth {
+    pub state: IntegrationState,
+    pub checked_at: u64,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ImageAssetList {
+    pub api_version: u64,
+    pub images: Vec<String>,
 }
 impl Command {
     pub fn capability(&self) -> Capability {

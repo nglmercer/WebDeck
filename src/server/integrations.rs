@@ -1,5 +1,62 @@
 use super::*;
 
+pub struct IntegrationHealthCache {
+    entries: std::collections::HashMap<String, CachedHealth>,
+    generation: u64,
+    checks: Arc<tokio::sync::Semaphore>,
+}
+impl Default for IntegrationHealthCache {
+    fn default() -> Self {
+        Self {
+            entries: Default::default(),
+            generation: 0,
+            checks: Arc::new(tokio::sync::Semaphore::new(2)),
+        }
+    }
+}
+struct CachedHealth {
+    definition: IntegrationDefinition,
+    fingerprint: String,
+    health: IntegrationHealth,
+}
+fn fingerprint(definition: &IntegrationDefinition, settings: &Value) -> String {
+    use sha2::{Digest, Sha256};
+    let selected = definition
+        .configuration
+        .iter()
+        .chain(&definition.required_settings)
+        .map(|pointer| {
+            (
+                pointer,
+                settings.pointer(pointer).cloned().unwrap_or(Value::Null),
+            )
+        })
+        .collect::<std::collections::BTreeMap<_, _>>();
+    format!(
+        "{:x}",
+        Sha256::digest(serde_json::to_vec(&(definition, selected)).expect("serializable metadata"))
+    )
+}
+impl IntegrationHealthCache {
+    pub(super) fn clear(&mut self) {
+        self.entries.clear();
+        self.generation = self.generation.wrapping_add(1);
+    }
+    pub(super) fn invalidate_changed(&mut self, settings: &Settings) {
+        let settings = serde_json::to_value(settings).expect("serializable settings");
+        self.entries
+            .retain(|_, cached| cached.fingerprint == fingerprint(&cached.definition, &settings));
+        // In-flight probes cannot publish a result across a settings transaction.
+        self.generation = self.generation.wrapping_add(1);
+    }
+}
+fn now_seconds() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
+}
+
 const SPOTIFY_SCOPES:&str="user-read-playback-state user-modify-playback-state user-library-modify playlist-modify-public playlist-modify-private user-follow-modify user-follow-read user-library-read";
 pub(super) fn oauth_states(
 ) -> &'static std::sync::Mutex<std::collections::HashMap<String, std::time::Instant>> {
@@ -125,33 +182,99 @@ pub(super) async fn spotify_callback(
     Ok(axum::response::Redirect::to("/").into_response())
 }
 
-async fn status_snapshot(a: &App) -> IntegrationStatus {
-    let settings = a.config.last_valid().config.settings;
-    let spotify = if settings.spotify.client_id.trim().is_empty()
-        || settings.spotify.client_secret.trim().is_empty()
-    {
-        IntegrationState::NotConfigured
-    } else if tokio::fs::metadata(a.assets.root.join("spotify-token.json"))
+async fn definitions(a: &App) -> Result<AutomationMetadata> {
+    let owner = a.clone();
+    let snapshot = blocking(a.queries.clone(), move || owner.executor.management(None))
         .await
-        .is_ok_and(|m| m.is_file())
-    {
-        IntegrationState::AuthorizationSaved
-    } else {
-        IntegrationState::AuthorizationRequired
-    };
-    IntegrationStatus {
-        api_version: 2,
-        obs: if settings.obs.host.trim().is_empty() {
-            IntegrationState::NotConfigured
+        .ok();
+    let plugins = snapshot
+        .as_ref()
+        .and_then(|v| serde_json::from_value::<Vec<PluginManifest>>(v["plugins"].clone()).ok())
+        .unwrap_or_else(|| a.plugins.as_ref().clone());
+    let disabled = snapshot
+        .as_ref()
+        .and_then(|v| serde_json::from_value::<Vec<String>>(v["disabled_plugins"].clone()).ok())
+        .unwrap_or_default();
+    crate::automation::collect(&plugins, &disabled)
+}
+
+async fn status_snapshot(a: &App, metadata: &AutomationMetadata) -> Result<IntegrationStatus> {
+    let settings =
+        serde_json::to_value(a.config.last_valid().config.settings).expect("serializable settings");
+    let mut integrations = std::collections::BTreeMap::new();
+    for definition in &metadata.integrations {
+        let configured = definition.required_settings.iter().all(|p| {
+            settings
+                .pointer(p)
+                .is_some_and(|v| !v.is_null() && v.as_str().is_none_or(|s| !s.trim().is_empty()))
+        });
+        let state = if !configured {
+            Some(IntegrationState::NotConfigured)
+        } else if let Some(asset) = &definition.authorization_asset {
+            let root = a.assets.root.clone();
+            let asset = asset.clone();
+            let saved = blocking(a.io.clone(), move || {
+                Ok(crate::runtime::plugins::confined(&root, &asset).is_ok())
+            })
+            .await?;
+            if !saved {
+                Some(IntegrationState::AuthorizationRequired)
+            } else if definition.probe.is_none() {
+                Some(IntegrationState::AuthorizationSaved)
+            } else {
+                None
+            }
         } else {
-            IntegrationState::NotTested
-        },
-        spotify,
-        checked_at: std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs(),
+            None
+        };
+        let key = fingerprint(definition, &settings);
+        let mut cache = a
+            .integration_health
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        if cache
+            .entries
+            .get(&definition.id)
+            .is_some_and(|entry| entry.fingerprint != key)
+        {
+            cache.entries.remove(&definition.id);
+        }
+        let health = if let Some(state) = state {
+            cache.entries.remove(&definition.id);
+            IntegrationHealth {
+                state,
+                checked_at: 0,
+            }
+        } else {
+            cache
+                .entries
+                .get(&definition.id)
+                .map(|entry| entry.health.clone())
+                .unwrap_or(IntegrationHealth {
+                    state: IntegrationState::NotTested,
+                    checked_at: 0,
+                })
+        };
+        integrations.insert(definition.id.clone(), health);
     }
+    // Compatibility projection for existing v2 clients. All evaluation uses the registry above.
+    Ok(IntegrationStatus {
+        api_version: 2,
+        obs: integrations
+            .get("obs")
+            .map(|h| h.state)
+            .unwrap_or(IntegrationState::NotConfigured),
+        spotify: integrations
+            .get("spotify")
+            .map(|h| h.state)
+            .unwrap_or(IntegrationState::NotConfigured),
+        checked_at: integrations
+            .values()
+            .map(|h| h.checked_at)
+            .max()
+            .unwrap_or(0),
+        integrations: Some(integrations),
+    })
 }
 pub(super) async fn integration_status(
     State(a): State<App>,
@@ -159,45 +282,111 @@ pub(super) async fn integration_status(
 ) -> Result<Json<IntegrationStatus>> {
     i.local()?;
     i.require(Capability::Settings)?;
-    Ok(Json(status_snapshot(&a).await))
+    let metadata = definitions(&a).await?;
+    Ok(Json(status_snapshot(&a, &metadata).await?))
 }
-pub(super) async fn check_obs(
+pub(super) async fn check_integration(
     State(a): State<App>,
     axum::Extension(i): axum::Extension<Identity>,
+    Path(id): Path<String>,
 ) -> Result<Json<IntegrationStatus>> {
     i.local()?;
     i.require(Capability::Settings)?;
-    static CHECKS: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(2);
-    let _permit = CHECKS.try_acquire().map_err(|_| {
+    let checks = a
+        .integration_health
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .checks
+        .clone();
+    let _permit = checks.try_acquire_owned().map_err(|_| {
         Error::new(
             ErrorCode::CapacityExhausted,
             "A connection check is already running. Try again shortly.",
         )
     })?;
-    let mut status = status_snapshot(&a).await;
-    if status.obs == IntegrationState::NotConfigured {
+    let metadata = definitions(&a).await?;
+    let definition = metadata
+        .integrations
+        .iter()
+        .find(|d| d.id == id)
+        .ok_or_else(|| Error::new(ErrorCode::InvalidInput, "Unknown integration"))?;
+    let status = status_snapshot(&a, &metadata).await?;
+    if status
+        .integrations
+        .as_ref()
+        .and_then(|items| items.get(&id))
+        .is_some_and(|h| {
+            matches!(
+                h.state,
+                IntegrationState::NotConfigured | IntegrationState::AuthorizationRequired
+            )
+        })
+    {
         return Ok(Json(status));
     }
-    // Read-only connection health goes through the same runtime as OBS actions.
-    let connected = a
+    let Some(probe) = &definition.probe else {
+        return Ok(Json(status));
+    };
+    i.require(probe.capability())?;
+    let settings =
+        serde_json::to_value(a.config.last_valid().config.settings).expect("serializable settings");
+    let key = fingerprint(definition, &settings);
+    let generation = a
+        .integration_health
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .generation;
+    let result = a
         .executor
         .execute(
             CommandRequest {
-                request_id: "obs-health".into(),
-                command: Command::Obs {
-                    action: "get_version".into(),
-                    target: String::new(),
-                },
+                request_id: domain::id()?,
+                command: probe.clone(),
             },
-            vec![Capability::Network],
+            i.capabilities,
             || {},
         )
-        .await
-        .is_ok_and(|v| v["obsVersion"].as_str().is_some_and(|s| !s.is_empty()));
-    status.obs = if connected {
-        IntegrationState::Connected
-    } else {
-        IntegrationState::Failed
+        .await;
+    if let Err(error) = &result {
+        if matches!(error.code, ErrorCode::Forbidden | ErrorCode::Unauthorized) {
+            return Err(error.clone());
+        }
+    }
+    let connected = result.is_ok_and(|result| {
+        definition.success.as_ref().is_none_or(|predicate| {
+            result
+                .pointer(&predicate.pointer)
+                .is_some_and(|value| match &predicate.equals {
+                    Some(expected) => value == expected,
+                    None => !value.is_null() && value.as_str().is_none_or(|s| !s.is_empty()),
+                })
+        })
+    });
+    let health = IntegrationHealth {
+        state: if connected {
+            IntegrationState::Connected
+        } else {
+            IntegrationState::Failed
+        },
+        checked_at: now_seconds(),
     };
-    Ok(Json(status))
+    let current_settings =
+        serde_json::to_value(a.config.last_valid().config.settings).expect("serializable settings");
+    {
+        let mut cache = a
+            .integration_health
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        if cache.generation == generation && fingerprint(definition, &current_settings) == key {
+            cache.entries.insert(
+                id,
+                CachedHealth {
+                    definition: definition.clone(),
+                    fingerprint: key,
+                    health,
+                },
+            );
+        }
+    }
+    Ok(Json(status_snapshot(&a, &metadata).await?))
 }

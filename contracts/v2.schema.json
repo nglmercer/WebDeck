@@ -1920,6 +1920,9 @@
         "contract": {
           "type": "string",
           "maxLength": 128
+        },
+        "automation": {
+          "$ref": "#/$defs/AutomationMetadata"
         }
       },
       "required": [
@@ -2112,6 +2115,9 @@
           "items": {
             "$ref": "#/$defs/PluginManifest"
           }
+        },
+        "automation": {
+          "$ref": "#/$defs/AutomationMetadata"
         }
       },
       "required": [
@@ -2277,6 +2283,14 @@
         },
         "schema": {
           "type": "object"
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "result_schema": {
+          "type": "object",
+          "additionalProperties": {}
         }
       },
       "required": [
@@ -2318,6 +2332,12 @@
         "checked_at": {
           "type": "integer",
           "minimum": 0
+        },
+        "integrations": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/IntegrationHealth"
+          }
         }
       }
     },
@@ -2712,6 +2732,250 @@
         "api_version",
         "version"
       ]
+    },
+    "ResultPredicate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pointer": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "equals": {}
+      },
+      "required": [
+        "pointer"
+      ]
+    },
+    "IntegrationDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "required_settings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "maxItems": 128
+        },
+        "configuration": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "maxItems": 128
+        },
+        "authorization_asset": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "probe": {
+          "$ref": "#/$defs/Command"
+        },
+        "success": {
+          "$ref": "#/$defs/ResultPredicate"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "required_settings",
+        "configuration"
+      ]
+    },
+    "ButtonRecipe": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "discovery": {
+          "$ref": "#/$defs/Command"
+        },
+        "items_pointer": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "identity_pointer": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "label_pointer": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "command": {
+          "$ref": "#/$defs/Command"
+        },
+        "bindings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 4096
+          }
+        },
+        "folder_label": {
+          "type": "string",
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "discovery",
+        "items_pointer",
+        "identity_pointer",
+        "label_pointer",
+        "command",
+        "bindings",
+        "folder_label"
+      ]
+    },
+    "ResultView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items_pointer": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "columns": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 4096
+          }
+        }
+      },
+      "required": [
+        "items_pointer",
+        "columns"
+      ]
+    },
+    "CommandPresentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "selector": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "arguments": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 4096
+          }
+        },
+        "result_view": {
+          "$ref": "#/$defs/ResultView"
+        },
+        "result_pointer": {
+          "type": "string",
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "selector",
+        "label",
+        "arguments"
+      ]
+    },
+    "AutomationMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "integrations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IntegrationDefinition"
+          },
+          "maxItems": 128
+        },
+        "button_recipes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ButtonRecipe"
+          },
+          "maxItems": 128
+        },
+        "presentations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CommandPresentation"
+          },
+          "maxItems": 128
+        }
+      },
+      "required": [
+        "integrations",
+        "button_recipes",
+        "presentations"
+      ]
+    },
+    "IntegrationHealth": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/IntegrationState"
+        },
+        "checked_at": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "state",
+        "checked_at"
+      ]
+    },
+    "ImageAssetList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "api_version",
+        "images"
+      ],
+      "properties": {
+        "api_version": {
+          "const": 2
+        },
+        "images": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          }
+        }
+      }
     }
   }
 }

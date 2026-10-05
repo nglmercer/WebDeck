@@ -56,6 +56,23 @@ pub(super) async fn catalog(
     let plugins = snapshot
         .and_then(|v| serde_json::from_value::<Vec<PluginManifest>>(v["plugins"].clone()).ok())
         .unwrap_or_else(|| a.plugins.as_ref().clone());
+    let disabled_ids = disabled
+        .iter()
+        .filter_map(Value::as_str)
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+    let mut automation = crate::automation::collect(&plugins, &disabled_ids)?;
+    automation.integrations.retain(|definition| {
+        i.capabilities.contains(&Capability::Settings)
+            && definition
+                .probe
+                .as_ref()
+                .is_none_or(|c| crate::automation::command_allowed(c, &i.capabilities, &plugins))
+    });
+    automation.button_recipes.retain(|recipe| {
+        crate::automation::command_allowed(&recipe.discovery, &i.capabilities, &plugins)
+            && crate::automation::command_allowed(&recipe.command, &i.capabilities, &plugins)
+    });
     let plugins = plugins
         .into_iter()
         .filter_map(|mut p| {
@@ -72,7 +89,7 @@ pub(super) async fn catalog(
         })
         .collect::<Vec<_>>();
     Ok(Json(
-        json!({"api_version":2,"plugins":plugins,"commands":catalog.into_iter().filter(|c|serde_json::from_value::<Capability>(c["capability"].clone()).is_ok_and(|c|i.capabilities.contains(&c))).collect::<Vec<_>>()}),
+        json!({"api_version":2,"automation":automation,"plugins":plugins,"commands":catalog.into_iter().filter(|c|serde_json::from_value::<Capability>(c["capability"].clone()).is_ok_and(|c|i.capabilities.contains(&c))).collect::<Vec<_>>()}),
     ))
 }
 pub(super) async fn runtime_status(
@@ -94,7 +111,12 @@ pub(super) async fn runtime_reload(
     Ok(Json(
         blocking(a.io.clone(), move || {
             let plugins = crate::runtime::plugins::load_plugins(&a.assets)?;
-            a.executor.management(Some(plugins))
+            let response = a.executor.management(Some(plugins))?;
+            a.integration_health
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .clear();
+            Ok(response)
         })
         .await?,
     ))
@@ -112,7 +134,12 @@ pub(super) async fn plugin_enabled(
     let enabled = state["enabled"].as_bool().ok_or_else(Error::invalid)?;
     Ok(Json(
         blocking(a.io.clone(), move || {
-            a.executor.plugin_enabled(&id, enabled)
+            let response = a.executor.plugin_enabled(&id, enabled)?;
+            a.integration_health
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .clear();
+            Ok(response)
         })
         .await?,
     ))

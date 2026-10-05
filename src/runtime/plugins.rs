@@ -102,6 +102,7 @@ pub fn load_package(directory: &Path) -> Result<RuntimePlugin> {
     if manifest.actions.iter().any(|a| !ids.insert(&a.id)) {
         return Err(Error::invalid());
     }
+    crate::automation::validate_plugin(&manifest)?;
     let source_path = confined(directory, &manifest.entry)?;
     let bytes = read_bounded(&source_path)?;
     if format!("{:x}", Sha256::digest(&bytes)) != manifest.digest {
@@ -156,7 +157,7 @@ pub fn discover_plugins(assets: &Assets) -> Result<(Vec<RuntimePlugin>, usize)> 
     plugins.sort_by(|a, b| a.manifest.id.cmp(&b.manifest.id));
     Ok((plugins, rejected))
 }
-pub(super) fn validate_type(field: &PluginArgument, value: &Value) -> Result<()> {
+pub(crate) fn validate_type(field: &PluginArgument, value: &Value) -> Result<()> {
     let valid = match field.r#type.as_str() {
         "string" => value.is_string(),
         "number" => value.is_number(),
@@ -183,7 +184,7 @@ pub fn builtins() -> Vec<RuntimePlugin> {
         let source = format!("export function invoke_action(action,args,ctx) {{ if (action !== 'execute' || args.command.type !== '{command}') throw new Error('Invalid builtin action'); return ctx.invoke(args.command); }}");
         RuntimePlugin {
             manifest: PluginManifest {
-                schema_version: 2, id: id.into(), version: "2.0.0".into(), entry: "index.js".into(), backend: "sandbox_js".into(), origin: "embedded".into(), contract: String::new(), digest: format!("{:x}", Sha256::digest(source.as_bytes())),
+                automation: None, schema_version: 2, id: id.into(), version: "2.0.0".into(), entry: "index.js".into(), backend: "sandbox_js".into(), origin: "embedded".into(), contract: String::new(), digest: format!("{:x}", Sha256::digest(source.as_bytes())),
                 actions: vec![crate::contracts::PluginAction {
                     id: "execute".into(), label: format!("Execute {command}"), capabilities: vec![capability],
                     arguments: std::collections::BTreeMap::from([("command".into(), crate::contracts::PluginArgument { r#type: "object".into(), required: true })]),

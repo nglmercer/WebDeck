@@ -1,4 +1,4 @@
-import schema from '../../../contracts/v2.schema.json';
+import schema from './generated-schema';
 type Schema = {
   'x-capability'?: string;
   $ref?: string;

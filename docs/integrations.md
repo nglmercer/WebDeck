@@ -9,3 +9,7 @@ Sound playback uses explicit file sources, volume and output device. Uploads use
 Plugins use a versioned `webdeck.json` and verified JavaScript entry inside `<config-dir>/plugins/<id>/`. Copy the [echo package](../examples/plugins/echo), then reload from local Settings. Caller grants must include the Plugin capability and every capability declared by the action. During execution the grant narrows to that declaration. State is isolated per package, and failed packages can be reset by reloading.
 
 The [runtime guide](v2/NAPI_VM_MIGRATION.md) documents both sandbox JavaScript and explicitly trusted native executable packages. Shell scripts retain explicit source and timeout. Earlier Rhai scripts require manual translation; files are never automatically converted.
+
+Health checks, result presentation and button generation use shared
+[catalog-driven automation](automation.md). Optional plugin metadata exposes
+these features without adding command-specific branches to the CLI or server.

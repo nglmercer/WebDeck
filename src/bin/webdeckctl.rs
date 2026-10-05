@@ -109,6 +109,11 @@ enum Command {
         #[command(subcommand)]
         command: PluginCommand,
     },
+    #[command(about = "Discover and check registered integrations")]
+    Integration {
+        #[command(subcommand)]
+        command: IntegrationCommand,
+    },
     #[command(about = "Manage the OBS integration")]
     Obs {
         #[command(subcommand)]
@@ -208,6 +213,17 @@ enum FolderCommand {
 
 #[derive(Subcommand)]
 enum ButtonCommand {
+    #[command(about = "List catalog button-generation recipes")]
+    Recipes,
+    #[command(about = "Ensure buttons from a catalog discovery recipe")]
+    Generate {
+        #[arg(long)]
+        recipe: String,
+        #[arg(long)]
+        folder: String,
+        #[command(flatten)]
+        mutation: MutationArgs,
+    },
     #[command(about = "List buttons")]
     List {
         #[arg(long, help = "Only list buttons in this folder")]
@@ -334,6 +350,13 @@ enum PluginCommand {
 }
 
 #[derive(Subcommand)]
+enum IntegrationCommand {
+    List,
+    Status,
+    Check { id: String },
+}
+
+#[derive(Subcommand)]
 enum ObsCommand {
     #[command(about = "Show the OBS integration state")]
     Status,
@@ -352,6 +375,13 @@ enum ObsCommand {
     },
     #[command(about = "List OBS scenes")]
     Scenes,
+    #[command(about = "Ensure a button for every OBS scene in one transaction")]
+    EnsureButtons {
+        #[arg(long, default_value = "obs-scenes")]
+        folder: String,
+        #[command(flatten)]
+        mutation: MutationArgs,
+    },
     #[command(about = "Show the current OBS program scene")]
     CurrentScene,
     #[command(about = "List OBS inputs with mute state")]
@@ -491,6 +521,21 @@ async fn dispatch(
             }
         },
         Command::Button { command } => match command {
+            ButtonCommand::Recipes => webdeck::admin::provisioning::recipes(&client).await,
+            ButtonCommand::Generate {
+                recipe,
+                folder,
+                mutation,
+            } => {
+                webdeck::admin::provisioning::ensure(
+                    &client,
+                    recipe,
+                    folder,
+                    mutation.revision,
+                    mutation.dry_run,
+                )
+                .await
+            }
             ButtonCommand::List { folder } => buttons::list(&client, folder.as_deref()).await,
             ButtonCommand::Create {
                 folder,
@@ -583,6 +628,13 @@ async fn dispatch(
                 PluginCommand::Uninstall { id } => service.uninstall(id).await,
             }
         }
+        Command::Integration { command } => match command {
+            IntegrationCommand::List => webdeck::admin::integrations::list(&client).await,
+            IntegrationCommand::Status => webdeck::admin::integrations::status(&client).await,
+            IntegrationCommand::Check { id } => {
+                webdeck::admin::integrations::check(&client, id).await
+            }
+        },
         Command::Obs { command } => {
             let obs = client.obs();
             match command {
@@ -604,6 +656,10 @@ async fn dispatch(
                     .await
                 }
                 ObsCommand::Scenes => obs.scenes().await,
+                ObsCommand::EnsureButtons { folder, mutation } => {
+                    obs.ensure_buttons(folder, mutation.revision, mutation.dry_run)
+                        .await
+                }
                 ObsCommand::CurrentScene => obs.current_scene().await,
                 ObsCommand::Inputs => obs.inputs().await,
                 ObsCommand::Hotkeys { target } => obs.hotkeys(target.as_deref()).await,

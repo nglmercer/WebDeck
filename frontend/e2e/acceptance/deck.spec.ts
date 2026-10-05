@@ -1533,3 +1533,45 @@ test('runtime button state events update presentation without editing config', a
   const config=await (await request.get('/api/v2/config')).json();
   expect(config.config.layout.folders[0].buttons.find((b:any)=>b.id===button.id).label).toBe('Play / pause');
 });
+
+test('icon registry search and uploaded icon reuse persist through reload', async ({
+  page,
+  request,
+}) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+  await page.keyboard.press('q');
+  await page.getByRole('button', { name: 'Edit Play / pause' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Edit button' });
+  await dialog.getByLabel('Search icons', { exact: true }).fill('camera');
+  await dialog.getByRole('button', { name: 'camera', exact: true }).click();
+  await expect(dialog.getByLabel('Icon', { exact: true })).toHaveValue('icon:camera');
+  await dialog.getByLabel('Upload image', { exact: true }).setInputFiles({
+    name: 'custom-icon.svg',
+    mimeType: 'image/svg+xml',
+    buffer: Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="red"/></svg>',
+    ),
+  });
+  await expect(dialog.getByLabel('Icon', { exact: true })).toHaveValue(/^asset:/);
+  const savedIcon = await dialog.getByLabel('Icon', { exact: true }).inputValue();
+  await dialog.getByRole('button', { name: 'Apply to draft' }).click();
+  await page.getByRole('button', { name: /^Save( changes)?$/, exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: /^Saved/ })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+  await page.keyboard.press('q');
+  await page.getByRole('button', { name: 'Edit CPU' }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: `Select uploaded icon ${savedIcon.slice(6)}`, exact: true })
+    .click();
+  await expect(page.getByRole('dialog').getByLabel('Icon', { exact: true })).toHaveValue(savedIcon);
+  await page.getByRole('button', { name: 'Apply to draft' }).click();
+  await page.getByRole('button', { name: /^Save( changes)?$/, exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: /^Saved/ })).toBeVisible();
+  const config = await (await request.get('/api/v2/config')).json();
+  expect(
+    config.config.layout.folders[0].buttons.filter((b: { icon: string }) => b.icon === savedIcon),
+  ).toHaveLength(2);
+});

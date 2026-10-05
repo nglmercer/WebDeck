@@ -38,6 +38,7 @@ impl Adapter for NoEffects {
 }
 fn app(t: &Temp) -> App {
     App {
+        integration_health: Default::default(),
         io: Arc::new(tokio::sync::Semaphore::new(4)),
         queries: Arc::new(tokio::sync::Semaphore::new(2)),
         authorization: Arc::new(tokio::sync::Semaphore::new(4)),
