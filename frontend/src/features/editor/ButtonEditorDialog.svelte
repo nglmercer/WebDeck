@@ -18,6 +18,8 @@
     CatalogResponse,
     PluginManifest,
     ImageAssetList,
+    ImageImport,
+    FileSource,
   } from '../../lib/contracts';
   import { commandSchema, defaultValue, resolve, upload, type Schema } from '../../lib/api/client';
   import Fields from './Fields.svelte';
@@ -32,6 +34,7 @@
     layout,
     catalog,
     assetUrls,
+    refreshAssets,
     moveButton,
     removeButton,
     duplicateButton,
@@ -44,6 +47,7 @@
     layout: Layout;
     catalog: CatalogResponse | null;
     assetUrls: Record<string, string>;
+    refreshAssets: (id: string) => Promise<void>;
     moveButton: (delta: number) => void;
     removeButton: () => void;
     duplicateButton: () => void;
@@ -55,6 +59,13 @@
   const availableIcons = $derived(matchingIcons(iconSearch));
   let imageIds = $state<string[]>([]);
   let imagePage = $state(0);
+  let imageUrl = $state('');
+  let imagePath = $state('');
+  let liveImage = $state(false);
+  let liveIds = $state<string[]>([]);
+  let imageBusy = $state(false);
+  let refreshTick = $state(0);
+
   let libraryUrls = $state<Record<string, string>>({});
   let libraryError = $state('');
   const libraryAssets = new AssetCache(asset);
@@ -62,13 +73,17 @@
   onMount(() => {
     void request<ImageAssetList>('assets', 'ImageAssetList')
       .then((value) => {
-        if (!destroyed) imageIds = [...new Set([...imageIds, ...value.images])];
+        if (!destroyed) {
+          imageIds = [...new Set([...imageIds, ...value.images])];
+          liveIds = [...new Set([...liveIds, ...(value.live_images ?? [])])];
+        }
       })
       .catch(() => {
         if (!destroyed) libraryError = 'ui_icon_library_unavailable';
       });
   });
   $effect(() => {
+    void refreshTick;
     let stale = false;
     void libraryAssets.load(pageIds).then((result) => {
       if (!stale && result) libraryUrls = result.urls;
@@ -82,6 +97,7 @@
   const previewAssets = new AssetCache(asset);
   let previewUrl = $state<string | undefined>();
   $effect(() => {
+    void refreshTick;
     let disposed = false;
     const icon = button.icon;
     if (!icon.startsWith('asset:')) {
@@ -89,7 +105,7 @@
       return;
     }
     const id = icon.slice(6);
-    const borrowed = assetUrls[id];
+    const borrowed = refreshTick === 0 ? assetUrls[id] : undefined;
     if (borrowed) {
       previewUrl = borrowed;
       return;
@@ -165,6 +181,57 @@
         imageIds = [s.id, ...imageIds.filter((id) => id !== s.id)];
         imagePage = 0;
       }
+    }
+  }
+  async function importImage(source: ImageImport) {
+    if (imageBusy) return;
+    const candidate = button;
+    imageBusy = true;
+    try {
+      const result = await request<FileSource>('assets/import', 'FileSource', {
+        method: 'POST',
+        body: JSON.stringify(source),
+      });
+      if (!destroyed && result.type === 'asset') {
+        imageIds = [result.id, ...imageIds.filter((id) => id !== result.id)];
+        imagePage = 0;
+        if (source.type === 'url' && source.live) liveIds = [...liveIds, result.id];
+        if (button === candidate) button.icon = `asset:${result.id}`;
+      }
+    } finally {
+      if (!destroyed) imageBusy = false;
+    }
+  }
+  async function refreshImage() {
+    if (imageBusy || !button.icon.startsWith('asset:')) return;
+    const id = button.icon.slice(6);
+    imageBusy = true;
+    try {
+      await request<FileSource>(`assets/${encodeURIComponent(id)}/refresh`, 'FileSource', {
+        method: 'POST',
+      });
+      if (!destroyed) {
+        libraryAssets.invalidate(id);
+        previewAssets.invalidate(id);
+        refreshTick++;
+      }
+      await refreshAssets(id);
+    } finally {
+      if (!destroyed) imageBusy = false;
+    }
+  }
+  async function chooseLocalImage() {
+    const result = await request<{ api_version: 2; source: FileSource | null }>(
+      'native/selection',
+      'SelectionResponse',
+      {
+        method: 'POST',
+        body: JSON.stringify({ kind: 'file' }),
+      },
+    );
+    if (!destroyed && result.source?.type === 'external') {
+      imagePath = result.source.path;
+      await importImage({ type: 'local', path: imagePath });
     }
   }
   function pluginCommand(m: PluginManifest) {
@@ -291,6 +358,34 @@
             onchange={(e) => attempt(() => image(e))}
           /></label
         >
+        <label>{t('ui_image_url')}<input type="text" inputmode="url" bind:value={imageUrl} /></label
+        >
+        <label><input type="checkbox" bind:checked={liveImage} />{t('ui_live_image')}</label>
+        <button
+          type="button"
+          disabled={imageBusy || !imageUrl.trim()}
+          onclick={() =>
+            attempt(() => importImage({ type: 'url', url: imageUrl.trim(), live: liveImage }))}
+          >{t('ui_import_image_url')}</button
+        >
+        <label>{t('ui_local_image_path')}<input bind:value={imagePath} /></label>
+        <button
+          type="button"
+          disabled={imageBusy || !imagePath.trim()}
+          onclick={() => attempt(() => importImage({ type: 'local', path: imagePath.trim() }))}
+          >{t('ui_import_local_image')}</button
+        >
+        <button type="button" disabled={imageBusy} onclick={() => attempt(chooseLocalImage)}
+          >{t('ui_choose_local_image')}</button
+        >
+        <p>{t('ui_image_import_help')}</p>
+        {#if button.icon.startsWith('asset:') && liveIds.includes(button.icon.slice(6))}
+          <button type="button" disabled={imageBusy} onclick={() => attempt(refreshImage)}
+            >{t('ui_refresh_live_image')}</button
+          >
+          <p>{t('ui_refresh_live_image_help')}</p>
+        {/if}
+        {#if imageBusy}<p role="status">{t('ui_importing_image')}</p>{/if}
         <h3>{t('ui_uploaded_icons')}</h3>
         {#if libraryError}<p role="status">{t(libraryError)}</p>{/if}
         <div class="icon-picker">

@@ -1575,3 +1575,49 @@ test('icon registry search and uploaded icon reuse persist through reload', asyn
     config.config.layout.folders[0].buttons.filter((b: { icon: string }) => b.icon === savedIcon),
   ).toHaveLength(2);
 });
+
+test('local imports survive removal of the source file and URL imports offer live refresh', async ({ page, request }, info) => {
+  const sourcePath = info.outputPath('import-source.svg');
+  mkdirSync(path.dirname(sourcePath), { recursive: true });
+  writeFileSync(sourcePath, '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>');
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+  await page.keyboard.press('q');
+  await page.getByRole('button', { name: 'Edit Play / pause' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Edit button' });
+  await dialog.getByLabel('Local image path on this server', { exact: true }).fill(sourcePath);
+  await dialog.getByRole('button', { name: 'Import local image', exact: true }).click();
+  await expect(dialog.getByLabel('Icon', { exact: true })).toHaveValue(/^asset:/);
+  const icon = await dialog.getByLabel('Icon', { exact: true }).inputValue();
+  const id = icon.slice(6);
+  rmSync(sourcePath);
+  expect((await request.get(`/api/v2/assets/${id}`)).ok()).toBeTruthy();
+
+  // Public downloader validation is exercised by server fixtures. This browser
+  // fixture verifies URL controls and cache invalidation without external I/O.
+  let refreshes = 0;
+  await page.route('**/api/v2/assets/import', async route => {
+    expect(route.request().postDataJSON()).toEqual({ type: 'url', url: 'https://images.example/icon.svg', live: true });
+    await route.fulfill({ json: { type: 'asset', id } });
+  });
+  await page.route(`**/api/v2/assets/${id}/refresh`, async route => {
+    refreshes++;
+    await route.fulfill({ json: { type: 'asset', id } });
+  });
+  await dialog.getByLabel('Image URL', { exact: true }).fill('https://images.example/icon.svg');
+  await dialog.getByLabel('Keep URL for manual refresh', { exact: true }).check();
+  await dialog.getByRole('button', { name: 'Import image URL', exact: true }).click();
+  await expect(dialog.getByRole('button', { name: 'Refresh live image', exact: true })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Refresh live image', exact: true })).toBeEnabled();
+  await dialog.getByRole('button', { name: 'Refresh live image', exact: true }).click();
+  await expect(dialog.getByRole('button', { name: 'Refresh live image', exact: true })).toBeEnabled();
+  expect(refreshes).toBe(1);
+  await expect(dialog.getByLabel('Icon', { exact: true })).toHaveValue(icon);
+  await dialog.getByRole('button', { name: 'Apply to draft' }).click();
+  await page.getByRole('button', { name: /^Save( changes)?$/, exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: /^Saved/ })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Play / pause', exact: true })).toBeVisible();
+  const config = await (await request.get('/api/v2/config')).json();
+  expect(config.config.layout.folders[0].buttons.find((b: { id: string }) => b.id === 'media').icon).toBe(icon);
+});

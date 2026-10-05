@@ -307,6 +307,7 @@
     {layout}
     catalog={session.catalog}
     assetUrls={session.assetUrls}
+    refreshAssets={(id) => session.refreshAsset(id)}
     moveButton={(delta) => draft.move(delta)}
     removeButton={() => draft.remove()}
     duplicateButton={() => {

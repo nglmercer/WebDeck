@@ -116,6 +116,8 @@ pub fn router(a: App) -> Router {
         .route("/api/v2/devices/{id}", delete(revoke))
         .route("/api/v2/assets", get(image_assets).post(upload))
         .route("/api/v2/assets/{id}", get(asset))
+        .route("/api/v2/assets/import", post(import_image))
+        .route("/api/v2/assets/{id}/refresh", post(refresh_image))
         .route("/api/v2/native/selection", post(selection))
         .route("/api/v2/integrations/status", get(integration_status))
         .route("/api/v2/integrations/{id}/check", post(check_integration))

@@ -711,6 +711,20 @@ pub struct IntegrationHealth {
 pub struct ImageAssetList {
     pub api_version: u64,
     pub images: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub live_images: Option<Vec<String>>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", deny_unknown_fields)]
+pub enum ImageImport {
+    #[serde(rename = "url")]
+    Url {
+        url: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        live: Option<bool>,
+    },
+    #[serde(rename = "local")]
+    Local { path: String },
 }
 impl Command {
     pub fn capability(&self) -> Capability {

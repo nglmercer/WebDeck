@@ -59,6 +59,11 @@ struct Cli {
 enum Command {
     #[command(about = "Show server status, revisions, plugins and integrations")]
     Status,
+    #[command(about = "List, import and refresh saved images")]
+    Asset {
+        #[command(subcommand)]
+        command: AssetCommand,
+    },
     #[command(about = "Run health checks against configuration, runtime and integrations")]
     Doctor,
     #[command(about = "Show the server version next to the CLI version")]
@@ -118,6 +123,31 @@ enum Command {
     Obs {
         #[command(subcommand)]
         command: ObsCommand,
+    },
+}
+
+#[derive(Subcommand)]
+enum AssetCommand {
+    List,
+    Import {
+        #[arg(long, required_unless_present = "path", conflicts_with = "path")]
+        image_url: Option<String>,
+        #[arg(
+            long,
+            required_unless_present = "image_url",
+            conflicts_with = "image_url",
+            help = "Absolute path on the WebDeck server"
+        )]
+        path: Option<String>,
+        #[arg(
+            long,
+            requires = "image_url",
+            help = "Keep the URL for explicit refresh"
+        )]
+        live: bool,
+    },
+    Refresh {
+        id: String,
     },
 }
 
@@ -447,6 +477,56 @@ async fn dispatch(
                 ),
             ))
         }
+        Command::Asset { command } => match command {
+            AssetCommand::List => {
+                let library = client.image_assets().await?;
+                let human = library
+                    .images
+                    .iter()
+                    .map(|id| {
+                        format!(
+                            "asset:{id}{}",
+                            if library.live_images.as_ref().is_some_and(|v| v.contains(id)) {
+                                " (live)"
+                            } else {
+                                ""
+                            }
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                Ok(Outcome::ok(serde_json::to_value(library).unwrap(), human))
+            }
+            AssetCommand::Import {
+                image_url,
+                path,
+                live,
+            } => {
+                let source = if let Some(url) = image_url {
+                    webdeck::contracts::ImageImport::Url {
+                        url: url.clone(),
+                        live: Some(*live),
+                    }
+                } else {
+                    webdeck::contracts::ImageImport::Local {
+                        path: path.clone().unwrap_or_default(),
+                    }
+                };
+                let result = client.import_image(source).await?;
+                let human = match &result {
+                    webdeck::contracts::FileSource::Asset { id } => format!("Imported asset:{id}"),
+                    _ => "Imported image".into(),
+                };
+                Ok(Outcome::ok(serde_json::to_value(result).unwrap(), human))
+            }
+            AssetCommand::Refresh { id } => {
+                let result = client.refresh_image(id).await?;
+                Ok(Outcome::ok(
+                    serde_json::to_value(result).unwrap(),
+                    format!("Refreshed asset:{id}"),
+                ))
+            }
+        },
         Command::Config { command } => match command {
             ConfigCommand::Get { reveal } => configuration::get(&client, *reveal).await,
             ConfigCommand::Validate { file } => {

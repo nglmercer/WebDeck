@@ -207,6 +207,38 @@ impl WebDeckAdminClient {
     pub async fn boot(&self) -> Result<DeckBoot> {
         self.get_typed("boot").await
     }
+    pub async fn image_assets(&self) -> Result<ImageAssetList> {
+        self.get_typed("assets").await
+    }
+    pub async fn import_image(&self, source: ImageImport) -> Result<FileSource> {
+        let value = serde_json::to_value(source)
+            .map_err(|_| AdminError::invalid_arguments("Invalid image source"))?;
+        let result = self
+            .request(reqwest::Method::POST, "assets/import", Some(value))
+            .await?;
+        serde_json::from_value(result)
+            .map_err(|_| AdminError::invalid_arguments("Invalid asset response"))
+    }
+    pub async fn refresh_image(&self, id: &str) -> Result<FileSource> {
+        if id.is_empty()
+            || id.len() > 128
+            || !id
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b"_.-".contains(&b))
+            || matches!(id, "." | "..")
+        {
+            return Err(AdminError::invalid_arguments("Invalid asset ID"));
+        }
+        let result = self
+            .request(
+                reqwest::Method::POST,
+                &format!("assets/{id}/refresh"),
+                Some(json!({})),
+            )
+            .await?;
+        serde_json::from_value(result)
+            .map_err(|_| AdminError::invalid_arguments("Invalid asset response"))
+    }
     pub async fn get_config(&self) -> Result<ConfigResponse> {
         self.get_typed("config").await
     }

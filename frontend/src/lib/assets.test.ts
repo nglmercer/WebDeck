@@ -83,3 +83,16 @@ it('bounds all overlapping loads together and skips obsolete queued assets', asy
   expect(revoke).not.toHaveBeenCalledWith('blob:new1');
   cache.dispose();
 });
+
+it('invalidating a live image fetches a fresh URL and preserves other cached images', async () => {
+  const fetch = vi.fn(async (id: string) => `blob:${id}-${fetch.mock.calls.length}`);
+  const revoke = vi.fn();
+  const cache = new AssetCache(fetch, revoke);
+  await cache.load(['live', 'other']);
+  cache.invalidate('live');
+  const refreshed = await cache.load(['live', 'other']);
+  expect(fetch).toHaveBeenCalledTimes(3);
+  expect(revoke).toHaveBeenCalledWith('blob:live-1');
+  expect(refreshed?.urls.live).toBe('blob:live-3');
+  expect(refreshed?.urls.other).toBe('blob:other-2');
+});

@@ -1123,3 +1123,14 @@ ui_search_icons=Search icons
 ui_uploaded_icons=Uploaded icons
 ui_select_uploaded_icon=Select uploaded icon
 ui_icon_library_unavailable=The icon library could not be loaded. You can still upload an image.
+
+ui_image_url=Image URL
+ui_live_image=Keep URL for manual refresh
+ui_import_image_url=Import image URL
+ui_local_image_path=Local image path on this server
+ui_import_local_image=Import local image
+ui_choose_local_image=Choose local image
+ui_image_import_help=Imports save a copy in your icon library. Choose a public HTTP(S) image URL or a file on the WebDeck server.
+ui_refresh_live_image=Refresh live image
+ui_refresh_live_image_help=Refresh updates the saved image for every button using it. Other open devices display the update after reloading.
+ui_importing_image=Importing or refreshing image…

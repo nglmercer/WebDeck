@@ -1262,3 +1262,54 @@ async fn saved_icon_library_lists_images_without_exposing_other_uploads() {
     let library: webdeck::contracts::ImageAssetList = response.json().await.unwrap();
     assert_eq!(library.images, vec![id]);
 }
+
+#[test]
+fn cli_image_import_copies_content_and_lists_stable_references() {
+    let server = spawn();
+    let home = Temp::new();
+    let path = home.path.join("icon.svg");
+    let svg = b"<svg xmlns='http://www.w3.org/2000/svg'><circle cx='12' cy='12' r='5'/></svg>";
+    std::fs::write(&path, svg).unwrap();
+    let before = server.store.snapshot().unwrap();
+    let output = run_cli(
+        &[
+            "asset",
+            "import",
+            "--path",
+            path.to_str().unwrap(),
+            "--url",
+            &server.url,
+            "--json",
+        ],
+        &home.path,
+    );
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    let result: Value = serde_json::from_str(&output.stdout).unwrap();
+    let id = result["data"]["id"].as_str().unwrap();
+    std::fs::remove_file(&path).unwrap();
+    assert_eq!(
+        std::fs::read(server.config_dir.join("user_uploads").join(id)).unwrap(),
+        svg
+    );
+    let output = run_cli(&["asset", "list", "--url", &server.url], &home.path);
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert!(output.stdout.contains(&format!("asset:{id}")));
+    assert_eq!(server.store.snapshot().unwrap().revision, before.revision);
+    let output = run_cli(
+        &["asset", "refresh", id, "--url", &server.url, "--json"],
+        &home.path,
+    );
+    assert_ne!(output.code, 0);
+    let output = run_cli(
+        &[
+            "asset",
+            "import",
+            "--image-url",
+            "http://127.0.0.1/icon.png",
+            "--url",
+            &server.url,
+        ],
+        &home.path,
+    );
+    assert_ne!(output.code, 0);
+}

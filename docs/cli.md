@@ -253,3 +253,12 @@ codes. Against a live server:
 ```bash
 WEBDECK_URL=http://127.0.0.1:5000 cargo test --features integration-tests --test admin
 ```
+
+### Image assets
+
+`webdeckctl asset list` prints saved image references. Use `asset import --path
+/absolute/path/icon.png` to copy a server-local image, or `asset import --image-url
+https://example.com/icon.svg` to download one. Add `--live` to retain the URL for
+`asset refresh IMAGE_ID.svg`. These operations require a local administrator and
+do not modify button configuration. Set the returned `asset:<id>` as the button
+icon. See [image imports](automation.md#importing-images) for API and limits.

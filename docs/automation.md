@@ -137,3 +137,49 @@ and Save; uploading stores the image so it remains available after reload.
 The picker adds approximately 3 KB raw / 1 KB gzip to the automation bundle; the
 raw bundle ceiling stays 235000 and the gzip ceiling is 73000. Measurements are
 recorded in `tools/validation/performance-budgets.json`.
+
+## Importing images
+
+In **Edit button → Content**, import a public HTTP(S) image URL, enter an absolute
+file path on the WebDeck server, or choose a file with the native picker. Imports
+copy the image into `user_uploads` and return `asset:<id>`. Changing or removing
+the original file does not affect the saved icon. Imports persist immediately;
+assigning the icon to a button still requires Apply and Save.
+
+Enable **Keep URL for manual refresh** to retain a URL alongside its cached image.
+**Refresh live image** replaces that cached image atomically and preserves its ID,
+so every button referencing it sees the update. The current browser refreshes its
+image caches; other open devices need a reload. Refresh is a shared asset change,
+not a staged button edit, so cancelling the editor does not undo it. Failed
+refreshes leave the last good image intact. Reads only serve the saved image and
+never fetch a URL. There is no automatic refresh timer or arbitrary URL proxy.
+
+```sh
+webdeckctl asset import --path /absolute/path/icon.png
+webdeckctl asset import --image-url https://example.com/icon.svg
+webdeckctl asset import --image-url https://example.com/icon.svg --live
+webdeckctl asset list
+webdeckctl asset refresh IMAGE_ID.svg
+```
+
+The global CLI `--url` still selects the WebDeck server; `--image-url` selects the
+remote image. Local paths refer to files on that server, not on a remote client.
+
+API: `POST /api/v2/assets/import` accepts `{"type":"local","path":"..."}` or
+`{"type":"url","url":"https://...","live":true}` and returns `FileSource`.
+`POST /api/v2/assets/{id}/refresh` refreshes a retained URL. The asset list includes
+`live_images` IDs. Imports, refresh, native selection and listing require a local
+administrator. Existing authenticated asset reads and uploads keep their current
+capabilities.
+
+Imports accept PNG, JPEG, WebP, GIF and self-contained SVG graphics. Raster images
+are decoded with limits of 8192 pixels per dimension and 64 MiB allocation; input
+files/downloads are limited to 16 MiB. SVG imports reject scripts, external
+references, styles, entity declarations and unsupported elements. URL downloads
+validate and pin public destination addresses at each redirect, disable system
+proxies, enforce request timeouts and reject HTTPS downgrade redirects. Saved live
+URLs are private metadata in `image_sources`; browsers receive only asset IDs.
+
+The import controls and contracts add 3876 raw / 1195 gzip bytes to the icon build.
+The production build measures 236377 raw / 73471 gzip bytes; current bundle limits
+are 240000 / 75000. Existing UI timing limits are unchanged.

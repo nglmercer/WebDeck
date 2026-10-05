@@ -59,4 +59,5 @@ export type ResultView = { items_pointer: string; columns: Record<string, string
 export type CommandPresentation = { selector: Record<string, unknown>; label: string; arguments: Record<string, string>; result_view?: ResultView; result_pointer?: string };
 export type AutomationMetadata = { integrations: Array<IntegrationDefinition>; button_recipes: Array<ButtonRecipe>; presentations: Array<CommandPresentation> };
 export type IntegrationHealth = { state: IntegrationState; checked_at: number };
-export type ImageAssetList = { api_version: 2; images: Array<string> };
+export type ImageAssetList = { api_version: 2; images: Array<string>; live_images?: Array<string> };
+export type ImageImport = { type: "url"; url: string; live?: boolean } | { type: "local"; path: string };

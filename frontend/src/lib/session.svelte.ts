@@ -86,6 +86,10 @@ export class Session {
       if (generation === this.generation) this.loading = false;
     }
   }
+  async refreshAsset(id: string) {
+    this.cache.invalidate(id);
+    await this.assets();
+  }
   async assets() {
     if (!this.layout) return;
     const themes = [...this.layout.themes],

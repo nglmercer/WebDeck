@@ -64,6 +64,13 @@ export class AssetCache {
     return { urls: Object.fromEntries(next), missing };
   }
 
+  invalidate(id: string) {
+    this.generation++;
+    const url = this.urls.get(id);
+    if (url) this.revoke(url);
+    this.urls.delete(id);
+  }
+
   dispose() {
     this.disposed = true;
     this.generation++;

@@ -5,6 +5,7 @@ pub mod contracts;
 pub mod desktop;
 pub mod domain;
 pub mod executor;
+pub mod image_assets;
 pub mod qr;
 pub mod runtime;
 pub mod server;
