@@ -1,325 +1,121 @@
-//! Portable-packaging tool — replacement for `setup.py` + `build.bat`.
-//!
-//! Produces the `*portable.zip` artifact the updater consumes (top-level
-//! `WebDeck/` folder): release binaries plus the runtime data tree.
-//! Run with `cargo run --release --bin package`.
-//!
-//! Mapping vs `setup.py`:
-//! - cx_Freeze `build_exe` → `cargo build --release` (`webdeck` → `WebDeck`,
-//!   `update` → `update`, `webdeck-qr` → `webdeck-qr`; the dev-only
-//!   `console` binary is not shipped, like before).
-//! - `include_files` (whole repo minus ignores) → the runtime-closed set:
-//!   `webdeck/`, `static/`, `frontend/dist/`, docs READMEs, `lib/nircmd.exe`.
-//!   No Python sources, no frozen `lib/` tree, no `venv`/`target` bloat.
-//! - `frontend/dist` is built first when missing (or stale): unlike
-//!   `setup.py`, whose ignore rules silently excluded it — shipping a
-//!   frozen app with no web UI — it is always included here.
-//! - `download_nircmd` → same URL, skipped when `temp/nircmd.exe` exists.
-//! - `sign_executable` → same `signtool` invocation on Windows; failures
-//!   warn and continue, like `setup.py`.
-//! - `zip_build` → `dist/WebDeck-<platform>-portable.zip` with the same
-//!   top-level `WebDeck/` layout the updater expects.
-//! - `bdist_msi` has no cargo equivalent and stays a manual step (WiX);
-//!   the portable zip is the shippable + auto-update artifact.
-
-use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::process::Command;
-
-const NIRCMD_URL: &str = "https://www.nirsoft.net/utils/nircmd.zip";
-#[cfg(windows)]
-const SIGNTOOL: &str = r"C:\Program Files (x86)\Windows Kits\10\bin\x64\signtool.exe";
-
-fn main() {
-    let start = std::time::Instant::now();
-    if let Err(message) = package() {
-        eprintln!("package: error: {message}");
-        std::process::exit(1);
-    }
-    let elapsed = start.elapsed().as_secs();
-    println!("Build done! {}m {}s", elapsed / 60, elapsed % 60);
+use clap::Parser;
+use std::{
+    fs,
+    io::{self, Write},
+    path::{Path, PathBuf},
+    process::Command,
+};
+#[derive(Parser)]
+struct Args {
+    #[arg(long)]
+    dev: bool,
 }
-
-fn package() -> Result<(), String> {
-    let version = read_version()?;
-    println!("package: WebDeck v{version}");
-
-    release_build()?;
-    ensure_frontend_dist()?;
-    download_nircmd()?;
-
-    let stage = stage_tree()?;
-    sign_binaries(&stage);
-    let zip_path = zip_stage(&stage, &version)?;
-
-    let _ = std::fs::remove_dir_all(stage.parent().unwrap_or(Path::new("temp")));
-    println!("package: portable build zipped as '{}'", zip_path.display());
-    Ok(())
-}
-
-/// Port of the `webdeck/version.json` read at the top of `setup.py`.
-fn read_version() -> Result<String, String> {
-    let content = std::fs::read_to_string("webdeck/version.json")
-        .map_err(|e| format!("cannot read webdeck/version.json: {e}"))?;
-    let value: serde_json::Value = serde_json::from_str(&content)
-        .map_err(|e| format!("cannot parse webdeck/version.json: {e}"))?;
-    value
-        .get("versions")
-        .and_then(|v| v.get(0))
-        .and_then(|v| v.get("version"))
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-        .ok_or_else(|| "webdeck/version.json has no versions[0].version".to_string())
-}
-
-/// Port of the cx_Freeze compile step: release binaries for the app + updater.
-fn release_build() -> Result<(), String> {
-    println!("package: cargo build --release --bin webdeck --bin update --bin webdeck-qr");
-    let status = Command::new("cargo")
-        .args([
-            "build",
-            "--release",
-            "--bin",
-            "webdeck",
-            "--bin",
-            "update",
-            "--bin",
-            "webdeck-qr",
-        ])
-        .status()
-        .map_err(|e| format!("cannot run cargo build: {e}"))?;
-    if !status.success() {
-        return Err(format!("cargo build failed with {status}"));
-    }
-    Ok(())
-}
-
-/// `setup.py` excluded the gitignored `frontend/dist` from the zip, shipping
-/// a frozen app whose web UI only 500s. Build it when missing instead.
-fn ensure_frontend_dist() -> Result<(), String> {
-    if Path::new("frontend/dist/index.html").is_file() {
-        return Ok(());
-    }
-    println!("package: frontend/dist missing, running npm build");
-    for step in [
-        vec!["--prefix", "frontend", "ci"],
-        vec!["--prefix", "frontend", "run", "build"],
-    ] {
-        let output = Command::new("npm")
-            .args(&step)
-            .output()
-            .map_err(|e| format!("cannot run npm {}: {e}", step.join(" ")))?;
-        if !output.status.success() {
-            let tail = String::from_utf8_lossy(&output.stderr);
-            let tail: Vec<&str> = tail.lines().collect();
-            let tail = tail.iter().rev().take(8).rev().cloned().collect::<Vec<_>>();
-            return Err(format!(
-                "npm {} failed:\n{}",
-                step.join(" "),
-                tail.join("\n")
-            ));
+fn collect(root: &Path) -> io::Result<Vec<PathBuf>> {
+    let mut out = Vec::new();
+    for entry in fs::read_dir(root)? {
+        let entry = entry?;
+        if entry.file_type()?.is_symlink() {
+            return Err(io::Error::other("Symlink in package inputs"));
+        }
+        if entry.file_type()?.is_dir() {
+            out.extend(collect(&entry.path())?);
+        } else {
+            out.push(entry.path());
         }
     }
-    if !Path::new("frontend/dist/index.html").is_file() {
-        return Err("npm build finished but frontend/dist/index.html is still missing".to_string());
-    }
-    Ok(())
+    Ok(out)
 }
-
-/// Port of `download_nircmd` (skipped when already present, like Python).
-fn download_nircmd() -> Result<(), String> {
-    let dest = Path::new("temp/nircmd.exe");
-    if dest.is_file() {
-        return Ok(());
+fn main() -> io::Result<()> {
+    let dev = Args::parse().dev;
+    let mut build = Command::new("cargo");
+    build.args(["build", "--locked", "--bins"]);
+    if !dev {
+        build.arg("--release");
     }
-    println!("package: downloading nircmd");
-    let _ = std::fs::create_dir_all("temp");
-    let bytes = reqwest::blocking::get(NIRCMD_URL)
-        .and_then(|r| r.error_for_status())
-        .and_then(|r| r.bytes())
-        .map_err(|e| format!("cannot download nircmd: {e}"))?;
-    let cursor = std::io::Cursor::new(bytes);
-    let mut archive = zip::ZipArchive::new(cursor).map_err(|e| format!("bad nircmd zip: {e}"))?;
-    for i in 0..archive.len() {
-        let mut entry = archive
-            .by_index(i)
-            .map_err(|e| format!("bad nircmd entry: {e}"))?;
-        let name = entry.name().to_string();
-        if name.to_lowercase().ends_with("nircmd.exe") && !entry.is_dir() {
-            let mut out =
-                std::fs::File::create(dest).map_err(|e| format!("cannot write nircmd: {e}"))?;
-            std::io::copy(&mut entry, &mut out).map_err(|e| format!("cannot write nircmd: {e}"))?;
-            println!("package: staged temp/nircmd.exe");
-            return Ok(());
-        }
+    if !build.status()?.success() {
+        return Err(io::Error::other("Build failed"));
     }
-    Err("nircmd.zip contained no nircmd.exe".to_string())
-}
-
-/// Copy one file, creating parent directories.
-fn copy_file(src: &Path, dest: &Path) -> Result<(), String> {
-    if let Some(parent) = dest.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("cannot stage dir: {e}"))?;
+    if !Command::new(if cfg!(windows) { "npm.cmd" } else { "npm" })
+        .args(["--prefix", "frontend", "run", "build"])
+        .status()?
+        .success()
+    {
+        return Err(io::Error::other("Frontend build failed"));
     }
-    std::fs::copy(src, dest).map_err(|e| format!("cannot stage {}: {e}", src.display()))?;
-    Ok(())
-}
-
-/// Recursively copy a directory tree (files only; symlinks skipped).
-fn copy_tree(src: &Path, dest: &Path) -> Result<(), String> {
-    let mut stack = vec![src.to_path_buf()];
-    while let Some(dir) = stack.pop() {
-        let entries =
-            std::fs::read_dir(&dir).map_err(|e| format!("cannot read {}: {e}", dir.display()))?;
-        for entry in entries {
-            let entry = entry.map_err(|e| format!("cannot read dir entry: {e}"))?;
-            let path = entry.path();
-            let rel = path.strip_prefix(src).unwrap_or(&path);
-            if path.is_dir() {
-                stack.push(path);
-            } else if path.is_file() {
-                copy_file(&path, &dest.join(rel))?;
-            }
-        }
-    }
-    Ok(())
-}
-
-/// Stage the runtime tree into `temp/portable/WebDeck/` (port of the cx_Freeze
-/// output directory that `zip_build` renames to `WebDeck`).
-fn stage_tree() -> Result<PathBuf, String> {
-    let root = Path::new("temp/portable");
-    if root.exists() {
-        let _ = std::fs::remove_dir_all(root);
-    }
-    let stage = root.join("WebDeck");
-    let exe = std::env::consts::EXE_SUFFIX;
-
-    for (bin, shipped) in [
+    let profile = if dev { "debug" } else { "release" };
+    let platform = webdeck::update::package_platform();
+    let arch = std::env::consts::ARCH;
+    let name = format!(
+        "WebDeck-{}-{platform}-{arch}{}-portable.zip",
+        env!("CARGO_PKG_VERSION"),
+        if dev { "-dev" } else { "" }
+    );
+    fs::create_dir_all("dist")?;
+    let mut zip = zip::ZipWriter::new(fs::File::create(Path::new("dist").join(&name))?);
+    let options = zip::write::SimpleFileOptions::default()
+        .compression_method(zip::CompressionMethod::Deflated);
+    for (bin, label) in [
         ("webdeck", "WebDeck"),
         ("update", "update"),
         ("webdeck-qr", "webdeck-qr"),
+        ("console", "console"),
     ] {
-        let src = Path::new("target/release").join(format!("{bin}{exe}"));
-        if !src.is_file() {
-            return Err(format!("missing release binary: {}", src.display()));
-        }
-        copy_file(&src, &stage.join(format!("{shipped}{exe}")))?;
-    }
-    for dir in ["webdeck", "static", "frontend/dist"] {
-        let src = Path::new(dir);
-        if !src.is_dir() {
-            return Err(format!("missing runtime directory: {dir}"));
-        }
-        copy_tree(src, &stage.join(dir))?;
-    }
-    // README → docs/ mapping, like `get_include_files`.
-    for entry in std::fs::read_dir(".").map_err(|e| format!("cannot list repo root: {e}"))? {
-        let entry = entry.map_err(|e| format!("cannot read dir entry: {e}"))?;
-        let name = entry.file_name().to_string_lossy().to_string();
-        if name.starts_with("README") && entry.path().is_file() {
-            let dest = if name == "README.md" {
-                "README-en.md"
-            } else {
-                &name
-            };
-            copy_file(&entry.path(), &stage.join("docs").join(dest))?;
-        }
-    }
-    let nircmd = Path::new("temp/nircmd.exe");
-    if nircmd.is_file() {
-        // `setup.py` stages `nircmd*.exe` from temp/ into `lib/`.
-        copy_file(nircmd, &stage.join("lib/nircmd.exe"))?;
-    }
-    Ok(stage)
-}
-
-/// Port of `sign_executable` (Windows only; failures warn and continue).
-fn sign_binaries(stage: &Path) {
-    #[cfg(windows)]
-    {
-        for name in ["WebDeck.exe", "update.exe"] {
-            let path = stage.join(name);
-            let output = Command::new(SIGNTOOL)
-                .args([
-                    "sign",
-                    "/a",
-                    "/fd",
-                    "SHA256",
-                    "/tr",
-                    "http://timestamp.digicert.com",
-                    "/td",
-                    "SHA256",
-                ])
-                .arg(&path)
-                .output();
-            match output {
-                Ok(output) if output.status.success() => {
-                    println!("package: successfully signed {}", path.display());
-                }
-                Ok(output) => {
-                    println!(
-                        "package: failed to sign {}: {}",
-                        path.display(),
-                        String::from_utf8_lossy(&output.stderr).trim()
-                    );
-                }
-                Err(e) => println!("package: failed to sign {}: {e}", path.display()),
+        let ext = if cfg!(windows) { ".exe" } else { "" };
+        let src = PathBuf::from(format!("target/{profile}/{bin}{ext}"));
+        let bytes = if cfg!(unix) && dev {
+            let temp = std::env::temp_dir().join(format!(
+                "webdeck-strip-{}",
+                webdeck::domain::id().map_err(std::io::Error::other)?
+            ));
+            fs::copy(&src, &temp)?;
+            if !Command::new("strip")
+                .arg(if cfg!(target_os = "macos") {
+                    "-S"
+                } else {
+                    "--strip-debug"
+                })
+                .arg(&temp)
+                .status()?
+                .success()
+            {
+                return Err(io::Error::other("Strip failed"));
             }
-        }
+            let b = fs::read(&temp)?;
+            fs::remove_file(temp)?;
+            b
+        } else {
+            fs::read(src)?
+        };
+        zip.start_file(
+            format!("WebDeck/{label}{ext}"),
+            options.unix_permissions(0o755),
+        )?;
+        zip.write_all(&bytes)?;
     }
-    #[cfg(not(windows))]
-    let _ = stage;
-}
-
-/// Port of `zip_build`: `dist/WebDeck-<platform>-portable.zip` with a
-/// top-level `WebDeck/` folder, matching what the updater extracts.
-fn zip_stage(stage: &Path, version: &str) -> Result<PathBuf, String> {
-    let _ = version;
-    let platform = format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH);
-    let zip_name = format!("WebDeck-{platform}-portable.zip");
-    std::fs::create_dir_all("dist").map_err(|e| format!("cannot create dist/: {e}"))?;
-    let zip_path = Path::new("dist").join(&zip_name);
-    let file = std::fs::File::create(&zip_path).map_err(|e| format!("cannot create zip: {e}"))?;
-    let mut zip = zip::ZipWriter::new(file);
-    let options = zip::write::SimpleFileOptions::default()
-        .compression_method(zip::CompressionMethod::Deflated);
-
-    let mut stack = vec![stage.to_path_buf()];
-    let mut names: Vec<PathBuf> = Vec::new();
-    while let Some(dir) = stack.pop() {
-        let entries = std::fs::read_dir(&dir).map_err(|e| format!("cannot read stage: {e}"))?;
-        for entry in entries {
-            let entry = entry.map_err(|e| format!("cannot read stage entry: {e}"))?;
-            let path = entry.path();
-            if path.is_dir() {
-                stack.push(path);
-            } else if path.is_file() {
-                names.push(path);
-            }
-        }
+    let mut assets = vec![
+        PathBuf::from("webdeck/config_default.json"),
+        PathBuf::from("webdeck/version.json"),
+    ];
+    for root in ["webdeck/translations", "static/icons", "frontend/dist"] {
+        assets.extend(collect(Path::new(root))?);
     }
-    names.sort();
-    let root = stage.parent().unwrap_or(Path::new("temp"));
-    for path in &names {
-        let rel = path
-            .strip_prefix(root)
-            .unwrap_or(path)
-            .to_string_lossy()
-            .replace('\\', "/");
-        let mut options = options;
-        // Preserve executability for Unix binaries (zip has no such concept
-        // on Windows; the updater launches `WebDeck.exe` by name there).
-        if rel == "WebDeck/WebDeck" || rel == "WebDeck/update" {
-            options = options.unix_permissions(0o755);
+    for file in assets {
+        if fs::symlink_metadata(&file)?.file_type().is_symlink() {
+            return Err(io::Error::other("Symlink in package inputs"));
         }
-        zip.start_file(rel, options)
-            .map_err(|e| format!("cannot stage zip entry: {e}"))?;
-        let bytes = std::fs::read(path).map_err(|e| format!("cannot read staged file: {e}"))?;
-        zip.write_all(&bytes)
-            .map_err(|e| format!("cannot write zip entry: {e}"))?;
+        zip.start_file(
+            format!("WebDeck/{}", file.to_string_lossy().replace('\\', "/")),
+            options.unix_permissions(0o644),
+        )?;
+        zip.write_all(&fs::read(file)?)?;
     }
-    zip.finish()
-        .map_err(|e| format!("cannot finish zip: {e}"))?;
-    Ok(zip_path)
+    zip.finish()?.sync_all()?;
+    let path = Path::new("dist").join(&name);
+    let digest = webdeck::update::digest(&fs::read(&path)?);
+    fs::write(
+        format!("{}.sha256", path.display()),
+        format!("{digest}  {name}\n"),
+    )?;
+    println!("{}", path.display());
+    Ok(())
 }

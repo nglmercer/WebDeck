@@ -1,0 +1,106 @@
+{
+  "date": "2026-10-02",
+  "result": "passed",
+  "checks": [
+    {
+      "name": "fmt",
+      "exit_code": 0,
+      "log": "fmt.log"
+    },
+    {
+      "name": "contracts",
+      "exit_code": 0,
+      "log": "contracts.log"
+    },
+    {
+      "name": "guard",
+      "exit_code": 0,
+      "log": "guard.log"
+    },
+    {
+      "name": "clippy",
+      "exit_code": 0,
+      "log": "clippy.log"
+    },
+    {
+      "name": "rust",
+      "exit_code": 0,
+      "log": "rust.log"
+    },
+    {
+      "name": "windows",
+      "exit_code": 0,
+      "log": "windows.log"
+    },
+    {
+      "name": "components",
+      "exit_code": 0,
+      "log": "components.log"
+    },
+    {
+      "name": "types",
+      "exit_code": 0,
+      "log": "types.log"
+    },
+    {
+      "name": "knip",
+      "exit_code": 0,
+      "log": "knip.log"
+    },
+    {
+      "name": "frontend",
+      "exit_code": 0,
+      "log": "frontend.log"
+    },
+    {
+      "name": "ui-build",
+      "exit_code": 0,
+      "log": "ui-build.log"
+    },
+    {
+      "name": "browser",
+      "exit_code": 0,
+      "log": "browser.log"
+    },
+    {
+      "name": "package",
+      "exit_code": 0,
+      "log": "package.log"
+    },
+    {
+      "name": "portable",
+      "exit_code": 0,
+      "log": "portable.log"
+    },
+    {
+      "name": "rollback",
+      "exit_code": 0,
+      "log": "rollback.log"
+    },
+    {
+      "name": "performance",
+      "exit_code": 0,
+      "log": "performance.log"
+    }
+  ],
+  "counts": {
+    "rust_standard_passed": 29,
+    "artifact_upgrade_rollback_passed": 1,
+    "frontend_unit_passed": 3,
+    "browser_passed": 5,
+    "v2_guard_violations": 0
+  },
+  "windows_validation": "Cross-target all-targets/all-features Clippy; no Windows runtime execution",
+  "artifact": {
+    "name": "WebDeck-2.0.0-alpha.1-linux-x86_64-dev-portable.zip",
+    "sha256": "4256c570794c434ede4b238da963eee28b6026ef8d680a2628106c15a41c39a3",
+    "published": false
+  },
+  "limits": [
+    "Live desktop hardware, audio and virtual microphones not exercised",
+    "Live OBS and Spotify not exercised",
+    "Windows runtime and native packaging not exercised",
+    "Signed release distribution not validated",
+    "Performance workload differs from historical evidence; no before/after claim"
+  ]
+}

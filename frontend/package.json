@@ -1,34 +1,39 @@
 {
   "name": "webdeck-frontend",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0-alpha.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "format": "prettier --write src",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "knip": "knip",
     "test": "vitest run",
     "preview": "vite preview",
-    "demo:video": "playwright test --config playwright.config.ts && node e2e/finalize-video.mjs",
-    "demo:3d": "playwright test --config capture-3d.config.ts",
-    "demo:3d-gif": "playwright test --config capture-3d-gif.config.ts && node e2e/finalize-3d-gif.mjs"
+    "check:components": "node ../tools/component-check/node_modules/svelte-check/bin/svelte-check --workspace . --tsconfig ./tsconfig.json",
+    "test:acceptance": "playwright test --config acceptance.config.ts",
+    "check:contracts": "node ../tools/contracts/generate.mjs --check",
+    "format:check": "prettier --check src",
+    "check:i18n": "node ../tools/validation/i18n.mjs",
+    "check:budget": "node ../tools/validation/performance-budget.mjs",
+    "demo:capture": "node ../tools/demo/capture.mjs",
+    "test:devices": "playwright test --config devices.config.ts"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.63.0",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
-    "@types/three": "^0.186.0",
-    "@types/toastify-js": "1.12.4",
     "happy-dom": "20.14.5",
     "knip": "^6.38.0",
+    "prettier": "^3.9.9",
+    "prettier-plugin-svelte": "^4.1.1",
     "typescript": "7.0.2",
     "vite": "8.3.1",
     "vitest": "5.0.2"
   },
   "dependencies": {
     "socket.io-client": "^4.8.4",
-    "svelte": "^5.57.1",
-    "three": "^0.186.1",
-    "toastify-js": "1.12.0"
+    "svelte": "^5.57.1"
   }
 }

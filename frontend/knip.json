@@ -1,6 +1,16 @@
 {
-  "$schema": "https://unpkg.com/knip@latest/schema.json",
-  "entry": ["demo-3d/main.ts", "e2e/*.spec.ts"],
-  "project": ["src/**/*", "demo-3d/**/*", "e2e/**/*", "**/*.svelte"],
-  "ignoreBinaries": ["ffmpeg"]
+  "entry": [
+    "e2e/acceptance/*.spec.ts",
+    "e2e/acceptance/server.mjs",
+    "../tools/validation/*.mjs"
+  ],
+  "project": [
+    "src/**/*",
+    "e2e/**/*"
+  ],
+  "ignoreIssues": {
+    "src/lib/contracts.ts": [
+      "types"
+    ]
+  }
 }

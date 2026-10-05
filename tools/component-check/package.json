@@ -1,0 +1,11 @@
+{
+  "name": "webdeck-component-check",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Svelte-aware checks on the compiler versions supported by svelte-check; the app retains TypeScript 7.",
+  "devDependencies": {
+    "svelte": "5.57.1",
+    "svelte-check": "4.7.6",
+    "typescript": "6.0.3"
+  }
+}

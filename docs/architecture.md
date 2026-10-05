@@ -1,64 +1,52 @@
 # Architecture
 
-## Binaries + shared lib
+The Rust library exposes feature modules directly from `src/lib.rs`.
 
-`Cargo.toml` declares one lib and five binaries; all binaries share the same
-implementation through `webdeck::app` (`src/lib.rs` only re-exports `app/`):
+| Responsibility | Module |
+| --- | --- |
+| Generated contracts | `contracts.rs` |
+| Schema and semantic validation | `domain.rs` |
+| Atomic config transactions and confined assets | `storage.rs` |
+| Device grants and hashed tokens | `sessions.rs` |
+| Admission, execution and shutdown | `executor.rs` |
+| JavaScript behavior and workflows | `runtime/src/`, embedded through `runtime/dist/` |
+| VM owner and isolated script/plugin contexts | `runtime/` Rust module |
+| Authorized native primitives | `capabilities/` input, processes, metrics, HTTP/WebSocket, audio, system, capture, scoped secrets/storage and trusted process host |
+| HTTP and Socket.IO | `server.rs` composition; `server/` auth, commands, configuration, devices, assets, integrations, metadata and realtime |
+| Tray and QR | `desktop.rs`, `qr.rs` |
+| Verified updates and rollback | `update.rs` |
 
-| Binary | Entry | Purpose |
-| --- | --- | --- |
-| `webdeck` (default run) | `src/main.rs` | Full app: config, server, tray, popup |
-| `console` | `src/bin/console.rs` | Dev console helper (not shipped) |
-| `update` | `src/bin/update.rs` | Standalone updater step (shipped) |
-| `package` | `src/bin/package.rs` | Portable-zip packager (dev tool) |
-| `webdeck-qr` | `src/bin/qr.rs` | QR window (minifb) showing the server URL |
+Async routes share bounded blocking admission. Ordinary command effects pass through one VM owner, which serializes synchronous host calls. Authorization and network policy have four slots, disk operations have four,
+and hardware queries have two. Each worker retains its permit until completion even
+if its observer disconnects. HTTP and realtime use the same authorization helper;
+supplied credentials are checked against current grants on every invocation and never
+fall back to local administration. Saturation fails before effect admission.
 
-Module layout mirrors the Python `app/` tree 1:1: `app/<path>/<module>.py`
-→ `src/app/<path>/<module>.rs`, each `__init__.py` → parent `mod.rs`.
+The VM bridge carries Rust capability checks and a shared deadline through nested
+commands. Subprocess helpers clamp their timeout to the remaining budget. Process
+and audio owners define shutdown and cleanup; prepared audio stays paused until all
+outputs are ready and the execution context still permits playback. Synchronous OS
+calls cannot always be interrupted, so observer timeout does not prove cancellation
+and clients must not automatically replay an uncertain command.
 
-## Backend (`src/app/`)
+The Svelte app composes `DeckView`, `EditorToolbar`, `ButtonEditorDialog`, and
+appearance/integration/device settings components. `Editor` owns draft mutations,
+revision and save generations. `AssetCache` owns object URLs and bounds loading;
+`UsageMonitor` owns metric polling. `ActionFields` adds searchable action selection
+above the recursive `Fields` fallback. `schema.ts` owns schema interpretation;
+`api/http.ts` and `api/realtime.ts` own their transport lifecycles, with `lib/api/client.ts`
+providing endpoint functions. Generated contracts live in `lib/contracts.ts`.
 
-- `buttons/` — command execution. `commands/mod.rs` owns `handle_command()`;
-  siblings own one domain each: `audio`, `color_picker`, `exec`, `obs`,
-  `soundboard`, `spotify`, `system`, `usage`, `window`.
-- `server/` — axum app: `mod.rs` (router + `run_server`), `routes_boot`,
-  `routes_config`, `routes_upload`, `realtime` (Socket.IO + `/usage` +
-  `/send-data`), `middleware`, `assets`.
-- `on_start/` — first-run/startup tasks returning `(config, commands, local_ip)`.
-- `tray/` — tray icon, menu, windows (config/QR/port dialogs).
-- `updater/` — `check` (startup check) + `updater/` (download/apply/files/versions).
-- `utils/` — `args` (clap CLI), `settings` (config load/save/migrate/gridsize),
-  `languages`, `themes`, `plugins` (rhai), `logger`, `working_dir`,
-  `get_local_ip`, `firewall`, `qr`, `welcome_popup`, `show_error`, `exit`,
-  `restart`, `merge_dicts`, `is_opened`, `kill_nircmd`, `translate`, `debug`.
+`Modal` and the shared `modal` action use native dialogs with explicit Tab cycling
+and focus restoration. Styling uses `styles/tokens.css` and `styles/base.css`; Vite emits
+`frontend/dist`. Both server and client contracts come from `contracts/v2.schema.json`.
+`lib/messages.ts`, `lib/translations.ts`, and `lib/i18n.ts` separate stable UI copy,
+fallback/interpolation, and per-application reactive translation context.
 
-Config is re-read from disk per handler (like Python); `AppState` only carries
-the `folders_to_create` queue and `local_ip`.
+`Session`, `Navigation`, `DeckInteractions`, `Execution`, and `ButtonDraft` own
+loading, hashes, gestures, outcomes, and staged edits respectively. `App.svelte`
+composes these owners. Remaining plan work is tracked in the
+[implementation progress](improvement-progress.md).
 
-## Frontend (`frontend/`)
 
-Svelte + TypeScript SPA, zero-dependency custom framework:
-
-- `src/main.ts` — boot: loading screen → `GET /api/boot` → `renderApp`.
-- `src/views/` — `App`, `Grid`, `Shell`, `Config`, `EditModal`, `AddModal`
-  (under `addbutton/`), `BackgroundsPanel`, `ThemesPanel`, `FoldersBar`,
-  arg schema/values/builders (`argschema.ts`, `args.ts`, `argvalues.ts`).
-- `src/framework/` — `api` (fetch helpers), `html`, `i18n`, `types`
-  (incl. `BootContext`).
-- `src/query/` — jQuery-like DOM helper (`q`, `byId`) with `ajax`,
-  `attributes`, `classes-css`, `core`, `data`, `effects`, `events`,
-  `factory`, `manipulate`, `traverse`, `utils`.
-- `src/components/` — field widgets (`TextField`, `NumberField`, `ColorField`,
-  `FileField`, `SelectField`, `SwitchField`, `KeyFieldView`, …) + `studio/`.
-
-Build output goes to `frontend/dist/`; the backend serves `GET /` from
-`frontend/dist/index.html` and `/assets/*` from `frontend/dist/assets/`.
-If `dist/` is missing, `GET /` returns a JSON error telling you to build.
-
-## Runtime data
-
-- `webdeck/` — shipped defaults: `config_default.json`, `commands.json`
-  (button catalog), `colors.json`, `translations/`, `version.json`.
-- `.config/` — live state: `config.json`, `user_uploads/`, `themes/`, `plugins/`.
-- `static/` — served static files (`/static/*`); `temp/` — scratch
-  (args shim cleanup, nircmd staging, portable staging).
+The binaries are `webdeck`, `console`, `update`, `webdeck-qr` and the development packager `package`. Runtime data lives in the selected config directory. Shipped data consists of v2 defaults, translations, version metadata and application icons.

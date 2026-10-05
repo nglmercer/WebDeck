@@ -1,88 +1,110 @@
-# WebDeck
+# WebDeck v2
 
-[![GitHub release](https://img.shields.io/github/v/release/Lenochxd/WebDeck.svg?style=flat)](https://github.com/Lenochxd/WebDeck/releases)
-[![GitHub downloads](https://img.shields.io/github/downloads/Lenochxd/WebDeck/total.svg?style=flat)](https://github.com/Lenochxd/WebDeck/releases)
-[![GitHub stars](https://img.shields.io/github/stars/Lenochxd/WebDeck.svg?style=flat)](https://github.com/Lenochxd/WebDeck/stargazers)
-[![GitHub issues](https://img.shields.io/github/issues/Lenochxd/WebDeck.svg?style=flat)](https://github.com/Lenochxd/WebDeck/issues)
-[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg?style=flat)](LICENSE)
-
-WebDeck turns any browser on your local network — phone, tablet, second PC —
-into a macro deck for your computer. No physical hardware needed (unlike an
-Elgato StreamDeck): you host a lightweight server, open the page, and tap
-buttons to control input, audio, windows, OBS, Spotify, scripts, system power,
-and more, with live CPU/RAM/GPU/disk tiles streaming back to the page.
-
-This is the Rust port of the original Python app (axum + Svelte SPA).
-
-<img width="960" height="540" alt="3d-tour" src="https://github.com/user-attachments/assets/77972bde-4662-4125-80be-3f8dff45234e" />
-
-## Quickstart
-
-Download the latest `WebDeck-<os>-<arch>-portable.zip` from
-[Releases](https://github.com/Lenochxd/WebDeck/releases), extract it, and run
-`WebDeck` (`WebDeck.exe` on Windows). Then open the printed address
-(default `http://<local-ip>:5000`) on any device in your network — scan the QR
-popup with your phone for the fastest route.
-
-Your config is created on first run (`.config/config.json`); edit buttons and
-settings from the page itself (config view) or the tray icon.
+WebDeck turns a browser into a control deck for a Windows or Linux computer. This
+`2.0.0-alpha.1` prerelease rebuilds the application around typed actions, stable
+button and folder IDs, paired devices, revision-aware storage and a Svelte UI.
 
 ## Run from source
 
-Prerequisites: Rust toolchain, Node.js.
-
 ```sh
-# 1. Build the frontend bundle (served by the backend)
-cd frontend && npm ci && npm run build && cd ..
-
-# 2. Run the app
-cargo run
+npm ci --prefix frontend
+npm run build --prefix frontend
+cargo run --locked --bin webdeck -- --no-tray
 ```
 
-Common flags (`cargo run -- --help` for all): `--port`, `--host`,
-`--no-tray` (console mode, Ctrl+C to stop), `--force-start`, `--no-admin`,
-`--force-update` / `--no-auto-update`.
+Rebuild the frontend after pulling changes. `cargo run` compiles Rust, not the
+browser bundle. WebDeck checks the bundle's contract fingerprint and explains
+how to rebuild an incompatible frontend instead of serving a blank deck.
 
-## Features
+To run the master-style 8 × 4 demo with v2 navigation and dialogs, run
+`node tools/demo/run.mjs` after installing frontend dependencies. The launcher
+builds both parts and uses a temporary configuration with simulated desktop
+effects. See [the demo guide](examples/demo-v2/README.md).
 
-- Button grid with folders, custom images, backgrounds, and CSS themes
-- Commands: keys/hotkeys, clipboard, app + system volume, media keys, window
-  control, power actions, screensaver/lock, file/URL openers
-- Integrations: OBS (scenes, streaming, recording, virtualcam), Spotify
-  playback, soundboard, system usage tiles, Python/batch script exec
-- rhai plugins (`.config/plugins/`) extending the button catalog and commands
-- Live updates over HTTP + Socket.IO; LAN-only access guard with
-  `allowed_networks` CIDR allowlist
-- Auto-updater (portable zip), tray icon, QR popup, multi-language UI
+Open `http://127.0.0.1:5000`. Run without `--no-tray` for the native tray and QR
+viewer. Linux builds require GTK 3, ALSA, XCB and pkg-config development packages.
+Audio and desktop actions also depend on the desktop session and installed tools
+such as PipeWire/PulseAudio and wmctrl. Media controls use MPRIS directly.
+On Wayland, keyboard actions request host approval through the desktop portal;
+WebDeck retains that session while running.
 
-## Documentation
+For LAN access, start with `--host 0.0.0.0`. Approve a device in Settings from the
+local browser, choose its capabilities and expiry, and enter its token on the
+controller. Tokens never go in URLs. A controller cannot retrieve integration
+credentials or the source of configured actions: it invokes button references,
+and the server resolves and authorizes them on each request. Use a trusted network when transporting credentials.
 
-Full docs live in [`docs/`](docs/index.md):
+The normal view is just the button grid. Usage readings live in buttons, folders
+open as pages, and settings/edit shortcuts can be removed like any other button.
+Right-click or hold the deck for controls, `Q` to edit, or `Ctrl+,` for settings.
 
-| Doc | Contents |
-| --- | --- |
-| [index](docs/index.md) | Overview, quickstart, conventions |
-| [architecture](docs/architecture.md) | Binaries, lib layout, backend/frontend split |
-| [startup](docs/startup.md) | Entry flow, CLI, on_start, tray, popup |
-| [server](docs/server.md) | Routes, middleware, realtime, assets |
-| [commands](docs/commands.md) | Command dispatcher and prefix map |
-| [integrations](docs/integrations.md) | OBS, Spotify, soundboard, audio, exec, plugins |
-| [state-config](docs/state-config.md) | Config files, save/migration, themes, languages |
-| [frontend-shell](docs/frontend-shell.md) | Boot, grid, shell, usage loop |
-| [frontend-editor](docs/frontend-editor.md) | Edit/add modals, arg schema, save flows |
-| [build-release](docs/build-release.md) | Bins, packaging, updater |
-| [reference](docs/reference.md) | HTTP + Socket.IO API, CLI, config schema |
+## Configuration and backups
 
-## Contributing
+The default data directory is `.config`; use `--config-dir PATH` or
+`WEBDECK_CONFIG_DIR` to select another directory. Existing data is never converted,
+moved or deleted. Only the canonical document in
+[`contracts/v2.schema.json`](contracts/v2.schema.json) is accepted. An older
+configuration, including an older schema-2 document with text commands, stops
+startup without rewriting it. Use an isolated directory to evaluate the rewrite.
 
-Issues and PRs welcome on
-[GitHub](https://github.com/Lenochxd/WebDeck). Dev loop:
+Settings can download and restore canonical v2 backups. Restoration edits a draft;
+saving still requires the revision loaded by the editor. A conflict preserves the
+unsaved draft. Arrays define folder and button order, while stable IDs identify
+individual items. Custom data belongs in explicit `extensions` objects.
 
-```sh
-cargo test && cargo clippy --all-targets   # backend
-cd frontend && npm test && npm run typecheck && npm run build
+## Commands and plugins
+
+All clients use `/api/v2` and the `/v2` Socket.IO namespace. A command is a typed
+JSON object, for example:
+
+```json
+{"request_id":"example-1","command":{"type":"key","keys":["ctrl","c"]}}
 ```
 
-## License
+The console accepts one such command object per line (without the request wrapper).
+Use `WEBDECK_URL` and `WEBDECK_DEVICE_TOKEN` for a paired console.
 
-GPL-3.0-or-later — see [LICENSE](LICENSE).
+JavaScript scripts call structured actions with `ctx.invoke({type: "debug", data: {value: 42}})`.
+The embedded napi-vm runtime requires no Node, Bun or npm installation.
+Copy the [example plugin directory](examples/plugins/echo) to `<config-dir>/plugins/echo`.
+Plugins use a v2 `webdeck.json` manifest, verified JavaScript source and declared capabilities.
+The local Settings page can inspect and reload plugins. Executable native plugins use
+napi-vm's trusted process host and require explicit installation; their processes have
+ordinary OS privileges. See the [runtime migration guide](docs/v2/NAPI_VM_MIGRATION.md)
+for workflows, package formats and manual migration of earlier scripts.
+
+## Validation and packaging
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for feature ownership, complete checks,
+performance profiling, and redacted command diagnostics.
+
+```sh
+node tools/contracts/generate.mjs --check
+node tools/validation/v2-only.mjs
+cargo test --locked --all-targets
+cargo clippy --locked --all-targets --all-features -- -D warnings
+npm run check:components --prefix frontend
+npm run typecheck --prefix frontend
+npm test --prefix frontend
+npm run test:acceptance --prefix frontend
+cargo run --locked --bin package -- --dev
+```
+
+Install the component-check tool with `npm ci --prefix tools/component-check`
+before checking Svelte. Browser acceptance tests require a built `webdeck` binary,
+a built frontend and Playwright Chromium. They use isolated data and fake effects.
+Development packages are labelled `-dev-portable.zip` and are not published by CI.
+
+Automatic updates remain disabled. The explicit updater checks only verified,
+newer v2 prereleases from `nglmercer/WebDeck`; installation verifies SHA-256,
+confines extraction and retains a rollback journal. Run `update --help` for manual
+check, fetch, install and rollback commands. Quit WebDeck before replacing binaries.
+
+See [implementation and validation status](docs/v2/STATUS.md) for platform gaps and
+[migration details](docs/v2/MIGRATION_REPORT.md) for the removed interfaces.
+
+The v2 deck adapts its visual orientation to portrait screens without rewriting saved cell positions. Q opens a fixed editing dock: tiles and labels keep their coordinates. Button settings are organized into Content, Appearance and Action tabs; host settings and the controls dialog also support keyboard-accessible tabs. Built-in icons use `icon:folder`, `icon:settings`, `icon:play`, and other SVG names available in the button icon picker. Uploaded `asset:` images remain supported.
+
+The frontend JavaScript budget is 235 KB uncompressed / 71 KB gzip. This includes the inline SVG icon library, icon chooser and accessible tab panels; the demo no longer requires raster files for its built-in icons.
+
+Start with [the v2 quickstart](docs/quickstart-v2.md). Preliminary native installers and remaining hardware checks are described in [release preparation](docs/v2/preliminary-release.md).

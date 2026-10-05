@@ -1,0 +1,206 @@
+{
+  "captured_at": "2026-10-03T08:06:03.626001+00:00",
+  "validation": "56 Chromium acceptance tests passed in 41.2 seconds; current touch-CSS production UI and isolated fake-effect server",
+  "artifacts": [
+    {
+      "file": "button-editor-1440.png",
+      "sha256": "d271861a0d82767c44a68aa15ec03f78cf81efa7c6d9b62826dc45528d35eb84",
+      "generated_from": "frontend/test-results/deck-core-views-fit-a-1440px-viewport/button-editor.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "1ce6e2e2e05673ae69a01d102665b3c6355d61947699d6c3d84865b0c53d9271"
+    },
+    {
+      "file": "deck-1440.png",
+      "sha256": "08ebffa24dc1fcc3e4eb384410b68a402e404390d181f5e5988af3a9364b3745",
+      "generated_from": "frontend/test-results/deck-core-views-fit-a-1440px-viewport/deck.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "4506e778d2879a9c5013c87861afbc2911568250222fc4b80f35a1116de879fe"
+    },
+    {
+      "file": "editing-1440.png",
+      "sha256": "79ff540439a8f82b0d8bb8ee3eb1db88670dcfead5e4f95a30841ddda4f5e035",
+      "generated_from": "frontend/test-results/deck-core-views-fit-a-1440px-viewport/editing.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "904cea2073eea5e9de59264d64ba0c9549636cc6ecdbea12710c8ed4c1943b75"
+    },
+    {
+      "file": "settings-1440.png",
+      "sha256": "47c0586a0b3fdbf8e11f5118593b2ac9bf5dd5165b350812357bd8e5827349b0",
+      "generated_from": "frontend/test-results/deck-core-views-fit-a-1440px-viewport/settings.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "8fc02d809bf0cf6928aea23659318aa16f6e39ce030155897d80152a4cc6a22e"
+    },
+    {
+      "file": "button-editor-360.png",
+      "sha256": "fb7a607077f61312a568c8c994662b210a72df455e81ec13436794cb7d550bfa",
+      "generated_from": "frontend/test-results/deck-core-views-fit-a-360px-viewport/button-editor.png",
+      "visual_review": "Inspected current artifact: narrow layout readable; no unintended horizontal overflow visible. Dialog field reachability is separately established by browser tests."
+    },
+    {
+      "file": "deck-360.png",
+      "sha256": "c304d0e908740c191513603774bb28424310be6a3d704ecb5d908e40db7cff1b",
+      "generated_from": "frontend/test-results/deck-core-views-fit-a-360px-viewport/deck.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "469d2919ea71ef4d69d716495791a85f0b0d2ed0ab82d1c1c9d926928f11ec1a"
+    },
+    {
+      "file": "editing-360.png",
+      "sha256": "15fdec8452ea2fc123bea4bc077551802185a125d90bdcf4a40260f1c4db33aa",
+      "generated_from": "frontend/test-results/deck-core-views-fit-a-360px-viewport/editing.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "d8b57ebc26b5e6295d8b934339e1acf06a58faf5ed2235ac2fb2e5432f133728"
+    },
+    {
+      "file": "settings-360.png",
+      "sha256": "8faddab9a6a1ebb74eb643827aa6b641db137feaa08404f83e46565c8d330c4e",
+      "generated_from": "frontend/test-results/deck-core-views-fit-a-360px-viewport/settings.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "421b54c87590e6456ebe5ea1ed33329c654e68d55ae2b70b24992a7c85a6aa7c"
+    },
+    {
+      "file": "button-editor-768.png",
+      "sha256": "ed68779df051c6d74e6cc958c6e59b26ca8db2012a515bc44374a05dfa7fb047",
+      "generated_from": "frontend/test-results/deck-core-views-fit-a-768px-viewport/button-editor.png",
+      "visual_review": "Current artifact visually inspected: readable default-theme layout, consistent panels and controls, viewport bounds maintained; scrolling/reachability supported by browser assertions."
+    },
+    {
+      "file": "deck-768.png",
+      "sha256": "8061e7179d5f7e4f33e4f974cb7eef09b5a9aa4d711302aa637acb1529d7e4ab",
+      "generated_from": "frontend/test-results/deck-core-views-fit-a-768px-viewport/deck.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "379eebc444190330dd41d12339a19d1bdae4c6475725112ccb3707f43967e23e"
+    },
+    {
+      "file": "editing-768.png",
+      "sha256": "6eceec2d9611ba8607fc2ee2e115118ea3cd23d0bace7466b58ccbfd7f12ddd6",
+      "generated_from": "frontend/test-results/deck-core-views-fit-a-768px-viewport/editing.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "466b9eda3ac6b95b90591bbfea54e4e0588e64aafc669ad02229b690f3af662c"
+    },
+    {
+      "file": "settings-768.png",
+      "sha256": "59b34b5339e2cdd800bd34835a9b70a9d8903bbf9df66fb4e09b7f2ca5012182",
+      "generated_from": "frontend/test-results/deck-core-views-fit-a-768px-viewport/settings.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "b58f434a3589d623d71b077e8c6873203b5d468d8798da2ac891e26e0e6d1986"
+    },
+    {
+      "file": "sparse-crossing-360.png",
+      "sha256": "95de695daef61b06f64931ffbab55cba1e5d6958ecd72e4654b72751c1bb6ef5",
+      "generated_from": "frontend/test-results/deck-distant-sparse-rows-s-7ab01-coordinates-through-editing/sparse-crossing-360.png",
+      "visual_review": "Inspected current artifact: narrow layout readable; no unintended horizontal overflow visible. Dialog field reachability is separately established by browser tests."
+    },
+    {
+      "file": "empty-1440.png",
+      "sha256": "b5d59267fc6b14dee816b765aca2e8de59b1eea1d4404ad15b485c40a2a35041",
+      "generated_from": "frontend/test-results/deck-empty-decks-retain-hi-060aa-ders-get-navigation-buttons/empty-1440.png",
+      "visual_review": "Current artifact visually inspected: readable default-theme layout, consistent panels and controls, viewport bounds maintained; scrolling/reachability supported by browser assertions."
+    },
+    {
+      "file": "empty-360.png",
+      "sha256": "1d142d707f13b2c1cb9670fbccbf06fc4299005968f193d9cd65707611451cf0",
+      "generated_from": "frontend/test-results/deck-empty-decks-retain-hi-060aa-ders-get-navigation-buttons/empty-360.png",
+      "visual_review": "Inspected current artifact: narrow layout readable; no unintended horizontal overflow visible. Dialog field reachability is separately established by browser tests."
+    },
+    {
+      "file": "empty-768.png",
+      "sha256": "d9fed250308ccedeb49dba17aa51b894a5978fa40c4246b9009b99cdc4e9c9f1",
+      "generated_from": "frontend/test-results/deck-empty-decks-retain-hi-060aa-ders-get-navigation-buttons/empty-768.png",
+      "visual_review": "Current artifact visually inspected: readable default-theme layout, consistent panels and controls, viewport bounds maintained; scrolling/reachability supported by browser assertions."
+    },
+    {
+      "file": "translated-editor-200-percent.png",
+      "sha256": "33ba90ed2984c1abf00aac955531853fd77d06705b9e6bc583ffa0206699a910",
+      "generated_from": "frontend/test-results/deck-long-translations-and-3a8e3-at-200-percent-browser-zoom/translated-editor-200-percent.png",
+      "visual_review": "Current artifact visually inspected: readable default-theme layout, consistent panels and controls, viewport bounds maintained; scrolling/reachability supported by browser assertions."
+    },
+    {
+      "file": "translated-settings-200-percent.png",
+      "sha256": "3e68ee20053bdabf9a6a59d907bca1991731f911d3def04d816c09ac780c36c1",
+      "generated_from": "frontend/test-results/deck-long-translations-and-3a8e3-at-200-percent-browser-zoom/translated-settings-200-percent.png",
+      "visual_review": "Current artifact visually inspected: readable default-theme layout, consistent panels and controls, viewport bounds maintained; scrolling/reachability supported by browser assertions."
+    },
+    {
+      "file": "touch-controls-360.png",
+      "sha256": "d068e10cd4fad3413153ad3ae3c8587972959bcecef94752d30d4d22b8d147ff",
+      "generated_from": "frontend/test-results/deck-native-touch-hold-and-2cc16-without-executing-a-command/touch-controls-360.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "327587b0369c7afaba9370147e202477cbfba7d87df5a8ec1953a008656efd11"
+    },
+    {
+      "file": "touch-deck-360.png",
+      "sha256": "52ff3574314cdefa21c1889b81e61be41acb1a392c7555dc4e778066b89028a4",
+      "generated_from": "frontend/test-results/deck-native-touch-hold-and-2cc16-without-executing-a-command/touch-deck-360.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "3bf499959c5754e3060e72998d91190227ff3322912b3b184f982ad2a02f1e4b"
+    },
+    {
+      "file": "conflict-1440.png",
+      "sha256": "b1cd57539b7ebd26b3feee6b552a4796e8fc4df808c3cc127eb30cb2a421cd42",
+      "generated_from": "frontend/test-results/deck-new-deck-edits-typed--76168-s-and-keeps-conflict-drafts/conflict-1440.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "ab07ce52a9b4b7202772e6418135b9dc7b1cd71bced65a199d6b0d08e571c181"
+    },
+    {
+      "file": "conflict-360.png",
+      "sha256": "aea59add622a38effe23316ef2285f69e3dc66f0408db5185f9e5c528b5974d8",
+      "generated_from": "frontend/test-results/deck-new-deck-edits-typed--76168-s-and-keeps-conflict-drafts/conflict-360.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "de5185395504649beb636b0a81548d467c69e70a83d9ea95b9b273abee92b04f"
+    },
+    {
+      "file": "conflict-768.png",
+      "sha256": "a7814cbc8ae1f5692b1736407682fff61e46bd133787900033a9aa023a12b4c2",
+      "generated_from": "frontend/test-results/deck-new-deck-edits-typed--76168-s-and-keeps-conflict-drafts/conflict-768.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "e02e39148bc2ee50a9c570bf4c4303e81b4f85c1af6189e15aadfb5eb43a3483"
+    },
+    {
+      "file": "pairing-1440.png",
+      "sha256": "bdabf54c20711d8c791a9e5c3dfb55d0793c0b71f98f39d4973bb7b1ee07a0fc",
+      "generated_from": "frontend/test-results/deck-pairing-retains-faile-f4cf7-omated-accessibility-checks/pairing-1440.png",
+      "visual_review": "Current artifact visually inspected: readable default-theme layout, consistent panels and controls, viewport bounds maintained; scrolling/reachability supported by browser assertions."
+    },
+    {
+      "file": "pairing-360.png",
+      "sha256": "387c92ee3a8adb27bbaa8a895fd675631a478e322206863a164659552a49e5de",
+      "generated_from": "frontend/test-results/deck-pairing-retains-faile-f4cf7-omated-accessibility-checks/pairing-360.png",
+      "visual_review": "Inspected current artifact: narrow layout readable; no unintended horizontal overflow visible. Dialog field reachability is separately established by browser tests."
+    },
+    {
+      "file": "pairing-768.png",
+      "sha256": "e65dfec0a021bdf1d1b07fb81fe26615f00b2ce17a68d0b55b9fc79757c24080",
+      "generated_from": "frontend/test-results/deck-pairing-retains-faile-f4cf7-omated-accessibility-checks/pairing-768.png",
+      "visual_review": "Current artifact visually inspected: readable default-theme layout, consistent panels and controls, viewport bounds maintained; scrolling/reachability supported by browser assertions."
+    },
+    {
+      "file": "offline-1440.png",
+      "sha256": "dae8683430f2a211253b787fc92e640d0a82d8102950a49a457eb76a3656b98f",
+      "generated_from": "frontend/test-results/deck-typed-realtime-correl-5b8cd-ssions-and-offline-commands/offline-1440.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "ff904e8204440b28910b996bbaa74e8f5af2f21a67f5357e9e6bd731b83109fe"
+    },
+    {
+      "file": "offline-360.png",
+      "sha256": "c2c4b9f5170ecf92d632a62812a0864fb858ebc60a522d58edf9504ce28cfe5b",
+      "generated_from": "frontend/test-results/deck-typed-realtime-correl-5b8cd-ssions-and-offline-commands/offline-360.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "56b698d160398eeecdcf9cb732330c39f5a25e63dfd59b2a37699f7bd50c872c"
+    },
+    {
+      "file": "offline-768.png",
+      "sha256": "e5ccaf281b8499c65c1245bf3d5d5cd58e8a56419141ed1589c164e33dc88314",
+      "generated_from": "frontend/test-results/deck-typed-realtime-correl-5b8cd-ssions-and-offline-commands/offline-768.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "bb88f4ccc8e23a03ef1cffba1f95f4e543dbe0b69a91d81f3b369804aba68cf0"
+    },
+    {
+      "file": "missing-metric-360.png",
+      "sha256": "555ad7eb30d42375f3cdaa392141beeedc5befb120c95d646d68318548a4b183",
+      "generated_from": "frontend/test-results/deck-missing-metric-readings-stay-readable-on-narrow-tiles/missing-metric-360.png",
+      "visual_review": "Current changed artifact visually reinspected after touch-CSS refresh: layout remains readable and consistent; no further visual defect identified in captured state.",
+      "previous_reviewed_sha256": "d5aa0e8c7763cd06759f619cfec7575a154204469d8870f78a278067e01be26c"
+    }
+  ],
+  "visual_review": "All 30 current artifacts reviewed: 19 changed captures reinspected after touch-CSS refresh; 11 byte-identical captures retain exact previous reviews. No further default-theme visual defect identified. Manual screen-reader/live platform behavior remains unverified."
+}

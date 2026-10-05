@@ -1,76 +1,28 @@
-# Frontend — Shell
+# Frontend
 
-Svelte + TypeScript SPA (`frontend/`). Zero-dependency custom framework plus
-a jQuery-like `query/` layer — a 1:1 port of the old Jinja/JS behavior.
+`frontend/src/main.ts` mounts the Svelte application. `App.svelte` composes feature components and state owners: `lib/session.svelte.ts` loads the deck, catalog, translations, and administrator draft; `lib/navigation.svelte.ts` handles validated folder hashes; `features/deck/interactions.svelte.ts` owns keyboard/context/touch gestures; `execution.svelte.ts` owns local command outcomes; and `usage.svelte.ts` owns bounded visible metric polling.
 
-## Boot (`src/main.ts` → `views/app.ts`)
+`lib/schema.ts` validates canonical response shapes. `lib/api/http.ts` owns credentials and HTTP outcomes; `lib/api/realtime.ts` owns correlation and disconnect cleanup; `lib/api/client.ts` contains typed endpoint functions. Both transports preserve uncertain command outcomes and never replay accepted work. `lib/assets.ts` deduplicates and reuses protected object URLs with a four-worker loading limit and stale-generation disposal.
 
-1. Mount `#app`; show `LoadingScreen` (same visual sequence as Jinja).
-2. `GET /api/boot` → `BootContext` (`framework/types.ts`).
-3. `initI18n(ctx.lang)`; unmount loading; `renderApp(mountEl, ctx)`.
-4. On failure: inline error in `#app` and rethrow.
+Controller boot returns action references without integration credentials or private command sources. Remote controllers enter a token approved on the host. Tokens go in headers or socket authentication, never URLs.
 
-`GET /` serves `frontend/dist/index.html`; without `npm run build` it returns
-a JSON error telling you to build. `/assets/*` serves the bundle.
+Folders and buttons retain stable IDs. The deck renders uploaded images, backgrounds and themes through protected asset retrieval. Usage is read through `/api/v2/usage`. Disconnection clears pending observers and never replays native commands automatically. Design tokens live in `frontend/src/styles/tokens.css`; shared base styles live in `styles/base.css`. Global deck rules live in `features/deck/deck.css`, shared with editor previews to retain uploaded-theme specificity. Feedback, token disclosure, editor-toolbar, button-dialog, modal, and schema-field layout styles are component-scoped. Shared base CSS owns resets, typography, common controls, utility layouts, touch sizing, and reduced-motion rules. Uploaded themes can target `.deck-grid`, `.deck-button`, `.button-icon`, `.deck-button img`, `.deck-button > span:not(.button-icon)`, and the existing appearance custom properties.
 
-## Shell views
 
-- `App.svelte` / `app.ts` — root render + view switching.
-- `Grid.svelte` / `grid.ts` — button grid (`front.height × front.width`),
-  folder navigation (`/folder <name>`), zoom/auto-zoom, portrait rotation,
-  random background (`random_bg`), dark theme (`dark_theme` class).
-- `Shell.svelte` / `shell.ts` — chrome around the grid (top bar, config
-  entry, connection/reconnect screen when the server is unreachable).
-- `FoldersBar.svelte` — folder tabs above the grid.
-- `LoadingScreen.svelte` — boot splash (SVG preload avoids display flashes).
-- `Config.svelte` / `config.ts` — settings editor (sections, backgrounds,
-  themes, devices, danger zone); save flows POST to `/save_config`,
-  `/COMPLETE_save_config`, `/save_buttons_only`, `/save_single_button`.
-- `BackgroundsPanel.svelte` — add-background composer: Color/File tabs
-  (`StudioTabs`); owns the background list state (toggle/delete/add/upload)
-  bound to the config-form handler input.
-- `ThemesPanel.svelte` — owns the theme list state (enable/disable/reorder)
-  bound to the config-form handler input.
-- `ThemesPanel.svelte` — theme manager (enable/order `.config/themes/*.css`).
-- `Preview.svelte` / `preview.ts`, `studio-preview.ts` — button/studio previews.
+The normal screen contains only the editable button grid. There is no fixed header, sidebar or usage page. CPU, per-core CPU, memory, GPU, GPU memory, disk and clock readings are metric buttons; visible metrics share polling and expose a configurable update interval. Missing devices display localized “No data” rather than a zero value. Folder buttons navigate to a folder page. Newly created folders add a link in their parent and a Back button in the child.
 
-## State & wireup
+Settings, reload, fullscreen and back shortcuts are normal removable buttons. Editing is available through Q and the Edit action; F1 displays shortcut help. Right-click or hold the deck to reveal controls, `Q` toggles editing, and `Ctrl+,` opens settings. These work even with an empty deck. `Alt+Left` returns to the root, and browser back/forward restores folder navigation. All button shortcuts can be deleted. Ordinary grids render every cell; grids exceeding 16,384 logical cells use explicit navigation through windows of 128 rows. Empty cells show only an add icon while editing, and occupied cells have separate edit and remove controls. Numeric placements outside the supported integer range show a recoverable error while settings remains accessible; the host configuration is preserved. Removing a button preserves neighboring positions. Grid rows no longer cap the number of buttons; overflow creates additional rows. Appearance includes dimensions, spacing, corners, icons, labels and individual button spans, with uploaded CSS themes for further styling.
 
-- `api/` — one HTTP layer: `client.ts` transport (`getJson`/`postJson`/
-  text/form, typed `HttpError`, timeout/abort) plus `config.ts`
-  (`/api/boot`, `/get_config`, `/save_config`), `buttons.ts`
-  (`/save_buttons_only`, `/save_single_button`, `/create_folder`,
-  `/send-data`), `uploads.ts`, `usage.ts`.
-- `framework/i18n.ts` — `initI18n(langDict)` + `t(key)` lookups.
-- `framework/html.ts` — typed HTML builders for non-Svelte-rendered parts.
-- `query/` — `q`, `byId` DOM facade: `attributes`, `classes-css`,
-  `core`, `events`, `factory`, `manipulate`, `traverse` (each with
-  `*.test.ts`). Unused jQuery-isms (effects, `data`, static utils,
-  `off`/`one`/`trigger`, extra traversals/insertions) were removed.
-- Button press → `POST /send-data {message}` (HTTP) or Socket.IO
-  `message_from_socket`; `data_transfer_method` selects the path.
+Dense decks keep their fixed cells and scroll horizontally inside the labelled Control deck region rather than shrinking targets below 72 CSS pixels. The region accepts keyboard focus for native arrow-key panning. Command outcomes appear on the relevant button. Failed metric requests retain the reading with a stale marker. A dismissible first-use hint describes keyboard and hold access without adding permanent navigation chrome. The hint and global feedback share a stacked container so offline errors and saved notices cannot overlap the hint.
 
-## Usage loop
+## Interface translations
 
-`Grid` polls `POST /usage` every `front.computer_usage_reload_time` ms
-(default 3000) and patches usage tiles in place; `/api/boot usage_example`
-provides the first-paint snapshot. `settings.optimized_usage_display`
-enables extra update skipping. Each applied poll emits `usage:updated`.
+`lib/messages.ts` defines stable `ui_*` keys and English fallbacks. `lib/i18n.ts` provides a per-application Svelte context whose lookup reads the current session dictionary; `lib/translations.ts` handles fallback and `{name}` / `%name%` interpolation. Native names, button content, IDs, tokens, action arguments, and protocol enum values remain data. Friendly action/capability labels and accessible control names resolve through translation keys. Unknown server failures remain readable rather than disappearing behind a missing key.
 
-## App events
+The host merges `webdeck/translations/en_US.lang` with the selected language. Saving a language change refreshes that dictionary without discarding later edits or turning a committed save into a write failure. Spanish has 228 translated core interface keys; the canonical English catalog contains 384 keys; untranslated keys in Spanish and the other shipped locales fall back to English. This is not a claim that every shipped locale has been fully translated.
 
-Lifecycle moments are exposed as `window` CustomEvents (`webdeck:<name>`,
-see `src/app/events.ts`): `boot:ready`, `app:refreshed`, `usage:updated`,
-`editor:changed`, `save:completed`, `server:disconnected`,
-`server:reconnected`. In-app modules subscribe via `onAppEvent`; external
-consumers (Playwright, user scripts) listen on `window` directly.
+When changing interface copy, keep its key stable and update both `messages.ts` and the English `.lang` value. Add translated values under the same key and preserve every placeholder. Call `t('ui_key', { name: value })` for dynamic copy so translators can change word order. Known English validation/error strings also resolve through the same catalogue. Svelte renders translations as escaped text, never HTML.
 
-## Framework + query tests
+Run `npm run check:i18n --prefix frontend`. CI checks English coverage, duplicate/unknown UI keys, placeholder parity, and static markup/accessibility attributes. The acceptance suite verifies missing-key fallback, Spanish language saving, retained configured content, and long copy at actual 200% Chromium zoom. The zoom case uses an isolated profile, asserts 2× device-pixel ratio and the reduced CSS viewport, and checks that the dialog fits and Apply remains reachable. Chromium's partitioned preference structure is documented in its [zoom implementation](https://chromium.googlesource.com/chromium/src/+/ee29dd0c3875d017f69f0be001756602b8b8f1e9/chrome/browser/ui/zoom/chrome_zoom_level_prefs.cc); runtime assertions verify that it works with the installed browser.
 
-`frontend/src/**/*.test.ts` run under vitest (`npm test`, 298 tests):
-per-view tests (`app`, `shell`, `grid`, `Config`, `editmodal`, `ArgsBlock`,
-`argschema`, `args`, `argvalues`, `getcommand`, `labels`, `svg`,
-`LoadingScreen`), per-component tests (fields, icons, preview,
-`CollapseSection`, `EditorStyleBlock`, `search-dropdown`), and per-module
-`query/` tests. `npm run typecheck` (svelte-check) and `npm run build`
-(vite) gate releases.
+Grids exceeding 16,384 cells use a bounded 128-row view with previous/next and direct row navigation. This prevents empty-gap allocation for distant fixed positions. Saved cell coordinates stay unchanged; row coordinates in CSS are relative to the current view, and crossing spans are clipped to the visible range. Ordinary grids retain full rendering. Folder changes reset the selected range.

@@ -704,3 +704,16 @@ INTEGRATIONS_fetch_url__arg_2_name=URL
 INTEGRATIONS_fetch_url__arg_3_name=Headers (one 'Name: value' per line, optional)
 INTEGRATIONS_fetch_url__arg_4_name=Body (optional)
 INTEGRATIONS_fetch_url__arg_5_name=Timeout in seconds (1-120)
+
+ui_workflow=Workflow
+ui_runtime=Runtime and plugins
+ui_runtime_status=Runtime status
+ui_reload_plugins=Reload plugins
+ui_runtime_ready=Ready
+ui_runtime_failed=Unavailable
+ui_runtime_commands=Commands: {count}
+ui_runtime_no_plugins=No external plugins installed
+ui_enable_plugin=Enable plugin
+ui_disable_plugin=Disable plugin
+ui_sandbox_plugin=Sandbox JavaScript
+ui_trusted_native_plugin=Trusted native process
