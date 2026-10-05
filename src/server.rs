@@ -85,6 +85,7 @@ pub fn router(a: App) -> Router {
     Router::new()
         .route("/", get(home))
         .route("/api/v2/boot", get(boot))
+        .route("/api/v2/version", get(version))
         .route("/api/v2/settings/boot", get(config))
         .route("/api/v2/config", get(config).put(replace))
         .route("/api/v2/settings", axum::routing::put(settings))

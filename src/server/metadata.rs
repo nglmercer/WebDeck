@@ -1,5 +1,15 @@
 use super::*;
 
+pub(super) async fn version(
+    axum::Extension(i): axum::Extension<Identity>,
+) -> Result<Json<ServerVersion>> {
+    i.require(Capability::Read)?;
+    Ok(Json(ServerVersion {
+        api_version: 2,
+        version: env!("CARGO_PKG_VERSION").into(),
+    }))
+}
+
 pub(super) async fn translations(
     State(a): State<App>,
     axum::Extension(i): axum::Extension<Identity>,

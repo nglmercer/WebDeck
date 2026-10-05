@@ -83,7 +83,7 @@ pub fn load_plugins(assets: &Assets) -> Result<Vec<RuntimePlugin>> {
     plugins.sort_by(|a, b| a.manifest.id.cmp(&b.manifest.id));
     Ok(plugins)
 }
-fn load_package(directory: &Path) -> Result<RuntimePlugin> {
+pub fn load_package(directory: &Path) -> Result<RuntimePlugin> {
     if fs::symlink_metadata(directory).is_ok_and(|m| m.file_type().is_symlink()) {
         return Err(Error::invalid());
     }

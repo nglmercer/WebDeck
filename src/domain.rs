@@ -32,7 +32,7 @@ impl std::fmt::Display for Error {
 }
 impl std::error::Error for Error {}
 pub type Result<T> = std::result::Result<T, Error>;
-fn schema() -> &'static Value {
+pub fn schema() -> &'static Value {
     static S: OnceLock<Value> = OnceLock::new();
     S.get_or_init(|| {
         serde_json::from_str(include_str!("../contracts/v2.schema.json")).expect("generated schema")

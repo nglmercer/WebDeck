@@ -1,3 +1,4 @@
+pub mod admin;
 pub mod capabilities;
 pub mod contracts;
 pub mod desktop;

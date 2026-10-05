@@ -5,6 +5,7 @@
 | Routes | Purpose |
 | --- | --- |
 | `boot` | Controller layout with private action references |
+| `version` | Server version reported to clients and `webdeckctl` |
 | `config`, `settings/boot`, `settings` | Privileged configuration reads and revision-aware writes |
 | `folders`, `folders/{id}`, nested `buttons` | Layout mutations |
 | `commands` | GET catalog, POST typed command request |
@@ -17,3 +18,5 @@
 `/` serves `frontend/dist/index.html`; `/assets` serves the Vite bundle and `/static` serves application icons. Build the frontend before starting. Socket.IO uses `/v2` and correlated `command` / `command_result` events.
 
 The guard validates identity, literal Host/Origin and capabilities. Remote devices must be paired; invalid supplied credentials cannot fall back to loopback privileges. Configuration writes require the current revision. See [contracts](../contracts/v2.schema.json) for request and response shapes.
+
+[`webdeckctl`](cli.md) exercises these endpoints through the shared [`src/admin`](../src/admin) client module.

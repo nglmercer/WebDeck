@@ -17,6 +17,7 @@ Build the frontend with `npm ci --prefix frontend` and `npm run build --prefix f
 | [Editor](frontend-editor.md) | Drafts, mutations and conflicts |
 | [Build and release](build-release.md) | Packages and verified updates |
 | [Reference](reference.md) | Contracts and CLI |
+| [CLI](cli.md) | `webdeckctl` administration commands |
 | [Cleanup](refactor.md) | Removed artifacts and validation |
 | [Improvement plan](improvement-plan.md) | Prioritized code quality, design, and modularization roadmap |
 | [Implementation progress](improvement-progress.md) | Delivered changes, verification evidence, and remaining work |

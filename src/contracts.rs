@@ -626,6 +626,12 @@ pub struct RuntimeSnapshot {
 pub struct PluginState {
     pub enabled: bool,
 }
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ServerVersion {
+    pub api_version: u64,
+    pub version: String,
+}
 impl Command {
     pub fn capability(&self) -> Capability {
         match self {

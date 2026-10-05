@@ -872,7 +872,17 @@
             "stop_virtual_camera",
             "scene",
             "hotkey",
-            "get_version"
+            "get_version",
+            "get_scenes",
+            "get_current_scene",
+            "get_inputs",
+            "get_hotkeys",
+            "get_stream_status",
+            "get_recording_status",
+            "get_virtual_camera_status",
+            "input_mute",
+            "input_unmute",
+            "input_toggle_mute"
           ]
         },
         "target": {

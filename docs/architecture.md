@@ -49,4 +49,4 @@ composes these owners. Remaining plan work is tracked in the
 [implementation progress](improvement-progress.md).
 
 
-The binaries are `webdeck`, `console`, `update`, `webdeck-qr` and the development packager `package`. Runtime data lives in the selected config directory. Shipped data consists of v2 defaults, translations, version metadata and application icons.
+The binaries are `webdeck`, `console`, `update`, `webdeck-qr` and the development packager `package`. `webdeckctl` is the administrative CLI; it parses arguments in `src/bin/webdeckctl.rs` and calls the shared `src/admin` module. Runtime data lives in the selected config directory. Shipped data consists of v2 defaults, translations, version metadata and application icons.

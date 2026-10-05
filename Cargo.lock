@@ -5954,6 +5954,7 @@ dependencies = [
  "tao",
  "tokio",
  "tokio-tungstenite",
+ "toml",
  "tower",
  "tower-http",
  "tray-icon",
