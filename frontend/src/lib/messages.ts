@@ -24,6 +24,18 @@ export const messages = {
   ui_importing_image: 'Importing or refreshing image…',
 
   ui_search_icons: 'Search icons',
+  ui_browse_all_icons: 'Browse all icons…',
+  ui_select_icon: 'Select icon',
+  ui_select: 'Select',
+  ui_icon_categories: 'Icon categories',
+  ui_icon_category_all: 'All',
+  ui_icon_category_media: 'Media',
+  ui_icon_category_devices: 'Devices',
+  ui_icon_category_ui: 'UI',
+  ui_icon_category_folders: 'Folders',
+  ui_icon_category_system: 'System',
+  ui_custom_images: 'Use a custom image',
+  ui_more_button_actions: 'More button actions',
   ui_uploaded_icons: 'Uploaded icons',
   ui_select_uploaded_icon: 'Select uploaded icon',
   ui_icon_library_unavailable:

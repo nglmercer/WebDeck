@@ -1,5 +1,12 @@
 import registry from './icon-registry.json';
-export type RegisteredIcon = { path: string; stroke?: string; fill?: string; background?: string };
+export type IconCategory = 'media' | 'devices' | 'ui' | 'folders' | 'system';
+export type RegisteredIcon = {
+  path: string;
+  category?: string;
+  stroke?: string;
+  fill?: string;
+  background?: string;
+};
 const icons: Record<string, RegisteredIcon> = registry.icons;
 const aliases: Record<string, string> = registry.aliases;
 const iconNames = Object.keys(icons);
@@ -11,4 +18,13 @@ export function registeredIcon(name: string): RegisteredIcon | undefined {
 }
 export function matchingIcons(query: string): string[] {
   return iconNames.filter((name) => name.includes(query.trim().toLowerCase()));
+}
+export function iconCategory(name: string): IconCategory {
+  const category = registeredIcon(name)?.category;
+  return category === 'media' ||
+    category === 'devices' ||
+    category === 'folders' ||
+    category === 'system'
+    ? category
+    : 'ui';
 }

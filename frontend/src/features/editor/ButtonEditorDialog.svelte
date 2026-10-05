@@ -7,7 +7,6 @@
   import { localActionNames } from '../../lib/action-labels';
   import { modal } from '../../lib/modal';
   import { onDestroy, onMount } from 'svelte';
-  import { matchingIcons, iconKey } from '../../lib/icons';
   import { AssetCache } from '../../lib/assets';
   import { asset, request } from '../../lib/api/client';
   import type {
@@ -28,6 +27,7 @@
   import NumberField from '../../components/NumberField.svelte';
   import { appearanceOf, setAppearance as writeAppearance, tileColors } from './appearance';
   import { contract } from '../../lib/schema';
+  import IconField from './IconField.svelte';
   let {
     button = $bindable(),
     buttonFolder = $bindable(),
@@ -55,8 +55,6 @@
     close: () => void;
     attempt: (work: () => Promise<void>) => Promise<void>;
   } = $props();
-  let iconSearch = $state('');
-  const availableIcons = $derived(matchingIcons(iconSearch));
   let imageIds = $state<string[]>([]);
   let imagePage = $state(0);
   let imageUrl = $state('');
@@ -287,16 +285,8 @@
       >
         <ButtonContent {button} assetUrl={previewUrl} />
       </div>
-      <p class="field-help">
-        {colors.contrast === null
-          ? t('ui_choose_a_solid_color_to_check_readability')
-          : t('ui_text_color_adjusts_to_keep_the_label_readable')}
-      </p>
     </div>
     <form onsubmit={apply}>
-      <p class="field-help">
-        {t('ui_apply_changes_to_your_draft_then_save_the_deck_to_update_the_host')}
-      </p>
       <div role="tablist" aria-label={t('ui_edit_button')} class="editor-tabs">
         {#each ['content', 'appearance', 'action'] as tab}<button
             type="button"
@@ -333,87 +323,90 @@
         aria-labelledby="editor-tab-content"
         hidden={activeTab !== 'content'}
       >
-        <label
-          >{t('ui_button_folder')}<select bind:value={buttonFolder}
-            >{#each layout?.folders ?? [] as f}<option value={f.id}>{f.label}</option
-              >{/each}</select
-          ></label
-        >
-        <label>{t('ui_label')}<input bind:value={button.label} /></label><label
-          >{t('ui_icon')}<input bind:value={button.icon} /></label
-        >
-        <label>{t('ui_search_icons')}<input type="search" bind:value={iconSearch} /></label>
-        <div class="icon-picker">
-          {#each availableIcons as icon}<button
-              type="button"
-              aria-label={icon}
-              aria-pressed={iconKey(button.icon) === icon}
-              onclick={() => (button.icon = `icon:${icon}`)}><Icon name={icon} /></button
-            >{/each}
-        </div>
-        <label
-          >{t('ui_upload_image')}<input
-            type="file"
-            accept="image/*"
-            onchange={(e) => attempt(() => image(e))}
-          /></label
-        >
-        <label>{t('ui_image_url')}<input type="text" inputmode="url" bind:value={imageUrl} /></label
-        >
-        <label><input type="checkbox" bind:checked={liveImage} />{t('ui_live_image')}</label>
-        <button
-          type="button"
-          disabled={imageBusy || !imageUrl.trim()}
-          onclick={() =>
-            attempt(() => importImage({ type: 'url', url: imageUrl.trim(), live: liveImage }))}
-          >{t('ui_import_image_url')}</button
-        >
-        <label>{t('ui_local_image_path')}<input bind:value={imagePath} /></label>
-        <button
-          type="button"
-          disabled={imageBusy || !imagePath.trim()}
-          onclick={() => attempt(() => importImage({ type: 'local', path: imagePath.trim() }))}
-          >{t('ui_import_local_image')}</button
-        >
-        <button type="button" disabled={imageBusy} onclick={() => attempt(chooseLocalImage)}
-          >{t('ui_choose_local_image')}</button
-        >
-        <p>{t('ui_image_import_help')}</p>
-        {#if button.icon.startsWith('asset:') && liveIds.includes(button.icon.slice(6))}
-          <button type="button" disabled={imageBusy} onclick={() => attempt(refreshImage)}
-            >{t('ui_refresh_live_image')}</button
+        <div class="basics-grid">
+          <label
+            >{t('ui_button_folder')}<select bind:value={buttonFolder}
+              >{#each layout?.folders ?? [] as f}<option value={f.id}>{f.label}</option
+                >{/each}</select
+            ></label
           >
-          <p>{t('ui_refresh_live_image_help')}</p>
-        {/if}
-        {#if imageBusy}<p role="status">{t('ui_importing_image')}</p>{/if}
-        <h3>{t('ui_uploaded_icons')}</h3>
-        {#if libraryError}<p role="status">{t(libraryError)}</p>{/if}
-        <div class="icon-picker">
-          {#each pageIds as id}<button
-              type="button"
-              aria-label={`${t('ui_select_uploaded_icon')} ${id}`}
-              aria-pressed={button.icon === `asset:${id}`}
-              onclick={() => (button.icon = `asset:${id}`)}
+          <label>{t('ui_label')}<input bind:value={button.label} /></label>
+          <div class="row icon-color">
+            <IconField value={button.icon} onSelect={(value) => (button.icon = value)} /><label
+              >{t('ui_color')}<input
+                class="color-input"
+                type="color"
+                bind:value={button.color}
+              /></label
             >
-              {#if libraryUrls[id]}<img
-                  src={libraryUrls[id]}
-                  alt=""
-                  width="32"
-                  height="32"
-                />{:else}<Icon name="image" />{/if}
-            </button>{/each}
+          </div>
         </div>
-        {#if imageIds.length > 24}
-          <button type="button" disabled={imagePage === 0} onclick={() => imagePage--}
-            >{t('ui_previous')}</button
+        <details class="custom-images">
+          <summary>{t('ui_custom_images')}</summary>
+          <label
+            >{t('ui_upload_image')}<input
+              type="file"
+              accept="image/*"
+              onchange={(e) => attempt(() => image(e))}
+            /></label
           >
+          <label
+            >{t('ui_image_url')}<input type="text" inputmode="url" bind:value={imageUrl} /></label
+          >
+          <label><input type="checkbox" bind:checked={liveImage} />{t('ui_live_image')}</label>
           <button
             type="button"
-            disabled={(imagePage + 1) * 24 >= imageIds.length}
-            onclick={() => imagePage++}>{t('ui_next')}</button
+            disabled={imageBusy || !imageUrl.trim()}
+            onclick={() =>
+              attempt(() => importImage({ type: 'url', url: imageUrl.trim(), live: liveImage }))}
+            >{t('ui_import_image_url')}</button
           >
-        {/if}
-        <label>{t('ui_color')}<input type="color" bind:value={button.color} /></label>
+          <label>{t('ui_local_image_path')}<input bind:value={imagePath} /></label>
+          <button
+            type="button"
+            disabled={imageBusy || !imagePath.trim()}
+            onclick={() => attempt(() => importImage({ type: 'local', path: imagePath.trim() }))}
+            >{t('ui_import_local_image')}</button
+          >
+          <button type="button" disabled={imageBusy} onclick={() => attempt(chooseLocalImage)}
+            >{t('ui_choose_local_image')}</button
+          >
+          <p>{t('ui_image_import_help')}</p>
+          {#if button.icon.startsWith('asset:') && liveIds.includes(button.icon.slice(6))}
+            <button type="button" disabled={imageBusy} onclick={() => attempt(refreshImage)}
+              >{t('ui_refresh_live_image')}</button
+            >
+            <p>{t('ui_refresh_live_image_help')}</p>
+          {/if}
+          {#if imageBusy}<p role="status">{t('ui_importing_image')}</p>{/if}
+          <h3>{t('ui_uploaded_icons')}</h3>
+          {#if libraryError}<p role="status">{t(libraryError)}</p>{/if}
+          <div class="icon-picker">
+            {#each pageIds as id}<button
+                type="button"
+                aria-label={`${t('ui_select_uploaded_icon')} ${id}`}
+                aria-pressed={button.icon === `asset:${id}`}
+                onclick={() => (button.icon = `asset:${id}`)}
+              >
+                {#if libraryUrls[id]}<img
+                    src={libraryUrls[id]}
+                    alt=""
+                    width="32"
+                    height="32"
+                  />{:else}<Icon name="image" />{/if}
+              </button>{/each}
+          </div>
+          {#if imageIds.length > 24}
+            <button type="button" disabled={imagePage === 0} onclick={() => imagePage--}
+              >{t('ui_previous')}</button
+            >
+            <button
+              type="button"
+              disabled={(imagePage + 1) * 24 >= imageIds.length}
+              onclick={() => imagePage++}>{t('ui_next')}</button
+            >
+          {/if}
+        </details>
       </div>
       <div
         role="tabpanel"
@@ -581,18 +574,22 @@
                 label={t('ui_plugin_arguments')}
               />{:else}<p>{t('ui_no_v2_plugins_are_installed')}</p>{/if}{/if}{/if}
       </div>
-      <div class="row">
-        <button type="button" onclick={() => moveButton(-1)}>{t('ui_move_left')}</button><button
-          type="button"
-          onclick={() => moveButton(1)}>{t('ui_move_right')}</button
-        ><button type="button" onclick={duplicateButton}>{t('ui_duplicate')}</button><button
-          type="button"
-          class="danger"
-          onclick={removeButton}>{t('ui_delete')}</button
-        ><button type="button" onclick={close}>{t('ui_cancel')}</button><button
-          type="submit"
-          class="primary">{t('ui_apply_to_draft')}</button
-        >
+      <div class="actions">
+        <details class="more-actions">
+          <summary aria-label={t('ui_more_button_actions')}><Icon name="more" /></summary>
+          <div class="menu">
+            <button type="button" onclick={() => moveButton(-1)}>{t('ui_move_left')}</button><button
+              type="button"
+              onclick={() => moveButton(1)}>{t('ui_move_right')}</button
+            ><button type="button" onclick={duplicateButton}>{t('ui_duplicate')}</button><button
+              type="button"
+              class="danger"
+              onclick={removeButton}>{t('ui_delete')}</button
+            >
+          </div>
+        </details>
+        <span class="spacer"></span><button type="button" onclick={close}>{t('ui_cancel')}</button
+        ><button type="submit" class="primary">{t('ui_apply_to_draft')}</button>
       </div>
       {#if formError}<p role="alert">{t(formError)}</p>{/if}
     </form>
@@ -637,14 +634,14 @@
     z-index: 20;
   }
   .editor {
-    width: min(650px, 100%);
+    width: min(520px, 100%);
     max-height: 90dvh;
     overflow: auto;
     background: var(--surface);
     color: inherit;
     border: 1px solid #ffffff25;
     border-radius: 8px;
-    padding: 20px;
+    padding: 16px;
     box-shadow: var(--shadow-dialog);
   }
   .editor::backdrop {
@@ -652,19 +649,99 @@
   }
   .preview {
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 16px;
-    padding: 12px;
+    justify-content: center;
+    padding: 8px;
+    margin-bottom: 12px;
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-panel);
   }
   .preview-tile {
-    width: 140px;
-    min-height: 140px;
+    width: 92px;
+    min-height: 82px;
+    padding: 8px;
   }
-  .preview p {
-    max-width: 250px;
+  .basics-grid {
+    display: grid;
+    gap: 10px;
+  }
+  .row.icon-color {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 100px;
+    align-items: end;
+    gap: 10px;
+  }
+  .color-input {
+    height: 42px;
+    padding: 4px;
+  }
+  .custom-images {
+    margin-top: 10px;
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 9px;
+  }
+  .custom-images summary {
+    cursor: pointer;
+    color: var(--text-muted);
+  }
+  .custom-images[open] {
+    display: grid;
+    gap: 8px;
+  }
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .spacer {
+    flex: 1;
+  }
+  .more-actions {
+    position: relative;
+  }
+  .more-actions summary {
+    list-style: none;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+  }
+  .more-actions summary::-webkit-details-marker {
+    display: none;
+  }
+  .menu {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    z-index: 5;
+    display: grid;
+    min-width: 150px;
+    padding: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 9px;
+    box-shadow: var(--shadow-dialog);
+  }
+  .menu button {
+    text-align: left;
+  }
+  .editor-tabs {
+    margin: 10px 0;
+  }
+  @media (max-width: 520px) {
+    .overlay {
+      padding: 8px;
+    }
+    .editor {
+      max-height: 94dvh;
+      padding: 12px;
+    }
+    .row.icon-color {
+      grid-template-columns: minmax(0, 1fr) 82px;
+    }
   }
   .appearance-fields {
     display: grid;
