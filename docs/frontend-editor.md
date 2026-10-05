@@ -1,80 +1,25 @@
-# Frontend — Editor
+# Editor
 
-> V2 implementation: see [architecture, compatibility and validation](v2/STATUS.md). The historical descriptions below document the v1 compatibility layer.
+`frontend/src/features/editor/editor.svelte.ts` owns draft mutations, persisted revision, dirty generation, save serialization, and deletion recovery. `button-draft.svelte.ts` stages a cloned button until Apply; opening or cancelling a dialog does not mutate neighboring cells. `ButtonEditorDialog.svelte` provides a shared tile preview, bounded appearance controls, typed action controls, and schema fallback for uncommon/plugin arguments. `ActionFields.svelte` groups searchable commands by capability and provides focused keyboard, text, and open-target controls.
 
-Button editing: `EditModal` (single slot) + Add-button browser
-(`addbutton/`), with `ArgsBlock` rendering per-command arguments from the
-catalog schema.
+Browser navigation warns about changes in the main draft or unapplied button dialog. Opening an unchanged existing button does not trigger a warning; Cancel deliberately discards staged changes. New button candidates also count as unapplied work.
 
-## Files
+Apply updates the draft. Save validates the canonical configuration and sends its originally loaded revision with `PUT /api/v2/config`. Concurrent callers share one pending save. Edits made during saving remain dirty after the submitted generation commits, and Done refuses to leave until those later changes are saved. A successful write stays successful even if display refresh fails. Conflicts and failures retain the draft; Download backup exports that draft before a deliberate reload.
 
-- `views/EditModal.svelte` / `editmodal.ts` (+ `editmodal.test.ts`,
-  `modalstyle.ts`) — edit one button: name, message, image/size, colors,
-  per-command args; save → `POST /save_single_button`
-  `{location_Folder, location_Id, content}`.
-- `views/addbutton/` — `browser.ts` + `AddBrowser.svelte`: searchable catalog
-  browser over `/api/boot commands` (categories → labels → command), with
-  icon wells per row (`.wd2-rowicon`, dark `currentColor` for visibility).
-- `views/ArgsBlock.svelte` (+ `ArgsBlock.test.ts`) — renders the selected
-  command's `args` array as field widgets.
-- `views/argschema.ts` (+ `argschema.test.ts`) — arg-schema `TYPE` parsing
-  and normalization.
-- `views/args.ts` (+ `args.test.ts`) — arg assembly into message fragments.
-- `views/argvalues.ts` (+ `argvalues.test.ts`) — value coercion/defaults.
-- `views/getcommand.test.ts` — `buildCommand` protocol coverage.
-- `components/` — field widgets: `TextField`, `NumberField`, `ColorField`,
-  `FileField` (upload → `**uploaded/` URI), `SelectField`, `SwitchField`,
-  `KeyValueEditor` (name/value rows → joined lines via a hidden carrier;
-  row inputs carry `data-nocollect` so collection skips them),
-  `KeyFieldView`, `SearchDropdownView`, `Preview`, `EditorStyle`,
-  `Collapse`, icons (`button-icons.ts`, `icons.ts`).
+Starting another save clears the previous global success notice. A later conflict therefore cannot display the old Saved banner as if the latest draft committed. Device approval links visible name/permission guidance to its disabled button through an accessible description.
 
-## Arg schema (`TYPE` protocol)
+Duplication assigns a new stable ID and a free cell while preserving action data and unknown extensions. Deletion keeps one recovery snapshot. Undo is offered only while no later draft mutation has invalidated that snapshot. Moving a button is committed on Apply; neighboring cells are not swapped during dialog editing.
 
-Each catalog entry's `args` is an array of `{TYPE, value?, …}` descriptors.
-`TYPE` is a space-separated kind + modifier, e.g.
-`input usage-title-text`, `input webdeck_foldername`, `text`, `select …`,
-`color`, `file`, `number`, `switch`, `key`, `search-dropdown`. `argschema`
-normalizes them; `ArgsBlock` maps each to a field widget; `args`/`argvalues`
-assemble the fragments; `buildCommand` joins base command + fragments into
-the final `message` string (fragments separated per protocol, `<|§|>` where
-the backend expects splittable args, e.g. plugin commands).
+Undo compares recovered content with the latest persisted snapshot. Undoing an unsaved deletion back to saved content clears the dirty flag. If the deletion has already committed, restoring it remains dirty; a save completing after undo also reconciles that flag against the newly persisted content without replacing the recovered draft.
 
-`{TYPE:"multiple", commands:[…]}` catalog entries render as stacked
-sub-commands sharing one tile (e.g. combined usage tiles).
+Backups are validated and previewed before Apply backup to draft. Preview, invalid input, and Cancel restore do not mutate the draft. Replacing dirty data asks about that specific loss; restoring still requires a separate revision-aware save. File inspection is limited to 16 MB and ignores stale completions.
 
-Two newer schema features (introduced for `Integrations → Fetch URL`):
+Appearance, Integrations, Devices, Backups, and advanced Connection have separate settings components under `features/settings/`. Numeric controls reject blank, nonfinite, fractional, and out-of-range values before mutation. Integration secrets are hidden until explicitly revealed. OBS connection checks save first, perform identification/version only, have a three-second budget, and release their client. Spotify reports whether authorization is stored without claiming live account verification; its explicit continuation link avoids opening a popup after an asynchronous save.
 
-- `input headers` renders the `KeyValueEditor` row widget instead of a
-  textarea; the stored message keeps the plain `Name: value` lines format.
-- `visibleWhen: {arg, in? | notIn?}` hides an arg unless the referenced
-  field (raw args-array index, the stamped `arg_id`) holds a listed value.
-  Hidden branches submit nothing, like hidden choice panes (the fetch body
-  hides for `GET`/`HEAD`).
+Configuration editing, integration checks, device approval/revocation, and native selection require an uncredentialed local administrator with Settings capability. A supplied device token retains its grant even from loopback. Controller boot exposes button references and required capabilities, never integration credentials or private command definitions. One-time tokens clear after copying or hiding; device grants show readable permissions and expiry.
 
-Sparse marker forms (empty middle values dropped on save) stay editable:
-`alignArgs` treats a visible field whose next segment is an emitted marker
-as empty (placeholder keeps render alignment), falling back to greedy
-consume so values that literally equal a marker still match.
+Dirty state compares the JSON-shaped draft with a cloned persisted baseline on editor changes and save completion. Returning a value to its saved value clears dirty; object key ordering does not affect the comparison, while array ordering and unknown extension values do. Generation still advances on edits to preserve save-race ownership.
 
-## Save flows
+On touch pointers, Edit and Remove controls stack inside each cell and editing rows have a 220px minimum height so both controls remain reachable in narrow columns. This changes only the editing presentation; saved grid positions and spans remain intact.
 
-| Action | Endpoint | Body |
-| --- | --- | --- |
-| Edit one button | `POST /save_single_button` | `{location_Folder, location_Id, content}` |
-| Add (via full editor) | `POST /save_buttons_only` | `{front:{buttons}}` |
-| Settings change | `POST /save_config` | full config (merged server-side) |
-| Import/replace all | `POST /COMPLETE_save_config` | full config (grid preserved, then resized) |
-| New folder | `POST /create_folder` | `{name, parent_folder}` (queued, flushed on next save/get) |
-
-Folder addressing in `save_single_button` is positional (index into
-`front.buttons` key order) — the editor and backend must agree on order,
-hence `preserve_order` in `serde_json`.
-
-## Uploads in the editor
-
-`FileField` uploads via `POST /upload_file` (multipart) into
-`.config/user_uploads/`; the stored message/background references it as
-`**uploaded/<file>`. `POST /upload_folderpath` and `/upload_filepath`
-open native pickers (rfd/xdg-portal) and return paths for `/openfolder`-style
-commands. Served back via `GET /.config/<dir>/<file>`.
+Generic schema fields keep numeric, JSON and identifier-pattern errors beside their controls and expose those errors through accessible descriptions. Invalid input blocks Apply until corrected. Schema array fields show translated minimum/maximum item guidance and associate it with Remove/Add controls. Device rows expose Approved, Revoking and Revoked state; pairing describes where to obtain a token and retains it after a recoverable failure.

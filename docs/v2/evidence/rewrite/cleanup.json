@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-02",
+  "result": "passed",
+  "removed_tracked_files": 214,
+  "configuration": "Kept canonical v2 defaults; old deck and associated data archived outside repository",
+  "checks": [
+    "contract generation",
+    "v2-only guard",
+    "cargo fmt",
+    "git diff whitespace",
+    "cargo test --locked --all-targets (30 passed, 1 artifact test deferred)",
+    "cargo clippy --locked --all-targets --all-features -- -D warnings",
+    "frontend production build",
+    "TypeScript check",
+    "frontend unit tests (3 passed)",
+    "Svelte component checks (0 errors, 0 warnings)",
+    "knip",
+    "browser acceptance (5 passed)",
+    "local documentation links",
+    "portable build and deprecated-asset exclusion (17 packaged files)",
+    "extracted portable Chromium startup",
+    "artifact upgrade and real updater rollback (1 passed)"
+  ],
+  "portable_report": "cleanup-portable.json",
+  "limits": [
+    "Live native desktop actions and external integrations were not invoked",
+    "Windows runtime was not exercised"
+  ]
+}

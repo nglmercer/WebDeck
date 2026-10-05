@@ -1,426 +1,189 @@
 {
-    "settings": {
-        "language": "system",
-        "show_popup": true,
-        "windows_startup": false,
-        "windows_start_menu_shortcut": false,
-        "auto_updates": true,
-        "update_channel": "stable",
-        "update_repo": "Lenochxd/WebDeck",
-        "dev_mode": false,
-        "app_admin": true,
-        "optimized_usage_display": false,
-        "gpu_method": "nvidia (NVML)",
-        "show_console": false,
-        "open_settings_in_integrated_browser": false,
-        "data_transfer_method": "http",
-        "automatic_firewall_bypass": false,
-        "sort_colors_on_startup": false,
-        "fix_stop_soundboard": false,
-        "ear_soundboard": true,
-        "allowed_networks": [],
-        "netmask": "16",
-        "spotify_api": {
-            "client_id": "",
-            "client_secret": "",
-            "username": ""
-        },
-        "soundboard": {
-            "enabled": false,
-            "audio_method": "vlc",
-            "mic_input_device": "",
-            "vbcable": "cable input"
-        },
-        "obs": {
-            "host": "localhost",
-            "port": 4455,
-            "password": ""
-        }
+  "schema_version": 2,
+  "settings": {
+    "language": "en_US",
+    "automatic_updates": false,
+    "allowed_networks": [],
+    "obs": {
+      "host": "127.0.0.1",
+      "port": 4455,
+      "password": ""
     },
-    "front": {
-        "background": [
-            "#141414"
+    "spotify": {
+      "client_id": "",
+      "client_secret": "",
+      "redirect_uri": "http://127.0.0.1:5000/api/v2/spotify/callback"
+    },
+    "extensions": {}
+  },
+  "layout": {
+    "columns": 4,
+    "rows": 3,
+    "folders": [
+      {
+        "id": "home",
+        "label": "Home",
+        "buttons": [
+          {
+            "id": "media",
+            "label": "Play / pause",
+            "icon": "\u25b6",
+            "color": "#242424",
+            "action": {
+              "type": "command",
+              "command": {
+                "type": "play_pause"
+              }
+            },
+            "extensions": {}
+          },
+          {
+            "id": "settings",
+            "label": "Settings",
+            "icon": "\u2699",
+            "color": "#242424",
+            "action": {
+              "type": "settings"
+            },
+            "extensions": {}
+          },
+          {
+            "id": "usage-cpu",
+            "label": "CPU",
+            "icon": "\u25c9",
+            "color": "#242424",
+            "action": {
+              "type": "metric",
+              "metric": "cpu",
+              "target": "",
+              "interval_ms": 1000
+            },
+            "extensions": {}
+          },
+          {
+            "id": "usage-memory",
+            "label": "Memory",
+            "icon": "\u25a4",
+            "color": "#242424",
+            "action": {
+              "type": "metric",
+              "metric": "memory",
+              "target": "",
+              "interval_ms": 1000
+            },
+            "extensions": {}
+          },
+          {
+            "id": "usage-gpu",
+            "label": "GPU",
+            "icon": "\u25a7",
+            "color": "#242424",
+            "action": {
+              "type": "metric",
+              "metric": "gpu",
+              "target": "",
+              "interval_ms": 1000
+            },
+            "extensions": {}
+          },
+          {
+            "id": "fullscreen",
+            "label": "Fullscreen",
+            "icon": "\u26f6",
+            "color": "#242424",
+            "action": {
+              "type": "fullscreen"
+            },
+            "extensions": {}
+          },
+          {
+            "id": "media-folder",
+            "label": "Media",
+            "icon": "\u25a6",
+            "color": "#242424",
+            "action": {
+              "type": "folder",
+              "folder_id": "media-controls"
+            },
+            "extensions": {}
+          }
         ],
-        "computer_usage_reload_time": "3000",
-        "edit_buttons_color": false,
-        "buttons_color": "",
-        "names_color": "#b3b3b3",
-        "show_names": true,
-        "portrait_rotate": "90",
-        "themes": [],
-        "height": "4",
-        "width": "8",
-        "dark_theme": true,
-        "buttons": {
-            "index": [
-                {
-                    "image": "folder.png",
-                    "image_size": "70%",
-                    "message": "/folder folder1",
-                    "name": "Folder 1"
-                },
-                {
-                    "image": "spotify.png",
-                    "image_size": "70%",
-                    "message": "/folder spotify",
-                    "name": "Spotify"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "image": "screensaver.png",
-                    "image_size": "50%",
-                    "message": "/screensaver",
-                    "name": "Enable screen saver"
-                },
-                {
-                    "image": "screensaver-full.png",
-                    "image_size": "50%",
-                    "message": "/screensaver full",
-                    "name": "Enable hard screen saver"
-                },
-                {
-                    "image": "screensaver-off.svg",
-                    "image_size": "50%",
-                    "message": "/screensaver off",
-                    "name": "Disable screen saver"
-                },
-                {
-                    "background_color": "#2e2e2e",
-                    "color": "#fff",
-                    "image": "eyedropper.svg",
-                    "image_size": "50%",
-                    "message": "/colorpicker lang:en",
-                    "name": "Color picker"
-                },
-                {
-                    "image": "restart_explorer.png",
-                    "source": "https://www.sordum.org/wp-content/uploads/2020/01/restart_explorer.png",
-                    "image_size": "80%",
-                    "message": "/restartexplorer",
-                    "name": "restart explorer"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "image": "",
-                    "image_size": "100%",
-                    "message": "/usage 'RAM' usage_dict['memory']['usage_percent']",
-                    "name": "RAM usage"
-                },
-                {
-                    "image": "",
-                    "image_size": "100%",
-                    "message": "/usage 'C disk' usage_dict['disks']['C']['usage_percent']",
-                    "name": "C disk usage"
-                },
-                {
-                    "image": "settings2.png",
-                    "image_size": "75%",
-                    "message": "/open-config ",
-                    "name": "Settings"
-                },
-                {
-                    "image": "reload.png",
-                    "image_size": "50%",
-                    "message": "/reload",
-                    "name": "Refresh"
-                },
-                {
-                    "image": "fullscreen2.png",
-                    "image_size": "50%",
-                    "message": "/fullscreen",
-                    "name": "Fullscreen"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "background_color": "#2e2e2e",
-                    "color": "#fff",
-                    "image": "",
-                    "image_size": "100%",
-                    "message": "/usage 'CPU' usage_dict['cpu']['usage_percent']",
-                    "name": "CPU usage"
-                },
-                {
-                    "background_color": "#2e2e2e",
-                    "color": "#fff",
-                    "image": "",
-                    "image_size": "100%",
-                    "message": "/usage 'GPU' usage_dict['gpus']['defaultGPU']['usage_percent']",
-                    "name": "GPU usage"
-                }
-            ],
-            "folder1": [
-                {
-                    "image": "folder.png",
-                    "image_size": "70%",
-                    "message": "/folder index",
-                    "name": "back to index"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                }
-            ],
-            "spotify": [
-                {
-                    "image": "back10.svg",
-                    "image_size": "110%",
-                    "message": "/folder index",
-                    "name": "Back"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "background_color": "#1ed664",
-                    "image": "skip-start-fill.svg",
-                    "image_size": "100%",
-                    "message": "/mediacontrol previous",
-                    "name": "Previous"
-                },
-                {
-                    "background_color": "#1ed664",
-                    "image": "playpause2.png",
-                    "image_size": "98%",
-                    "message": "/mediacontrol playpause",
-                    "name": "Play/Pause"
-                },
-                {
-                    "background_color": "#1ed664",
-                    "image": "skip-end-fill.svg",
-                    "image_size": "100%",
-                    "message": "/mediacontrol next",
-                    "name": "Next"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "VOID": "VOID"
-                },
-                {
-                    "background_color": "#1ed664",
-                    "image": "volume-mute.svg",
-                    "image_size": "65%",
-                    "message": "/soundcontrol mute",
-                    "name": "Mute"
-                }
-            ]
-        }
-    },
-    "url": {
-        "ip": "0.0.0.0",
-        "port": 59997
-    }
+        "extensions": {}
+      },
+      {
+        "id": "media-controls",
+        "label": "Media",
+        "buttons": [
+          {
+            "id": "media-back",
+            "label": "Back",
+            "icon": "\u21a9",
+            "color": "#242424",
+            "action": {
+              "type": "folder",
+              "folder_id": "home"
+            },
+            "extensions": {}
+          },
+          {
+            "id": "media-previous",
+            "label": "Previous",
+            "icon": "\u23ee",
+            "color": "#242424",
+            "action": {
+              "type": "command",
+              "command": {
+                "type": "previous"
+              }
+            },
+            "extensions": {}
+          },
+          {
+            "id": "media-toggle",
+            "label": "Play / pause",
+            "icon": "\u25b6",
+            "color": "#242424",
+            "action": {
+              "type": "command",
+              "command": {
+                "type": "play_pause"
+              }
+            },
+            "extensions": {}
+          },
+          {
+            "id": "media-next",
+            "label": "Next",
+            "icon": "\u23ed",
+            "color": "#242424",
+            "action": {
+              "type": "command",
+              "command": {
+                "type": "next"
+              }
+            },
+            "extensions": {}
+          },
+          {
+            "id": "media-mute",
+            "label": "Mute",
+            "icon": "\u266a",
+            "color": "#242424",
+            "action": {
+              "type": "command",
+              "command": {
+                "type": "mute"
+              }
+            },
+            "extensions": {}
+          }
+        ],
+        "extensions": {}
+      }
+    ],
+    "themes": [],
+    "backgrounds": [],
+    "extensions": {}
+  },
+  "extensions": {}
 }

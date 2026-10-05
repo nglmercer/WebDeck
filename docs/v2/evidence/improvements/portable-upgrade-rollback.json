@@ -1,0 +1,19 @@
+{
+  "artifact": "WebDeck-2.0.0-alpha.1-linux-x86_64-dev-portable.zip",
+  "sha256": "801c96041fdbb2cb558c8a35bcf7bda012576b7ad504c051fc464d04b065bfbf",
+  "profile": "development",
+  "test": "portable_archive_upgrade_and_real_updater_rollback_preserve_user_data",
+  "result": "passed",
+  "passed": 1,
+  "failed": 0,
+  "ignored": 0,
+  "verification": [
+    "archive digest matches sidecar",
+    "installed packaged binaries and frontend",
+    "real extracted updater rollback succeeds",
+    "original application restored",
+    "user configuration and upload preserved"
+  ],
+  "scope": "Linux native development package; no live desktop effects or release publication",
+  "verified_at": "2026-10-03T08:05:33.236877+00:00"
+}

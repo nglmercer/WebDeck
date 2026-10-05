@@ -1,143 +1,120 @@
-//! Binary entry point — port of `run.py`.
-//!
-//! Startup sequence (same as Python):
-//! 1. `chdir_base()` so relative paths (`webdeck/`, `.config/`, …) resolve.
-//! 2. `parse_args()` + load config (with update check + save).
-//! 3. Windows UAC self-elevation when `settings.app_admin`.
-//! 4. Single-instance guard unless `--force-start`.
-//! 5. Init translations, spawn server task + welcome popup.
-//! 6. Run tray icon (blocking) or wait for Ctrl+C with `--no-tray`.
-
-#![allow(dead_code)]
-
-use webdeck::app::utils::{
-    args, is_opened, languages, logger::log, settings::get_config, show_error, welcome_popup,
-    working_dir,
+use clap::Parser;
+use std::{net::SocketAddr, path::PathBuf, sync::Arc};
+use webdeck::{
+    capabilities::Platform,
+    domain::Result,
+    executor::{Adapter, Executor},
+    runtime::{capabilities::NativeMetrics, VmAdapter, VmRuntime},
+    server::{router, App},
+    sessions::Sessions,
+    storage::{Assets, ConfigStore},
 };
-
+#[derive(Parser)]
+#[command(name = "WebDeck", version)]
+struct Args {
+    #[arg(short = 'H', long, default_value = "127.0.0.1")]
+    host: std::net::IpAddr,
+    #[arg(short = 'p', long, default_value_t = 5000)]
+    port: u16,
+    #[arg(long)]
+    no_tray: bool,
+    #[arg(long)]
+    config_dir: Option<PathBuf>,
+    #[arg(long)]
+    force_start: bool,
+    #[arg(long)]
+    no_admin: bool,
+    #[arg(long)]
+    no_auto_update: bool,
+}
 #[tokio::main]
 async fn main() {
-    working_dir::chdir_base();
-    args::parse_args();
-
-    let config = get_config::get_config(true, true);
-    let default_lang = config
-        .get("settings")
-        .and_then(|s| s.get("language"))
-        .and_then(|v| v.as_str())
-        .unwrap_or("en_US")
-        .to_string();
-
-    #[cfg(windows)]
-    {
-        use windows::core::{w, HSTRING};
-        use windows::Win32::UI::Shell::{IsUserAnAdmin, ShellExecuteW};
-        use windows::Win32::UI::WindowsAndMessaging::SW_NORMAL;
-
-        let wants_admin = config
-            .get("settings")
-            .and_then(|s| s.get("app_admin"))
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false);
-        // Port of the `ctypes.windll.shell32.IsUserAnAdmin` / `ShellExecuteW`
-        // runas dance in `run.py`.
-        let is_admin = unsafe { IsUserAnAdmin().as_bool() };
-        if wants_admin && !is_admin && !args::get_args().no_admin {
-            let exe = std::env::current_exe()
-                .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_default();
-            let params = std::env::args().skip(1).collect::<Vec<_>>().join(" ");
-            unsafe {
-                let _ = ShellExecuteW(
-                    None,
-                    w!("runas"),
-                    &HSTRING::from(exe.as_str()),
-                    &HSTRING::from(params.as_str()),
-                    None,
-                    SW_NORMAL,
-                );
-            }
-            std::process::exit(0);
-        }
+    if let Err(e) = start().await {
+        eprintln!("WebDeck: {e}");
+        std::process::exit(1);
     }
-    #[cfg(not(windows))]
-    {
-        let _ = &config;
+}
+async fn start() -> Result<()> {
+    let args = Args::parse();
+    let dir = args
+        .config_dir
+        .or_else(|| std::env::var_os("WEBDECK_CONFIG_DIR").map(PathBuf::from))
+        .unwrap_or_else(|| PathBuf::from(".config"));
+    let config = Arc::new(ConfigStore::open(dir.join("config.json"))?);
+    let sessions = Arc::new(Sessions::open(dir.join("devices.v2.json"))?);
+    let assets = Assets { root: dir };
+    let shutdown = Arc::new(tokio::sync::Notify::new());
+    let native = Arc::new(Platform::new(
+        config.clone(),
+        assets.clone(),
+        shutdown.clone(),
+    )?);
+    let (loaded, rejected) = webdeck::runtime::plugins::discover_plugins(&assets)?;
+    if rejected > 0 {
+        eprintln!("WebDeck: {rejected} plugin packages were quarantined; migrate or repair their v2 manifests before reloading");
     }
-
-    if !is_opened::is_opened() || args::get_args().force_start {
-        webdeck::application::lifecycle::activate();
-        log().info("Starting WebDeck");
-
-        log().info("Loading translations");
-        languages::init(
-            "webdeck/translations",
-            Some("webdeck/translations/misc"),
-            &default_lang,
-        );
-
-        log().info("Starting server task");
-        let server_handle = tokio::spawn(async {
-            if let Err(e) = webdeck::app::server::run_server().await {
-                webdeck::application::lifecycle::request_shutdown();
-                // Native error dialogs block: run off the async worker.
-                tokio::task::block_in_place(|| {
-                    show_error::show_error(
-                        Some("Server task failed"),
-                        "WebDeck Error",
-                        true,
-                        Some(&e as &dyn std::fmt::Debug),
-                    );
-                });
+    let plugins = Arc::new(
+        loaded
+            .iter()
+            .map(|plugin| plugin.manifest.clone())
+            .collect(),
+    );
+    let host: Arc<dyn webdeck::runtime::capabilities::CapabilityHost> =
+        if cfg!(debug_assertions) && std::env::var("WEBDECK_FAKE_EFFECTS").as_deref() == Ok("1") {
+            Arc::new(webdeck::capabilities::FakePlatform::new(native.clone()))
+        } else {
+            native
+        };
+    let runtime = Arc::new(VmRuntime::with_plugins(
+        Arc::new(NativeMetrics),
+        host,
+        loaded,
+    )?);
+    let adapter: Arc<dyn Adapter> = Arc::new(VmAdapter::new(runtime));
+    let executor = Arc::new(Executor::new(adapter, 16));
+    let app = App {
+        io: Arc::new(tokio::sync::Semaphore::new(4)),
+        queries: Arc::new(tokio::sync::Semaphore::new(2)),
+        authorization: Arc::new(tokio::sync::Semaphore::new(4)),
+        port: args.port,
+        plugins,
+        config,
+        sessions,
+        executor: executor.clone(),
+        assets,
+    };
+    let addr = SocketAddr::new(args.host, args.port);
+    let listener = tokio::net::TcpListener::bind(addr).await.map_err(|_| {
+        webdeck::domain::Error::new(
+            webdeck::contracts::ErrorCode::ExecutionFailed,
+            "Cannot bind server; another instance may be running",
+        )
+    })?;
+    let local = if args.host.is_unspecified() {
+        SocketAddr::new("127.0.0.1".parse().expect("loopback"), args.port)
+    } else {
+        addr
+    };
+    let url = format!("http://{local}/");
+    println!("WebDeck {} listening at {url}", env!("CARGO_PKG_VERSION"));
+    if !args.no_tray {
+        let notify = shutdown.clone();
+        std::thread::spawn(move || {
+            if let Err(e) = webdeck::desktop::run(url, notify) {
+                eprintln!("Tray: {e}");
             }
         });
-
-        let popup_handle = tokio::task::spawn_blocking(welcome_popup::show_popup);
-
-        if !args::get_args().no_tray {
-            log().info("Initializing tray icon");
-            // `create_tray_icon()` blocks like `pystray.Icon.run()`; run it on a
-            // blocking thread so the server task keeps running.
-            let tray_result =
-                tokio::task::spawn_blocking(webdeck::app::tray::create_tray_icon).await;
-            match tray_result {
-                Ok(()) => {}
-                Err(e) => {
-                    #[cfg(windows)]
-                    show_error::show_error(
-                        None,
-                        "WebDeck Error",
-                        true,
-                        Some(&e as &dyn std::fmt::Debug),
-                    );
-                    #[cfg(not(windows))]
-                    log().exception(
-                        &e,
-                        Some("Failed to initialize tray icon"),
-                        false,
-                        true,
-                        true,
-                    );
-                }
-            }
-        } else {
-            log().info("Running without tray icon");
-            tokio::select! {
-                _ = tokio::signal::ctrl_c() => webdeck::application::lifecycle::request_shutdown(),
-                _ = webdeck::application::lifecycle::shutdown_requested() => (),
-            }
-        }
-
-        webdeck::application::lifecycle::request_shutdown();
-        let _ = server_handle.await;
-        let _ = popup_handle.await;
-        if webdeck::application::lifecycle::restarting() {
-            if let Ok(exe) = std::env::current_exe() {
-                let _ = std::process::Command::new(exe)
-                    .args(std::env::args().skip(1))
-                    .arg("--force-start")
-                    .spawn();
-            }
-        }
     }
+    let signal = shutdown.clone();
+    axum::serve(
+        listener,
+        router(app).into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(async move {
+        tokio::select! {_=tokio::signal::ctrl_c()=>{},_=signal.notified()=>{}}
+    })
+    .await
+    .map_err(|_| webdeck::domain::Error::execution())?;
+    executor.drain().await;
+    Ok(())
 }

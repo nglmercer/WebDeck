@@ -1,36 +1,52 @@
 <script lang="ts">
-  /** Digit-only number input with a fallback default. */
-  interface Props {
-    dark: string;
-    id: string;
-    name: string;
-    label?: string | undefined;
-    value: string;
-    defaultValue?: string | undefined;
-    min?: string | undefined;
-    required?: boolean | undefined;
-    style?: string | undefined;
-  }
+  import { useTranslations } from '../lib/i18n';
+  const t = useTranslations();
 
-  let { dark, id, name, label, value, defaultValue, min, required, style }: Props = $props();
-
-  const effective = $derived(value.trim() !== '' ? value.trim() : (defaultValue ?? ''));
-
-  function scrub(event: Event): void {
-    const el = event.currentTarget as HTMLInputElement;
-    el.value = el.value.replace(/[^0-9]/g, '');
-  }
+  import { id } from '../lib/id';
+  let {
+    label,
+    value,
+    min,
+    max,
+    step = 1,
+    onchange,
+  }: {
+    label: string;
+    value: number;
+    min: number;
+    max: number;
+    step?: number;
+    onchange: (value: number) => void;
+  } = $props();
+  const errorId = `number-${id()}`;
+  let error = $state(false);
 </script>
 
-{#if label !== undefined}<label for={id}> {label} </label>{/if}<input
-  required={required}
-  class={dark}
-  type="number"
-  min={min}
-  pattern="[0-9]*"
-  {style}
-  oninput={scrub}
-  {id}
-  {name}
-  value={effective !== '' ? effective : undefined}
-/>
+<label
+  >{label}<input
+    type="number"
+    {value}
+    {min}
+    {max}
+    {step}
+    required
+    aria-invalid={error}
+    aria-describedby={error ? errorId : undefined}
+    oninput={(event) => {
+      const input = event.currentTarget;
+      error = !Number.isFinite(input.valueAsNumber) || !input.checkValidity();
+      if (!error) onchange(input.valueAsNumber);
+    }}
+  /></label
+>
+{#if error}<p id={errorId} class="field-error">
+    {t('ui_number_bounds', { min, max })}
+  </p>{/if}
+
+<style>
+  .field-error {
+    color: var(--error-text);
+    font-size: 0.85rem;
+    margin: 0;
+  }
+</style>

@@ -1,0 +1,226 @@
+/* Shared by deck tiles and editor previews. Global selectors preserve uploaded-theme hooks. */
+
+.deck-grid {
+  display: grid;
+  grid-auto-rows: var(--button-height, 140px);
+  align-content: start;
+  width: 100%;
+  min-height: calc(100dvh - 32px);
+  touch-action: manipulation;
+}
+.deck-button {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--button-color, #242424);
+  color: var(--button-foreground, var(--text));
+  border: 0;
+  border-radius: var(--button-radius, 8px);
+  padding: 12px;
+  overflow: hidden;
+}
+.deck-button:hover {
+  filter: brightness(1.12);
+  background: var(--button-color, #242424);
+}
+.deck-button .button-icon {
+  font-size: var(--icon-size, 42px);
+  line-height: 1.2;
+}
+.deck-button img {
+  width: var(--icon-size, 42px);
+  height: var(--icon-size, 42px);
+  max-width: 100%;
+  object-fit: contain;
+}
+.deck-button > span:not(.button-icon) {
+  font-size: 0.9rem;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.deck-button small {
+  font-size: 0.7rem;
+}
+.deck-button small:empty {
+  display: none;
+}
+.deck-button.blank {
+  background: transparent;
+}
+.metric-value {
+  font-size: clamp(0.75rem, 3vw, 1.7rem);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+progress {
+  width: 80%;
+  height: 4px;
+  accent-color: currentColor;
+}
+.hidden-label {
+  display: none;
+}
+.add {
+  background: transparent;
+  border: 1px dashed #ffffff30;
+  font-size: 1.5rem;
+}
+.add span {
+  font-size: 0.8rem;
+}
+@media (max-width: 600px) {
+  .deck-grid {
+    min-height: calc(100dvh - 16px);
+  }
+  .deck-button {
+    padding: 8px;
+    gap: 6px;
+  }
+  .deck-button > span:not(.button-icon) {
+    font-size: 0.75rem;
+  }
+  .button-icon {
+    max-width: 100%;
+    overflow: hidden;
+  }
+}
+.deck-cell {
+  position: relative;
+  min-width: 0;
+  height: 100%;
+}
+.deck-cell > .deck-button,
+.empty-cell {
+  width: 100%;
+  height: 100%;
+}
+.empty-cell {
+  background: #ffffff04;
+  border: 1px solid #ffffff0b;
+  border-radius: var(--button-radius, 8px);
+}
+.cell-actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+  z-index: 2;
+}
+.cell-actions button {
+  width: 30px;
+  height: 30px;
+  padding: 5px;
+  min-height: 0;
+  background: #10121eee;
+  border: 1px solid #ffffff30;
+  border-radius: 9px;
+  color: white;
+}
+.deck-grid.editing .deck-cell > .deck-button {
+  outline: 1px solid #a99aff60;
+  outline-offset: -1px;
+}
+.deck-button .button-icon svg {
+  width: var(--icon-size, 42px);
+  height: var(--icon-size, 42px);
+  max-width: 100%;
+}
+.deck-button.active {
+  outline: 3px solid var(--button-foreground);
+  outline-offset: -5px;
+}
+
+/* Master's compact tiles, with names below and transparent unassigned slots. */
+.deck-grid.master-layout {
+  min-height: 0;
+}
+.master-layout .deck-cell > .deck-button {
+  height: calc(100% - var(--deck-label-height, 28px));
+  padding: 12px;
+  border-radius: var(--button-radius, 20px);
+  box-shadow: 0 1px 3px #0003;
+}
+.master-layout .buttontext {
+  display: block;
+  margin-top: 6px;
+  color: #b3b3b3;
+  font-size: max(12px, calc(12px / var(--deck-scale, 1)));
+  text-align: center;
+  line-height: 1.2;
+  overflow: hidden;
+  white-space: normal;
+  max-height: max(34px, calc(28px / var(--deck-scale, 1)));
+  overflow-wrap: anywhere;
+}
+.master-layout .empty-cell {
+  background: transparent;
+  border: 0;
+}
+.master-layout .deck-button:hover {
+  transform: translateY(-1px);
+}
+.master-layout .deck-button .button-icon,
+.master-layout .deck-button img {
+  max-height: 65%;
+}
+
+.master-layout .metric-title,
+.master-layout .metric-value {
+  font-weight: 700;
+  font-size: 16px;
+}
+.master-layout progress {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+@media (pointer: coarse) {
+  .cell-actions button {
+    width: calc(45px / var(--deck-scale, 1));
+    height: calc(45px / var(--deck-scale, 1));
+  }
+}
+
+@media (pointer: coarse) {
+  .cell-actions {
+    display: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .master-layout .buttontext {
+    font-size: 12px;
+    line-height: 1.25;
+    max-height: 48px;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .master-layout .deck-button .button-icon svg {
+    max-width: 100%;
+  }
+  .master-layout .deck-button .button-icon {
+    max-width: 100%;
+  }
+}
+
+.master-layout .button-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(var(--icon-size, 42px), 100%);
+  height: min(var(--icon-size, 42px), 65%);
+}
+.master-layout .button-icon svg {
+  width: 100%;
+  height: 100%;
+}

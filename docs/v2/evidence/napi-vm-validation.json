@@ -1,0 +1,39 @@
+{
+  "baseline": "a005d6244a050f62afe5b08e212a6dd39270c5e3",
+  "napi_vm_revision": "881cc8f1cec262049b6d31fa499b0d601ba673c5",
+  "platform_verified": "linux-x86_64",
+  "rust": {
+    "format": "passed",
+    "clippy_all_targets_all_features_warnings_denied": "passed",
+    "all_target_tests_passed": 86,
+    "native_plugin_fixture": "passed: echo, cooperative timeout, crash isolation, integrity mismatch",
+    "native_plugin_without_node_bun_npm": "passed",
+    "portable_upgrade_rollback": "passed"
+  },
+  "frontend": {
+    "format": "passed",
+    "contracts": "passed",
+    "translations": "passed",
+    "components": "passed",
+    "typecheck": "passed",
+    "knip": "passed",
+    "unit_tests_passed": 51,
+    "browser_acceptance_passed": 58,
+    "build": "passed",
+    "bundle_js_bytes": 221392,
+    "bundle_gzip_bytes": 66415,
+    "budget": "passed"
+  },
+  "product": {
+    "empty_tool_path_smoke": "passed: debug, script, plugin, workflow, catalog, reload",
+    "redacted_diagnostics": "passed",
+    "portable_artifact_smoke": "passed",
+    "v2_only_guard": "passed"
+  },
+  "limits": [
+    "Windows and macOS checks configured in CI but not executed locally",
+    "Live OS/audio/power and real OBS/Spotify effects not exercised",
+    "Synchronous native effects serialize on one VM owner; parallel workflows overlap guest timers/promises",
+    "Trusted native plugins have ordinary OS privileges"
+  ]
+}

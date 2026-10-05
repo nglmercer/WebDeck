@@ -17,14 +17,20 @@ fn tempdir() -> std::io::Result<Temp> {
     std::fs::create_dir(&path)?;
     Ok(Temp(path))
 }
-use webdeck::adapters::update::{digest, install, install_with, stage};
+use webdeck::update::{digest, install, install_with, stage};
 fn archive(extra: &[(&str, &[u8])]) -> Vec<u8> {
     let mut zip = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
     for (name, bytes) in [
         ("WebDeck/WebDeck", b"new".as_slice()),
         ("WebDeck/WebDeck.exe", b"new".as_slice()),
-        ("WebDeck/webdeck/config_default.json", b"{}".as_slice()),
-        ("WebDeck/webdeck/version.json", b"{}".as_slice()),
+        (
+            "WebDeck/webdeck/config_default.json",
+            include_bytes!("../webdeck/config_default.json").as_slice(),
+        ),
+        (
+            "WebDeck/webdeck/version.json",
+            include_bytes!("../webdeck/version.json").as_slice(),
+        ),
         ("WebDeck/frontend/dist/index.html", b"new ui".as_slice()),
     ]
     .into_iter()
@@ -68,7 +74,8 @@ fn verified_upgrade_and_rollback_preserve_user_config_and_original_permissions()
         b"user data"
     );
     let result = std::process::Command::new(env!("CARGO_BIN_EXE_update"))
-        .arg("--rollback")
+        .arg("rollback")
+        .arg("--backup")
         .arg(&backup)
         .arg("--destination")
         .arg(&live)
@@ -176,9 +183,7 @@ fn ordinary_download_without_trusted_https_source_is_denied() {
         "file:///tmp/file",
         "https://evil.example/file",
     ] {
-        assert!(runtime
-            .block_on(webdeck::adapters::update::download(url))
-            .is_err());
+        assert!(runtime.block_on(webdeck::update::download(url)).is_err());
     }
 }
 
@@ -220,7 +225,8 @@ fn portable_archive_upgrade_and_real_updater_rollback_preserve_user_data() {
         "update"
     });
     let result = std::process::Command::new(updater)
-        .arg("--rollback")
+        .arg("rollback")
+        .arg("--backup")
         .arg(&backup)
         .arg("--destination")
         .arg(&live)
@@ -241,4 +247,35 @@ fn portable_archive_upgrade_and_real_updater_rollback_preserve_user_data() {
         std::fs::read(live.join(".config/user_uploads/image.png")).unwrap(),
         b"original upload"
     );
+}
+#[test]
+fn release_selection_uses_only_verified_newer_maintainer_v2_prereleases() {
+    let platform = webdeck::update::package_platform();
+    let url=format!("https://github.com/nglmercer/WebDeck/releases/download/v2.0.0-alpha.2/WebDeck-2.0.0-alpha.2-{platform}-{}-portable.zip",std::env::consts::ARCH);
+    let release = serde_json::json!({"draft":false,"prerelease":true,"tag_name":"v2.0.0-alpha.2","assets":[{"browser_download_url":url,"digest":format!("sha256:{}","a".repeat(64))}]});
+    assert_eq!(
+        webdeck::update::select_release(std::slice::from_ref(&release))
+            .unwrap()
+            .unwrap()
+            .version,
+        "2.0.0-alpha.2"
+    );
+    for (field, value) in [
+        ("draft", serde_json::json!(true)),
+        ("prerelease", serde_json::json!(false)),
+        ("tag_name", serde_json::json!("v1.9.0")),
+    ] {
+        let mut bad = release.clone();
+        bad[field] = value;
+        assert!(webdeck::update::select_release(&[bad]).unwrap().is_none());
+    }
+    for u in [
+        url.replace("nglmercer", "other"),
+        url.replace("alpha.2", "alpha.1"),
+        url.replace("-portable.zip", "-dev-portable.zip"),
+    ] {
+        let mut bad = release.clone();
+        bad["assets"][0]["browser_download_url"] = serde_json::json!(u);
+        assert!(webdeck::update::select_release(&[bad]).unwrap().is_none());
+    }
 }
