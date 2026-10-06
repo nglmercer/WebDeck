@@ -13,18 +13,19 @@
   let query = $state('');
   let category = $state('all');
   let highlighted = $state('');
-  $effect(() => {
-    if (!highlighted)
-      highlighted = matchingIcons('').includes(value) ? value : (matchingIcons('')[0] ?? '');
-  });
   const categories = ['all', 'media', 'devices', 'ui', 'folders', 'system'];
   let icons = $derived(
     matchingIcons(query).filter((name) => category === 'all' || iconCategory(name) === category),
   );
+  $effect(() => {
+    if (!icons.includes(highlighted))
+      highlighted = icons.includes(value) ? value : (icons[0] ?? '');
+  });
+  let grid: HTMLDivElement;
   function onKeydown(event: KeyboardEvent) {
     if (event.key === 'Enter') {
       event.preventDefault();
-      if (highlighted) {
+      if (icons.includes(highlighted)) {
         select(highlighted);
         close();
       }
@@ -37,14 +38,22 @@
       if (!icons.length) return;
       event.preventDefault();
       const index = Math.max(0, icons.indexOf(highlighted));
-      const delta = event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : -1;
+      const columns = getComputedStyle(grid).gridTemplateColumns.split(' ').length;
+      const delta =
+        event.key === 'ArrowDown'
+          ? columns
+          : event.key === 'ArrowUp'
+            ? -columns
+            : event.key === 'ArrowRight'
+              ? 1
+              : -1;
       highlighted = icons[(index + delta + icons.length) % icons.length]!;
       document.getElementById(`full-icon-${highlighted}`)?.focus();
     }
   }
 </script>
 
-<Modal label={t('ui_select_icon')} {close}>
+<Modal label={t('ui_select_icon')} {close} width="680px">
   <div class="picker">
     <header>
       <h2>{t('ui_select_icon')}</h2>
@@ -59,24 +68,17 @@
             aria-pressed={category === item}
             onclick={() => {
               category = item;
-              highlighted = icons[0] ?? '';
             }}>{t(`ui_icon_category_${item}`)}</button
           >{/each}
       </nav>
-      <label
-        >{t('ui_search_icons')}<input
-          type="search"
-          bind:value={query}
-          oninput={() => (highlighted = icons[0] ?? '')}
-          onkeydown={onKeydown}
-        /></label
-      >
+      <label>{t('ui_search_icons')}<input type="search" bind:value={query} /></label>
     </div>
     <div
+      bind:this={grid}
       class="icons"
       role="listbox"
       aria-label={t('ui_select_icon')}
-      tabindex="0"
+      tabindex={icons.length ? -1 : 0}
       onkeydown={onKeydown}
     >
       {#each icons as icon}<button
@@ -92,12 +94,13 @@
             close();
           }}><Icon name={icon} /><span>{icon}</span></button
         >{/each}
+      {#if !icons.length}<p class="empty" role="status">{t('ui_no_matching_icons')}</p>{/if}
     </div>
     <footer>
       <button type="button" onclick={close}>{t('ui_cancel')}</button><button
         type="button"
         class="primary"
-        disabled={!highlighted}
+        disabled={!icons.includes(highlighted)}
         onclick={() => {
           select(highlighted);
           close();
@@ -109,7 +112,8 @@
 
 <style>
   .picker {
-    min-width: min(620px, 76vw);
+    width: 100%;
+    min-width: 0;
   }
   header,
   footer {
@@ -124,17 +128,18 @@
   }
   .tools {
     display: grid;
-    grid-template-columns: 150px 1fr;
+    grid-template-columns: 1fr;
     gap: 12px;
     margin: 14px 0;
   }
   nav {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     gap: 4px;
   }
   nav button {
     text-align: left;
+    padding: 8px 12px;
   }
   nav [aria-pressed='true'] {
     background: var(--accent-surface);
@@ -144,6 +149,9 @@
     grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
     gap: 8px;
     max-height: 45dvh;
+    min-height: 120px;
+    align-content: start;
+    padding: 4px;
     overflow: auto;
   }
   .icons button {
@@ -151,7 +159,9 @@
     flex-direction: column;
     align-items: center;
     gap: 5px;
-    min-height: 68px;
+    min-height: 80px;
+    min-width: 0;
+    padding: 12px 6px;
   }
   .icons [aria-selected='true'] {
     border-color: var(--accent);
@@ -159,6 +169,17 @@
   }
   .icons span {
     font-size: 0.72rem;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tools label {
+    margin: 0;
+  }
+  .empty {
+    grid-column: 1 / -1;
+    text-align: center;
   }
   footer {
     justify-content: flex-end;
@@ -172,8 +193,7 @@
       grid-template-columns: 1fr;
     }
     nav {
-      flex-direction: row;
-      overflow: auto;
+      flex-wrap: wrap;
     }
   }
 </style>

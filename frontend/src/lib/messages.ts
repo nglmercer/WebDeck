@@ -10,6 +10,11 @@ export const messages = {
   ui_delete_folder_help:
     'Delete {label} and its contents from the draft? Save changes to make the deletion permanent.',
 
+  ui_image_source: 'Image source',
+  ui_local_file: 'Local file',
+  ui_choose_image: 'Choose an image',
+  ui_upload_image_help: 'Select an image from your device',
+  ui_image_library_empty: 'Uploaded and imported images will appear here.',
   ui_image_url: 'Image URL',
   ui_live_image: 'Keep URL for manual refresh',
   ui_import_image_url: 'Import image URL',
@@ -26,6 +31,7 @@ export const messages = {
   ui_search_icons: 'Search icons',
   ui_browse_all_icons: 'Browse all icons…',
   ui_select_icon: 'Select icon',
+  ui_no_matching_icons: 'No icons match your search.',
   ui_select: 'Select',
   ui_icon_categories: 'Icon categories',
   ui_icon_category_all: 'All',

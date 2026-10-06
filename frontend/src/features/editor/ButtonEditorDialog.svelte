@@ -28,6 +28,7 @@
   import { appearanceOf, setAppearance as writeAppearance, tileColors } from './appearance';
   import { contract } from '../../lib/schema';
   import IconField from './IconField.svelte';
+  import ImageSourceFields from './ImageSourceFields.svelte';
   let {
     button = $bindable(),
     buttonFolder = $bindable(),
@@ -170,15 +171,21 @@
     }
   }
   async function image(e: Event) {
-    const f = (e.target as HTMLInputElement).files?.[0];
-    if (f && button) {
-      const candidate = button;
-      const s = await upload(f);
-      if (!destroyed && button === candidate && s.type === 'asset') {
-        button.icon = `asset:${s.id}`;
-        imageIds = [s.id, ...imageIds.filter((id) => id !== s.id)];
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file || imageBusy) return;
+    const candidate = button;
+    imageBusy = true;
+    try {
+      const result = await upload(file);
+      if (!destroyed && button === candidate && result.type === 'asset') {
+        button.icon = `asset:${result.id}`;
+        imageIds = [result.id, ...imageIds.filter((id) => id !== result.id)];
         imagePage = 0;
       }
+    } finally {
+      input.value = '';
+      if (!destroyed) imageBusy = false;
     }
   }
   async function importImage(source: ImageImport) {
@@ -343,43 +350,28 @@
         </div>
         <details class="custom-images">
           <summary>{t('ui_custom_images')}</summary>
-          <label
-            >{t('ui_upload_image')}<input
-              type="file"
-              accept="image/*"
-              onchange={(e) => attempt(() => image(e))}
-            /></label
-          >
-          <label
-            >{t('ui_image_url')}<input type="text" inputmode="url" bind:value={imageUrl} /></label
-          >
-          <label><input type="checkbox" bind:checked={liveImage} />{t('ui_live_image')}</label>
-          <button
-            type="button"
-            disabled={imageBusy || !imageUrl.trim()}
-            onclick={() =>
+          <ImageSourceFields
+            bind:imageUrl
+            bind:imagePath
+            bind:liveImage
+            busy={imageBusy}
+            upload={(event) => attempt(() => image(event))}
+            importUrl={() =>
               attempt(() => importImage({ type: 'url', url: imageUrl.trim(), live: liveImage }))}
-            >{t('ui_import_image_url')}</button
-          >
-          <label>{t('ui_local_image_path')}<input bind:value={imagePath} /></label>
-          <button
-            type="button"
-            disabled={imageBusy || !imagePath.trim()}
-            onclick={() => attempt(() => importImage({ type: 'local', path: imagePath.trim() }))}
-            >{t('ui_import_local_image')}</button
-          >
-          <button type="button" disabled={imageBusy} onclick={() => attempt(chooseLocalImage)}
-            >{t('ui_choose_local_image')}</button
-          >
-          <p>{t('ui_image_import_help')}</p>
+            importLocal={() =>
+              attempt(() => importImage({ type: 'local', path: imagePath.trim() }))}
+            chooseLocal={() => attempt(chooseLocalImage)}
+          />
           {#if button.icon.startsWith('asset:') && liveIds.includes(button.icon.slice(6))}
             <button type="button" disabled={imageBusy} onclick={() => attempt(refreshImage)}
               >{t('ui_refresh_live_image')}</button
             >
             <p>{t('ui_refresh_live_image_help')}</p>
           {/if}
-          {#if imageBusy}<p role="status">{t('ui_importing_image')}</p>{/if}
-          <h3>{t('ui_uploaded_icons')}</h3>
+          <h3 class="library-title">{t('ui_uploaded_icons')}<span>{imageIds.length}</span></h3>
+          {#if !imageIds.length && !libraryError}<p class="library-empty">
+              {t('ui_image_library_empty')}
+            </p>{/if}
           {#if libraryError}<p role="status">{t(libraryError)}</p>{/if}
           <div class="icon-picker">
             {#each pageIds as id}<button
@@ -599,17 +591,44 @@
 <style>
   .icon-picker {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
     gap: 8px;
     margin: 12px 0;
   }
   .icon-picker button {
     display: flex;
     justify-content: center;
+    align-items: center;
+    min-height: 60px;
+    padding: 8px;
   }
   .icon-picker [aria-pressed='true'] {
     border-color: var(--accent);
     background: var(--accent-surface);
+  }
+  .icon-picker img {
+    object-fit: contain;
+  }
+  .library-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 18px 0 8px;
+    font-size: 0.85rem;
+  }
+  .library-title span {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: normal;
+  }
+  .library-empty {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    padding: 16px;
+    margin: 0;
+    text-align: center;
+    border: 1px dashed var(--border-subtle);
+    border-radius: var(--radius-control);
   }
   .editor-tabs {
     display: flex;
@@ -621,7 +640,7 @@
   }
   .editor-tabs [aria-selected='true'] {
     background: var(--accent-surface);
-    color: white;
+    color: var(--text);
   }
   .overlay {
     position: fixed;
@@ -670,6 +689,9 @@
     align-items: end;
     gap: 10px;
   }
+  .basics-grid label {
+    margin: 0;
+  }
   .color-input {
     height: 42px;
     padding: 4px;
@@ -683,10 +705,7 @@
     cursor: pointer;
     color: var(--text-muted);
   }
-  .custom-images[open] {
-    display: grid;
-    gap: 8px;
-  }
+
   .actions {
     display: flex;
     align-items: center;

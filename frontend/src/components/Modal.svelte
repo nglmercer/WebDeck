@@ -1,13 +1,18 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { modal } from '../lib/modal';
-  let { label, close, children }: { label: string; close: () => void; children: Snippet } =
-    $props();
+  let {
+    label,
+    close,
+    children,
+    width = '340px',
+  }: { label: string; close: () => void; children: Snippet; width?: string } = $props();
 </script>
 
 <dialog
   use:modal
   class="deck-menu"
+  style:--modal-width={width}
   aria-label={label}
   oncancel={(event) => {
     event.preventDefault();
@@ -22,7 +27,7 @@
     position: fixed;
     inset: 0;
     margin: auto;
-    width: min(340px, 100%);
+    width: min(var(--modal-width), calc(100% - 32px));
     height: max-content;
     max-height: 90dvh;
     overflow: auto;

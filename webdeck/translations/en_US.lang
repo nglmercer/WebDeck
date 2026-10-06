@@ -769,6 +769,7 @@ ui_label=Label
 ui_icon=Icon
 ui_browse_all_icons=Browse all icons…
 ui_select_icon=Select icon
+ui_no_matching_icons=No icons match your search.
 ui_select=Select
 ui_icon_categories=Icon categories
 ui_icon_category_all=All
@@ -1155,3 +1156,9 @@ ui_folder_settings=Folder settings
 ui_folder_actions=Folder actions
 ui_deck_actions=Deck actions
 ui_delete_folder_help=Delete {label} and its contents from the draft? Save changes to make the deletion permanent.
+
+ui_image_source=Image source
+ui_local_file=Local file
+ui_choose_image=Choose an image
+ui_upload_image_help=Select an image from your device
+ui_image_library_empty=Uploaded and imported images will appear here.

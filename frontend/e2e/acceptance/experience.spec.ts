@@ -71,3 +71,56 @@ test('touch decks retain readable labels, reachable cells and a fixed primary ed
   expect(labels.filter(label => label.clipped)).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test('icon picker fits narrow screens and clears selection for empty searches', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 740 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Folder 1', exact: true }).waitFor();
+  await page.keyboard.press('q');
+  await page.getByRole('button', { name: 'Edit Folder 1', exact: true }).click();
+  const trigger = page.getByRole('button', { name: 'Icon', exact: true });
+  await trigger.click();
+  const picker = page.getByRole('dialog', { name: 'Select icon', exact: true });
+  await expect(picker).toBeVisible();
+  for (const width of [375, 1280]) {
+    await page.setViewportSize({ width, height: 740 });
+    expect(await picker.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+    const box = await picker.boundingBox();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+  }
+  await picker.getByLabel('Search icons', { exact: true }).fill('zzzz-no-such-icon');
+  await expect(picker.getByRole('status')).toHaveText('No icons match your search.');
+  await expect(picker.getByRole('button', { name: 'Select', exact: true })).toBeDisabled();
+  await picker.getByLabel('Search icons', { exact: true }).fill('folder');
+  await picker.getByRole('option', { name: 'folder', exact: true }).click();
+  await picker.getByRole('button', { name: 'Select', exact: true }).click();
+  await expect(picker).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await trigger.click();
+  await page.keyboard.press('Escape');
+  await expect(picker).toHaveCount(0);
+  await expect(page.getByRole('dialog', { name: 'Edit button', exact: true })).toBeVisible();
+});
+
+test('custom image sources preserve drafts when switching methods on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Folder 1', exact: true }).waitFor();
+  await page.keyboard.press('q');
+  await page.getByRole('button', { name: 'Edit Folder 1', exact: true }).click();
+  await page.getByText('Use a custom image', { exact: true }).click();
+  const editor = page.getByRole('dialog', { name: 'Edit button', exact: true });
+  const sources = editor.getByRole('group', { name: 'Image source', exact: true });
+  await expect(editor.getByRole('button', { name: 'Choose an image' })).toBeVisible();
+  await sources.getByRole('button', { name: 'Image URL', exact: true }).click();
+  await expect(editor.getByRole('button', { name: 'Import image URL', exact: true })).toBeDisabled();
+  await editor.getByLabel('Image URL', { exact: true }).fill('https://example.com/test.png');
+  await sources.getByRole('button', { name: 'Local file', exact: true }).click();
+  await expect(editor.getByRole('button', { name: 'Choose local image', exact: true })).toBeVisible();
+  await expect(editor.getByRole('button', { name: 'Import local image', exact: true })).toBeDisabled();
+  await sources.getByRole('button', { name: 'Image URL', exact: true }).click();
+  await expect(editor.getByLabel('Image URL', { exact: true })).toHaveValue('https://example.com/test.png');
+  await expect(editor.getByRole('button', { name: 'Import image URL', exact: true })).toBeEnabled();
+  expect(await editor.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+});
