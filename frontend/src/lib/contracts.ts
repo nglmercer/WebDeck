@@ -61,3 +61,5 @@ export type AutomationMetadata = { integrations: Array<IntegrationDefinition>; b
 export type IntegrationHealth = { state: IntegrationState; checked_at: number };
 export type ImageAssetList = { api_version: 2; images: Array<string>; live_images?: Array<string> };
 export type ImageImport = { type: "url"; url: string; live?: boolean } | { type: "local"; path: string };
+export type NetworkSettings = { enabled: boolean; address: string; port: number };
+export type NetworkStatus = { api_version: 2; settings: NetworkSettings; suggested_address: string; url: string };

@@ -8,6 +8,7 @@
   import AppearanceSettings from './AppearanceSettings.svelte';
   import IntegrationSettings from './IntegrationSettings.svelte';
   import DeviceSettings from './DeviceSettings.svelte';
+  import NetworkSettings from './NetworkSettings.svelte';
   import RuntimeSettings from './RuntimeSettings.svelte';
   import BackupSettings from './BackupSettings.svelte';
   let {
@@ -142,6 +143,7 @@
     id="settings-connection"
     aria-labelledby="tab-connection"
   >
+    <NetworkSettings {attempt} />
     <h2 id="connection-title">{t('ui_advanced_connection')}</h2>
     <p aria-label={t('ui_realtime_connection')}>
       {connected ? t('ui_connected') : t('ui_offline')}

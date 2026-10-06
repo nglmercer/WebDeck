@@ -126,6 +126,14 @@ pub(super) async fn policy_identity(
     credential: Option<String>,
     required: bool,
 ) -> Result<Option<Identity>> {
+    if !peer.is_loopback()
+        && app
+            .network
+            .as_ref()
+            .is_some_and(|network| !network.enabled())
+    {
+        return Err(Error::new(ErrorCode::Forbidden, "Phone access is disabled"));
+    }
     let owner = app.clone();
     blocking(app.authorization.clone(), move || {
         if !network_allowed(

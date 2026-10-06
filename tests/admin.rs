@@ -209,6 +209,7 @@ fn spawn() -> TestServer {
             let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
             let port = listener.local_addr().unwrap().port();
             let app = App {
+                network: None,
                 integration_health: Default::default(),
                 io: Arc::new(tokio::sync::Semaphore::new(4)),
                 queries: Arc::new(tokio::sync::Semaphore::new(2)),

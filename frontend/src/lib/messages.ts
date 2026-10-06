@@ -490,4 +490,26 @@ export const messages = {
   ui_list_maximum: 'This list allows at most {count} items.',
   ui_loading_failed: 'WebDeck could not load',
   ui_loading_failed_help: 'Check the server connection and reload to try again.',
+  ui_phone_access: 'Phone access',
+  ui_phone_access_help: 'Connect a phone on the same Wi-Fi or Ethernet network.',
+  ui_enable_phone_access: 'Allow phones on my local network',
+  ui_computer_address: 'Computer network address',
+  ui_use_detected_address: 'Use detected address',
+  ui_phone_port: 'Phone connection port',
+  ui_applying: 'Applying…',
+  ui_apply_phone_access: 'Apply phone access',
+  ui_refresh_connection: 'Refresh address and QR',
+  ui_phone_applies_immediately:
+    'Applies immediately and stays saved after restarting. Your local settings page stays connected.',
+  ui_phone_access_enabled: 'Phone access is enabled. Scan this QR with your phone.',
+  ui_phone_access_disabled: 'Phone access is off. Only this computer can use the deck.',
+  ui_phone_qr_alt: 'QR code to open the deck on your phone',
+  ui_phone_qr_failed: 'Cannot load phone QR code. Refresh to try again.',
+  ui_phone_pair_step:
+    'On this computer, open Devices and approve your phone. OBS buttons need the Network permission.',
+  ui_phone_scan_step: 'Scan the QR or open the address above on your phone.',
+  ui_phone_token_step:
+    'Enter the pairing token on your phone. The QR contains only the deck address.',
+  ui_phone_troubleshooting:
+    'If the page does not open, allow this TCP port in your computer firewall and check that your Wi-Fi allows devices to communicate. Use a trusted local network.',
 } as const;

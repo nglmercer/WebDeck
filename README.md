@@ -38,6 +38,50 @@ The normal view is just the button grid. Usage readings live in buttons, folders
 open as pages, and settings/edit shortcuts can be removed like any other button.
 Right-click or hold the deck for controls, `Q` to edit, or `Ctrl+,` for settings.
 
+## Phone access and hot reload
+
+Open **Settings → Connection → Phone access** on the computer. Enable
+**Allow phones on my local network**, use the detected computer address, and click
+**Apply phone access**. The phone listener starts immediately, the page shows its
+address and QR, and the setting stays saved after restarting. No CLI arguments
+are needed. The local settings connection stays open while you change the phone
+address or port. **Refresh address and QR** checks the current connection again;
+**Use detected address** fills the detected IP into the form before applying it.
+The tray's **Show QR code** follows the currently applied phone address.
+
+Open **Settings → Devices** on the computer, approve your phone with the capabilities
+its buttons need (OBS uses `network`), then scan the QR and enter the token on the
+phone. The QR contains the deck address only. If the page cannot open, check that
+your firewall allows the chosen TCP port and that the router does not isolate
+Wi-Fi clients. Use a trusted local network. Disable phone access and apply to
+stop the phone listener and reject further remote actions.
+
+Phone connection settings are saved separately in `<config-dir>/network.v2.json`;
+deck backup imports do not change network exposure. After an IP change, choose
+the newly detected address and apply it. A failed bind preserves the previous
+working listener. Advanced launch flags `--lan` / `--host 0.0.0.0` and `--qr-url`
+remain available, but the browser controls are the normal setup path.
+
+For frontend development with hot reload, keep the Rust server running locally
+and run this from the repository root:
+
+```sh
+npm run dev --prefix frontend -- --host 0.0.0.0
+```
+
+Open `http://YOUR_LAN_IP:5173/` on the phone (use the port printed by Vite).
+Vite proxies API and Socket.IO requests to the Rust server on port 5000 and reloads
+frontend source changes automatically. Pair the phone separately on this origin.
+To show its QR without restarting the server:
+
+```sh
+./target/release/webdeck-qr --text http://YOUR_LAN_IP:5173/
+```
+
+Frontend hot reload is for source development. To pick up deck changes made in
+another browser, use the deck's Reload control. Rust changes require rebuilding
+and restarting the server.
+
 ## Configuration and backups
 
 The default data directory is `.config`; use `--config-dir PATH` or
@@ -105,6 +149,15 @@ See [implementation and validation status](docs/v2/STATUS.md) for platform gaps 
 
 The v2 deck adapts its visual orientation to portrait screens without rewriting saved cell positions. Q opens a fixed editing dock: tiles and labels keep their coordinates. Button settings are organized into Content, Appearance and Action tabs; host settings and the controls dialog also support keyboard-accessible tabs. Built-in icons use `icon:folder`, `icon:settings`, `icon:play`, and other SVG names available in the button icon picker. Uploaded `asset:` images remain supported.
 
-The frontend JavaScript budget is 235 KB uncompressed / 71 KB gzip. This includes the inline SVG icon library, icon chooser and accessible tab panels; the demo no longer requires raster files for its built-in icons.
+The frontend JavaScript budget is 265 KB uncompressed / 82 KB gzip. This includes the inline SVG icon library, icon chooser and accessible tab panels; the demo no longer requires raster files for its built-in icons.
 
 Start with [the v2 quickstart](docs/quickstart-v2.md). Preliminary native installers and remaining hardware checks are described in [release preparation](docs/v2/preliminary-release.md).
+
+## Documentation guide
+
+- [Quickstart](docs/quickstart-v2.md): first launch and basic deck editing.
+- [CLI reference](docs/cli.md): manage the running deck, buttons and integrations.
+- [Automation](docs/automation.md): generate buttons from recipes and use plugin actions.
+- [Build and release](docs/build-release.md): build and package the application.
+- [Contributing](CONTRIBUTING.md): development workflow and validation.
+- [v2 documentation](docs/v2/README.md): architecture, migration and implementation status.

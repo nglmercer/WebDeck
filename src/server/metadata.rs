@@ -22,10 +22,16 @@ pub(super) async fn translations(
 
 fn translation_snapshot(a: App) -> Result<Value> {
     let language = a.config.last_valid().config.settings.language;
-    let root = std::path::Path::new("webdeck/translations");
+    #[cfg(not(webdeck_embedded_frontend))]
+    let root = frontend::disk_root("webdeck/translations");
+    #[cfg(webdeck_embedded_frontend)]
+    let root = std::path::PathBuf::from("webdeck/translations");
     let mut result = std::collections::BTreeMap::new();
     for name in ["en_US", language.as_str()] {
-        if let Ok(text) = std::fs::read_to_string(root.join(format!("{name}.lang"))) {
+        let text = std::fs::read_to_string(root.join(format!("{name}.lang")));
+        #[cfg(webdeck_embedded_frontend)]
+        let text = text.or_else(|error| frontend::translation(name).ok_or(error));
+        if let Ok(text) = text {
             for line in text.lines() {
                 if line.starts_with('#') || line.starts_with("//") {
                     continue;
@@ -36,20 +42,32 @@ fn translation_snapshot(a: App) -> Result<Value> {
             }
         }
     }
-    let languages = std::fs::read_dir(root)
-        .map_err(|_| Error::execution())?
-        .flatten()
-        .filter(|e| {
-            e.file_type().is_ok_and(|t| t.is_file())
-                && e.path().extension().is_some_and(|ext| ext == "lang")
-        })
-        .filter_map(|e| {
-            e.path()
-                .file_stem()
-                .and_then(|s| s.to_str())
-                .map(str::to_owned)
-        })
-        .collect::<Vec<_>>();
+    let mut languages = std::collections::BTreeSet::new();
+    #[cfg(webdeck_embedded_frontend)]
+    languages.extend(
+        frontend::EMBEDDED_LANGUAGES
+            .iter()
+            .map(|name| name.to_string()),
+    );
+    if let Ok(entries) = std::fs::read_dir(root) {
+        languages.extend(
+            entries
+                .flatten()
+                .filter(|entry| {
+                    entry.file_type().is_ok_and(|kind| kind.is_file())
+                        && entry.path().extension().is_some_and(|ext| ext == "lang")
+                })
+                .filter_map(|entry| {
+                    entry
+                        .path()
+                        .file_stem()
+                        .and_then(|name| name.to_str())
+                        .map(str::to_owned)
+                }),
+        );
+    } else if languages.is_empty() {
+        return Err(Error::execution());
+    }
     Ok(json!({"api_version":2,"translations":result,"languages":languages}))
 }
 

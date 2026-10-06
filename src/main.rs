@@ -14,6 +14,12 @@ use webdeck::{
 struct Args {
     #[arg(short = 'H', long, default_value = "127.0.0.1")]
     host: std::net::IpAddr,
+    /// Listen on all IPv4 interfaces so paired devices can connect over LAN.
+    #[arg(long, conflicts_with = "host")]
+    lan: bool,
+    /// Phone-facing URL for the tray QR code (for example http://192.168.1.10:5000/).
+    #[arg(long)]
+    qr_url: Option<reqwest::Url>,
     #[arg(short = 'p', long, default_value_t = 5000)]
     port: u16,
     #[arg(long)]
@@ -42,6 +48,11 @@ async fn start() -> Result<()> {
         .unwrap_or_else(|| PathBuf::from(".config"));
     let config = Arc::new(ConfigStore::open(dir.join("config.json"))?);
     let sessions = Arc::new(Sessions::open(dir.join("devices.v2.json"))?);
+    let network = Arc::new(webdeck::network::Network::open(
+        dir.join("network.v2.json"),
+        args.port,
+        args.lan || !args.host.is_loopback(),
+    )?);
     let assets = Assets { root: dir };
     let shutdown = Arc::new(tokio::sync::Notify::new());
     let native = Arc::new(Platform::new(
@@ -73,6 +84,7 @@ async fn start() -> Result<()> {
     let adapter: Arc<dyn Adapter> = Arc::new(VmAdapter::new(runtime));
     let executor = Arc::new(Executor::new(adapter, 16));
     let app = App {
+        network: Some(network.clone()),
         integration_health: Default::default(),
         io: Arc::new(tokio::sync::Semaphore::new(4)),
         queries: Arc::new(tokio::sync::Semaphore::new(2)),
@@ -84,24 +96,65 @@ async fn start() -> Result<()> {
         executor: executor.clone(),
         assets,
     };
-    let addr = SocketAddr::new(args.host, args.port);
+    let bind_host = if args.lan {
+        std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED)
+    } else {
+        args.host
+    };
+    if let Some(url) = &args.qr_url {
+        if !matches!(url.scheme(), "http" | "https")
+            || url.host_str().is_none()
+            || !url.username().is_empty()
+            || url.password().is_some()
+            || url.query().is_some()
+            || url.fragment().is_some()
+        {
+            return Err(webdeck::domain::Error::new(
+                webdeck::contracts::ErrorCode::ExecutionFailed,
+                "QR URL must be an HTTP(S) address without credentials, query or fragment",
+            ));
+        }
+    }
+    let addr = SocketAddr::new(bind_host, args.port);
     let listener = tokio::net::TcpListener::bind(addr).await.map_err(|_| {
         webdeck::domain::Error::new(
             webdeck::contracts::ErrorCode::ExecutionFailed,
             "Cannot bind server; another instance may be running",
         )
     })?;
-    let local = if args.host.is_unspecified() {
+    let local = if bind_host.is_unspecified() {
         SocketAddr::new("127.0.0.1".parse().expect("loopback"), args.port)
     } else {
         addr
     };
     let url = format!("http://{local}/");
     println!("WebDeck {} listening at {url}", env!("CARGO_PKG_VERSION"));
+    let qr_url = args
+        .qr_url
+        .map(|url| url.to_string())
+        .unwrap_or_else(|| url.clone());
+    if bind_host.is_unspecified() {
+        println!(
+            "LAN access enabled on port {}. Pair your phone in local Settings → Devices.",
+            args.port
+        );
+        if qr_url == url {
+            println!(
+                "Use --qr-url http://YOUR_LAN_IP:{}/ for a phone-accessible QR code.",
+                args.port
+            );
+        }
+    }
+    let saved_network = network.settings().await;
+    if let Err(error) = network.apply(app.clone(), saved_network).await {
+        eprintln!("Phone access: {error}. Open local Settings → Connection to fix it.");
+    }
     if !args.no_tray {
         let notify = shutdown.clone();
+        let phone_network = network.clone();
+        let handle = tokio::runtime::Handle::current();
         std::thread::spawn(move || {
-            if let Err(e) = webdeck::desktop::run(url, notify) {
+            if let Err(e) = webdeck::desktop::run(url, qr_url, phone_network, handle, notify) {
                 eprintln!("Tray: {e}");
             }
         });
@@ -116,6 +169,7 @@ async fn start() -> Result<()> {
     })
     .await
     .map_err(|_| webdeck::domain::Error::execution())?;
+    network.stop().await;
     executor.drain().await;
     Ok(())
 }

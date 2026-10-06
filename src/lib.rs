@@ -6,6 +6,7 @@ pub mod desktop;
 pub mod domain;
 pub mod executor;
 pub mod image_assets;
+pub mod network;
 pub mod qr;
 pub mod runtime;
 pub mod server;

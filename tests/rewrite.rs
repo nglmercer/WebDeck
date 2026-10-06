@@ -38,6 +38,7 @@ impl Adapter for NoEffects {
 }
 fn app(t: &Temp) -> App {
     App {
+        network: None,
         integration_health: Default::default(),
         io: Arc::new(tokio::sync::Semaphore::new(4)),
         queries: Arc::new(tokio::sync::Semaphore::new(2)),
@@ -1001,5 +1002,220 @@ fn canonical_validation_matches_shared_frontend_corpus() {
             "{}",
             fixture["label"]
         );
+    }
+}
+
+#[tokio::test]
+async fn phone_access_is_local_only_persistent_and_revokes_remote_requests() {
+    use webdeck::network::{suggested_address, Network};
+    let t = Temp::new();
+    let mut a = app(&t);
+    let network = Arc::new(Network::open(t.0.join("network.v2.json"), 5000, true).unwrap());
+    a.network = Some(network.clone());
+    let grant = a
+        .sessions
+        .approve(DeviceRequest {
+            name: "Phone".into(),
+            capabilities: vec![Capability::Read, Capability::Settings],
+            ttl_seconds: 60,
+        })
+        .unwrap();
+    let address = suggested_address();
+    assert!(!address.is_empty());
+    let settings = json!({"enabled":true,"address":address,"port":5000});
+    assert_eq!(
+        call(
+            &a,
+            "PUT",
+            "/api/v2/network",
+            settings.clone(),
+            false,
+            Some(&grant.token),
+            "localhost:5000"
+        )
+        .await
+        .status(),
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        call(
+            &a,
+            "PUT",
+            "/api/v2/network",
+            settings.clone(),
+            false,
+            None,
+            "localhost:5000"
+        )
+        .await
+        .status(),
+        StatusCode::OK
+    );
+    assert!(network.enabled());
+    assert_eq!(
+        call(
+            &a,
+            "GET",
+            "/api/v2/network",
+            json!({}),
+            true,
+            Some(&grant.token),
+            "192.168.1.1:5000"
+        )
+        .await
+        .status(),
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        call(
+            &a,
+            "GET",
+            "/api/v2/boot",
+            json!({}),
+            true,
+            Some(&grant.token),
+            "192.168.1.1:5000"
+        )
+        .await
+        .status(),
+        StatusCode::OK
+    );
+    let qr = call(
+        &a,
+        "GET",
+        "/api/v2/network/qr",
+        json!({}),
+        false,
+        None,
+        "localhost:5000",
+    )
+    .await;
+    assert_eq!(qr.status(), StatusCode::OK);
+    assert_eq!(qr.headers()["content-type"], "image/png");
+    let reloaded = Network::open(t.0.join("network.v2.json"), 5000, false).unwrap();
+    assert!(reloaded.settings().await.enabled);
+    assert_eq!(
+        call(
+            &a,
+            "PUT",
+            "/api/v2/network",
+            json!({"enabled":true,"address":"0.0.0.0","port":5000}),
+            false,
+            None,
+            "localhost:5000"
+        )
+        .await
+        .status(),
+        StatusCode::BAD_REQUEST
+    );
+    assert!(network.enabled());
+    assert_eq!(
+        call(
+            &a,
+            "PUT",
+            "/api/v2/network",
+            json!({"enabled":false,"address":address,"port":5000}),
+            false,
+            None,
+            "localhost:5000"
+        )
+        .await
+        .status(),
+        StatusCode::OK
+    );
+    assert!(!network.enabled());
+    assert_eq!(
+        call(
+            &a,
+            "GET",
+            "/api/v2/boot",
+            json!({}),
+            true,
+            Some(&grant.token),
+            "192.168.1.1:5000"
+        )
+        .await
+        .status(),
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        call(
+            &a,
+            "GET",
+            "/api/v2/network/qr",
+            json!({}),
+            false,
+            None,
+            "localhost:5000"
+        )
+        .await
+        .status(),
+        StatusCode::BAD_REQUEST
+    );
+}
+
+#[tokio::test]
+async fn phone_listener_binds_immediately_and_failed_changes_preserve_it() {
+    use webdeck::network::{suggested_address, Network};
+    let t = Temp::new();
+    let mut a = app(&t);
+    let address: std::net::IpAddr = suggested_address().parse().unwrap();
+    let reservation = std::net::TcpListener::bind((address, 0)).unwrap();
+    let port = reservation.local_addr().unwrap().port();
+    drop(reservation);
+    let network = Arc::new(Network::open(t.0.join("network.v2.json"), 5000, false).unwrap());
+    a.network = Some(network.clone());
+    let settings = NetworkSettings {
+        enabled: true,
+        address: address.to_string(),
+        port: port.into(),
+    };
+    network.apply(a.clone(), settings.clone()).await.unwrap();
+    let client = reqwest::Client::builder().no_proxy().build().unwrap();
+    let url = network.status().await.url;
+    assert_eq!(
+        client
+            .get(format!("{url}api/v2/boot"))
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::UNAUTHORIZED
+    );
+    let grant = a
+        .sessions
+        .approve(DeviceRequest {
+            name: "Phone".into(),
+            capabilities: vec![Capability::Read],
+            ttl_seconds: 60,
+        })
+        .unwrap();
+    assert_eq!(
+        client
+            .get(format!("{url}api/v2/boot"))
+            .bearer_auth(&grant.token)
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::OK
+    );
+    let occupied = std::net::TcpListener::bind((address, 0)).unwrap();
+    let mut changed = settings.clone();
+    changed.port = occupied.local_addr().unwrap().port().into();
+    assert!(network.apply(a.clone(), changed).await.is_err());
+    assert_eq!(network.status().await.url, url);
+    assert!(network.enabled());
+    let mut disabled = settings;
+    disabled.enabled = false;
+    network.apply(a, disabled).await.unwrap();
+    assert!(!network.enabled());
+    if let Ok(response) = client
+        .get(format!("{url}api/v2/boot"))
+        .bearer_auth(&grant.token)
+        .send()
+        .await
+    {
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
     }
 }

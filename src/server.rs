@@ -1,4 +1,6 @@
 mod auth;
+mod frontend;
+mod network;
 use auth::*;
 mod configuration;
 use configuration::*;
@@ -33,9 +35,9 @@ use std::{
     net::{IpAddr, SocketAddr},
     sync::Arc,
 };
-use tower_http::services::ServeDir;
 #[derive(Clone)]
 pub struct App {
+    pub network: Option<Arc<crate::network::Network>>,
     pub integration_health: Arc<std::sync::Mutex<integrations::IntegrationHealthCache>>,
     pub port: u16,
     pub plugins: Arc<Vec<PluginManifest>>,
@@ -84,9 +86,11 @@ impl IntoResponse for Error {
 pub fn router(a: App) -> Router {
     let layer = realtime::layer(a.clone());
     Router::new()
-        .route("/", get(home))
+        .merge(frontend::routes())
         .route("/api/v2/boot", get(boot))
         .route("/api/v2/version", get(version))
+        .route("/api/v2/network", get(network::status).put(network::apply))
+        .route("/api/v2/network/qr", get(network::qr))
         .route("/api/v2/settings/boot", get(config))
         .route("/api/v2/config", get(config).put(replace))
         .route("/api/v2/settings", axum::routing::put(settings))
@@ -123,32 +127,11 @@ pub fn router(a: App) -> Router {
         .route("/api/v2/integrations/{id}/check", post(check_integration))
         .route("/api/v2/spotify/connect", post(spotify_connect))
         .route("/api/v2/spotify/callback", get(spotify_callback))
-        .nest_service("/assets", ServeDir::new("frontend/dist/assets"))
-        .nest_service("/static", ServeDir::new("static"))
         .layer(DefaultBodyLimit::max(16 * 1024 * 1024))
         .layer(layer)
         .layer(middleware::from_fn_with_state(a.clone(), guard))
         .with_state(a)
 }
-async fn home() -> Response {
-    match tokio::fs::read("frontend/dist/index.html").await {
-        Ok(b) if frontend_matches_contract(&b) => (
-            [("content-type", "text/html; charset=utf-8"), ("cache-control", "no-store")],
-            b,
-        ).into_response(),
-        Ok(_) => (
-            StatusCode::SERVICE_UNAVAILABLE,
-            [("cache-control", "no-store")],
-            "Frontend build is out of date. Run npm ci --prefix frontend && npm run build --prefix frontend, then reload WebDeck. Your configuration is unchanged.",
-        ).into_response(),
-        Err(_) => (
-            StatusCode::SERVICE_UNAVAILABLE,
-            "Build the frontend before starting WebDeck",
-        )
-            .into_response(),
-    }
-}
-
 fn frontend_matches_contract(html: &[u8]) -> bool {
     use sha2::{Digest, Sha256};
     let digest = format!(

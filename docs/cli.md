@@ -214,6 +214,9 @@ Human folder/button lists display details; `--json` retains structured output.
 
 ## OBS
 
+For a first-time connection and scene-button setup, see the
+[README walkthrough](../README.md#obs-scene-buttons).
+
 ```bash
 webdeckctl obs status
 webdeckctl obs check
@@ -234,6 +237,13 @@ webdeckctl obs actions
 password is only read from stdin and is never printed or logged. `obs check`
 exits 8 when the connection fails. OBS query and control actions run through
 the command endpoint, so OBS failures exit 8 as well.
+
+`obs ensure-buttons --folder obs-scenes` creates the folder if needed and adds
+one program-scene switch button per discovered scene. Add a Home button with a
+Folder action targeting `obs-scenes` for navigation. Repeating generation skips
+matching actions and preserves existing buttons. It does not remove buttons for
+deleted or renamed scenes; remove those manually. Use `--dry-run` to preview
+additions and `--revision REVISION` to require a specific configuration revision.
 
 ## Security notes
 

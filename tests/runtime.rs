@@ -169,6 +169,7 @@ async fn http_executor_vm_metrics_response_and_drain() {
     let runtime = Arc::new(VmRuntime::new(metrics.clone()).unwrap());
     let executor = Arc::new(Executor::new(Arc::new(VmAdapter::new(runtime.clone())), 2));
     let app = App {
+        network: None,
         integration_health: Default::default(),
         io: Arc::new(tokio::sync::Semaphore::new(4)),
         queries: Arc::new(tokio::sync::Semaphore::new(2)),

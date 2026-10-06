@@ -29,7 +29,13 @@ enum TrayEvent {
     Menu(MenuEvent),
     Icon(TrayIconEvent),
 }
-pub fn run(url: String, shutdown: Arc<tokio::sync::Notify>) -> Result<()> {
+pub fn run(
+    url: String,
+    qr_url: String,
+    network: Arc<crate::network::Network>,
+    runtime: tokio::runtime::Handle,
+    shutdown: Arc<tokio::sync::Notify>,
+) -> Result<()> {
     use tao::{
         event::{Event, StartCause},
         event_loop::{ControlFlow, EventLoopBuilder},
@@ -90,7 +96,12 @@ pub fn run(url: String, shutdown: Arc<tokio::sync::Notify>) -> Result<()> {
                 *flow = ControlFlow::Exit;
             }
             Event::UserEvent(TrayEvent::Menu(e)) if e.id == qr.id() => {
-                let text = url.clone();
+                let current = runtime.block_on(network.status());
+                let text = if current.url.is_empty() {
+                    qr_url.clone()
+                } else {
+                    current.url
+                };
                 std::thread::spawn(move || {
                     if let Err(e) = crate::qr::show(&text) {
                         eprintln!("QR: {e}");

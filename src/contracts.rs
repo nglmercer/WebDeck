@@ -726,6 +726,21 @@ pub enum ImageImport {
     #[serde(rename = "local")]
     Local { path: String },
 }
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NetworkSettings {
+    pub enabled: bool,
+    pub address: String,
+    pub port: u64,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NetworkStatus {
+    pub api_version: u64,
+    pub settings: NetworkSettings,
+    pub suggested_address: String,
+    pub url: String,
+}
 impl Command {
     pub fn capability(&self) -> Capability {
         match self {

@@ -27,6 +27,15 @@ fn collect(root: &Path) -> io::Result<Vec<PathBuf>> {
 }
 fn main() -> io::Result<()> {
     let dev = Args::parse().dev;
+    if dev {
+        if !Command::new(if cfg!(windows) { "npm.cmd" } else { "npm" })
+            .args(["--prefix", "frontend", "run", "build"])
+            .status()?
+            .success()
+        {
+            return Err(io::Error::other("Frontend build failed"));
+        }
+    }
     let mut build = Command::new("cargo");
     build.args(["build", "--locked", "--bins"]);
     if !dev {
@@ -34,13 +43,6 @@ fn main() -> io::Result<()> {
     }
     if !build.status()?.success() {
         return Err(io::Error::other("Build failed"));
-    }
-    if !Command::new(if cfg!(windows) { "npm.cmd" } else { "npm" })
-        .args(["--prefix", "frontend", "run", "build"])
-        .status()?
-        .success()
-    {
-        return Err(io::Error::other("Frontend build failed"));
     }
     let profile = if dev { "debug" } else { "release" };
     let platform = webdeck::update::package_platform();

@@ -964,3 +964,23 @@ ui_unsaved_button_changes=Cambios del botón sin aplicar
 ui_discard_button_help=Continúa editando para conservar tus cambios o descarta este borrador del botón. Los cambios ya aplicados al panel se conservan.
 ui_keep_editing=Continuar editando
 ui_discard_changes=Descartar cambios
+
+# Phone access settings
+ui_phone_access=Acceso desde el teléfono
+ui_phone_access_help=Conecta un teléfono en la misma red Wi-Fi o Ethernet.
+ui_enable_phone_access=Permitir teléfonos en mi red local
+ui_computer_address=Dirección de red de la computadora
+ui_use_detected_address=Usar dirección detectada
+ui_phone_port=Puerto de conexión del teléfono
+ui_applying=Aplicando…
+ui_apply_phone_access=Aplicar acceso desde el teléfono
+ui_refresh_connection=Actualizar dirección y QR
+ui_phone_applies_immediately=Se aplica inmediatamente y se guarda para el próximo inicio. La página local de ajustes permanece conectada.
+ui_phone_access_enabled=El acceso está activado. Escanea este QR con tu teléfono.
+ui_phone_access_disabled=El acceso está desactivado. Solo esta computadora puede usar el deck.
+ui_phone_qr_alt=Código QR para abrir el deck en el teléfono
+ui_phone_qr_failed=No se pudo cargar el QR. Actualiza para reintentar.
+ui_phone_pair_step=En esta computadora, abre Dispositivos y autoriza el teléfono. Los botones de OBS necesitan el permiso Red.
+ui_phone_scan_step=Escanea el QR o abre la dirección de arriba en el teléfono.
+ui_phone_token_step=Ingresa el token de vinculación en el teléfono. El QR solo contiene la dirección del deck.
+ui_phone_troubleshooting=Si la página no abre, permite este puerto TCP en el firewall y verifica que el Wi-Fi permita comunicación entre dispositivos. Usa una red local de confianza.

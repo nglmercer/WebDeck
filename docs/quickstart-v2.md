@@ -25,7 +25,15 @@ Touch decks scroll vertically so their labels and touch targets remain readable.
 
 ## Pair a phone or tablet
 
-Start the host with `--host 0.0.0.0` to listen on the local network. On the host browser, open Settings → Devices, name the temporary controller and grant only the capabilities it needs. Open `http://HOST_LOCAL_IP:5000/` on the device and enter its one-time pairing token. Use a trusted local network for this preliminary HTTP setup. Revoke temporary approvals when testing is complete; do not publish tokens in screenshots.
+On the computer, open **Settings → Connection → Phone access**, enable
+**Allow phones on my local network**, use the detected address, and click
+**Apply phone access**. The address and QR appear immediately; no launch arguments
+or restart are required. Then open **Settings → Devices**, name the controller,
+and grant the capabilities its buttons need (`network` for OBS). Scan the QR on
+the phone and enter its pairing token. Use a trusted local network and revoke
+temporary approvals when testing is complete. See
+[phone access and hot reload](../README.md#phone-access-and-hot-reload) for firewall
+troubleshooting, frontend development and changing the QR address.
 
 ## Backups and upgrades
 

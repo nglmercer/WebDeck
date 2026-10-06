@@ -1716,3 +1716,33 @@ test('compact toolbar follows folder context and stages on-demand rename without
   await expect(toolbar.getByRole('button', { name: 'Rename folder', exact: true })).toHaveCount(0);
   await expect(toolbar.getByRole('button', { name: 'Folder actions', exact: true })).toHaveCount(0);
 });
+
+test('local phone settings apply immediately and refresh QR without leaving settings', async ({ page, request }) => {
+  const detected = await (await request.get('/api/v2/network')).json();
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('tab', { name: 'Connection', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Phone access', exact: true })).toBeVisible();
+  await page.getByLabel('Allow phones on my local network').check();
+  await page.getByRole('button', { name: 'Use detected address', exact: true }).click();
+  await expect(page.getByLabel('Computer network address')).toHaveValue(detected.suggested_address);
+  await page.getByLabel('Phone connection port').fill('59995');
+  await page.getByRole('button', { name: 'Apply phone access', exact: true }).click();
+  const qr = page.getByAltText('QR code to open the deck on your phone');
+  await expect(qr).toBeVisible();
+  await expect(page.getByRole('link', { name: `http://${detected.suggested_address}:59995/` })).toBeVisible();
+  expect(await qr.evaluate((element: HTMLImageElement) => element.naturalWidth)).toBeGreaterThan(0);
+  await page.setViewportSize({ width: 360, height: 900 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: 'test-results/phone-settings-360.png', fullPage: true });
+  await page.getByRole('button', { name: 'Refresh address and QR', exact: true }).click();
+  await expect(qr).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Connection', exact: true }).click();
+  await expect(page.getByLabel('Allow phones on my local network')).toBeChecked();
+  await page.getByLabel('Allow phones on my local network').uncheck();
+  await page.getByRole('button', { name: 'Apply phone access', exact: true }).click();
+  await expect(qr).toHaveCount(0);
+  await expect(page.getByText('Phone access is off. Only this computer can use the deck.')).toBeVisible();
+});
