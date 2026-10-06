@@ -8,11 +8,14 @@ export class ApiError extends Error {
     super(message);
   }
 }
-let token = sessionStorage.getItem('webdeck.device') ?? '';
-export function setToken(t: string) {
+let token =
+  sessionStorage.getItem('webdeck.device') ?? localStorage.getItem('webdeck.device') ?? '';
+export function setToken(t: string, remember = false) {
   token = t.trim();
   if (token) sessionStorage.setItem('webdeck.device', token);
   else sessionStorage.removeItem('webdeck.device');
+  if (token && remember) localStorage.setItem('webdeck.device', token);
+  else localStorage.removeItem('webdeck.device');
   disconnect();
 }
 export async function request<T>(path: string, name: string, init: RequestInit = {}): Promise<T> {

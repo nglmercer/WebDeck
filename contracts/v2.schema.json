@@ -3076,6 +3076,140 @@
         "suggested_address",
         "url"
       ]
+    },
+    "PairingRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "PairingChallenge": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "api_version": {
+          "const": 2
+        },
+        "id": {
+          "type": "string"
+        },
+        "secret": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "expires_at": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "api_version",
+        "id",
+        "secret",
+        "code",
+        "expires_at"
+      ]
+    },
+    "PairingClaim": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "secret": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "secret"
+      ]
+    },
+    "PairingResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "api_version": {
+          "const": 2
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "approved",
+            "rejected",
+            "expired"
+          ]
+        },
+        "token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "api_version",
+        "state",
+        "token"
+      ]
+    },
+    "PairingPending": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "expires_at": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "address",
+        "code",
+        "expires_at"
+      ]
+    },
+    "PairingList": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "api_version": {
+          "const": 2
+        },
+        "requests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PairingPending"
+          },
+          "maxItems": 32
+        }
+      },
+      "required": [
+        "api_version",
+        "requests"
+      ]
     }
   }
 }

@@ -741,6 +741,48 @@ pub struct NetworkStatus {
     pub suggested_address: String,
     pub url: String,
 }
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PairingRequest {
+    pub name: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PairingChallenge {
+    pub api_version: u64,
+    pub id: String,
+    pub secret: String,
+    pub code: String,
+    pub expires_at: u64,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PairingClaim {
+    pub id: String,
+    pub secret: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PairingResult {
+    pub api_version: u64,
+    pub state: String,
+    pub token: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PairingPending {
+    pub id: String,
+    pub name: String,
+    pub address: String,
+    pub code: String,
+    pub expires_at: u64,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PairingList {
+    pub api_version: u64,
+    pub requests: Vec<PairingPending>,
+}
 impl Command {
     pub fn capability(&self) -> Capability {
         match self {

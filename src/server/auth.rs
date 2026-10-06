@@ -174,12 +174,17 @@ pub(super) async fn guard(State(a): State<App>, mut r: Request, next: Next) -> R
             .0;
         authority(r.headers(), peer.ip().is_loopback(), a.port)?;
         let api = r.uri().path().starts_with("/api/v2/");
-        let required = api
+        let pairing = r.method() == axum::http::Method::POST
+            && matches!(
+                r.uri().path(),
+                "/api/v2/pairing/request" | "/api/v2/pairing/claim"
+            );
+        let required = (api && !pairing)
             || (r.uri().path().starts_with("/socket.io")
                 && r.headers().contains_key("authorization"));
         let credential = if required { token(r.headers())? } else { None };
         let identity = policy_identity(&a, peer.ip(), credential, required).await?;
-        if api {
+        if api && !pairing {
             r.extensions_mut()
                 .insert(identity.ok_or_else(Error::execution)?);
         }

@@ -5,6 +5,7 @@ use auth::*;
 mod configuration;
 use configuration::*;
 mod devices;
+mod pairing;
 use devices::*;
 mod assets;
 use assets::*;
@@ -117,6 +118,11 @@ pub fn router(a: App) -> Router {
         .route("/api/v2/audio/devices", get(audio_devices))
         .route("/api/v2/translations", get(translations))
         .route("/api/v2/devices", get(devices).post(approve))
+        .route("/api/v2/pairing/request", post(pairing::request))
+        .route("/api/v2/pairing/claim", post(pairing::claim))
+        .route("/api/v2/pairing", get(pairing::pending))
+        .route("/api/v2/pairing/{id}/approve", post(pairing::accept))
+        .route("/api/v2/pairing/{id}", delete(pairing::reject))
         .route("/api/v2/devices/{id}", delete(revoke))
         .route("/api/v2/assets", get(image_assets).post(upload))
         .route("/api/v2/assets/{id}", get(asset))

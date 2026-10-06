@@ -11,6 +11,7 @@
   import DeckView from './features/deck/DeckView.svelte';
   import SettingsView from './features/settings/SettingsView.svelte';
   import PairingView from './features/pairing/PairingView.svelte';
+  import PairingApprovals from './features/pairing/PairingApprovals.svelte';
   import Feedback from './components/Feedback.svelte';
   import DeckControls from './features/deck/DeckControls.svelte';
   import FirstUseHint from './features/deck/FirstUseHint.svelte';
@@ -219,10 +220,10 @@
       />{/if}
   </Feedback>
   {#if session.pairing}<PairingView
-      connect={async (token) => {
-        setToken(token);
+      connect={async (token, remember) => {
+        setToken(token, remember);
         await attempt(load);
-        return !session.pairing;
+        return !session.pairing && !!session.deck;
       }}
     />
   {:else if session.loading}<main aria-busy="true"><p>{t('ui_loading_webdeck')}</p></main>
@@ -343,3 +344,9 @@
     >
   </Modal>
 {/if}
+
+{#if session.deck?.can_edit}<PairingApprovals
+    capabilities={session.deck.capabilities}
+    suggested={Object.values(session.deck.button_capabilities)}
+    {attempt}
+  />{/if}

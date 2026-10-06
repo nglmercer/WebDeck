@@ -6,6 +6,7 @@ import type {
   DeviceRequest,
   FileSource,
   NativeSelection,
+  PairingList,
 } from '../contracts';
 import { request, credentials } from './http';
 export { request, setToken, ApiError } from './http';
@@ -24,6 +25,14 @@ export const approve = (r: DeviceRequest) =>
 export async function revoke(id: string) {
   await request(`devices/${encodeURIComponent(id)}`, 'DeviceRevocation', { method: 'DELETE' });
 }
+export const pairings = () => request<PairingList>('pairing', 'PairingList');
+export const approvePairing = (id: string, r: DeviceRequest) =>
+  request<PairingList>(`pairing/${encodeURIComponent(id)}/approve`, 'PairingList', {
+    method: 'POST',
+    body: JSON.stringify(r),
+  });
+export const rejectPairing = (id: string) =>
+  request<PairingList>(`pairing/${encodeURIComponent(id)}`, 'PairingList', { method: 'DELETE' });
 export async function upload(file: File) {
   const body = new FormData();
   body.set('file', file);
