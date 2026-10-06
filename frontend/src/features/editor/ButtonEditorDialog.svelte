@@ -4,7 +4,6 @@
   const t = useTranslations();
   let activeTab = $state('content');
 
-  import { localActionNames } from '../../lib/action-labels';
   import { modal } from '../../lib/modal';
   import { onDestroy, onMount } from 'svelte';
   import { AssetCache } from '../../lib/assets';
@@ -28,6 +27,8 @@
   import { appearanceOf, setAppearance as writeAppearance, tileColors } from './appearance';
   import { contract } from '../../lib/schema';
   import IconField from './IconField.svelte';
+  import ActionPickerModal from './ActionPickerModal.svelte';
+  import { actionOptions, type ActionOption } from './action-options';
   import ImageSourceFields from './ImageSourceFields.svelte';
   let {
     button = $bindable(),
@@ -56,6 +57,21 @@
     close: () => void;
     attempt: (work: () => Promise<void>) => Promise<void>;
   } = $props();
+  let actionPickerOpen = $state(false);
+  const selectedActionId = $derived(
+    button.action.type === 'command' ? `command:${button.action.command.type}` : button.action.type,
+  );
+  const selectedAction = $derived(actionOptions.find((option) => option.id === selectedActionId));
+  const actionSchema = $derived(
+    button.action.type === 'command'
+      ? selectedAction?.schema
+      : resolve({ $ref: '#/$defs/ButtonAction' }).oneOf?.find(
+          (option) => option.properties?.type?.const === button.action.type,
+        ),
+  );
+  const hasConfiguration = $derived(
+    Object.keys(actionSchema?.properties ?? {}).some((key) => key !== 'type'),
+  );
   let imageIds = $state<string[]>([]);
   let imagePage = $state(0);
   let imageUrl = $state('');
@@ -161,6 +177,43 @@
         Object.entries(a?.arguments ?? {}).map(([k, v]) => [k, { type: v.type }]),
       ),
     };
+  }
+  function selectAction(option: ActionOption) {
+    if (!button) return;
+    const type = option.type;
+    if (type === 'command' && option.schema) chooseCommand(defaultValue(option.schema) as Command);
+    else if (type === 'workflow')
+      button.action = {
+        type,
+        workflow: {
+          type: 'sequence',
+          steps: [{ type: 'command', command: defaultCommand() }],
+        },
+      };
+    else if (type === 'script')
+      button.action = {
+        type,
+        language: 'javascript',
+        source: { type: 'inline', code: '' },
+      };
+    else if (type === 'plugin') {
+      const manifest = catalog?.plugins[0];
+      if (manifest)
+        button.action = {
+          type,
+          plugin_id: manifest.id,
+          version: manifest.version,
+          action_id: manifest.actions[0]!.id,
+          args: defaultValue(pluginActionSchema(manifest, manifest.actions[0]!.id)) as Record<
+            string,
+            unknown
+          >,
+        };
+    } else if (type === 'metric')
+      button.action = { type, metric: 'cpu', target: '', interval_ms: 1000 };
+    else if (type === 'folder')
+      button.action = { type, folder_id: layout?.folders[0]?.id ?? 'home' };
+    else button.action = { type } as ButtonAction;
   }
   function chooseCommand(c: Command) {
     if (!button) return;
@@ -443,50 +496,19 @@
         aria-labelledby="editor-tab-action"
         hidden={activeTab !== 'action'}
       >
-        <label
-          >{t('ui_action')}<select
-            value={button.action.type}
-            onchange={(e) => {
-              if (!button) return;
-              const type = e.currentTarget.value;
-              if (type === 'command') button.action = { type, command: defaultCommand() };
-              else if (type === 'workflow')
-                button.action = {
-                  type,
-                  workflow: {
-                    type: 'sequence',
-                    steps: [{ type: 'command', command: defaultCommand() }],
-                  },
-                };
-              else if (type === 'script')
-                button.action = {
-                  type,
-                  language: 'javascript',
-                  source: { type: 'inline', code: '' },
-                };
-              else if (type === 'plugin') {
-                const manifest = catalog?.plugins[0];
-                if (manifest)
-                  button.action = {
-                    type,
-                    plugin_id: manifest.id,
-                    version: manifest.version,
-                    action_id: manifest.actions[0]!.id,
-                    args: defaultValue(
-                      pluginActionSchema(manifest, manifest.actions[0]!.id),
-                    ) as Record<string, unknown>,
-                  };
-              } else if (type === 'metric')
-                button.action = { type, metric: 'cpu', target: '', interval_ms: 1000 };
-              else if (type === 'folder')
-                button.action = { type, folder_id: layout?.folders[0]?.id ?? 'home' };
-              else button.action = { type } as ButtonAction;
-            }}
-            >{#each ['command', 'workflow', 'script', 'plugin', 'folder', 'back', 'reload', 'fullscreen', 'settings', 'metric', 'edit', 'none'] as type}<option
-                value={type}>{type}</option
-              >{/each}</select
-          ></label
-        >
+        <div class="action-summary">
+          <Icon name={selectedAction?.icon ?? 'settings'} />
+          <span>{selectedAction ? t(selectedAction.label) : button.action.type}</span>
+          <button type="button" onclick={() => (actionPickerOpen = true)}
+            >{t('ui_change_action')}</button
+          >
+        </div>
+        {#if !hasConfiguration}<p class="field-help">{t('ui_no_configuration_needed')}</p>{/if}
+        {#if actionPickerOpen}<ActionPickerModal
+            value={selectedActionId}
+            close={() => (actionPickerOpen = false)}
+            select={selectAction}
+          />{/if}
         {#if button.action.type === 'workflow' || button.action.type === 'script' || button.action.type === 'plugin'}
           <Fields
             schema={resolve({ $ref: '#/$defs/ButtonAction' }).oneOf?.find(
@@ -526,6 +548,7 @@
                 >{/each}</select
             ></label
           >{:else if button.action.type === 'command'}<ActionFields
+            configurationOnly
             value={button.action.command}
             onchange={(c) => chooseCommand(c as Command)}
           />{#if button.action.command.type === 'plugin'}<label
@@ -589,6 +612,24 @@
 </div>
 
 <style>
+  .action-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-control);
+    margin-bottom: 12px;
+  }
+  .action-summary span {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.9rem;
+  }
+  .action-summary button {
+    font-size: 0.8rem;
+    padding: 8px 10px;
+  }
   .icon-picker {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));

@@ -124,3 +124,33 @@ test('custom image sources preserve drafts when switching methods on mobile', as
   await expect(editor.getByRole('button', { name: 'Import image URL', exact: true })).toBeEnabled();
   expect(await editor.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
 });
+
+test('minimal action picker preserves configuration on cancel and handles empty searches', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Folder 1', exact: true }).waitFor();
+  await page.keyboard.press('q');
+  await page.getByRole('button', { name: 'Edit Folder 1', exact: true }).click();
+  await page.getByRole('tab', { name: 'Action', exact: true }).click();
+  await expect(page.getByRole('combobox', { name: 'Destination', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Change action', exact: true }).click();
+  const picker = page.getByRole('dialog', { name: 'Select action', exact: true });
+  await picker.getByLabel('Find an action', { exact: true }).fill('zzzz-no-action');
+  await expect(picker.getByRole('status')).toBeVisible();
+  await expect(picker.getByRole('button', { name: 'Select action', exact: true })).toBeDisabled();
+  await picker.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(page.getByRole('combobox', { name: 'Destination', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Change action', exact: true })).toBeFocused();
+  await page.getByRole('button', { name: 'Change action', exact: true }).click();
+  await picker.getByLabel('Find an action', { exact: true }).fill('Play / pause');
+  await picker.locator('.option').filter({ hasText: 'Play / pause' }).click();
+  expect(await picker.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+  await picker.getByRole('button', { name: 'Select action', exact: true }).click();
+  await expect(page.getByText('No configuration needed.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Change action', exact: true }).click();
+  await picker.getByLabel('Find an action', { exact: true }).fill('Type text');
+  await picker.locator('.option').filter({ hasText: 'Type text' }).click();
+  await picker.getByRole('button', { name: 'Select action', exact: true }).click();
+  await expect(page.getByLabel('Text to type', { exact: true })).toBeVisible();
+  await expect(page.getByText('No configuration needed.', { exact: true })).toHaveCount(0);
+});

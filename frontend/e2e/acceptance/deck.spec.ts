@@ -14,6 +14,12 @@ initial.layout.folders[0].buttons.push({
   extensions: {},
 });
 initial.layout.folders.push({ id: 'work', label: 'Work', buttons: [], extensions: {} });
+async function selectCommand(page: Page, type: string) {
+  await page.getByRole('button', { name: 'Change action', exact: true }).click();
+  const picker = page.getByRole('dialog', { name: 'Select action', exact: true });
+  await picker.locator(`[data-action-id="command:${type}"]`).click();
+  await picker.getByRole('button', { name: 'Select action', exact: true }).click();
+}
 async function cancelButtonEditor(page: Page, label = 'Cancel') {
   await page.getByRole('button', { name: label, exact: true }).click();
   const confirm = page.getByRole('dialog', { name: /Unsaved button changes|Cambios del botón sin aplicar/ });
@@ -502,9 +508,9 @@ test('shortcut controls stage typed keys and deletion undo restores a duplicate'
   await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Edit Play / pause' }).click();
   await page.getByRole('tab', { name: 'Action', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Category', exact: true }).selectOption('input');
+
   await page.getByRole('tab', { name: 'Action', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Type', exact: true }).selectOption('key');
+  await selectCommand(page, 'key');
   await page.getByRole('button', { name: 'Use copy shortcut' }).click();
   await expect(page.getByLabel('Key 1', { exact: true })).toHaveValue('ctrl');
   await expect(page.getByLabel('Key 2', { exact: true })).toHaveValue('c');
@@ -515,9 +521,11 @@ test('shortcut controls stage typed keys and deletion undo restores a duplicate'
   const pending = await (await request.get('/api/v2/config')).json();
   expect(pending.config.layout.folders[0].buttons[0].action.command.type).toBe('play_pause');
   await page.getByRole('button', { name: 'Edit Play / pause' }).click();
+  await page.getByLabel('More button actions', { exact: true }).click();
   await page.getByRole('button', { name: 'Duplicate', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Edit Play / pause copy', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Edit Play / pause copy', exact: true }).click();
+  await page.getByLabel('More button actions', { exact: true }).click();
   await page.getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Edit Play / pause copy', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Undo deletion', exact: true }).click();
@@ -603,9 +611,8 @@ test('saving Spanish updates controls and action names while preserving configur
   await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Editar Play / pause', exact: true }).click();
   await page.getByRole('tab', { name: 'Acción', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Categoría', exact: true }).selectOption('input');
-  await page.getByRole('combobox', { name: 'Tipo', exact: true }).selectOption('key');
-  await expect(page.getByRole('option', { name: 'Atajo de teclado', exact: true })).toHaveAttribute('value', 'key');
+  await selectCommand(page, 'key');
+  await expect(page.locator('.action-summary')).toContainText('Atajo de teclado');
   await cancelButtonEditor(page, 'Cancelar');
   const unchanged = await (await request.get('/api/v2/config')).json();
   expect(unchanged.config.layout.folders[0].buttons[0].action.command.type).toBe('play_pause');
@@ -1303,9 +1310,11 @@ test('grid button creation stages a free cell and categories show readable label
   await expect(toolbar.getByRole('button', { name: 'Add button', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: /Add button in cell/ }).first().click();
   await page.getByRole('tab', { name: 'Action', exact: true }).click();
+  await page.getByRole('button', { name: 'Change action', exact: true }).click();
   const category = page.getByRole('combobox', { name: 'Category', exact: true });
   await expect(category.locator('option[value="input"]')).toHaveText('Keyboard and text');
   await category.selectOption('input');
+  await page.getByRole('dialog', { name: 'Select action', exact: true }).getByRole('button', { name: 'Cancel', exact: true }).click();
   await page.getByRole('tab', { name: 'Content', exact: true }).click();
   await page.getByLabel('Label', { exact: true }).fill('Toolbar button');
   await page.getByRole('button', { name: 'Apply to draft', exact: true }).click();
@@ -1329,7 +1338,7 @@ test('invalid JSON blocks Apply and exposes a field description until corrected'
   await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Edit Play / pause', exact: true }).click();
   await page.getByRole('tab', { name: 'Action', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Type', exact: true }).selectOption('debug');
+  await selectCommand(page, 'debug');
   await page.getByRole('button', { name: 'Add field', exact: true }).click();
   const data = page.getByLabel('field1', { exact: true });
   await data.fill('{broken');
@@ -1391,7 +1400,7 @@ test('pattern validation blocks a malformed reference and accepts a corrected st
   await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Edit Play / pause', exact: true }).click();
   await page.getByRole('tab', { name: 'Action', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Type', exact: true }).selectOption('button');
+  await selectCommand(page, 'button');
   const reference = page.getByLabel('button id', { exact: true });
   await reference.fill('../invalid');
   await expect(reference).toHaveAttribute('aria-invalid', 'true');
@@ -1508,7 +1517,7 @@ test('touch action fields keep full-size controls across specialized and generic
     const dialog = page.getByRole('dialog', { name: 'Edit button', exact: true });
     for (const type of ['write', 'key', 'button', 'debug']) {
   await page.getByRole('tab', { name: 'Action', exact: true }).click();
-      await dialog.getByRole('combobox', { name: 'Type', exact: true }).selectOption(type);
+      await selectCommand(page, type);
       if (type === 'debug') await dialog.getByRole('button', { name: 'Add field', exact: true }).click();
       const small = await dialog.evaluate(root => Array.from(root.querySelectorAll('button,input,select,textarea')).filter(element => {
         const target = element instanceof HTMLInputElement && element.type === 'checkbox' ? element.closest('label') ?? element : element;

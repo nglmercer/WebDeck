@@ -1162,3 +1162,8 @@ ui_local_file=Local file
 ui_choose_image=Choose an image
 ui_upload_image_help=Select an image from your device
 ui_image_library_empty=Uploaded and imported images will appear here.
+
+ui_select_action=Select action
+ui_change_action=Change action
+ui_no_configuration_needed=No configuration needed.
+ui_no_actions_found=No actions found. Try another search or category.

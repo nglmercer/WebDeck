@@ -103,24 +103,168 @@
     "more": {
       "path": "M5 11h.01v2H5zM12 11h.01v2H12zM19 11h.01v2H19z",
       "category": "system"
+    },
+    "bug": {
+      "path": "M8 8h8v8a4 4 0 0 1-8 0zM9 8V5h6v3M3 9h5m8 0h5M3 14h5m8 0h5M5 21l4-4m6 0 4 4M12 9v10",
+      "category": "system"
+    },
+    "exit": {
+      "path": "M10 3H4v18h6M10 12h11m-4-4 4 4-4 4",
+      "category": "system"
+    },
+    "chart": {
+      "path": "M4 3v18h17M8 16v-4m5 4V8m5 8V5",
+      "category": "devices"
+    },
+    "stop": {
+      "path": "M5 5h14v14H5z",
+      "category": "media"
+    },
+    "power": {
+      "path": "M12 2v10M6 5a9 9 0 1 0 12 0",
+      "category": "system"
+    },
+    "moon": {
+      "path": "M21 13a9 9 0 0 1-10-10A9 9 0 1 0 21 13z",
+      "category": "system"
+    },
+    "hibernate": {
+      "path": "M3 8h7L3 15h7M13 3h8l-8 8h8M14 17h7l-7 5h7",
+      "category": "system"
+    },
+    "lock": {
+      "path": "M5 10h14v11H5zM8 10V6a4 4 0 0 1 8 0v4M12 14v3",
+      "category": "system"
+    },
+    "screen-settings": {
+      "path": "M3 3h18v13H3zM8 21h8m-4-5v5M7 7h10M9 5v4M7 12h10m-3-2v4",
+      "category": "devices"
+    },
+    "screen-saver": {
+      "path": "M3 3h18v14H3zM8 21h8m-4-4v4M8 7l2 3-2 3m6-6 2 3-2 3",
+      "category": "devices"
+    },
+    "keyboard": {
+      "path": "M2 6h20v13H2zM6 10h.01m4 0h.01m4 0h.01m4 0h.01M6 14h.01m4 0h8",
+      "category": "devices"
+    },
+    "copy": {
+      "path": "M9 9h12v12H9zM15 9V3H3v12h6",
+      "category": "ui"
+    },
+    "paste": {
+      "path": "M8 5H5v16h14V5h-3M8 3h8v4H8zM9 12h6m-6 4h6",
+      "category": "ui"
+    },
+    "scissors": {
+      "path": "M9 9l11 11M9 15 20 4M3 6a3 3 0 1 0 6 0 3 3 0 0 0-6 0M3 18a3 3 0 1 0 6 0 3 3 0 0 0-6 0",
+      "category": "ui"
+    },
+    "clipboard": {
+      "path": "M8 5H5v16h14V5h-3M8 3h8v4H8z",
+      "category": "ui"
+    },
+    "clipboard-clear": {
+      "path": "M8 5H5v16h14V5h-3M8 3h8v4H8zM9 12l6 6m0-6-6 6",
+      "category": "ui"
+    },
+    "voice": {
+      "path": "M4 9v6m4-9v12m4-15v18m4-15v12m4-9v6",
+      "category": "media"
+    },
+    "desktop-restart": {
+      "path": "M3 4h18v12h-5M8 21h8M12 16v5M9 10a4 4 0 1 0 2 6M9 10v4H5",
+      "category": "devices"
+    },
+    "window-close": {
+      "path": "M3 3h18v18H3zM3 7h18M8 11l8 6m0-6-8 6",
+      "category": "ui"
+    },
+    "palette": {
+      "path": "M12 3a9 9 0 1 0 0 18h2a2 2 0 0 0 1-4 2 2 0 0 1 1-4h2a3 3 0 0 0 3-3 9 9 0 0 0-9-7M7 8h.01m5-2h.01m5 3h.01M6 13h.01",
+      "category": "ui"
+    },
+    "process-stop": {
+      "path": "M5 4h14v16H5zM8 8l8 8m0-8-8 8",
+      "category": "system"
+    },
+    "window-restart": {
+      "path": "M3 3h18v18H3zM3 7h18M16 12a4 4 0 1 0 0 5M16 10v4h-4",
+      "category": "ui"
+    },
+    "window-focus": {
+      "path": "M3 3h18v18H3zM3 7h18M9 10h8v8H9z",
+      "category": "ui"
+    },
+    "volume": {
+      "path": "M3 9h4l5-4v14l-5-4H3zM16 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14",
+      "category": "media"
+    },
+    "app-volume": {
+      "path": "M3 3h18v18H3zM3 7h18M6 12h3l4-3v10l-4-3H6zM16 11a4 4 0 0 1 0 6",
+      "category": "media"
+    },
+    "microphone": {
+      "path": "M9 5a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0zM5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8",
+      "category": "media"
+    },
+    "speaker": {
+      "path": "M5 2h14v20H5zM10 6h4M8 15a4 4 0 1 0 8 0 4 4 0 0 0-8 0",
+      "category": "devices"
+    },
+    "globe": {
+      "path": "M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0M3 12h18M12 3a18 18 0 0 0 0 18 18 18 0 0 0 0-18",
+      "category": "system"
+    },
+    "code": {
+      "path": "M8 5 2 12l6 7m8-14 6 7-6 7M14 3l-4 18",
+      "category": "ui"
+    },
+    "terminal": {
+      "path": "M3 4h18v16H3zM6 8l4 4-4 4m7 0h5",
+      "category": "system"
+    },
+    "shield": {
+      "path": "M12 2l9 4v6c0 5-5 8-9 10-4-2-9-5-9-10V6zM8 12l3 3 5-6",
+      "category": "system"
+    },
+    "broadcast": {
+      "path": "M10 12a2 2 0 1 0 4 0 2 2 0 0 0-4 0M7 7a7 7 0 0 0 0 10m10-10a7 7 0 0 1 0 10M4 4a11 11 0 0 0 0 16M20 4a11 11 0 0 1 0 16M12 15v7",
+      "category": "media"
+    },
+    "puzzle": {
+      "path": "M3 3h6V2a3 3 0 1 1 6 0v1h6v6h1a3 3 0 1 1 0 6h-1v6h-6v-1a3 3 0 1 0-6 0v1H3v-6h1a3 3 0 1 0 0-6H3z",
+      "category": "ui"
+    },
+    "button-run": {
+      "path": "M3 3h18v18H3zM9 7l7 5-7 5z",
+      "category": "ui"
+    },
+    "workflow": {
+      "path": "M9 2h6v6H9zM2 16h6v6H2zM16 16h6v6h-6zM12 8v4M5 16v-4h14v4",
+      "category": "ui"
+    },
+    "circle-off": {
+      "path": "M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0M6 6l12 12",
+      "category": "ui"
     }
   },
   "aliases": {
-    "▶": "play",
-    "▶️": "play",
-    "⚙": "settings",
-    "⚙️": "settings",
-    "📁": "folder",
-    "⛶": "fullscreen",
-    "▦": "grid",
-    "◉": "cpu",
-    "▤": "memory",
-    "▧": "image",
-    "▨": "cpu",
-    "↻": "refresh",
-    "↩": "back",
-    "✦": "grid",
-    "□": "fullscreen",
-    "🎵": "music"
+    "\u25b6": "play",
+    "\u25b6\ufe0f": "play",
+    "\u2699": "settings",
+    "\u2699\ufe0f": "settings",
+    "\ud83d\udcc1": "folder",
+    "\u26f6": "fullscreen",
+    "\u25a6": "grid",
+    "\u25c9": "cpu",
+    "\u25a4": "memory",
+    "\u25a7": "image",
+    "\u25a8": "cpu",
+    "\u21bb": "refresh",
+    "\u21a9": "back",
+    "\u2726": "grid",
+    "\u25a1": "fullscreen",
+    "\ud83c\udfb5": "music"
   }
 }
