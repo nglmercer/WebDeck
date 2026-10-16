@@ -1,0 +1,12 @@
+{
+  "id": "brb",
+  "name": "BRB",
+  "items": [
+    {
+      "id": "overlay",
+      "kind": "scene_reference",
+      "sceneId": "common-overlay",
+      "enabled": true
+    }
+  ]
+}

@@ -717,6 +717,12 @@ async fn paired_settings_credentials_never_become_local_administrators() {
                 json!({"type":"local","path":"/tmp/icon.svg"}),
             ),
             ("POST", "/api/v2/assets/icon.svg/refresh", json!(null)),
+            ("GET", "/api/v2/keyboard/capabilities", json!(null)),
+            (
+                "POST",
+                "/api/v2/obs/request",
+                json!({"request_type":"RemoveScene","request_data":{"sceneName":"Do Not Delete"},"allow_destructive":true}),
+            ),
             ("GET", "/api/v2/runtime", json!(null)),
             ("POST", "/api/v2/runtime/reload", json!(null)),
             (

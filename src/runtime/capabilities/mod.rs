@@ -47,7 +47,8 @@ impl CapabilityHost for UnavailableHost {
 
 pub fn required_capability(operation: &str) -> Result<Capability> {
     match operation {
-        "network.fetch"
+        "obs.request"
+        | "network.fetch"
         | "network.wsOpen"
         | "network.wsSend"
         | "network.wsReceive"

@@ -271,14 +271,16 @@
             "maxLength": 32
           },
           "minItems": 1,
-          "maxItems": 16
+          "maxItems": 16,
+          "uniqueItems": true
         }
       },
       "required": [
         "type",
         "keys"
       ],
-      "x-capability": "input"
+      "x-capability": "input",
+      "description": "Simultaneous host key chord. Key IDs and aliases: contracts/keys.json. Fn is unsupported."
     }
   },
   {
@@ -922,12 +924,26 @@
             "get_virtual_camera_status",
             "input_mute",
             "input_unmute",
-            "input_toggle_mute"
+            "input_toggle_mute",
+            "hotkey_sequence"
           ]
         },
         "target": {
           "type": "string",
           "maxLength": 256
+        },
+        "context_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "key_modifiers": {
+          "$ref": "#/$defs/ObsKeyModifiers"
+        },
+        "scene_uuid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
         }
       },
       "required": [

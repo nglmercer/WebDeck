@@ -51,6 +51,12 @@ fn input_names(result: &Value) -> Vec<String> {
 }
 
 impl<'a> ObsService<'a> {
+    pub async fn query(&self, request: &str, data: Value) -> Result<Outcome> {
+        let result = self.client.obs_request(request, data).await?;
+        let human = serde_json::to_string_pretty(&result).unwrap_or_default();
+        Ok(Outcome::ok(result, human))
+    }
+
     pub async fn status(&self) -> Result<Outcome> {
         let status = self.client.integration_status().await?;
         let label = super::state_label(status.obs);
@@ -200,6 +206,9 @@ impl<'a> ObsService<'a> {
 
     async fn action(&self, action: &str, target: &str) -> Result<(Value, Value)> {
         let command = Command::Obs {
+            context_name: None,
+            key_modifiers: None,
+            scene_uuid: None,
             action: action.to_string(),
             target: target.to_string(),
         };

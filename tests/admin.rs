@@ -1125,6 +1125,9 @@ fn automation_rejects_invalid_pointers_cross_plugin_commands_and_reserved_bindin
     assert!(webdeck::automation::validate_plugin(&invalid).is_err());
     let mut invalid = manifest.clone();
     invalid.automation.as_mut().unwrap().integrations[0].probe = Some(Command::Obs {
+        context_name: None,
+        key_modifiers: None,
+        scene_uuid: None,
         action: "get_version".into(),
         target: String::new(),
     });
@@ -1313,4 +1316,226 @@ fn cli_image_import_copies_content_and_lists_stable_references() {
         &home.path,
     );
     assert_ne!(output.code, 0);
+}
+
+#[tokio::test]
+async fn managed_obs_sync_preserves_customizations_renames_and_only_prunes_managed() {
+    use webdeck::admin::provisioning::plan_obs_sync;
+    let server = spawn();
+    let client = client(&server.url);
+    let catalog = client.catalog().await.unwrap();
+    let recipe = catalog
+        .automation
+        .as_ref()
+        .unwrap()
+        .button_recipes
+        .iter()
+        .find(|r| r.id == "obs-scenes")
+        .unwrap();
+    let config = client.get_config().await.unwrap().config;
+    let discovered = json!({"scenes":[{"sceneName":"Desk","sceneUuid":"stable-scene"}]});
+    let (mut first, _) =
+        plan_obs_sync(&config, &catalog, recipe, &discovered, "sync", false).unwrap();
+    let folder = first
+        .layout
+        .folders
+        .iter_mut()
+        .find(|f| f.id == "sync")
+        .unwrap();
+    assert_eq!(folder.buttons.len(), 1);
+    folder.buttons[0].label = "My custom label".into();
+    folder.buttons[0].color = "#123456".into();
+    let id = folder.buttons[0].id.clone();
+    let renamed = json!({"scenes":[{"sceneName":"Renamed","sceneUuid":"stable-scene"}]});
+    let (second, _) = plan_obs_sync(&first, &catalog, recipe, &renamed, "sync", false).unwrap();
+    let folder = second
+        .layout
+        .folders
+        .iter()
+        .find(|f| f.id == "sync")
+        .unwrap();
+    assert_eq!(folder.buttons.len(), 1);
+    assert_eq!(folder.buttons[0].id, id);
+    assert_eq!(folder.buttons[0].label, "My custom label");
+    assert_eq!(folder.buttons[0].color, "#123456");
+    assert!(
+        matches!(&folder.buttons[0].action,webdeck::contracts::ButtonAction::Command {command:Command::Obs {target,..}} if target=="Renamed")
+    );
+    let (third, _) = plan_obs_sync(&second, &catalog, recipe, &renamed, "sync", false).unwrap();
+    assert_eq!(third, second);
+    let absent = json!({"scenes":[]});
+    let (preserved, changes) =
+        plan_obs_sync(&second, &catalog, recipe, &absent, "sync", false).unwrap();
+    assert_eq!(preserved, second);
+    assert!(changes.iter().any(|c| c["kind"] == "stale"));
+    let (pruned, _) = plan_obs_sync(&second, &catalog, recipe, &absent, "sync", true).unwrap();
+    assert!(pruned
+        .layout
+        .folders
+        .iter()
+        .find(|f| f.id == "sync")
+        .unwrap()
+        .buttons
+        .is_empty());
+}
+
+#[tokio::test]
+async fn obs_project_wire_roundtrip_dry_run_idempotency_rename_and_partial_recovery() {
+    use futures_util::{SinkExt, StreamExt};
+    use tokio_tungstenite::tungstenite::Message;
+    use webdeck::admin::obs_project;
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    listener.set_nonblocking(true).unwrap();
+    let mutations = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let observed = mutations.clone();
+    let fail = Arc::new(AtomicBool::new(false));
+    let server_fail = fail.clone();
+    let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
+    let obs_thread = std::thread::spawn(move || {
+        tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap().block_on(async move {
+            let listener=tokio::net::TcpListener::from_std(listener).unwrap();
+            let mut scenes:Vec<Value>=vec![json!({"sceneName":"Unmanaged","sceneUuid":"unmanaged"})];
+            let mut items=std::collections::BTreeMap::<String,Vec<Value>>::new();let mut next_id=0;
+            let mut stopped=std::pin::pin!(stopped);
+            loop {
+                let accepted=tokio::select! {v=listener.accept()=>v, _=&mut stopped=>break};
+                let (socket,_)=accepted.unwrap();let mut socket=tokio_tungstenite::accept_async(socket).await.unwrap();
+                socket.send(Message::Text(json!({"op":0,"d":{"rpcVersion":1}}).to_string().into())).await.unwrap();
+                socket.next().await.unwrap().unwrap();socket.send(Message::Text(json!({"op":2,"d":{"negotiatedRpcVersion":1}}).to_string().into())).await.unwrap();
+                loop {
+                    let message=tokio::select! {v=socket.next()=>v, _=&mut stopped=>return};
+                    let Some(Ok(Message::Text(message)))=message else {break};
+                    let message:Value=serde_json::from_str(&message).unwrap();let request=message["d"]["requestType"].as_str().unwrap();let data=&message["d"]["requestData"];
+                    let mut success=true;
+                    if !request.starts_with("Get") {observed.fetch_add(1,Ordering::SeqCst);}
+                    let response=match request {
+                        "GetVersion"=>json!({"obsVersion":"32.0.0","rpcVersion":1,"availableRequests":["CreateScene","SetSceneName","CreateSceneItem","SetSceneItemEnabled","SetSceneItemTransform","SetSceneItemIndex"]}),
+                        "GetSceneCollectionList"=>json!({"currentSceneCollectionName":"WebDeck Test Stream","sceneCollections":["WebDeck Test Stream"]}),
+                        "GetSceneList"=>json!({"scenes":scenes}),
+                        "GetInputList"=>json!({"inputs":[]}),
+                        "GetInputKindList"=>json!({"inputKinds":[]}),
+                        "GetSceneItemList"=>json!({"sceneItems":items.get(data["sceneName"].as_str().unwrap()).cloned().unwrap_or_default()}),
+                        "CreateScene"=>{
+                            if server_fail.load(Ordering::SeqCst) && data["sceneName"]=="Fail Here" {success=false;json!({})}
+                            else {next_id+=1;let uuid=format!("uuid-{next_id}");scenes.push(json!({"sceneName":data["sceneName"],"sceneUuid":uuid}));json!({"sceneUuid":uuid})}
+                        },
+                        "SetSceneName"=>{
+                            let old=data["sceneName"].as_str().unwrap();let new=data["newSceneName"].as_str().unwrap();
+                            for scene in &mut scenes {if scene["sceneName"]==old {scene["sceneName"]=json!(new);}}
+                            if let Some(value)=items.remove(old) {items.insert(new.into(),value);}
+                            for children in items.values_mut() {for child in children {if child["sourceName"]==old {child["sourceName"]=json!(new);}}}
+                            json!({})
+                        },
+                        "CreateSceneItem"=>{next_id+=1;items.entry(data["sceneName"].as_str().unwrap().into()).or_default().push(json!({"sceneItemId":next_id,"sourceName":data["sourceName"],"sceneItemEnabled":data["sceneItemEnabled"],"sceneItemTransform":{},"sceneItemIndex":0}));json!({"sceneItemId":next_id})},
+                        "SetSceneItemEnabled" | "SetSceneItemTransform" | "SetSceneItemIndex"=>{
+                            let field=match request {"SetSceneItemEnabled"=>"sceneItemEnabled","SetSceneItemTransform"=>"sceneItemTransform",_=>"sceneItemIndex"};
+                            for item in items.entry(data["sceneName"].as_str().unwrap().into()).or_default() {if item["sceneItemId"]==data["sceneItemId"] {item[field]=data[field].clone();}}
+                            json!({})
+                        },
+                        _=>panic!("unexpected fake OBS request {request}"),
+                    };
+                    if socket.send(Message::Text(json!({"op":7,"d":{"requestId":message["d"]["requestId"],"requestStatus":{"result":success,"code":if success {100}else{500}},"responseData":response}}).to_string().into())).await.is_err() {break;}
+                }
+            }
+        });
+    });
+    let server = spawn();
+    let client = client(&server.url);
+    client
+        .obs()
+        .configure(Some("127.0.0.1"), Some(port.into()), false, None, false)
+        .await
+        .unwrap();
+    let directory = Temp::new();
+    let root = directory.path.join("project");
+    obs_project::init(&root).unwrap();
+    let mut manifest: Value =
+        serde_json::from_slice(&std::fs::read(root.join("project.json")).unwrap()).unwrap();
+    manifest["webdeck"]["generateButtons"] = json!(false);
+    write_file(&root, "project.json", &manifest);
+    let revision = client.get_config().await.unwrap().revision;
+    assert_eq!(
+        client
+            .pin_obs_connection("wrong-endpoint")
+            .obs_request("GetSceneList", json!({}))
+            .await
+            .unwrap_err()
+            .kind(),
+        ErrorKind::RevisionConflict
+    );
+    let dry = obs_project::reconcile(&client, &root, true, false, None)
+        .await
+        .unwrap();
+    assert!(dry.ok);
+    assert_eq!(mutations.load(Ordering::SeqCst), 0);
+    assert!(!root.join(".webdeck-state.json").exists());
+    assert!(!root.join(".webdeck-state.lock").exists());
+    let applied = obs_project::reconcile(&client, &root, false, false, Some(revision))
+        .await
+        .unwrap();
+    assert!(applied.ok, "{}", applied.data);
+    assert_eq!(applied.data["state"], "applied");
+    let count = mutations.load(Ordering::SeqCst);
+    let again = obs_project::reconcile(&client, &root, false, false, Some(revision))
+        .await
+        .unwrap();
+    assert!(again.ok, "{}", again.data);
+    assert_eq!(again.data["state"], "noop");
+    assert_eq!(mutations.load(Ordering::SeqCst), count);
+    let mut overlay: Value =
+        serde_json::from_slice(&std::fs::read(root.join("shared/common-overlay.json")).unwrap())
+            .unwrap();
+    overlay["name"] = json!("Overlay Renamed");
+    write_file(&root, "shared/common-overlay.json", &overlay);
+    let renamed = obs_project::reconcile(&client, &root, false, false, None)
+        .await
+        .unwrap();
+    assert!(renamed.ok, "{}", renamed.data);
+    assert!(renamed.data["plan"]["operations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|op| op["request"] == "SetSceneName" && op["kind"] == "update"));
+    manifest["scenes"]
+        .as_array_mut()
+        .unwrap()
+        .extend([json!("scenes/new.json"), json!("scenes/fail.json")]);
+    write_file(&root, "project.json", &manifest);
+    write_file(
+        &root,
+        "scenes/new.json",
+        &json!({"id":"new","name":"Created Before Failure","items":[]}),
+    );
+    write_file(
+        &root,
+        "scenes/fail.json",
+        &json!({"id":"fail","name":"Fail Here","items":[]}),
+    );
+    fail.store(true, Ordering::SeqCst);
+    let partial = obs_project::reconcile(&client, &root, false, false, None)
+        .await
+        .unwrap();
+    assert!(!partial.ok);
+    assert_eq!(partial.data["state"], "partial_failure");
+    let state: Value =
+        serde_json::from_slice(&std::fs::read(root.join(".webdeck-state.json")).unwrap()).unwrap();
+    assert_eq!(state["partial"], true);
+    assert!(state["scenes"]["new"].is_object());
+    fail.store(false, Ordering::SeqCst);
+    assert!(
+        obs_project::reconcile(&client, &root, false, false, None)
+            .await
+            .unwrap()
+            .ok
+    );
+    assert_eq!(client.get_config().await.unwrap().revision, revision);
+    let scenes = client.obs_request("GetSceneList", json!({})).await.unwrap();
+    assert!(scenes["scenes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|s| s["sceneName"] == "Unmanaged"));
+    stop.send(()).unwrap();
+    obs_thread.join().unwrap();
 }

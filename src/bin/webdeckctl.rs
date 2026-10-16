@@ -387,7 +387,64 @@ enum IntegrationCommand {
 }
 
 #[derive(Subcommand)]
+enum ObsProjectCommand {
+    Init {
+        path: PathBuf,
+    },
+    Schema,
+    Validate {
+        path: PathBuf,
+    },
+    Diff {
+        path: PathBuf,
+        #[arg(long)]
+        adopt_existing: bool,
+        #[arg(long, requires = "allow_destructive")]
+        prune_managed: bool,
+        #[arg(long)]
+        allow_destructive: bool,
+    },
+    Apply {
+        path: PathBuf,
+        #[arg(long)]
+        adopt_existing: bool,
+        #[arg(long, requires = "allow_destructive")]
+        prune_managed: bool,
+        #[arg(long)]
+        allow_destructive: bool,
+        #[command(flatten)]
+        mutation: MutationArgs,
+    },
+}
+#[derive(Subcommand)]
+enum ObsSceneCommand {
+    Sync {
+        #[arg(long, required = true)]
+        all: bool,
+        #[arg(long)]
+        template: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    Show {
+        name: String,
+    },
+    Items {
+        name: String,
+    },
+}
+#[derive(Subcommand)]
 enum ObsCommand {
+    Project {
+        #[command(subcommand)]
+        command: ObsProjectCommand,
+    },
+    Capabilities,
+    Collections,
+    Scene {
+        #[command(subcommand)]
+        command: ObsSceneCommand,
+    },
     #[command(about = "Show the OBS integration state")]
     Status,
     #[command(about = "Check the OBS connection")]
@@ -409,6 +466,10 @@ enum ObsCommand {
     EnsureButtons {
         #[arg(long, default_value = "obs-scenes")]
         folder: String,
+        #[arg(long)]
+        sync: bool,
+        #[arg(long, requires = "sync", requires = "yes")]
+        prune_managed: bool,
         #[command(flatten)]
         mutation: MutationArgs,
     },
@@ -418,7 +479,7 @@ enum ObsCommand {
     Inputs,
     #[command(about = "List OBS hotkeys, or trigger one with --target")]
     Hotkeys {
-        #[arg(long, help = "Hotkey key id to trigger instead of listing")]
+        #[arg(long, help = "Named OBS hotkey to trigger instead of listing")]
         target: Option<String>,
     },
     #[command(about = "Inspect or control the OBS stream")]
@@ -718,6 +779,63 @@ async fn dispatch(
         Command::Obs { command } => {
             let obs = client.obs();
             match command {
+                ObsCommand::Project { command } => match command {
+                    ObsProjectCommand::Init { path } => admin::obs_project::init(path),
+                    ObsProjectCommand::Schema => Ok(Outcome::ok(
+                        admin::obs_project::schema(),
+                        "OBS project JSON Schema",
+                    )),
+                    ObsProjectCommand::Validate { path } => {
+                        admin::obs_project::validate_project(path)
+                    }
+                    ObsProjectCommand::Diff {
+                        path,
+                        adopt_existing,
+                        prune_managed,
+                        ..
+                    } => {
+                        admin::obs_project::reconcile_with_prune(
+                            &client,
+                            path,
+                            true,
+                            *adopt_existing,
+                            None,
+                            *prune_managed,
+                        )
+                        .await
+                    }
+                    ObsProjectCommand::Apply {
+                        path,
+                        adopt_existing,
+                        prune_managed,
+                        mutation,
+                        ..
+                    } => {
+                        admin::obs_project::reconcile_with_prune(
+                            &client,
+                            path,
+                            mutation.dry_run,
+                            *adopt_existing,
+                            mutation.revision,
+                            *prune_managed,
+                        )
+                        .await
+                    }
+                },
+                ObsCommand::Capabilities => obs.query("GetVersion", serde_json::json!({})).await,
+                ObsCommand::Collections => {
+                    obs.query("GetSceneCollectionList", serde_json::json!({}))
+                        .await
+                }
+                ObsCommand::Scene { command } => match command {
+                    ObsSceneCommand::Sync {
+                        template, dry_run, ..
+                    } => admin::obs_project::sync_instances(&client, template, *dry_run).await,
+                    ObsSceneCommand::Show { name } | ObsSceneCommand::Items { name } => {
+                        obs.query("GetSceneItemList", serde_json::json!({"sceneName":name}))
+                            .await
+                    }
+                },
                 ObsCommand::Status => obs.status().await,
                 ObsCommand::Check => obs.check().await,
                 ObsCommand::Configure {
@@ -736,9 +854,25 @@ async fn dispatch(
                     .await
                 }
                 ObsCommand::Scenes => obs.scenes().await,
-                ObsCommand::EnsureButtons { folder, mutation } => {
-                    obs.ensure_buttons(folder, mutation.revision, mutation.dry_run)
+                ObsCommand::EnsureButtons {
+                    folder,
+                    sync,
+                    prune_managed,
+                    mutation,
+                } => {
+                    if *sync {
+                        admin::provisioning::sync_obs(
+                            &client,
+                            folder,
+                            mutation.revision,
+                            mutation.dry_run,
+                            *prune_managed,
+                        )
                         .await
+                    } else {
+                        obs.ensure_buttons(folder, mutation.revision, mutation.dry_run)
+                            .await
+                    }
                 }
                 ObsCommand::CurrentScene => obs.current_scene().await,
                 ObsCommand::Inputs => obs.inputs().await,

@@ -37,6 +37,12 @@ impl CapabilityHost for FakePlatform {
                     Err(Error::invalid())
                 }
             }
+            "obs.request" => {
+                if context.principal.as_deref() != Some("builtin.obs") {
+                    return Err(Error::new(ErrorCode::Forbidden, "OBS scope denied"));
+                }
+                Ok(json!({}))
+            }
             "network.fetch" => Ok(json!({"status":200,"body":"","truncated":false,"headers":{}})),
             "network.wsOpen" => {
                 *self.websocket_turn.lock().unwrap() = 0;

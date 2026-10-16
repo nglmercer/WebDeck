@@ -517,12 +517,17 @@ test('shortcut controls stage typed keys and deletion undo restores a duplicate'
 
   await page.getByRole('tab', { name: 'Action', exact: true }).click();
   await selectCommand(page, 'key');
-  await page.getByRole('button', { name: 'Use copy shortcut' }).click();
-  await expect(page.getByLabel('Key 1', { exact: true })).toHaveValue('ctrl');
-  await expect(page.getByLabel('Key 2', { exact: true })).toHaveValue('c');
-  await expect(page.getByRole('button', { name: 'Remove key 1', exact: true })).toHaveAccessibleDescription('A shortcut must contain between 1 and 16 keys.');
-  await expect(page.getByRole('button', { name: 'Add key', exact: true })).toHaveAccessibleDescription('A shortcut must contain between 1 and 16 keys.');
-  await page.getByLabel('Key 2', { exact: true }).fill('v');
+  for (let n=1;n<=12;n++) await expect(page.getByRole('button', {name:`F${n}`,exact:true})).toBeVisible();
+  await page.getByRole('button', {name:'Record shortcut',exact:true}).click();
+  await page.keyboard.press('Control+Shift+F12');
+  await expect(page.getByRole('button', {name:'Remove F12',exact:true})).toBeVisible();
+  await page.getByRole('button', { name: 'Reset to Ctrl+C' }).click();
+  await expect(page.getByRole('button', { name: 'Remove Ctrl', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Remove C', exact: true })).toBeVisible();
+  await page.getByRole('button', {name:'Record shortcut', exact:true}).click();
+  await page.keyboard.press('Control+v');
+  await expect(page.getByRole('button', {name:'Record shortcut',exact:true})).toHaveAttribute('aria-pressed','false');
+
   await page.getByRole('button', { name: 'Apply to draft' }).click();
   const pending = await (await request.get('/api/v2/config')).json();
   expect(pending.config.layout.folders[0].buttons[0].action.command.type).toBe('play_pause');

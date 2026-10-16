@@ -97,6 +97,13 @@ fn check(s: &Value, v: &Value, depth: usize) -> Result<()> {
         Some("array") => {
             let a = v.as_array().ok_or_else(Error::invalid)?;
             bound(s, a.len() as f64, "minItems", "maxItems")?;
+            if s["uniqueItems"] == true
+                && a.iter()
+                    .enumerate()
+                    .any(|(index, value)| a[..index].contains(value))
+            {
+                return Err(Error::invalid());
+            }
             for v in a {
                 check(&s["items"], v, depth + 1)?;
             }
@@ -154,6 +161,9 @@ pub fn validate_command(c: &Command) -> Result<()> {
         "Command",
         &serde_json::to_value(c).map_err(|_| Error::invalid())?,
     )?;
+    if let Command::Key { keys } = c {
+        crate::keys::chord(keys)?;
+    }
     if let Command::Fetch { url, .. } = c {
         let u = reqwest::Url::parse(url).map_err(|_| Error::invalid())?;
         if !matches!(u.scheme(), "http" | "https")

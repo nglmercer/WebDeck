@@ -1,0 +1,11 @@
+{
+  "id": "common-overlay",
+  "name": "CommonOverlay",
+  "items": [],
+  "instanceProperties": {
+    "transform": {
+      "positionX": 0,
+      "positionY": 0
+    }
+  }
+}

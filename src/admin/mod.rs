@@ -6,6 +6,7 @@ pub mod doctor;
 pub mod error;
 pub mod folders;
 pub mod integrations;
+pub mod obs_project;
 pub mod output;
 pub mod plugins;
 pub mod provisioning;

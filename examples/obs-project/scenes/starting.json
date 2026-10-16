@@ -1,0 +1,12 @@
+{
+  "id": "starting",
+  "name": "Starting",
+  "items": [
+    {
+      "id": "overlay",
+      "kind": "scene_reference",
+      "sceneId": "common-overlay",
+      "enabled": true
+    }
+  ]
+}

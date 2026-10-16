@@ -180,7 +180,16 @@ pub enum Command {
     #[serde(rename = "firewall")]
     Firewall,
     #[serde(rename = "obs")]
-    Obs { action: String, target: String },
+    Obs {
+        action: String,
+        target: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        context_name: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        key_modifiers: Option<ObsKeyModifiers>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        scene_uuid: Option<String>,
+    },
     #[serde(rename = "spotify")]
     Spotify {
         action: String,
@@ -871,6 +880,26 @@ pub struct DeviceRenew {
 pub struct ConnectionProgress {
     pub api_version: u64,
     pub state: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct KeyboardCapabilities {
+    pub platform: Value,
+    pub availability: Value,
+    pub fn_status: String,
+    pub catalog_version: u64,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ObsKeyModifiers {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shift: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub control: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub alt: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub command: Option<bool>,
 }
 impl Command {
     pub fn capability(&self) -> Capability {

@@ -19,6 +19,7 @@ enum InputStep {
 impl CapabilityHost for Platform {
     fn reload_plugins(&self) {
         self.trusted.shutdown();
+        crate::obs::shutdown_endpoint(&self.config.last_valid().config.settings.obs);
     }
     fn call(&self, operation: &str, input: &Value, context: &Context) -> Result<Value> {
         let capability = required_capability(operation)?;
@@ -26,6 +27,18 @@ impl CapabilityHost for Platform {
         match operation {
             "storage.pluginGet" | "storage.pluginSet" => {
                 self.plugin_storage(operation, input, context)
+            }
+            "obs.request" => {
+                if context.principal.as_deref() != Some("builtin.obs") {
+                    return Err(Error::new(ErrorCode::Forbidden, "OBS scope denied"));
+                }
+                let request: String = field(input, "requestType")?;
+                crate::obs::request(
+                    self.config.last_valid().config.settings.obs,
+                    &request,
+                    field(input, "requestData")?,
+                    context.deadline,
+                )
             }
             "network.fetch" => self.network_request(input, context),
             "network.wsOpen" | "network.wsSend" | "network.wsReceive" | "network.wsClose" => {
@@ -236,6 +249,7 @@ impl CapabilityHost for Platform {
     }
     fn shutdown(&self) {
         self.trusted.shutdown();
+        crate::obs::shutdown_endpoint(&self.config.last_valid().config.settings.obs);
         self.websockets.shutdown();
         CLIPBOARD.lock().unwrap_or_else(|p| p.into_inner()).take();
         self.processes.shutdown();

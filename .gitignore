@@ -39,3 +39,5 @@ data.json
 /examples/demo-v2/config.lock
 
 /frontend/device-report/
+
+/examples/obs-project/.webdeck-*

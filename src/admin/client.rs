@@ -52,6 +52,7 @@ pub struct WebDeckAdminClient {
     http: reqwest::Client,
     timeout: Duration,
     verbose: u8,
+    expected_obs_connection: Option<String>,
 }
 
 impl WebDeckAdminClient {
@@ -63,6 +64,7 @@ impl WebDeckAdminClient {
             http: reqwest::Client::new(),
             timeout: Duration::from_secs(35),
             verbose: 0,
+            expected_obs_connection: None,
         }
     }
     pub fn with_token(mut self, token: Option<String>) -> Self {
@@ -200,6 +202,23 @@ impl WebDeckAdminClient {
             )),
             _ => Ok(()),
         }
+    }
+    pub fn pin_obs_connection(&self, fingerprint: &str) -> Self {
+        let mut client = self.clone();
+        client.expected_obs_connection = Some(fingerprint.into());
+        client
+    }
+    pub async fn obs_request(&self, request_type: &str, request_data: Value) -> Result<Value> {
+        self.obs_request_authorized(request_type, request_data, false)
+            .await
+    }
+    pub async fn obs_request_authorized(
+        &self,
+        request_type: &str,
+        request_data: Value,
+        allow_destructive: bool,
+    ) -> Result<Value> {
+        self.request(reqwest::Method::POST,"obs/request",Some(json!({"request_type":request_type,"request_data":request_data,"allow_destructive":allow_destructive,"expected_connection":self.expected_obs_connection}))).await
     }
     pub async fn version(&self) -> Result<ServerVersion> {
         self.get_typed("version").await

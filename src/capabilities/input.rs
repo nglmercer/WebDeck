@@ -12,7 +12,8 @@ pub(super) fn wayland() -> bool {
     std::env::var("XDG_SESSION_TYPE").as_deref() == Ok("wayland")
 }
 fn symbol(s: &str) -> Result<i32> {
-    Ok(match s.to_lowercase().as_str() {
+    let normalized = crate::keys::normalize(s)?;
+    Ok(match normalized.as_str() {
         "ctrl" | "control" => 0xffe3,
         "shift" => 0xffe1,
         "alt" => 0xffe9,
@@ -23,6 +24,23 @@ fn symbol(s: &str) -> Result<i32> {
         "space" => 0x20,
         "backspace" => 0xff08,
         "delete" => 0xffff,
+        "insert" => 0xff63,
+        "capslock" => 0xffe5,
+        "numlock" => 0xff7f,
+        "scrolllock" => 0xff14,
+        "printscreen" => 0xff61,
+        "pause" => 0xff13,
+        "numpad0" => 0xffb0,
+        "numpad1" => 0xffb1,
+        "numpad2" => 0xffb2,
+        "numpad3" => 0xffb3,
+        "numpad4" => 0xffb4,
+        "numpad5" => 0xffb5,
+        "numpad6" => 0xffb6,
+        "numpad7" => 0xffb7,
+        "numpad8" => 0xffb8,
+        "numpad9" => 0xffb9,
+
         "home" => 0xff50,
         "end" => 0xff57,
         "pageup" => 0xff55,
@@ -74,28 +92,60 @@ fn send(events: Vec<(i32, KeyState)>, deadline: Instant) -> Result<Value> {
         )
     })?;
     let budget = remaining(deadline)?;
-    let result = rt.block_on(async {
+    let mut held = Vec::new();
+    let mut pending: Option<Portal> = None;
+    let mut result = rt.block_on(async {
         tokio::time::timeout(budget, async {
             if slot.is_none() {
                 let portal = RemoteDesktop::with_connection(zbus::Connection::session().await.map_err(|_| Error::execution())?).await.map_err(|_| Error::execution())?;
                 let session = portal.create_session(Default::default()).await.map_err(|_| Error::execution())?;
-                portal.select_devices(&session, SelectDevicesOptions::default().set_devices(Some(DeviceType::Keyboard.into()))).await.map_err(|_| Error::execution())?.response().map_err(|_| Error::execution())?;
-                portal.start(&session, None, Default::default()).await.map_err(|_| Error::execution())?.response().map_err(|_| Error::new(ErrorCode::ExecutionFailed, "Keyboard access was declined; approve WebDeck in the desktop permission dialog"))?;
-                *slot = Some((portal, session));
+                pending = Some((portal,session));
+                let (portal,session)=pending.as_ref().expect("pending portal");
+                portal.select_devices(session, SelectDevicesOptions::default().set_devices(Some(DeviceType::Keyboard.into()))).await.map_err(|_| Error::execution())?.response().map_err(|_| Error::execution())?;
+                portal.start(session, None, Default::default()).await.map_err(|_| Error::execution())?.response().map_err(|_| Error::new(ErrorCode::ExecutionFailed, "Keyboard access was declined; approve WebDeck in the desktop permission dialog"))?;
+                *slot = pending.take();
             }
             let (portal, session) = slot.as_ref().expect("initialized portal");
-            let mut held = Vec::new();
             let mut result = Ok(json!({}));
             for (sym, state) in events {
+                if state == KeyState::Pressed { held.push(sym); }
                 if portal.notify_keyboard_keysym(session, sym, state, Default::default()).await.is_err() { result = Err(Error::execution()); break; }
-                if state == KeyState::Pressed { held.push(sym); } else { held.retain(|s| *s != sym); }
+                if state == KeyState::Released { held.retain(|s| *s != sym); }
             }
-            for sym in held.into_iter().rev() { let _ = portal.notify_keyboard_keysym(session, sym, KeyState::Released, Default::default()).await; }
             result
         }).await.map_err(|_| Error::new(ErrorCode::ExecutionFailed, "Keyboard permission timed out; approve WebDeck on the host desktop and try again"))?
     });
+    // Timeout cancels the send future. Keep held keys outside it so cleanup still runs.
+    if !held.is_empty() {
+        if let Some((portal, session)) = slot.as_ref() {
+            let cleanup = rt.block_on(async {
+                tokio::time::timeout(Duration::from_secs(1), async {
+                    while let Some(sym) = held.last().copied() {
+                        portal
+                            .notify_keyboard_keysym(
+                                session,
+                                sym,
+                                KeyState::Released,
+                                Default::default(),
+                            )
+                            .await
+                            .map_err(|_| Error::execution())?;
+                        held.pop();
+                    }
+                    Ok::<(), Error>(())
+                })
+                .await
+            });
+            if !matches!(cleanup, Ok(Ok(()))) {
+                result = Err(Error::new(
+                    ErrorCode::ExecutionFailed,
+                    "Keyboard release failed; portal session closed for recovery",
+                ));
+            }
+        }
+    }
     if result.is_err() {
-        if let Some((_, session)) = slot.take() {
+        if let Some((_, session)) = slot.take().or_else(|| pending.take()) {
             rt.block_on(async {
                 let _ = tokio::time::timeout(Duration::from_secs(1), session.close()).await;
             });
@@ -104,7 +154,11 @@ fn send(events: Vec<(i32, KeyState)>, deadline: Instant) -> Result<Value> {
     result
 }
 pub(super) fn keys(keys: &[String], deadline: Instant) -> Result<Value> {
-    let symbols = keys.iter().map(|k| symbol(k)).collect::<Result<Vec<_>>>()?;
+    let normalized = crate::keys::chord(keys)?;
+    let symbols = normalized
+        .iter()
+        .map(|k| symbol(k))
+        .collect::<Result<Vec<_>>>()?;
     send(
         symbols
             .iter()

@@ -627,6 +627,7 @@ impl webdeck::runtime::capabilities::CapabilityHost for IntegrationHost {
                     )
                 }
             }
+            "obs.request" => Ok(json!({})),
             "network.wsOpen" => Ok(json!("opaque-connection")),
             "network.wsReceive" | "network.fetch" => self
                 .responses
@@ -660,6 +661,9 @@ fn obs_and_spotify_behavior_runs_in_js_over_scoped_fake_io() {
         runtime
             .invoke(
                 &Command::Obs {
+                    context_name: None,
+                    key_modifiers: None,
+                    scene_uuid: None,
                     action: "start_recording".into(),
                     target: String::new()
                 },
@@ -673,8 +677,42 @@ fn obs_and_spotify_behavior_runs_in_js_over_scoped_fake_io() {
         .lock()
         .unwrap()
         .iter()
-        .any(|(op, input)| op == "network.wsSend"
-            && input["value"]["d"]["requestType"] == "StartRecord"));
+        .any(|(op, input)| op == "obs.request" && input["requestType"] == "StartRecord"));
+    for (action, request, field, target) in [
+        (
+            "hotkey",
+            "TriggerHotkeyByName",
+            "hotkeyName",
+            "OBSBasic.StartRecording",
+        ),
+        (
+            "hotkey_sequence",
+            "TriggerHotkeyByKeySequence",
+            "keyId",
+            "OBS_KEY_F12",
+        ),
+    ] {
+        runtime
+            .invoke(
+                &Command::Obs {
+                    context_name: None,
+                    key_modifiers: None,
+                    scene_uuid: None,
+                    action: action.into(),
+                    target: target.into(),
+                },
+                &context,
+            )
+            .unwrap();
+        assert!(host
+            .calls
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|(op, input)| op == "obs.request"
+                && input["requestType"] == request
+                && input["requestData"][field] == target));
+    }
     host.calls.lock().unwrap().clear();
     *host.responses.lock().unwrap() = std::collections::VecDeque::from([
         json!({"status":200,"body":"{\"device\":{\"volume_percent\":40}}","truncated":false}),
@@ -708,6 +746,17 @@ fn integration_secrets_are_not_available_to_general_network_callers() {
     assert_eq!(
         platform
             .call("secrets.integration", &json!({"id":"obs"}), &context)
+            .unwrap_err()
+            .code,
+        ErrorCode::Forbidden
+    );
+    assert_eq!(
+        platform
+            .call(
+                "obs.request",
+                &json!({"requestType":"GetVersion","requestData":{}}),
+                &context
+            )
             .unwrap_err()
             .code,
         ErrorCode::Forbidden

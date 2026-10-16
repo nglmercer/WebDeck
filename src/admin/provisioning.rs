@@ -225,3 +225,150 @@ pub async fn ensure(
         human,
     ))
 }
+
+/// Explicit managed-only reconciliation; the legacy recipe remains add-only.
+pub fn plan_obs_sync(
+    config: &Config,
+    catalog: &CatalogResponse,
+    recipe: &ButtonRecipe,
+    result: &Value,
+    folder_id: &str,
+    prune: bool,
+) -> Result<(Config, Vec<Value>)> {
+    let (mut next, created) = plan(config, catalog, recipe, result, folder_id)?;
+    let scenes = result["scenes"]
+        .as_array()
+        .ok_or_else(|| AdminError::new(ErrorKind::Integration, "OBS scene discovery missing"))?;
+    let folder = next
+        .layout
+        .folders
+        .iter_mut()
+        .find(|f| f.id == folder_id)
+        .expect("ensured");
+    let mut changes = created
+        .iter()
+        .map(|v| json!({"kind":"create","button":v}))
+        .collect::<Vec<_>>();
+    let mut live = std::collections::HashSet::new();
+    // Recognize old generated IDs by their exact recipe identity hash. Never adopt custom buttons.
+    for scene in scenes {
+        let name = scene["sceneName"]
+            .as_str()
+            .ok_or_else(|| AdminError::new(ErrorKind::Validation, "Scene name missing"))?;
+        let identity = scene["sceneUuid"].as_str().unwrap_or(name);
+        live.insert(identity.to_string());
+        let encoded = serde_json::to_string(name).expect("name");
+        let legacy = format!(
+            "generated-{:x}",
+            Sha256::digest(
+                serde_json::to_vec(&(folder_id, &recipe.id, encoded)).expect("identity")
+            )
+        );
+        let matched = folder.buttons.iter().position(|b| {
+            b.extensions
+                .get("webdeck.obs")
+                .is_some_and(|m| m["identity"] == identity)
+        });
+        let candidate = matched.or_else(|| folder.buttons.iter().position(|b| b.id == legacy));
+        if let Some(index) = candidate {
+            // Add-only planning may have made a duplicate for a renamed UUID. Remove only that newly created button.
+            let duplicate_ids = created
+                .iter()
+                .filter_map(|v| v["id"].as_str())
+                .filter(|id| *id != folder.buttons[index].id)
+                .map(String::from)
+                .collect::<std::collections::HashSet<_>>();
+            let button = &mut folder.buttons[index];
+            let previous = button.extensions.get("webdeck.obs").cloned();
+            let mut changed = false;
+            if let Some(previous) = &previous {
+                if button.label == previous["label"].as_str().unwrap_or("") && button.label != name
+                {
+                    button.label = name.into();
+                    changed = true;
+                }
+                if let ButtonAction::Command {
+                    command: Command::Obs { action, target, .. },
+                } = &mut button.action
+                {
+                    if action == "scene" && target != name {
+                        *target = name.into();
+                        changed = true;
+                    }
+                }
+            }
+            let metadata = json!({"identity":identity,"label":name,"recipe":"obs-scenes"});
+            if previous.as_ref() != Some(&metadata) {
+                button.extensions.insert("webdeck.obs".into(), metadata);
+                changed = true;
+            }
+            let id = button.id.clone();
+            if changed {
+                changes.push(json!({"kind":"update","id":id,"scene":name}));
+            }
+            folder.buttons.retain(|b|!(duplicate_ids.contains(&b.id) && matches!(&b.action,ButtonAction::Command {command:Command::Obs {action,target,..}} if action=="scene" && target==name)));
+        }
+    }
+    folder.buttons.retain(|button| {
+        let stale = button
+            .extensions
+            .get("webdeck.obs")
+            .and_then(|m| m["identity"].as_str())
+            .is_some_and(|id| !live.contains(id));
+        if stale {
+            changes.push(json!({"kind":if prune {"delete"} else {"stale"},"id":button.id}));
+        }
+        !prune || !stale
+    });
+    let retained = folder
+        .buttons
+        .iter()
+        .map(|button| button.id.as_str())
+        .collect::<std::collections::HashSet<_>>();
+    changes.retain(|change| {
+        change["kind"] != "create"
+            || change["button"]["id"]
+                .as_str()
+                .is_some_and(|id| retained.contains(id))
+    });
+    domain::validate_config(&next).map_err(AdminError::from_domain)?;
+    Ok((next, changes))
+}
+pub async fn sync_obs(
+    client: &WebDeckAdminClient,
+    folder_id: &str,
+    revision: Option<u64>,
+    dry_run: bool,
+    prune: bool,
+) -> Result<Outcome> {
+    let catalog = client.catalog().await?;
+    let recipe = catalog
+        .automation
+        .as_ref()
+        .and_then(|a| a.button_recipes.iter().find(|r| r.id == "obs-scenes"))
+        .ok_or_else(|| AdminError::new(ErrorKind::NotFound, "OBS scene recipe missing"))?;
+    let current = client.get_config().await?;
+    client.ensure_revision(revision, current.revision)?;
+    let result = client.run_command(recipe.discovery.clone()).await?;
+    let (config, changes) =
+        plan_obs_sync(&current.config, &catalog, recipe, &result, folder_id, prune)?;
+    let changed = config != current.config;
+    let report = if !changed {
+        MutationReport {
+            operation: "obs_button_sync".into(),
+            revision: current.revision,
+            previous_revision: None,
+            applied: false,
+            dry_run,
+        }
+    } else if dry_run {
+        MutationReport::planned("obs_button_sync", current.revision)
+    } else {
+        let response = client.put_config(current.revision, config).await?;
+        MutationReport::applied("obs_button_sync", current.revision, response.revision)
+    };
+    Ok(Outcome::ok(
+        report_value(&report, json!({"folder":folder_id,"changes":changes})),
+        "OBS managed scene buttons reconciled.",
+    ))
+}

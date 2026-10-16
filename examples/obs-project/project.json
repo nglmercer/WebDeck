@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "projectId": "example-stream",
+  "collection": "WebDeck Test Stream",
+  "scenes": [
+    "scenes/starting.json",
+    "scenes/gameplay.json",
+    "scenes/brb.json",
+    "scenes/ending.json"
+  ],
+  "shared": [
+    "shared/common-overlay.json"
+  ],
+  "webdeck": {
+    "folderId": "obs-scenes",
+    "folderLabel": "OBS Scenes",
+    "generateButtons": true,
+    "syncManagedButtons": true
+  },
+  "sync": {
+    "mode": "merge",
+    "deleteUnmanaged": false
+  }
+}

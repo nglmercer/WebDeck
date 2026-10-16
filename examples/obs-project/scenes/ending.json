@@ -1,0 +1,12 @@
+{
+  "id": "ending",
+  "name": "Ending",
+  "items": [
+    {
+      "id": "overlay",
+      "kind": "scene_reference",
+      "sceneId": "common-overlay",
+      "enabled": true
+    }
+  ]
+}

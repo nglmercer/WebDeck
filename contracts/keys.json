@@ -1,0 +1,1641 @@
+{
+  "schemaVersion": 1,
+  "keys": [
+    {
+      "id": "ctrl",
+      "label": "Ctrl",
+      "category": "modifiers",
+      "aliases": [
+        "control"
+      ],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "shift",
+      "label": "Shift",
+      "category": "modifiers",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "alt",
+      "label": "Alt",
+      "category": "modifiers",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "meta",
+      "label": "Meta",
+      "category": "modifiers",
+      "aliases": [
+        "super",
+        "win",
+        "windows"
+      ],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "a",
+      "label": "A",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "b",
+      "label": "B",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "c",
+      "label": "C",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "d",
+      "label": "D",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "e",
+      "label": "E",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f",
+      "label": "F",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "g",
+      "label": "G",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "h",
+      "label": "H",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "i",
+      "label": "I",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "j",
+      "label": "J",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "k",
+      "label": "K",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "l",
+      "label": "L",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "m",
+      "label": "M",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "n",
+      "label": "N",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "o",
+      "label": "O",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "p",
+      "label": "P",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "q",
+      "label": "Q",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "r",
+      "label": "R",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "s",
+      "label": "S",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "t",
+      "label": "T",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "u",
+      "label": "U",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "v",
+      "label": "V",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "w",
+      "label": "W",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "x",
+      "label": "X",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "y",
+      "label": "Y",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "z",
+      "label": "Z",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "0",
+      "label": "0",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "1",
+      "label": "1",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "2",
+      "label": "2",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "3",
+      "label": "3",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "4",
+      "label": "4",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "5",
+      "label": "5",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "6",
+      "label": "6",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "7",
+      "label": "7",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "8",
+      "label": "8",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "9",
+      "label": "9",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "!",
+      "label": "!",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "\"",
+      "label": "\"",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "#",
+      "label": "#",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "$",
+      "label": "$",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "%",
+      "label": "%",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "&",
+      "label": "&",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "'",
+      "label": "'",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "(",
+      "label": "(",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": ")",
+      "label": ")",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "*",
+      "label": "*",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "+",
+      "label": "+",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": ",",
+      "label": ",",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "-",
+      "label": "-",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": ".",
+      "label": ".",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "/",
+      "label": "/",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": ":",
+      "label": ":",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": ";",
+      "label": ";",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "<",
+      "label": "<",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "=",
+      "label": "=",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": ">",
+      "label": ">",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "?",
+      "label": "?",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "@",
+      "label": "@",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "[",
+      "label": "[",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "\\",
+      "label": "\\",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "]",
+      "label": "]",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "^",
+      "label": "^",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "_",
+      "label": "_",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "`",
+      "label": "`",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "{",
+      "label": "{",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "|",
+      "label": "|",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "}",
+      "label": "}",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "~",
+      "label": "~",
+      "category": "characters",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "enter",
+      "label": "Enter",
+      "category": "navigation",
+      "aliases": [
+        "return"
+      ],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "escape",
+      "label": "Escape",
+      "category": "navigation",
+      "aliases": [
+        "esc"
+      ],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "tab",
+      "label": "Tab",
+      "category": "navigation",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "space",
+      "label": "Space",
+      "category": "navigation",
+      "aliases": [
+        " "
+      ],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "backspace",
+      "label": "Backspace",
+      "category": "navigation",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "delete",
+      "label": "Delete",
+      "category": "navigation",
+      "aliases": [
+        "del"
+      ],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "insert",
+      "label": "Insert",
+      "category": "navigation",
+      "aliases": [
+        "ins"
+      ],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "home",
+      "label": "Home",
+      "category": "navigation",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "end",
+      "label": "End",
+      "category": "navigation",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "pageup",
+      "label": "Page Up",
+      "category": "navigation",
+      "aliases": [
+        "page up"
+      ],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "pagedown",
+      "label": "Page Down",
+      "category": "navigation",
+      "aliases": [
+        "page down"
+      ],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "up",
+      "label": "\u2191",
+      "category": "navigation",
+      "aliases": [
+        "arrowup"
+      ],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "down",
+      "label": "\u2193",
+      "category": "navigation",
+      "aliases": [
+        "arrowdown"
+      ],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "left",
+      "label": "\u2190",
+      "category": "navigation",
+      "aliases": [
+        "arrowleft"
+      ],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "right",
+      "label": "\u2192",
+      "category": "navigation",
+      "aliases": [
+        "arrowright"
+      ],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f1",
+      "label": "F1",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f2",
+      "label": "F2",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f3",
+      "label": "F3",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f4",
+      "label": "F4",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f5",
+      "label": "F5",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f6",
+      "label": "F6",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f7",
+      "label": "F7",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f8",
+      "label": "F8",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f9",
+      "label": "F9",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f10",
+      "label": "F10",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f11",
+      "label": "F11",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f12",
+      "label": "F12",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f13",
+      "label": "F13",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f14",
+      "label": "F14",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f15",
+      "label": "F15",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f16",
+      "label": "F16",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f17",
+      "label": "F17",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f18",
+      "label": "F18",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f19",
+      "label": "F19",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f20",
+      "label": "F20",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f21",
+      "label": "F21",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f22",
+      "label": "F22",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f23",
+      "label": "F23",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "f24",
+      "label": "F24",
+      "category": "function",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "capslock",
+      "label": "Caps Lock",
+      "category": "system",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "numlock",
+      "label": "Num Lock",
+      "category": "system",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "scrolllock",
+      "label": "Scroll Lock",
+      "category": "system",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "printscreen",
+      "label": "Print Screen",
+      "category": "system",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "pause",
+      "label": "Pause",
+      "category": "system",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "menu",
+      "label": "Menu",
+      "category": "system",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "unsupported",
+        "linux_x11": "unsupported",
+        "linux_wayland": "unsupported"
+      }
+    },
+    {
+      "id": "numpad0",
+      "label": "Numpad 0",
+      "category": "numpad",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "numpad1",
+      "label": "Numpad 1",
+      "category": "numpad",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "numpad2",
+      "label": "Numpad 2",
+      "category": "numpad",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "numpad3",
+      "label": "Numpad 3",
+      "category": "numpad",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "numpad4",
+      "label": "Numpad 4",
+      "category": "numpad",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "numpad5",
+      "label": "Numpad 5",
+      "category": "numpad",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "numpad6",
+      "label": "Numpad 6",
+      "category": "numpad",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "numpad7",
+      "label": "Numpad 7",
+      "category": "numpad",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "numpad8",
+      "label": "Numpad 8",
+      "category": "numpad",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "numpad9",
+      "label": "Numpad 9",
+      "category": "numpad",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "supported",
+        "linux_x11": "supported",
+        "linux_wayland": "supported_if_portal_approved"
+      }
+    },
+    {
+      "id": "volumeup",
+      "label": "Volume Up",
+      "category": "media",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "unsupported",
+        "linux_x11": "unsupported",
+        "linux_wayland": "unsupported"
+      }
+    },
+    {
+      "id": "volumedown",
+      "label": "Volume Down",
+      "category": "media",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "unsupported",
+        "linux_x11": "unsupported",
+        "linux_wayland": "unsupported"
+      }
+    },
+    {
+      "id": "mute",
+      "label": "Mute",
+      "category": "media",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "unsupported",
+        "linux_x11": "unsupported",
+        "linux_wayland": "unsupported"
+      }
+    },
+    {
+      "id": "playpause",
+      "label": "Play/Pause",
+      "category": "media",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "unsupported",
+        "linux_x11": "unsupported",
+        "linux_wayland": "unsupported"
+      }
+    },
+    {
+      "id": "nexttrack",
+      "label": "Next Track",
+      "category": "media",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "unsupported",
+        "linux_x11": "unsupported",
+        "linux_wayland": "unsupported"
+      }
+    },
+    {
+      "id": "previoustrack",
+      "label": "Previous Track",
+      "category": "media",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "unsupported",
+        "linux_x11": "unsupported",
+        "linux_wayland": "unsupported"
+      }
+    },
+    {
+      "id": "fn",
+      "label": "Fn (keyboard firmware; unavailable)",
+      "category": "hardware",
+      "aliases": [],
+      "kind": "physical_key",
+      "platformSupport": {
+        "windows": "unsupported",
+        "linux_x11": "unsupported",
+        "linux_wayland": "unsupported"
+      }
+    }
+  ]
+}

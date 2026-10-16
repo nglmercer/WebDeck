@@ -2,6 +2,7 @@ mod auth;
 mod connection;
 mod frontend;
 mod network;
+mod obs;
 use auth::*;
 mod configuration;
 use configuration::*;
@@ -93,6 +94,8 @@ pub fn router(a: App) -> Router {
         .merge(frontend::routes())
         .route("/api/v2/boot", get(boot))
         .route("/api/v2/version", get(version))
+        .route("/api/v2/obs/request", post(obs::request))
+        .route("/api/v2/keyboard/capabilities", get(keyboard_capabilities))
         .route("/api/v2/network", get(network::status).put(network::apply))
         .route("/api/v2/network/qr", get(network::qr))
         .route("/api/v2/connection/status", get(connection::status))

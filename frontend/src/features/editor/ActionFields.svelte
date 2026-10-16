@@ -1,4 +1,5 @@
 <script lang="ts">
+  import KeySelector from './KeySelector.svelte';
   import { useTranslations } from '../../lib/i18n';
   const t = useTranslations();
 
@@ -78,48 +79,7 @@
       {t(descriptions[value.type] ?? '')}
     </p>{/if}
   {#if value.type === 'key'}
-    <fieldset>
-      <legend>{t('ui_shortcut_keys')}</legend>
-      <p class="field-help">
-        {t('ui_keys_are_pressed_together_on_the_host_use_ctrl_shift_alt_or_meta_for_modifiers_e')}
-      </p>
-      <p id="shortcut-key-limits" class="field-help">{t('ui_shortcut_key_limits')}</p>
-      {#each value.keys as key, index}<div class="row">
-          <label
-            >{t('ui_key_number', { index: index + 1 })}<input
-              value={key}
-              required
-              minlength="1"
-              maxlength="32"
-              oninput={(event) => {
-                if (value.type !== 'key' || !event.currentTarget.checkValidity()) return;
-                const keys = [...value.keys];
-                keys[index] = event.currentTarget.value;
-                onchange({ type: 'key', keys });
-              }}
-            /></label
-          ><button
-            type="button"
-            disabled={value.keys.length <= 1}
-            aria-describedby="shortcut-key-limits"
-            onclick={() => {
-              if (value.type === 'key')
-                onchange({ type: 'key', keys: value.keys.filter((_, i) => i !== index) });
-            }}>{t('ui_remove_key_number', { index: index + 1 })}</button
-          >
-        </div>{/each}
-      <button
-        type="button"
-        disabled={value.keys.length >= 16}
-        aria-describedby="shortcut-key-limits"
-        onclick={() => {
-          if (value.type === 'key') onchange({ type: 'key', keys: [...value.keys, 'enter'] });
-        }}>{t('ui_add_key')}</button
-      >
-      <button type="button" onclick={() => onchange({ type: 'key', keys: ['ctrl', 'c'] })}
-        >{t('ui_use_copy_shortcut')}</button
-      >
-    </fieldset>
+    <KeySelector value={value.keys} onchange={(keys) => onchange({ type: 'key', keys })} />
   {:else if value.type === 'write'}
     <label
       >{t('ui_text_to_type')}<textarea

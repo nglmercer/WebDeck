@@ -165,3 +165,15 @@ pub(super) fn presentation(
     }
     result
 }
+
+pub(super) async fn keyboard_capabilities(
+    axum::Extension(i): axum::Extension<Identity>,
+) -> Result<Json<Value>> {
+    i.local()?;
+    i.require(Capability::Input)?;
+    let wayland =
+        cfg!(target_os = "linux") && std::env::var("XDG_SESSION_TYPE").as_deref() == Ok("wayland");
+    Ok(Json(
+        json!({"catalog_version":1,"platform": if cfg!(windows) {"windows"} else if wayland {"linux_wayland"} else if cfg!(target_os="linux") {"linux_x11"} else {"unsupported"}, "availability": if wayland {"portal_approval_required"} else {"desktop_access_unverified"}, "fn_status":"unsupported"}),
+    ))
+}

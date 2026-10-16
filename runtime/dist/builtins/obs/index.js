@@ -14,7 +14,8 @@ const requests = {
     start_virtual_camera: "StartVirtualCam",
     stop_virtual_camera: "StopVirtualCam",
     scene: "SetCurrentProgramScene",
-    hotkey: "TriggerHotkeyByKeySequence",
+    hotkey: "TriggerHotkeyByName",
+    hotkey_sequence: "TriggerHotkeyByKeySequence",
     get_scenes: "GetSceneList",
     get_current_scene: "GetCurrentProgramScene",
     get_inputs: "GetInputList",
@@ -36,86 +37,50 @@ const queries = new Set([
     "get_recording_status",
     "get_virtual_camera_status",
 ]);
-function requestData(action, target) {
+function requestData(command) {
+    const { action, target } = command;
     if (action === "scene")
-        return { sceneName: target };
+        return command.scene_uuid ? { sceneUuid: command.scene_uuid } : { sceneName: target };
     if (action === "hotkey")
+        return { hotkeyName: target, ...(command.context_name ? { contextName: command.context_name } : {}) };
+    if (action === "hotkey_sequence")
         return {
             keyId: target,
-            keyModifiers: { shift: false, control: false, alt: false, command: false },
+            keyModifiers: command.key_modifiers ?? { shift: false, control: false, alt: false, command: false },
         };
     if (action === "input_mute" || action === "input_unmute")
         return { inputName: target, inputMuted: action === "input_mute" };
     return {};
 }
 export function execute(command) {
-    const settings = call("secrets.integration", { id: "obs" });
-    const host = settings.host.includes(":")
-        ? `[${settings.host}]`
-        : settings.host;
-    const id = call("network.wsOpen", { url: `ws://${host}:${settings.port}` });
-    try {
-        const hello = call("network.wsReceive", { id });
-        if (hello.op !== 0)
-            throw new Error("OBS handshake failed");
-        const identify = { rpcVersion: 1, eventSubscriptions: 0 };
-        if (hello.d.authentication) {
-            const secret = call("crypto.sha256Base64", {
-                text: settings.password + hello.d.authentication.salt,
-            });
-            identify.authentication = call("crypto.sha256Base64", {
-                text: secret + hello.d.authentication.challenge,
-            });
-        }
-        call("network.wsSend", { id, value: { op: 1, d: identify } });
-        if (call("network.wsReceive", { id }).op !== 2)
-            throw new Error("OBS identification failed");
-        const send = (requestType, data) => {
-            call("network.wsSend", {
-                id,
-                value: { op: 6, d: { requestType, requestId: "webdeck", requestData: data } },
-            });
-            for (let turns = 0; turns < 64; turns++) {
-                const response = call("network.wsReceive", { id });
-                if (response.op === 7 && response.d.requestId === "webdeck") {
-                    if (!response.d.requestStatus.result)
-                        throw new Error("OBS action failed");
-                    return response.d.responseData ?? {};
-                }
-            }
-            throw new Error("OBS response budget exhausted");
-        };
-        const action = command.action;
-        if (action === "input_toggle_mute") {
-            const before = send("GetInputMute", { inputName: command.target });
-            const muted = !before.inputMuted;
-            send("SetInputMute", {
-                inputName: command.target,
-                inputMuted: muted,
-            });
-            return { inputName: command.target, inputMuted: muted };
-        }
-        const requestType = requests[action];
-        if (!requestType)
-            throw new Error("Invalid OBS action");
-        const data = send(requestType, requestData(action, command.target));
-        if (action === "get_inputs") {
-            // Mute state lives on a separate request; bound the fan-out for large scenes.
-            const inputs = (Array.isArray(data.inputs) ? data.inputs : [])
-                .slice(0, 32)
-                .map((input) => {
-                const mute = send("GetInputMute", { inputName: input.inputName });
-                return {
-                    inputName: input.inputName,
-                    inputKind: input.inputKind,
-                    inputMuted: !!mute.inputMuted,
-                };
-            });
-            return { inputs };
-        }
-        return queries.has(action) ? data : {};
+    const send = (requestType, requestData) => call("obs.request", { requestType, requestData });
+    const action = command.action;
+    if (action === "input_toggle_mute") {
+        const before = send("GetInputMute", { inputName: command.target });
+        const muted = !before.inputMuted;
+        send("SetInputMute", {
+            inputName: command.target,
+            inputMuted: muted,
+        });
+        return { inputName: command.target, inputMuted: muted };
     }
-    finally {
-        call("network.wsClose", { id });
+    const requestType = requests[action];
+    if (!requestType)
+        throw new Error("Invalid OBS action");
+    const data = send(requestType, requestData(command));
+    if (action === "get_inputs") {
+        // Mute state lives on a separate request; bound the fan-out for large scenes.
+        const inputs = (Array.isArray(data.inputs) ? data.inputs : [])
+            .slice(0, 32)
+            .map((input) => {
+            const mute = send("GetInputMute", { inputName: input.inputName });
+            return {
+                inputName: input.inputName,
+                inputKind: input.inputKind,
+                inputMuted: !!mute.inputMuted,
+            };
+        });
+        return { inputs };
     }
+    return queries.has(action) ? data : {};
 }
