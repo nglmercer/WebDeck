@@ -182,3 +182,10 @@ Start with [the v2 quickstart](docs/quickstart-v2.md). Preliminary native instal
 - [Build and release](docs/build-release.md): build and package the application.
 - [Contributing](CONTRIBUTING.md): development workflow and validation.
 - [v2 documentation](docs/v2/README.md): architecture, migration and implementation status.
+
+### Keyboard shortcuts and OBS projects
+
+The key editor includes a searchable catalog and focused shortcut recording.
+See [OBS projects](docs/obs-project.md) for declarative scenes, nested overlays,
+managed scene buttons and recovery, and [LLM automation](docs/llm-automation.md)
+for noninteractive CLI workflows.

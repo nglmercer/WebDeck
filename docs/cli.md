@@ -278,3 +278,19 @@ https://example.com/icon.svg` to download one. Add `--live` to retain the URL fo
 `asset refresh IMAGE_ID.svg`. These operations require a local administrator and
 do not modify button configuration. Set the returned `asset:<id>` as the button
 icon. See [image imports](automation.md#importing-images) for API and limits.
+
+## Declarative OBS projects and scene-button synchronization
+
+`obs capabilities`, `obs collections`, `obs scene show NAME`, and `obs scene items
+NAME` expose bounded discovery without requiring a project. `obs project` has
+`init PATH`, `schema`, `validate PATH`, `diff PATH`, and `apply PATH`; diff and apply
+support `--adopt-existing`, and apply supports `--dry-run`/`--revision`. Managed
+pruning requires `--prune-managed --allow-destructive` and manifest mode `managed`.
+`--yes` never implies destructive authorization.
+
+`obs ensure-buttons --sync` reconciles only generated managed buttons;
+`--prune-managed --yes` opts into removing stale managed buttons. The original
+command remains add-only. See [OBS projects](obs-project.md) and the
+[LLM automation guide](llm-automation.md) for schemas, examples and recovery.
+Named OBS `hotkey` now correctly invokes `TriggerHotkeyByName`. Saved raw key IDs
+must use `hotkey_sequence`, optionally with `key_modifiers`.

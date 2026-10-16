@@ -183,3 +183,8 @@ URLs are private metadata in `image_sources`; browsers receive only asset IDs.
 The import controls and contracts add 3876 raw / 1195 gzip bytes to the icon build.
 The production build measures 236377 raw / 73471 gzip bytes; current bundle limits
 are 240000 / 75000. Existing UI timing limits are unchanged.
+
+OBS recipes also support explicit managed synchronization through
+`obs ensure-buttons --sync`; default provisioning stays add-only.
+See [declarative OBS projects](obs-project.md) for project validation, planning,
+UUID ownership, managed pruning and partial-apply recovery.
