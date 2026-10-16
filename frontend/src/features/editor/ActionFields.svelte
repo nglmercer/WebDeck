@@ -10,10 +10,14 @@
     value,
     onchange,
     configurationOnly = false,
+    active = true,
+    onKeyPickerStep,
   }: {
     value: Command;
     onchange: (command: Command) => void;
     configurationOnly?: boolean;
+    active?: boolean;
+    onKeyPickerStep?: (open: boolean) => void;
   } = $props();
   let search = $state('');
   let category = $state('all');
@@ -79,7 +83,12 @@
       {t(descriptions[value.type] ?? '')}
     </p>{/if}
   {#if value.type === 'key'}
-    <KeySelector value={value.keys} onchange={(keys) => onchange({ type: 'key', keys })} />
+    <KeySelector
+      value={value.keys}
+      onchange={(keys) => onchange({ type: 'key', keys })}
+      {active}
+      onMobileStep={onKeyPickerStep}
+    />
   {:else if value.type === 'write'}
     <label
       >{t('ui_text_to_type')}<textarea

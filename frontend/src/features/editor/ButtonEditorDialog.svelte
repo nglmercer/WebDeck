@@ -5,7 +5,7 @@
   let activeTab = $state('content');
 
   import { modal } from '../../lib/modal';
-  import { onDestroy, onMount } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import { AssetCache } from '../../lib/assets';
   import { asset, request } from '../../lib/api/client';
   import type {
@@ -58,6 +58,23 @@
     attempt: (work: () => Promise<void>) => Promise<void>;
   } = $props();
   let actionPickerOpen = $state(false);
+  let mobilePickerOpen = $state(false);
+  let editorDialog: HTMLDialogElement;
+  let editorScrollBeforePicker = 0;
+  function keyPickerStep(open: boolean) {
+    if (open) {
+      editorScrollBeforePicker = editorDialog?.scrollTop ?? 0;
+      activeTab = 'action';
+      mobilePickerOpen = true;
+      return;
+    }
+    mobilePickerOpen = false;
+    void tick().then(() => {
+      requestAnimationFrame(() => {
+        if (editorDialog?.isConnected) editorDialog.scrollTop = editorScrollBeforePicker;
+      });
+    });
+  }
   const selectedActionId = $derived(
     button.action.type === 'command' ? `command:${button.action.command.type}` : button.action.type,
   );
@@ -323,6 +340,7 @@
 
 <div class="overlay">
   <dialog
+    bind:this={editorDialog}
     use:modal
     oncancel={(event) => {
       event.preventDefault();
@@ -331,184 +349,193 @@
     aria-modal="true"
     aria-labelledby="button-title"
     class="editor"
+    class:picker-step={mobilePickerOpen}
   >
     <div class="heading">
-      <h2 id="button-title">{t('ui_edit_button')}</h2>
+      <h2 id="button-title">
+        {mobilePickerOpen ? t('ui_keypicker_choose_keys') : t('ui_edit_button')}
+      </h2>
       <button aria-label={t('ui_close_editor')} onclick={close}><Icon name="close" /></button>
     </div>
-    <div class="preview">
-      <div
-        class="deck-button preview-tile"
-        role="img"
-        aria-label={t('ui_button_preview')}
-        style={`--button-color:${button.color};--button-foreground:${colors.foreground};--icon-size:${appearance.icon_size ?? 42}px;`}
-      >
-        <ButtonContent {button} assetUrl={previewUrl} />
+    {#if !mobilePickerOpen}
+      <div class="preview">
+        <div
+          class="deck-button preview-tile"
+          role="img"
+          aria-label={t('ui_button_preview')}
+          style={`--button-color:${button.color};--button-foreground:${colors.foreground};--icon-size:${appearance.icon_size ?? 42}px;`}
+        >
+          <ButtonContent {button} assetUrl={previewUrl} />
+        </div>
       </div>
-    </div>
+    {/if}
     <form onsubmit={apply}>
-      <div role="tablist" aria-label={t('ui_edit_button')} class="editor-tabs">
-        {#each ['content', 'appearance', 'action'] as tab}<button
-            type="button"
-            role="tab"
-            id={`editor-tab-${tab}`}
-            aria-controls={`editor-panel-${tab}`}
-            aria-selected={activeTab === tab}
-            tabindex={activeTab === tab ? 0 : -1}
-            onkeydown={(event) => {
-              const tabs = ['content', 'appearance', 'action'];
-              const index = tabs.indexOf(activeTab);
-              const next =
-                event.key === 'ArrowRight'
-                  ? (index + 1) % 3
-                  : event.key === 'ArrowLeft'
-                    ? (index + 2) % 3
-                    : event.key === 'Home'
-                      ? 0
-                      : event.key === 'End'
-                        ? 2
-                        : -1;
-              if (next >= 0) {
-                event.preventDefault();
-                activeTab = tabs[next]!;
-                document.getElementById(`editor-tab-${activeTab}`)?.focus();
-              }
-            }}
-            onclick={() => (activeTab = tab)}>{t(`ui_${tab}`)}</button
-          >{/each}
-      </div>
-      <div
-        role="tabpanel"
-        id="editor-panel-content"
-        aria-labelledby="editor-tab-content"
-        hidden={activeTab !== 'content'}
-      >
-        <div class="basics-grid">
-          <label
-            >{t('ui_button_folder')}<select bind:value={buttonFolder}
-              >{#each layout?.folders ?? [] as f}<option value={f.id}>{f.label}</option
-                >{/each}</select
-            ></label
-          >
-          <label>{t('ui_label')}<input bind:value={button.label} /></label>
-          <div class="row icon-color">
-            <IconField value={button.icon} onSelect={(value) => (button.icon = value)} /><label
-              >{t('ui_color')}<input
-                class="color-input"
-                type="color"
-                bind:value={button.color}
-              /></label
-            >
-          </div>
-        </div>
-        <details class="custom-images">
-          <summary>{t('ui_custom_images')}</summary>
-          <ImageSourceFields
-            bind:imageUrl
-            bind:imagePath
-            bind:liveImage
-            busy={imageBusy}
-            upload={(event) => attempt(() => image(event))}
-            importUrl={() =>
-              attempt(() => importImage({ type: 'url', url: imageUrl.trim(), live: liveImage }))}
-            importLocal={() =>
-              attempt(() => importImage({ type: 'local', path: imagePath.trim() }))}
-            chooseLocal={() => attempt(chooseLocalImage)}
-          />
-          {#if button.icon.startsWith('asset:') && liveIds.includes(button.icon.slice(6))}
-            <button type="button" disabled={imageBusy} onclick={() => attempt(refreshImage)}
-              >{t('ui_refresh_live_image')}</button
-            >
-            <p>{t('ui_refresh_live_image_help')}</p>
-          {/if}
-          <h3 class="library-title">{t('ui_uploaded_icons')}<span>{imageIds.length}</span></h3>
-          {#if !imageIds.length && !libraryError}<p class="library-empty">
-              {t('ui_image_library_empty')}
-            </p>{/if}
-          {#if libraryError}<p role="status">{t(libraryError)}</p>{/if}
-          <div class="icon-picker">
-            {#each pageIds as id}<button
-                type="button"
-                aria-label={`${t('ui_select_uploaded_icon')} ${id}`}
-                aria-pressed={button.icon === `asset:${id}`}
-                onclick={() => (button.icon = `asset:${id}`)}
-              >
-                {#if libraryUrls[id]}<img
-                    src={libraryUrls[id]}
-                    alt=""
-                    width="32"
-                    height="32"
-                  />{:else}<Icon name="image" />{/if}
-              </button>{/each}
-          </div>
-          {#if imageIds.length > 24}
-            <button type="button" disabled={imagePage === 0} onclick={() => imagePage--}
-              >{t('ui_previous')}</button
-            >
-            <button
+      {#if !mobilePickerOpen}
+        <div role="tablist" aria-label={t('ui_edit_button')} class="editor-tabs">
+          {#each ['content', 'appearance', 'action'] as tab}<button
               type="button"
-              disabled={(imagePage + 1) * 24 >= imageIds.length}
-              onclick={() => imagePage++}>{t('ui_next')}</button
-            >
-          {/if}
-        </details>
-      </div>
-      <div
-        role="tabpanel"
-        id="editor-panel-appearance"
-        aria-labelledby="editor-tab-appearance"
-        hidden={activeTab !== 'appearance'}
-      >
-        <div class="appearance-fields">
-          <NumberField
-            label={t('ui_column_span')}
-            value={Number(appearance.columns ?? 1)}
-            min={1}
-            max={layout.columns}
-            onchange={(value) => setAppearance('columns', value)}
-          />
-          <NumberField
-            label={t('ui_row_span')}
-            value={Number(appearance.rows ?? 1)}
-            min={1}
-            max={128}
-            onchange={(value) => setAppearance('rows', value)}
-          />
-          <NumberField
-            label={t('ui_icon_size')}
-            value={Number(appearance.icon_size ?? 42)}
-            min={0}
-            max={200}
-            onchange={(value) => setAppearance('icon_size', value)}
-          />
-          <label class="check"
-            ><input
-              type="checkbox"
-              checked={appearance.show_label !== false}
-              onchange={(e) => setAppearance('show_label', e.currentTarget.checked)}
-            />{t('ui_show_label')}</label
-          >
+              role="tab"
+              id={`editor-tab-${tab}`}
+              aria-controls={`editor-panel-${tab}`}
+              aria-selected={activeTab === tab}
+              tabindex={activeTab === tab ? 0 : -1}
+              onkeydown={(event) => {
+                const tabs = ['content', 'appearance', 'action'];
+                const index = tabs.indexOf(activeTab);
+                const next =
+                  event.key === 'ArrowRight'
+                    ? (index + 1) % 3
+                    : event.key === 'ArrowLeft'
+                      ? (index + 2) % 3
+                      : event.key === 'Home'
+                        ? 0
+                        : event.key === 'End'
+                          ? 2
+                          : -1;
+                if (next >= 0) {
+                  event.preventDefault();
+                  activeTab = tabs[next]!;
+                  document.getElementById(`editor-tab-${activeTab}`)?.focus();
+                }
+              }}
+              onclick={() => (activeTab = tab)}>{t(`ui_${tab}`)}</button
+            >{/each}
         </div>
-      </div>
+        <div
+          role="tabpanel"
+          id="editor-panel-content"
+          aria-labelledby="editor-tab-content"
+          hidden={activeTab !== 'content'}
+        >
+          <div class="basics-grid">
+            <label
+              >{t('ui_button_folder')}<select bind:value={buttonFolder}
+                >{#each layout?.folders ?? [] as f}<option value={f.id}>{f.label}</option
+                  >{/each}</select
+              ></label
+            >
+            <label>{t('ui_label')}<input bind:value={button.label} /></label>
+            <div class="row icon-color">
+              <IconField value={button.icon} onSelect={(value) => (button.icon = value)} /><label
+                >{t('ui_color')}<input
+                  class="color-input"
+                  type="color"
+                  bind:value={button.color}
+                /></label
+              >
+            </div>
+          </div>
+          <details class="custom-images">
+            <summary>{t('ui_custom_images')}</summary>
+            <ImageSourceFields
+              bind:imageUrl
+              bind:imagePath
+              bind:liveImage
+              busy={imageBusy}
+              upload={(event) => attempt(() => image(event))}
+              importUrl={() =>
+                attempt(() => importImage({ type: 'url', url: imageUrl.trim(), live: liveImage }))}
+              importLocal={() =>
+                attempt(() => importImage({ type: 'local', path: imagePath.trim() }))}
+              chooseLocal={() => attempt(chooseLocalImage)}
+            />
+            {#if button.icon.startsWith('asset:') && liveIds.includes(button.icon.slice(6))}
+              <button type="button" disabled={imageBusy} onclick={() => attempt(refreshImage)}
+                >{t('ui_refresh_live_image')}</button
+              >
+              <p>{t('ui_refresh_live_image_help')}</p>
+            {/if}
+            <h3 class="library-title">{t('ui_uploaded_icons')}<span>{imageIds.length}</span></h3>
+            {#if !imageIds.length && !libraryError}<p class="library-empty">
+                {t('ui_image_library_empty')}
+              </p>{/if}
+            {#if libraryError}<p role="status">{t(libraryError)}</p>{/if}
+            <div class="icon-picker">
+              {#each pageIds as id}<button
+                  type="button"
+                  aria-label={`${t('ui_select_uploaded_icon')} ${id}`}
+                  aria-pressed={button.icon === `asset:${id}`}
+                  onclick={() => (button.icon = `asset:${id}`)}
+                >
+                  {#if libraryUrls[id]}<img
+                      src={libraryUrls[id]}
+                      alt=""
+                      width="32"
+                      height="32"
+                    />{:else}<Icon name="image" />{/if}
+                </button>{/each}
+            </div>
+            {#if imageIds.length > 24}
+              <button type="button" disabled={imagePage === 0} onclick={() => imagePage--}
+                >{t('ui_previous')}</button
+              >
+              <button
+                type="button"
+                disabled={(imagePage + 1) * 24 >= imageIds.length}
+                onclick={() => imagePage++}>{t('ui_next')}</button
+              >
+            {/if}
+          </details>
+        </div>
+        <div
+          role="tabpanel"
+          id="editor-panel-appearance"
+          aria-labelledby="editor-tab-appearance"
+          hidden={activeTab !== 'appearance'}
+        >
+          <div class="appearance-fields">
+            <NumberField
+              label={t('ui_column_span')}
+              value={Number(appearance.columns ?? 1)}
+              min={1}
+              max={layout.columns}
+              onchange={(value) => setAppearance('columns', value)}
+            />
+            <NumberField
+              label={t('ui_row_span')}
+              value={Number(appearance.rows ?? 1)}
+              min={1}
+              max={128}
+              onchange={(value) => setAppearance('rows', value)}
+            />
+            <NumberField
+              label={t('ui_icon_size')}
+              value={Number(appearance.icon_size ?? 42)}
+              min={0}
+              max={200}
+              onchange={(value) => setAppearance('icon_size', value)}
+            />
+            <label class="check"
+              ><input
+                type="checkbox"
+                checked={appearance.show_label !== false}
+                onchange={(e) => setAppearance('show_label', e.currentTarget.checked)}
+              />{t('ui_show_label')}</label
+            >
+          </div>
+        </div>
+      {/if}
       <div
         role="tabpanel"
         id="editor-panel-action"
-        aria-labelledby="editor-tab-action"
-        hidden={activeTab !== 'action'}
+        aria-labelledby={mobilePickerOpen ? 'button-title' : 'editor-tab-action'}
+        hidden={activeTab !== 'action' && !mobilePickerOpen}
       >
-        <div class="action-summary">
-          <Icon name={selectedAction?.icon ?? 'settings'} />
-          <span>{selectedAction ? t(selectedAction.label) : button.action.type}</span>
-          <button type="button" onclick={() => (actionPickerOpen = true)}
-            >{t('ui_change_action')}</button
-          >
-        </div>
-        {#if !hasConfiguration}<p class="field-help">{t('ui_no_configuration_needed')}</p>{/if}
-        {#if actionPickerOpen}<ActionPickerModal
-            value={selectedActionId}
-            close={() => (actionPickerOpen = false)}
-            select={selectAction}
-          />{/if}
+        {#if !mobilePickerOpen}
+          <div class="action-summary">
+            <Icon name={selectedAction?.icon ?? 'settings'} />
+            <span>{selectedAction ? t(selectedAction.label) : button.action.type}</span>
+            <button type="button" onclick={() => (actionPickerOpen = true)}
+              >{t('ui_change_action')}</button
+            >
+          </div>
+          {#if !hasConfiguration}<p class="field-help">{t('ui_no_configuration_needed')}</p>{/if}
+          {#if actionPickerOpen}<ActionPickerModal
+              value={selectedActionId}
+              close={() => (actionPickerOpen = false)}
+              select={selectAction}
+            />{/if}
+        {/if}
         {#if button.action.type === 'workflow' || button.action.type === 'script' || button.action.type === 'plugin'}
           <Fields
             schema={resolve({ $ref: '#/$defs/ButtonAction' }).oneOf?.find(
@@ -549,6 +576,8 @@
             ></label
           >{:else if button.action.type === 'command'}<ActionFields
             configurationOnly
+            active={activeTab === 'action' || mobilePickerOpen}
+            onKeyPickerStep={keyPickerStep}
             value={button.action.command}
             onchange={(c) => chooseCommand(c as Command)}
           />{#if button.action.command.type === 'plugin'}<label
@@ -589,23 +618,23 @@
                 label={t('ui_plugin_arguments')}
               />{:else}<p>{t('ui_no_v2_plugins_are_installed')}</p>{/if}{/if}{/if}
       </div>
-      <div class="actions">
-        <details class="more-actions">
-          <summary aria-label={t('ui_more_button_actions')}><Icon name="more" /></summary>
-          <div class="menu">
-            <button type="button" onclick={() => moveButton(-1)}>{t('ui_move_left')}</button><button
-              type="button"
-              onclick={() => moveButton(1)}>{t('ui_move_right')}</button
-            ><button type="button" onclick={duplicateButton}>{t('ui_duplicate')}</button><button
-              type="button"
-              class="danger"
-              onclick={removeButton}>{t('ui_delete')}</button
-            >
-          </div>
-        </details>
-        <span class="spacer"></span><button type="button" onclick={close}>{t('ui_cancel')}</button
-        ><button type="submit" class="primary">{t('ui_apply_to_draft')}</button>
-      </div>
+      {#if !mobilePickerOpen}<div class="actions">
+          <details class="more-actions">
+            <summary aria-label={t('ui_more_button_actions')}><Icon name="more" /></summary>
+            <div class="menu">
+              <button type="button" onclick={() => moveButton(-1)}>{t('ui_move_left')}</button
+              ><button type="button" onclick={() => moveButton(1)}>{t('ui_move_right')}</button
+              ><button type="button" onclick={duplicateButton}>{t('ui_duplicate')}</button><button
+                type="button"
+                class="danger"
+                onclick={removeButton}>{t('ui_delete')}</button
+              >
+            </div>
+          </details>
+          <span class="spacer"></span><button type="button" onclick={close}>{t('ui_cancel')}</button
+          ><button type="submit" class="primary">{t('ui_apply_to_draft')}</button>
+        </div>
+      {/if}
       {#if formError}<p role="alert">{t(formError)}</p>{/if}
     </form>
   </dialog>
@@ -703,6 +732,10 @@
     border-radius: 8px;
     padding: 16px;
     box-shadow: var(--shadow-dialog);
+  }
+  .editor.picker-step {
+    width: min(520px, 100%);
+    max-height: 94dvh;
   }
   .editor::backdrop {
     background: transparent;

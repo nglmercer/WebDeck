@@ -2,6 +2,12 @@
 
 `frontend/src/features/editor/editor.svelte.ts` owns draft mutations, persisted revision, dirty generation, save serialization, and deletion recovery. `button-draft.svelte.ts` stages a cloned button until Apply; opening or cancelling a dialog does not mutate neighboring cells. `ButtonEditorDialog.svelte` provides a shared tile preview, bounded appearance controls, typed action controls, and schema fallback for uncommon/plugin arguments. `ActionFields.svelte` groups searchable commands by capability and provides focused keyboard, text, and open-target controls.
 
+Keyboard shortcuts use a compact preview and focused recorder in the Action tab. Choose keys opens a measured, internally scrolling native popover on wider screens; narrow screens and WebViews without a usable Popover API switch to a bounded picker step in the same editor dialog. Manual changes stay local until Use shortcut, and Apply to draft remains the only way to stage the button change. The selector preserves legacy key aliases and simultaneous chords until edited, distinguishes catalog mappings from host permission, and never treats a captured browser event as proof of host execution. Fn and keys with no supported backend mapping remain unavailable.
+
+![Compact keyboard shortcut editor](screenshots/keyboard-shortcut-editor.png)
+
+![Desktop keyboard picker popover](screenshots/keyboard-shortcut-popover.png)
+
 Browser navigation warns about changes in the main draft or unapplied button dialog. Opening an unchanged existing button does not trigger a warning; Cancel deliberately discards staged changes. New button candidates also count as unapplied work.
 
 Apply updates the draft. Save validates the canonical configuration and sends its originally loaded revision with `PUT /api/v2/config`. Concurrent callers share one pending save. Edits made during saving remain dirty after the submitted generation commits, and Done refuses to leave until those later changes are saved. A successful write stays successful even if display refresh fails. Conflicts and failures retain the draft; Download backup exports that draft before a deliberate reload.
@@ -23,7 +29,6 @@ Dirty state compares the JSON-shaped draft with a cloned persisted baseline on e
 Folder and Back tiles navigate during editing; their existing pencil remains available, including on touch pointers, to edit the link itself. Other tiles retain their existing editing behavior. Empty grid cells are the only button-creation entry point; saved positions, spans and grid fitting are unchanged.
 
 Generic schema fields keep numeric, JSON and identifier-pattern errors beside their controls and expose those errors through accessible descriptions. Invalid input blocks Apply until corrected. Schema array fields show translated minimum/maximum item guidance and associate it with Remove/Add controls. Devices & Connections shows authenticated online presence, grant expiry and management actions. Invitation pairing is automatic after scanning a QR; manual token pairing remains in Advanced and retains recoverable input after a failure.
-
 
 ## Contextual command bar
 
