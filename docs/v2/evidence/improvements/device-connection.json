@@ -66,15 +66,15 @@
   },
   "dependencies_added": [],
   "upstream_warning_fix": {
-    "published": false,
+    "published": true,
     "template_tests_passed": 2,
     "external_git_consumer": {
       "before_duplicate_warnings": 2,
       "after_duplicate_warnings": 0
     },
     "repository": "https://github.com/nglmercer/napi-vm",
-    "local_branch": "fix/cargo-template-discovery",
     "commit": "9a6da9306312b83f5cd43d8d1c882a4edd521f3f",
-    "webdeck_dependency_updated": false
+    "webdeck_dependency_updated": true,
+    "branch": "main"
   }
 }

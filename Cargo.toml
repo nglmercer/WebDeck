@@ -41,8 +41,8 @@ integration-tests = []
 base64 = "0.22"
 futures-util = "0.3"
 tokio-tungstenite = { version = "0.30", features = ["rustls-tls-webpki-roots"] }
-napi-vm-plugin-host = { git = "https://github.com/nglmercer/napi-vm", rev = "29d7c77c7645c85d3c91911814831e36d919550f" }
-napi-vm = { git = "https://github.com/nglmercer/napi-vm", rev = "29d7c77c7645c85d3c91911814831e36d919550f", default-features = false, features = ["runtime"] }
+napi-vm-plugin-host = { git = "https://github.com/nglmercer/napi-vm", rev = "9a6da9306312b83f5cd43d8d1c882a4edd521f3f" }
+napi-vm = { git = "https://github.com/nglmercer/napi-vm", rev = "9a6da9306312b83f5cd43d8d1c882a4edd521f3f", default-features = false, features = ["runtime"] }
 tokio = { version = "1", features = ["full"] }
 libc = "0.2"
 getrandom = "0.4.3"
@@ -117,7 +117,7 @@ zbus = "5"
 screenshots = "0.8.10"
 
 [dev-dependencies]
-napi-vm-plugin-sdk = { git = "https://github.com/nglmercer/napi-vm", rev = "29d7c77c7645c85d3c91911814831e36d919550f" }
+napi-vm-plugin-sdk = { git = "https://github.com/nglmercer/napi-vm", rev = "9a6da9306312b83f5cd43d8d1c882a4edd521f3f" }
 tokio = { version = "1", features = ["test-util"] }
 # Router regression tests drive the real route table via `oneshot`.
 tower = { version = "0.5", features = ["util"] }

@@ -3439,7 +3439,7 @@ checksum = "743fb55ba31b18fb1ecef6bdc9aa2743314978ac084044301a7eee33fb99a20d"
 [[package]]
 name = "napi-vm"
 version = "0.1.5"
-source = "git+https://github.com/nglmercer/napi-vm?rev=29d7c77c7645c85d3c91911814831e36d919550f#29d7c77c7645c85d3c91911814831e36d919550f"
+source = "git+https://github.com/nglmercer/napi-vm?rev=9a6da9306312b83f5cd43d8d1c882a4edd521f3f#9a6da9306312b83f5cd43d8d1c882a4edd521f3f"
 dependencies = [
  "js-sys",
  "libc",
@@ -3454,7 +3454,7 @@ dependencies = [
 [[package]]
 name = "napi-vm-core"
 version = "0.1.5"
-source = "git+https://github.com/nglmercer/napi-vm?rev=29d7c77c7645c85d3c91911814831e36d919550f#29d7c77c7645c85d3c91911814831e36d919550f"
+source = "git+https://github.com/nglmercer/napi-vm?rev=9a6da9306312b83f5cd43d8d1c882a4edd521f3f#9a6da9306312b83f5cd43d8d1c882a4edd521f3f"
 dependencies = [
  "ahash",
  "base64 0.22.1",
@@ -3496,7 +3496,7 @@ dependencies = [
 [[package]]
 name = "napi-vm-plugin-host"
 version = "0.1.0"
-source = "git+https://github.com/nglmercer/napi-vm?rev=29d7c77c7645c85d3c91911814831e36d919550f#29d7c77c7645c85d3c91911814831e36d919550f"
+source = "git+https://github.com/nglmercer/napi-vm?rev=9a6da9306312b83f5cd43d8d1c882a4edd521f3f#9a6da9306312b83f5cd43d8d1c882a4edd521f3f"
 dependencies = [
  "getrandom 0.3.4",
  "napi-vm-plugin-protocol",
@@ -3510,7 +3510,7 @@ dependencies = [
 [[package]]
 name = "napi-vm-plugin-protocol"
 version = "0.1.0"
-source = "git+https://github.com/nglmercer/napi-vm?rev=29d7c77c7645c85d3c91911814831e36d919550f#29d7c77c7645c85d3c91911814831e36d919550f"
+source = "git+https://github.com/nglmercer/napi-vm?rev=9a6da9306312b83f5cd43d8d1c882a4edd521f3f#9a6da9306312b83f5cd43d8d1c882a4edd521f3f"
 dependencies = [
  "serde",
  "serde_json",
@@ -3522,7 +3522,7 @@ dependencies = [
 [[package]]
 name = "napi-vm-plugin-sdk"
 version = "0.1.0"
-source = "git+https://github.com/nglmercer/napi-vm?rev=29d7c77c7645c85d3c91911814831e36d919550f#29d7c77c7645c85d3c91911814831e36d919550f"
+source = "git+https://github.com/nglmercer/napi-vm?rev=9a6da9306312b83f5cd43d8d1c882a4edd521f3f#9a6da9306312b83f5cd43d8d1c882a4edd521f3f"
 dependencies = [
  "napi-vm-plugin-protocol",
  "serde",
@@ -3533,7 +3533,7 @@ dependencies = [
 [[package]]
 name = "napi-vm-runtime"
 version = "0.1.5"
-source = "git+https://github.com/nglmercer/napi-vm?rev=29d7c77c7645c85d3c91911814831e36d919550f#29d7c77c7645c85d3c91911814831e36d919550f"
+source = "git+https://github.com/nglmercer/napi-vm?rev=9a6da9306312b83f5cd43d8d1c882a4edd521f3f#9a6da9306312b83f5cd43d8d1c882a4edd521f3f"
 dependencies = [
  "base64 0.22.1",
  "libc",
