@@ -6,46 +6,57 @@ const root = path.resolve(import.meta.dirname, '../..');
 const require = createRequire(path.join(root, 'frontend/package.json'));
 const { parse } = require('svelte/compiler');
 const errors = [];
-const directory = path.join(root, 'webdeck/translations');
-const readCatalog = (file) => {
-  const source = fs.readFileSync(path.join(directory, file), 'utf8');
-  const catalog = JSON.parse(source);
-  if (!catalog || typeof catalog !== 'object' || Array.isArray(catalog) || Object.values(catalog).some(value => typeof value !== 'string')) throw Error(`${file}: expected a flat string dictionary`);
-  const seen = new Set();
-  // The catalogs are flat JSON objects. Tokenize complete strings, including escapes,
-  // so quotes inside a translated value cannot be mistaken for a property name.
-  for (const token of source.matchAll(/"(?:[^"\\]|\\.)*"/g)) {
-    if (!source.slice(token.index + token[0].length).trimStart().startsWith(':')) continue;
-    const key = JSON.parse(token[0]);
-    if (seen.has(key)) errors.push(`${file}: duplicate key ${key}`);
-    seen.add(key);
-  }
-  return catalog;
-};
-const english = readCatalog('en_US.json');
-const messages = new Map(Object.entries(english).filter(([key]) => key.startsWith('ui_')));
-const placeholders = (text) => [...text.matchAll(/\{([a-zA-Z0-9_]+)\}|%([a-zA-Z0-9_]+)%/g)].map((match) => match[1] ?? match[2]).sort().join(',');
-for (const file of fs.readdirSync(directory).filter((file) => file.endsWith('.json'))) {
-  try {
-    const catalog = readCatalog(file);
-    for (const [key, value] of Object.entries(catalog)) {
-      if (!key.startsWith('ui_')) continue;
-      if (!messages.has(key)) errors.push(`${file}: unknown UI key ${key}`);
-      if (!value || placeholders(value) !== placeholders(messages.get(key) ?? '')) errors.push(`${file}: missing/changed placeholders in ${key}`);
+const { readCatalogs, localeDirectory } = await import('../i18n/catalog.mjs');
+const { messages: english } = await readCatalogs();
+const messages = new Map(Object.entries(english));
+// TypeScript rejects duplicate properties too; report them here before generated JSON can hide them.
+function inspectObjects(node, file) {
+  if (!node || typeof node !== 'object') return;
+  if (node.type === 'ObjectExpression') {
+    const seen = new Set();
+    for (const property of node.properties) {
+      if (property.type !== 'Property' || property.computed) continue;
+      const name = property.key.name ?? property.key.value;
+      if (seen.has(name)) errors.push(`${file}: duplicate key ${name}`);
+      seen.add(name);
     }
-  } catch (error) { errors.push(String(error)); }
+  }
+  for (const value of Object.values(node)) {
+    if (Array.isArray(value)) value.forEach((child) => inspectObjects(child, file));
+    else if (value && typeof value === 'object') inspectObjects(value, file);
+  }
 }
-const generated = spawnSync(process.execPath, [path.join(root, 'tools/i18n/generate.mjs'), '--check'], { encoding: 'utf8' });
-if (generated.status !== 0) errors.push(generated.stderr.trim() || 'Generated English fallback is stale');
+for (const file of fs.readdirSync(localeDirectory).filter((file) => file.endsWith('.ts'))) {
+  // Only the AST parser's copy is escaped; authored message values stay unchanged.
+  const script = fs.readFileSync(path.join(localeDirectory, file), 'utf8')
+    .replace(/<\/script/gi, (tag) => tag.replace('/', '\\/'));
+  inspectObjects(
+    parse(`<script lang="ts">${script}</script>`, { modern: true }).instance.content,
+    file,
+  );
+}
+const generated = spawnSync(
+  process.execPath,
+  [path.join(root, 'tools/i18n/generate.mjs'), '--check'],
+  { encoding: 'utf8' },
+);
+if (generated.status !== 0)
+  errors.push(generated.stderr.trim() || 'Generated JSON catalogues are stale');
 function walk(node, file) {
   if (!node || typeof node !== 'object') return;
   if (node.type === 'Text') {
-    if (/[a-zA-Z]/.test(node.data.trim())) errors.push(`${file}: untranslated markup at ${node.start}`);
+    if (/[a-zA-Z]/.test(node.data.trim()))
+      errors.push(`${file}: untranslated markup at ${node.start}`);
     return;
   }
   if (node.type === 'Attribute') {
-    if (['aria-label', 'title', 'placeholder', 'label', 'alt'].includes(node.name) && Array.isArray(node.value)) {
-      for (const value of node.value) if (value.type === 'Text' && /[a-zA-Z]/.test(value.data)) errors.push(`${file}: untranslated ${node.name} at ${value.start}`);
+    if (
+      ['aria-label', 'title', 'placeholder', 'label', 'alt'].includes(node.name) &&
+      Array.isArray(node.value)
+    ) {
+      for (const value of node.value)
+        if (value.type === 'Text' && /[a-zA-Z]/.test(value.data))
+          errors.push(`${file}: untranslated ${node.name} at ${value.start}`);
     }
     return;
   }
@@ -63,10 +74,13 @@ function inventory(directory) {
       const source = fs.readFileSync(file, 'utf8');
       const relative = path.relative(root, file);
       walk(parse(source, { modern: true }).fragment, relative);
-      for (const match of source.matchAll(/\bt\(['"](ui_[a-z0-9_]+)['"]/g)) if (!messages.has(match[1])) errors.push(`${relative}: unknown UI key ${match[1]}`);
+      for (const match of source.matchAll(/\bt\(['"]([^'"]+)['"]/g))
+        if (!messages.has(match[1])) errors.push(`${relative}: unknown message key ${match[1]}`);
     }
   }
 }
 inventory(path.join(root, 'frontend/src'));
-if (errors.length) { console.error(errors.join('\n')); process.exitCode = 1; }
-else console.log(`UI translation check: ${messages.size} keys; resources and static markup valid`);
+if (errors.length) {
+  console.error(errors.join('\n'));
+  process.exitCode = 1;
+} else console.log(`Translation check: ${messages.size} keys; resources and static markup valid`);

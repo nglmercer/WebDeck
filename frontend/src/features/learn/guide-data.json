@@ -4,14 +4,14 @@
     "group": "start",
     "access": "all",
     "icon": "grid",
-    "title": "ui_guide_overview_title",
-    "description": "ui_guide_overview_description",
+    "title": "guides.overview.title",
+    "description": "guides.overview.description",
     "steps": [
       {
         "id": "deck",
         "target": "[data-tour=\"deck\"]",
-        "title": "ui_guide_overview_deck_title",
-        "description": "ui_guide_overview_deck_help",
+        "title": "guides.overview.steps.deck.title",
+        "description": "guides.overview.steps.deck.help",
         "frame": {
           "surface": "deck",
           "editing": false
@@ -20,8 +20,8 @@
       {
         "id": "folders",
         "target": "[data-tour=\"folders\"]",
-        "title": "ui_guide_overview_folders_title",
-        "description": "ui_guide_overview_folders_help",
+        "title": "guides.overview.steps.folders.title",
+        "description": "guides.overview.steps.folders.help",
         "frame": {
           "surface": "deck",
           "editing": false
@@ -31,8 +31,8 @@
       {
         "id": "editing",
         "target": "[data-tour=\"editor\"]",
-        "title": "ui_guide_overview_editing_title",
-        "description": "ui_guide_overview_editing_help",
+        "title": "guides.overview.steps.editing.title",
+        "description": "guides.overview.steps.editing.help",
         "frame": {
           "surface": "deck",
           "editing": true
@@ -42,8 +42,8 @@
       {
         "id": "connections",
         "target": ".connect-strip",
-        "title": "ui_guide_overview_connections_title",
-        "description": "ui_guide_overview_connections_help",
+        "title": "guides.overview.steps.connections.title",
+        "description": "guides.overview.steps.connections.help",
         "frame": {
           "surface": "settings",
           "page": "devices"
@@ -53,8 +53,8 @@
       {
         "id": "replay",
         "target": "[data-tour=\"deck\"]",
-        "title": "ui_guide_overview_replay_title",
-        "description": "ui_guide_overview_replay_help",
+        "title": "guides.overview.steps.replay.title",
+        "description": "guides.overview.steps.replay.help",
         "frame": {
           "surface": "deck",
           "editing": false
@@ -67,14 +67,14 @@
     "group": "start",
     "access": "all",
     "icon": "keyboard",
-    "title": "ui_guide_controls_title",
-    "description": "ui_guide_controls_description",
+    "title": "guides.controls.title",
+    "description": "guides.controls.description",
     "steps": [
       {
         "id": "menu",
         "target": "[data-guide=\"controls-menu\"]",
-        "title": "ui_guide_controls_menu_title",
-        "description": "ui_guide_controls_menu_help",
+        "title": "deck.deckControls",
+        "description": "guides.controls.steps.menu.help",
         "frame": {
           "surface": "controls"
         }
@@ -82,8 +82,8 @@
       {
         "id": "navigation",
         "target": "[data-guide=\"controls-navigation\"]",
-        "title": "ui_guide_controls_navigation_title",
-        "description": "ui_guide_controls_navigation_help",
+        "title": "guides.controls.steps.navigation.title",
+        "description": "guides.controls.steps.navigation.help",
         "frame": {
           "surface": "controls"
         }
@@ -91,8 +91,8 @@
       {
         "id": "shortcuts",
         "target": "#controls-panel-help",
-        "title": "ui_guide_controls_shortcuts_title",
-        "description": "ui_guide_controls_shortcuts_help",
+        "title": "deck.keyboardShortcuts",
+        "description": "guides.controls.steps.shortcuts.help",
         "frame": {
           "surface": "controls",
           "detail": "shortcuts"
@@ -101,8 +101,8 @@
       {
         "id": "access",
         "target": "[data-guide=\"controls-menu\"]",
-        "title": "ui_guide_controls_access_title",
-        "description": "ui_guide_controls_access_help",
+        "title": "guides.controls.steps.access.title",
+        "description": "guides.controls.steps.access.help",
         "frame": {
           "surface": "controls"
         }
@@ -114,14 +114,14 @@
     "group": "start",
     "access": "admin",
     "icon": "edit",
-    "title": "ui_guide_editing_title",
-    "description": "ui_guide_editing_description",
+    "title": "guides.editing.title",
+    "description": "guides.editing.description",
     "steps": [
       {
         "id": "toolbar",
         "target": "[data-tour=\"editor\"]",
-        "title": "ui_guide_editing_toolbar_title",
-        "description": "ui_guide_editing_toolbar_help",
+        "title": "guides.editing.steps.toolbar.title",
+        "description": "guides.editing.steps.toolbar.help",
         "frame": {
           "surface": "deck",
           "editing": true,
@@ -131,8 +131,8 @@
       {
         "id": "add",
         "target": "[data-tour=\"deck\"]",
-        "title": "ui_guide_editing_add_title",
-        "description": "ui_guide_editing_add_help",
+        "title": "guides.editing.steps.add.title",
+        "description": "guides.editing.steps.add.help",
         "frame": {
           "surface": "deck",
           "editing": true,
@@ -142,8 +142,8 @@
       {
         "id": "folders",
         "target": "[data-guide=\"folder-menu\"]",
-        "title": "ui_guide_editing_folders_title",
-        "description": "ui_guide_editing_folders_help",
+        "title": "guides.editing.steps.folders.title",
+        "description": "guides.editing.steps.folders.help",
         "frame": {
           "surface": "deck",
           "editing": true,
@@ -154,8 +154,8 @@
       {
         "id": "rename",
         "target": "[data-guide=\"folder-name\"]",
-        "title": "ui_guide_editing_rename_title",
-        "description": "ui_guide_editing_rename_help",
+        "title": "guides.editing.steps.rename.title",
+        "description": "guides.editing.steps.rename.help",
         "frame": {
           "surface": "deck",
           "editing": true,
@@ -166,8 +166,8 @@
       {
         "id": "save",
         "target": "[data-guide=\"editor-save\"]",
-        "title": "ui_guide_editing_save_title",
-        "description": "ui_guide_editing_save_help",
+        "title": "guides.editing.steps.save.title",
+        "description": "guides.editing.steps.save.help",
         "frame": {
           "surface": "deck",
           "editing": true,
@@ -178,8 +178,8 @@
       {
         "id": "done",
         "target": "[data-guide=\"editing-done\"]",
-        "title": "ui_guide_editing_done_title",
-        "description": "ui_guide_editing_done_help",
+        "title": "guides.editing.steps.done.title",
+        "description": "guides.editing.steps.done.help",
         "frame": {
           "surface": "deck",
           "editing": true,
@@ -194,14 +194,14 @@
     "group": "buttons",
     "access": "admin",
     "icon": "image",
-    "title": "ui_guide_content_title",
-    "description": "ui_guide_content_description",
+    "title": "guides.content.title",
+    "description": "guides.content.description",
     "steps": [
       {
         "id": "label",
         "target": "[data-guide=\"button-label\"]",
-        "title": "ui_guide_content_label_title",
-        "description": "ui_guide_content_label_help",
+        "title": "guides.content.steps.label.title",
+        "description": "guides.content.steps.label.help",
         "frame": {
           "surface": "editor",
           "flavor": "basic",
@@ -212,8 +212,8 @@
       {
         "id": "preview",
         "target": "[data-guide=\"button-preview\"]",
-        "title": "ui_guide_content_preview_title",
-        "description": "ui_guide_content_preview_help",
+        "title": "guides.content.steps.preview.title",
+        "description": "guides.content.steps.preview.help",
         "frame": {
           "surface": "editor",
           "flavor": "basic",
@@ -223,8 +223,8 @@
       {
         "id": "icon",
         "target": ".icon-field",
-        "title": "ui_guide_content_icon_title",
-        "description": "ui_guide_content_icon_help",
+        "title": "guides.content.steps.icon.title",
+        "description": "guides.content.steps.icon.help",
         "frame": {
           "surface": "editor",
           "flavor": "basic",
@@ -234,8 +234,8 @@
       {
         "id": "file",
         "target": ".image-sources .file-picker",
-        "title": "ui_guide_content_file_title",
-        "description": "ui_guide_content_file_help",
+        "title": "guides.content.steps.file.title",
+        "description": "guides.content.steps.file.help",
         "frame": {
           "surface": "editor",
           "flavor": "images",
@@ -245,8 +245,8 @@
       {
         "id": "imports",
         "target": ".url-source",
-        "title": "ui_guide_content_imports_title",
-        "description": "ui_guide_content_imports_help",
+        "title": "guides.content.steps.imports.title",
+        "description": "guides.content.steps.imports.help",
         "frame": {
           "surface": "editor",
           "flavor": "images",
@@ -257,8 +257,8 @@
       {
         "id": "library",
         "target": ".image-library",
-        "title": "ui_guide_content_library_title",
-        "description": "ui_guide_content_library_help",
+        "title": "guides.content.steps.library.title",
+        "description": "guides.content.steps.library.help",
         "frame": {
           "surface": "editor",
           "flavor": "images",
@@ -268,8 +268,8 @@
       {
         "id": "apply",
         "target": "[data-guide=\"button-apply\"]",
-        "title": "ui_guide_content_apply_title",
-        "description": "ui_guide_content_apply_help",
+        "title": "guides.content.steps.apply.title",
+        "description": "guides.content.steps.apply.help",
         "frame": {
           "surface": "editor",
           "flavor": "images",
@@ -283,14 +283,14 @@
     "group": "buttons",
     "access": "admin",
     "icon": "palette",
-    "title": "ui_guide_button_appearance_title",
-    "description": "ui_guide_button_appearance_description",
+    "title": "guides.buttonAppearance.title",
+    "description": "guides.buttonAppearance.description",
     "steps": [
       {
         "id": "color",
         "target": ".background-color",
-        "title": "ui_guide_button_appearance_color_title",
-        "description": "ui_guide_button_appearance_color_help",
+        "title": "editor.backgroundColor",
+        "description": "guides.buttonAppearance.steps.color.help",
         "frame": {
           "surface": "editor",
           "flavor": "basic",
@@ -301,8 +301,8 @@
       {
         "id": "span",
         "target": ".appearance-fields .number-field:first-child",
-        "title": "ui_guide_button_appearance_span_title",
-        "description": "ui_guide_button_appearance_span_help",
+        "title": "guides.buttonAppearance.steps.span.title",
+        "description": "guides.buttonAppearance.steps.span.help",
         "frame": {
           "surface": "editor",
           "flavor": "basic",
@@ -312,8 +312,8 @@
       {
         "id": "scale",
         "target": ".appearance-fields .number-field:nth-child(3)",
-        "title": "ui_guide_button_appearance_scale_title",
-        "description": "ui_guide_button_appearance_scale_help",
+        "title": "editor.iconSize",
+        "description": "guides.buttonAppearance.steps.scale.help",
         "frame": {
           "surface": "editor",
           "flavor": "basic",
@@ -324,8 +324,8 @@
       {
         "id": "label",
         "target": ".appearance-fields .check",
-        "title": "ui_guide_button_appearance_label_title",
-        "description": "ui_guide_button_appearance_label_help",
+        "title": "guides.buttonAppearance.steps.label.title",
+        "description": "guides.buttonAppearance.steps.label.help",
         "frame": {
           "surface": "editor",
           "flavor": "basic",
@@ -336,8 +336,8 @@
       {
         "id": "apply",
         "target": "[data-guide=\"button-apply\"]",
-        "title": "ui_guide_button_appearance_apply_title",
-        "description": "ui_guide_button_appearance_apply_help",
+        "title": "guides.buttonAppearance.steps.apply.title",
+        "description": "guides.buttonAppearance.steps.apply.help",
         "frame": {
           "surface": "editor",
           "flavor": "basic",
@@ -351,14 +351,14 @@
     "group": "buttons",
     "access": "admin",
     "icon": "layers",
-    "title": "ui_guide_actions_title",
-    "description": "ui_guide_actions_description",
+    "title": "guides.actions.title",
+    "description": "guides.actions.description",
     "steps": [
       {
         "id": "current",
         "target": ".action-summary",
-        "title": "ui_guide_actions_current_title",
-        "description": "ui_guide_actions_current_help",
+        "title": "guides.actions.steps.current.title",
+        "description": "guides.actions.steps.current.help",
         "frame": {
           "surface": "editor",
           "flavor": "basic",
@@ -368,8 +368,8 @@
       {
         "id": "filter",
         "target": "[data-guide=\"action-picker\"] .filters",
-        "title": "ui_guide_actions_filter_title",
-        "description": "ui_guide_actions_filter_help",
+        "title": "guides.actions.steps.filter.title",
+        "description": "guides.actions.steps.filter.help",
         "frame": {
           "surface": "editor",
           "flavor": "basic",
@@ -381,8 +381,8 @@
       {
         "id": "catalog",
         "target": "[data-guide=\"action-picker\"] .options",
-        "title": "ui_guide_actions_catalog_title",
-        "description": "ui_guide_actions_catalog_help",
+        "title": "guides.actions.steps.catalog.title",
+        "description": "guides.actions.steps.catalog.help",
         "frame": {
           "surface": "editor",
           "flavor": "basic",
@@ -393,8 +393,8 @@
       {
         "id": "arguments",
         "target": ".configuration-only",
-        "title": "ui_guide_actions_arguments_title",
-        "description": "ui_guide_actions_arguments_help",
+        "title": "guides.actions.steps.arguments.title",
+        "description": "guides.actions.steps.arguments.help",
         "frame": {
           "surface": "editor",
           "flavor": "basic",
@@ -404,8 +404,8 @@
       {
         "id": "workflow",
         "target": "[data-guide=\"button-action\"]",
-        "title": "ui_guide_actions_workflow_title",
-        "description": "ui_guide_actions_workflow_help",
+        "title": "guides.actions.steps.workflow.title",
+        "description": "guides.actions.steps.workflow.help",
         "frame": {
           "surface": "editor",
           "flavor": "workflow",
@@ -415,8 +415,8 @@
       {
         "id": "plugins",
         "target": "[data-guide=\"button-action\"]",
-        "title": "ui_guide_actions_plugins_title",
-        "description": "ui_guide_actions_plugins_help",
+        "title": "guides.actions.steps.plugins.title",
+        "description": "guides.actions.steps.plugins.help",
         "frame": {
           "surface": "editor",
           "flavor": "plugin",
@@ -430,14 +430,14 @@
     "group": "buttons",
     "access": "admin",
     "icon": "keyboard",
-    "title": "ui_guide_keyboard_title",
-    "description": "ui_guide_keyboard_description",
+    "title": "deck.keyboardShortcuts",
+    "description": "guides.keyboard.description",
     "steps": [
       {
         "id": "preview",
         "target": ".shortcut-preview",
-        "title": "ui_guide_keyboard_preview_title",
-        "description": "ui_guide_keyboard_preview_help",
+        "title": "guides.keyboard.steps.preview.title",
+        "description": "guides.keyboard.steps.preview.help",
         "frame": {
           "surface": "editor",
           "flavor": "key",
@@ -447,8 +447,8 @@
       {
         "id": "record",
         "target": ".selector-controls .record",
-        "title": "ui_guide_keyboard_record_title",
-        "description": "ui_guide_keyboard_record_help",
+        "title": "guides.keyboard.steps.record.title",
+        "description": "guides.keyboard.steps.record.help",
         "frame": {
           "surface": "editor",
           "flavor": "key",
@@ -459,8 +459,8 @@
       {
         "id": "modifiers",
         "target": ".picker .modifier-buttons",
-        "title": "ui_guide_keyboard_modifiers_title",
-        "description": "ui_guide_keyboard_modifiers_help",
+        "title": "guides.keyboard.steps.modifiers.title",
+        "description": "guides.keyboard.steps.modifiers.help",
         "frame": {
           "surface": "editor",
           "flavor": "key",
@@ -472,8 +472,8 @@
       {
         "id": "search",
         "target": ".picker .filters",
-        "title": "ui_guide_keyboard_search_title",
-        "description": "ui_guide_keyboard_search_help",
+        "title": "guides.keyboard.steps.search.title",
+        "description": "guides.keyboard.steps.search.help",
         "frame": {
           "surface": "editor",
           "flavor": "key",
@@ -485,8 +485,8 @@
       {
         "id": "keys",
         "target": ".picker .key-grid",
-        "title": "ui_guide_keyboard_keys_title",
-        "description": "ui_guide_keyboard_keys_help",
+        "title": "guides.keyboard.steps.keys.title",
+        "description": "guides.keyboard.steps.keys.help",
         "frame": {
           "surface": "editor",
           "flavor": "key",
@@ -498,8 +498,8 @@
       {
         "id": "advanced",
         "target": ".picker .advanced",
-        "title": "ui_guide_keyboard_advanced_title",
-        "description": "ui_guide_keyboard_advanced_help",
+        "title": "guides.keyboard.steps.advanced.title",
+        "description": "guides.keyboard.steps.advanced.help",
         "frame": {
           "surface": "editor",
           "flavor": "key",
@@ -510,8 +510,8 @@
       {
         "id": "apply",
         "target": "[data-guide=\"button-apply\"]",
-        "title": "ui_guide_keyboard_apply_title",
-        "description": "ui_guide_keyboard_apply_help",
+        "title": "guides.keyboard.steps.apply.title",
+        "description": "guides.keyboard.steps.apply.help",
         "frame": {
           "surface": "editor",
           "flavor": "key",
@@ -525,14 +525,14 @@
     "group": "buttons",
     "access": "admin",
     "icon": "music",
-    "title": "ui_guide_audio_title",
-    "description": "ui_guide_audio_description",
+    "title": "guides.audio.title",
+    "description": "guides.audio.description",
     "steps": [
       {
         "id": "source",
         "target": ".audio-fields .file-picker",
-        "title": "ui_guide_audio_source_title",
-        "description": "ui_guide_audio_source_help",
+        "title": "guides.audio.steps.source.title",
+        "description": "guides.audio.steps.source.help",
         "frame": {
           "surface": "editor",
           "flavor": "audio",
@@ -542,8 +542,8 @@
       {
         "id": "wave",
         "target": ".waveform",
-        "title": "ui_guide_audio_wave_title",
-        "description": "ui_guide_audio_wave_help",
+        "title": "guides.audio.steps.wave.title",
+        "description": "guides.audio.steps.wave.help",
         "frame": {
           "surface": "editor",
           "flavor": "audio",
@@ -554,8 +554,8 @@
       {
         "id": "times",
         "target": ".time-fields",
-        "title": "ui_guide_audio_times_title",
-        "description": "ui_guide_audio_times_help",
+        "title": "guides.audio.steps.times.title",
+        "description": "guides.audio.steps.times.help",
         "frame": {
           "surface": "editor",
           "flavor": "audio",
@@ -566,8 +566,8 @@
       {
         "id": "preview",
         "target": ".audio-fields .play",
-        "title": "ui_guide_audio_preview_title",
-        "description": "ui_guide_audio_preview_help",
+        "title": "guides.audio.steps.preview.title",
+        "description": "guides.audio.steps.preview.help",
         "frame": {
           "surface": "editor",
           "flavor": "audio",
@@ -578,8 +578,8 @@
       {
         "id": "volume",
         "target": ".audio-fields .range-field",
-        "title": "ui_guide_audio_volume_title",
-        "description": "ui_guide_audio_volume_help",
+        "title": "guides.audio.steps.volume.title",
+        "description": "guides.audio.steps.volume.help",
         "frame": {
           "surface": "editor",
           "flavor": "audio",
@@ -590,8 +590,8 @@
       {
         "id": "output",
         "target": ".audio-fields .output-device",
-        "title": "ui_guide_audio_output_title",
-        "description": "ui_guide_audio_output_help",
+        "title": "guides.audio.steps.output.title",
+        "description": "guides.audio.steps.output.help",
         "frame": {
           "surface": "editor",
           "flavor": "audio",
@@ -601,8 +601,8 @@
       {
         "id": "apply",
         "target": "[data-guide=\"button-apply\"]",
-        "title": "ui_guide_audio_apply_title",
-        "description": "ui_guide_audio_apply_help",
+        "title": "guides.audio.steps.apply.title",
+        "description": "guides.audio.steps.apply.help",
         "frame": {
           "surface": "editor",
           "flavor": "audio",
@@ -616,14 +616,14 @@
     "group": "settings",
     "access": "admin",
     "icon": "monitor",
-    "title": "ui_guide_appearance_title",
-    "description": "ui_guide_appearance_description",
+    "title": "guides.appearance.title",
+    "description": "guides.appearance.description",
     "steps": [
       {
         "id": "layout",
         "target": "#guide-layout",
-        "title": "ui_guide_appearance_layout_title",
-        "description": "ui_guide_appearance_layout_help",
+        "title": "guides.appearance.steps.layout.title",
+        "description": "guides.appearance.steps.layout.help",
         "frame": {
           "surface": "settings",
           "page": "appearance"
@@ -632,8 +632,8 @@
       {
         "id": "style",
         "target": "#guide-button-style",
-        "title": "ui_guide_appearance_style_title",
-        "description": "ui_guide_appearance_style_help",
+        "title": "guides.appearance.steps.style.title",
+        "description": "guides.appearance.steps.style.help",
         "frame": {
           "surface": "settings",
           "page": "appearance"
@@ -642,8 +642,8 @@
       {
         "id": "preview",
         "target": "#guide-appearance-preview",
-        "title": "ui_guide_appearance_preview_title",
-        "description": "ui_guide_appearance_preview_help",
+        "title": "guides.appearance.steps.preview.title",
+        "description": "guides.appearance.steps.preview.help",
         "frame": {
           "surface": "settings",
           "page": "appearance"
@@ -652,8 +652,8 @@
       {
         "id": "language",
         "target": "#guide-language",
-        "title": "ui_guide_appearance_language_title",
-        "description": "ui_guide_appearance_language_help",
+        "title": "guides.appearance.steps.language.title",
+        "description": "guides.appearance.steps.language.help",
         "frame": {
           "surface": "settings",
           "page": "appearance"
@@ -662,8 +662,8 @@
       {
         "id": "files",
         "target": "#guide-theme-files",
-        "title": "ui_guide_appearance_files_title",
-        "description": "ui_guide_appearance_files_help",
+        "title": "guides.appearance.steps.files.title",
+        "description": "guides.appearance.steps.files.help",
         "frame": {
           "surface": "settings",
           "page": "appearance"
@@ -672,8 +672,8 @@
       {
         "id": "save",
         "target": "[data-guide=\"settings-save\"]",
-        "title": "ui_guide_appearance_save_title",
-        "description": "ui_guide_appearance_save_help",
+        "title": "guides.appearance.steps.save.title",
+        "description": "guides.appearance.steps.save.help",
         "frame": {
           "surface": "settings",
           "page": "appearance"
@@ -686,14 +686,14 @@
     "group": "settings",
     "access": "admin",
     "icon": "layers",
-    "title": "ui_guide_integrations_title",
-    "description": "ui_guide_integrations_description",
+    "title": "guides.integrations.title",
+    "description": "guides.integrations.description",
     "steps": [
       {
         "id": "obs",
         "target": "#guide-obs",
-        "title": "ui_guide_integrations_obs_title",
-        "description": "ui_guide_integrations_obs_help",
+        "title": "guides.integrations.steps.obs.title",
+        "description": "guides.integrations.steps.obs.help",
         "frame": {
           "surface": "settings",
           "page": "integrations"
@@ -702,8 +702,8 @@
       {
         "id": "password",
         "target": "[data-guide=\"obs-password\"]",
-        "title": "ui_guide_integrations_password_title",
-        "description": "ui_guide_integrations_password_help",
+        "title": "guides.integrations.steps.password.title",
+        "description": "guides.integrations.steps.password.help",
         "frame": {
           "surface": "settings",
           "page": "integrations"
@@ -712,8 +712,8 @@
       {
         "id": "check",
         "target": "[data-guide=\"obs-check\"]",
-        "title": "ui_guide_integrations_check_title",
-        "description": "ui_guide_integrations_check_help",
+        "title": "guides.integrations.steps.check.title",
+        "description": "guides.integrations.steps.check.help",
         "frame": {
           "surface": "settings",
           "page": "integrations"
@@ -722,8 +722,8 @@
       {
         "id": "spotify",
         "target": "#guide-spotify",
-        "title": "ui_guide_integrations_spotify_title",
-        "description": "ui_guide_integrations_spotify_help",
+        "title": "guides.integrations.steps.spotify.title",
+        "description": "guides.integrations.steps.spotify.help",
         "frame": {
           "surface": "settings",
           "page": "integrations"
@@ -732,8 +732,8 @@
       {
         "id": "authorize",
         "target": "[data-guide=\"spotify-connect\"]",
-        "title": "ui_guide_integrations_authorize_title",
-        "description": "ui_guide_integrations_authorize_help",
+        "title": "guides.integrations.steps.authorize.title",
+        "description": "guides.integrations.steps.authorize.help",
         "frame": {
           "surface": "settings",
           "page": "integrations"
@@ -742,8 +742,8 @@
       {
         "id": "status",
         "target": "[data-guide=\"spotify-status\"]",
-        "title": "ui_guide_integrations_status_title",
-        "description": "ui_guide_integrations_status_help",
+        "title": "guides.integrations.steps.status.title",
+        "description": "guides.integrations.steps.status.help",
         "frame": {
           "surface": "settings",
           "page": "integrations"
@@ -756,14 +756,14 @@
     "group": "connection",
     "access": "admin",
     "icon": "devices",
-    "title": "ui_guide_connections_title",
-    "description": "ui_guide_connections_description",
+    "title": "guides.connections.title",
+    "description": "guides.connections.description",
     "steps": [
       {
         "id": "start",
         "target": ".connect-strip",
-        "title": "ui_guide_connections_start_title",
-        "description": "ui_guide_connections_start_help",
+        "title": "guides.connections.steps.start.title",
+        "description": "guides.connections.steps.start.help",
         "frame": {
           "surface": "settings",
           "page": "devices"
@@ -772,8 +772,8 @@
       {
         "id": "qr",
         "target": "[data-guide=\"connection-invitation\"]",
-        "title": "ui_guide_connections_qr_title",
-        "description": "ui_guide_connections_qr_help",
+        "title": "guides.connections.steps.qr.title",
+        "description": "guides.connections.steps.qr.help",
         "frame": {
           "surface": "settings",
           "page": "devices",
@@ -783,8 +783,8 @@
       {
         "id": "code",
         "target": "[data-guide=\"pair-approval\"] .code",
-        "title": "ui_guide_connections_code_title",
-        "description": "ui_guide_connections_code_help",
+        "title": "guides.connections.steps.code.title",
+        "description": "guides.connections.steps.code.help",
         "frame": {
           "surface": "settings",
           "page": "devices",
@@ -794,8 +794,8 @@
       {
         "id": "profile",
         "target": "[data-guide=\"pair-approval\"] .choice-field",
-        "title": "ui_guide_connections_profile_title",
-        "description": "ui_guide_connections_profile_help",
+        "title": "guides.connections.steps.profile.title",
+        "description": "guides.connections.steps.profile.help",
         "frame": {
           "surface": "settings",
           "page": "devices",
@@ -805,8 +805,8 @@
       {
         "id": "expiry",
         "target": "[data-guide=\"approval-expiry\"]",
-        "title": "ui_guide_connections_expiry_title",
-        "description": "ui_guide_connections_expiry_help",
+        "title": "guides.connections.steps.expiry.title",
+        "description": "guides.connections.steps.expiry.help",
         "frame": {
           "surface": "settings",
           "page": "devices",
@@ -816,8 +816,8 @@
       {
         "id": "manage",
         "target": "#settings-devices",
-        "title": "ui_guide_connections_manage_title",
-        "description": "ui_guide_connections_manage_help",
+        "title": "guides.connections.steps.manage.title",
+        "description": "guides.connections.steps.manage.help",
         "frame": {
           "surface": "settings",
           "page": "devices",
@@ -831,14 +831,14 @@
     "group": "connection",
     "access": "admin",
     "icon": "globe",
-    "title": "ui_guide_network_title",
-    "description": "ui_guide_network_description",
+    "title": "guides.network.title",
+    "description": "guides.network.description",
     "steps": [
       {
         "id": "access",
         "target": ".network-card",
-        "title": "ui_guide_network_access_title",
-        "description": "ui_guide_network_access_help",
+        "title": "guides.network.steps.access.title",
+        "description": "guides.network.steps.access.help",
         "frame": {
           "surface": "settings",
           "page": "devices"
@@ -847,8 +847,8 @@
       {
         "id": "address",
         "target": ".network-fields",
-        "title": "ui_guide_network_address_title",
-        "description": "ui_guide_network_address_help",
+        "title": "guides.network.steps.address.title",
+        "description": "guides.network.steps.address.help",
         "frame": {
           "surface": "settings",
           "page": "devices"
@@ -857,8 +857,8 @@
       {
         "id": "apply",
         "target": ".network-actions",
-        "title": "ui_guide_network_apply_title",
-        "description": "ui_guide_network_apply_help",
+        "title": "guides.network.steps.apply.title",
+        "description": "guides.network.steps.apply.help",
         "frame": {
           "surface": "settings",
           "page": "devices"
@@ -867,8 +867,8 @@
       {
         "id": "transport",
         "target": "#settings-connection",
-        "title": "ui_guide_network_transport_title",
-        "description": "ui_guide_network_transport_help",
+        "title": "guides.network.steps.transport.title",
+        "description": "guides.network.steps.transport.help",
         "frame": {
           "surface": "settings",
           "page": "devices"
@@ -877,8 +877,8 @@
       {
         "id": "diagnostics",
         "target": "[data-guide=\"connection-diagnostics\"]",
-        "title": "ui_guide_network_diagnostics_title",
-        "description": "ui_guide_network_diagnostics_help",
+        "title": "guides.network.steps.diagnostics.title",
+        "description": "guides.network.steps.diagnostics.help",
         "frame": {
           "surface": "settings",
           "page": "devices",
@@ -888,8 +888,8 @@
       {
         "id": "token",
         "target": "[data-guide=\"manual-token\"]",
-        "title": "ui_guide_network_token_title",
-        "description": "ui_guide_network_token_help",
+        "title": "guides.network.steps.token.title",
+        "description": "guides.network.steps.token.help",
         "frame": {
           "surface": "settings",
           "page": "devices",
@@ -903,14 +903,14 @@
     "group": "settings",
     "access": "admin",
     "icon": "folder",
-    "title": "ui_guide_backups_title",
-    "description": "ui_guide_backups_description",
+    "title": "guides.backups.title",
+    "description": "guides.backups.description",
     "steps": [
       {
         "id": "inspect",
         "target": "[data-guide=\"backup-import\"]",
-        "title": "ui_guide_backups_inspect_title",
-        "description": "ui_guide_backups_inspect_help",
+        "title": "guides.backups.steps.inspect.title",
+        "description": "guides.backups.steps.inspect.help",
         "frame": {
           "surface": "settings",
           "page": "backups"
@@ -919,8 +919,8 @@
       {
         "id": "preview",
         "target": ".backup-preview",
-        "title": "ui_guide_backups_preview_title",
-        "description": "ui_guide_backups_preview_help",
+        "title": "guides.backups.steps.preview.title",
+        "description": "guides.backups.steps.preview.help",
         "frame": {
           "surface": "settings",
           "page": "backups",
@@ -930,8 +930,8 @@
       {
         "id": "save",
         "target": "[data-guide=\"settings-save\"]",
-        "title": "ui_guide_backups_save_title",
-        "description": "ui_guide_backups_save_help",
+        "title": "guides.backups.steps.save.title",
+        "description": "guides.backups.steps.save.help",
         "frame": {
           "surface": "settings",
           "page": "backups"
@@ -940,8 +940,8 @@
       {
         "id": "export",
         "target": "[data-guide=\"backup-export\"]",
-        "title": "ui_guide_backups_export_title",
-        "description": "ui_guide_backups_export_help",
+        "title": "guides.backups.steps.export.title",
+        "description": "guides.backups.steps.export.help",
         "frame": {
           "surface": "settings",
           "page": "backups"
@@ -950,8 +950,8 @@
       {
         "id": "reload",
         "target": "[data-guide=\"backup-reload\"]",
-        "title": "ui_guide_backups_reload_title",
-        "description": "ui_guide_backups_reload_help",
+        "title": "guides.backups.steps.reload.title",
+        "description": "guides.backups.steps.reload.help",
         "frame": {
           "surface": "settings",
           "page": "backups"
@@ -964,14 +964,14 @@
     "group": "settings",
     "access": "admin",
     "icon": "puzzle",
-    "title": "ui_guide_runtime_title",
-    "description": "ui_guide_runtime_description",
+    "title": "guides.runtime.title",
+    "description": "guides.runtime.description",
     "steps": [
       {
         "id": "health",
         "target": "#guide-runtime-status",
-        "title": "ui_guide_runtime_health_title",
-        "description": "ui_guide_runtime_health_help",
+        "title": "guides.runtime.steps.health.title",
+        "description": "guides.runtime.steps.health.help",
         "frame": {
           "surface": "settings",
           "page": "runtime"
@@ -980,8 +980,8 @@
       {
         "id": "plugins",
         "target": "#guide-runtime-status",
-        "title": "ui_guide_runtime_plugins_title",
-        "description": "ui_guide_runtime_plugins_help",
+        "title": "guides.runtime.steps.plugins.title",
+        "description": "guides.runtime.steps.plugins.help",
         "frame": {
           "surface": "settings",
           "page": "runtime"
@@ -990,8 +990,8 @@
       {
         "id": "reload",
         "target": "[data-guide=\"runtime-reload\"]",
-        "title": "ui_guide_runtime_reload_title",
-        "description": "ui_guide_runtime_reload_help",
+        "title": "guides.runtime.steps.reload.title",
+        "description": "guides.runtime.steps.reload.help",
         "frame": {
           "surface": "settings",
           "page": "runtime"
@@ -1004,14 +1004,14 @@
     "group": "connection",
     "access": "pairing",
     "icon": "devices",
-    "title": "ui_guide_pairing_title",
-    "description": "ui_guide_pairing_description",
+    "title": "guides.pairing.title",
+    "description": "guides.pairing.description",
     "steps": [
       {
         "id": "intro",
         "target": "[data-guide=\"pairing-screen\"]",
-        "title": "ui_guide_pairing_intro_title",
-        "description": "ui_guide_pairing_intro_help",
+        "title": "guides.pairing.steps.intro.title",
+        "description": "guides.pairing.steps.intro.help",
         "frame": {
           "surface": "pairing"
         }
@@ -1019,8 +1019,8 @@
       {
         "id": "remember",
         "target": "[data-guide=\"pairing-remember\"]",
-        "title": "ui_guide_pairing_remember_title",
-        "description": "ui_guide_pairing_remember_help",
+        "title": "guides.pairing.steps.remember.title",
+        "description": "guides.pairing.steps.remember.help",
         "frame": {
           "surface": "pairing"
         }
@@ -1028,8 +1028,8 @@
       {
         "id": "name",
         "target": "[data-guide=\"pairing-name\"]",
-        "title": "ui_guide_pairing_name_title",
-        "description": "ui_guide_pairing_name_help",
+        "title": "guides.pairing.steps.name.title",
+        "description": "guides.pairing.steps.name.help",
         "frame": {
           "surface": "pairing"
         }
@@ -1037,8 +1037,8 @@
       {
         "id": "request",
         "target": "[data-guide=\"pairing-request\"]",
-        "title": "ui_guide_pairing_request_title",
-        "description": "ui_guide_pairing_request_help",
+        "title": "guides.pairing.steps.request.title",
+        "description": "guides.pairing.steps.request.help",
         "frame": {
           "surface": "pairing"
         }
@@ -1046,8 +1046,8 @@
       {
         "id": "code",
         "target": "[data-guide=\"pairing-code\"]",
-        "title": "ui_guide_pairing_code_title",
-        "description": "ui_guide_pairing_code_help",
+        "title": "guides.pairing.steps.code.title",
+        "description": "guides.pairing.steps.code.help",
         "frame": {
           "surface": "pairing",
           "detail": "waiting"
@@ -1056,8 +1056,8 @@
       {
         "id": "token",
         "target": "[data-guide=\"pairing-token\"]",
-        "title": "ui_guide_pairing_token_title",
-        "description": "ui_guide_pairing_token_help",
+        "title": "guides.pairing.steps.token.title",
+        "description": "guides.pairing.steps.token.help",
         "frame": {
           "surface": "pairing",
           "detail": "token"
@@ -1070,14 +1070,14 @@
     "group": "start",
     "access": "all",
     "icon": "play",
-    "title": "ui_guide_practice_title",
-    "description": "ui_guide_practice_description",
+    "title": "guides.practice.title",
+    "description": "guides.practice.description",
     "steps": [
       {
         "id": "intro",
         "target": "[data-guide=\"practice-grid\"]",
-        "title": "ui_guide_practice_intro_title",
-        "description": "ui_guide_practice_intro_help",
+        "title": "guides.practice.steps.intro.title",
+        "description": "guides.practice.steps.intro.help",
         "frame": {
           "surface": "practice"
         }
@@ -1085,8 +1085,8 @@
       {
         "id": "scene",
         "target": "[data-guide=\"practice-scene\"]",
-        "title": "ui_guide_practice_scene_title",
-        "description": "ui_guide_practice_scene_help",
+        "title": "guides.practice.steps.scene.title",
+        "description": "guides.practice.steps.scene.help",
         "frame": {
           "surface": "practice"
         },
@@ -1095,8 +1095,8 @@
       {
         "id": "microphone",
         "target": "[data-guide=\"practice-microphone\"]",
-        "title": "ui_guide_practice_microphone_title",
-        "description": "ui_guide_practice_microphone_help",
+        "title": "guides.practice.steps.microphone.title",
+        "description": "guides.practice.steps.microphone.help",
         "frame": {
           "surface": "practice"
         },
@@ -1105,8 +1105,8 @@
       {
         "id": "recording",
         "target": "[data-guide=\"practice-recording\"]",
-        "title": "ui_guide_practice_recording_title",
-        "description": "ui_guide_practice_recording_help",
+        "title": "guides.practice.steps.recording.title",
+        "description": "guides.practice.steps.recording.help",
         "frame": {
           "surface": "practice"
         },
@@ -1115,8 +1115,8 @@
       {
         "id": "reset",
         "target": "[data-guide=\"practice-reset\"]",
-        "title": "ui_guide_practice_reset_title",
-        "description": "ui_guide_practice_reset_help",
+        "title": "guides.practice.steps.reset.title",
+        "description": "guides.practice.steps.reset.help",
         "frame": {
           "surface": "practice"
         },

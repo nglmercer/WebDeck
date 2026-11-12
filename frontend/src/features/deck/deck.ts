@@ -65,7 +65,7 @@ export function placeButtons(buttons: Button[], columns: number, rows: number) {
         !Number.isSafeInteger(start) ||
         start > Number.MAX_SAFE_INTEGER - ((height - 1) * columns + width - 1)
       )
-        throw new Error('Grid position exceeds the supported integer range.');
+        throw new Error('deck.gridPositionOutOfRange');
       if ((start % columns) + width > columns) return false;
       for (let y = 0; y < height; y++)
         for (let x = 0; x < width; x++) if (occupied.has(start + y * columns + x)) return false;
@@ -132,7 +132,7 @@ export function gridWindow(
     !Number.isSafeInteger(start) ||
     (length > 0 && start > Number.MAX_SAFE_INTEGER - (length - 1))
   )
-    throw new Error('Grid position exceeds the supported integer range.');
+    throw new Error('deck.gridPositionOutOfRange');
   const cells = Array.from({ length }, (_, index) => {
     const cell = start + index,
       item = placement.placed.get(cell);

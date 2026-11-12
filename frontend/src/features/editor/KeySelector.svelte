@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { TranslationKey } from '../../lib/translations';
   import { tutorialActive } from '../learn/tour-state';
   import { onDestroy, onMount, tick } from 'svelte';
   import { useTranslations } from '../../lib/i18n';
@@ -80,7 +81,7 @@
     }
   }
 
-  function showRecorderError(messageKey: string) {
+  function showRecorderError(messageKey: TranslationKey) {
     clearRecordingTimer();
     recorderState = 'error';
     recorderMessage = t(messageKey);
@@ -90,12 +91,12 @@
     if (!active) return;
     if (pickerOpen) closePicker(true);
     clearRecordingTimer();
-    recorderMessage = t('ui_keypicker_record_prompt');
+    recorderMessage = t('keyboard.recordPrompt');
     recorderState = 'listening';
     recordButton?.focus({ preventScroll: true });
     recordingTimer = setTimeout(() => {
       recordingTimer = undefined;
-      showRecorderError('ui_keypicker_record_timeout');
+      showRecorderError('keyboard.recordTimeout');
     }, 10000);
   }
 
@@ -110,33 +111,33 @@
     }
     if (event.repeat || ['Control', 'Shift', 'Alt', 'Meta'].includes(event.key)) return;
     if (event.key === 'AltGraph' || event.getModifierState?.('AltGraph')) {
-      showRecorderError('ui_keypicker_altgraph_unavailable');
+      showRecorderError('keyboard.altgraphUnavailable');
       return;
     }
     if (event.code.startsWith('Numpad') && !/^Numpad[0-9]$/.test(event.code)) {
-      showRecorderError('ui_keypicker_capture_unavailable');
+      showRecorderError('keyboard.captureUnavailable');
       return;
     }
 
     const chord = captureChord(event);
     if (!chord) {
-      showRecorderError('ui_keypicker_capture_unavailable');
+      showRecorderError('keyboard.captureUnavailable');
       return;
     }
     if (chord.some((key) => keyUnavailable(key, capabilities))) {
-      showRecorderError('ui_keypicker_capture_unavailable');
+      showRecorderError('keyboard.captureUnavailable');
       return;
     }
     const error = validatePickerChordForHost(chord, false, capabilities);
     if (error) {
-      showRecorderError('ui_keypicker_capture_unavailable');
+      showRecorderError('keyboard.captureUnavailable');
       return;
     }
 
     clearRecordingTimer();
     onchange(chord.map((key) => normalizeKey(key)!));
     recorderState = 'captured';
-    recorderMessage = t('ui_keypicker_recorded');
+    recorderMessage = t('keyboard.recorded');
   }
 
   function removePlacementListeners() {
@@ -296,14 +297,14 @@
   });
 </script>
 
-<section class="key-selector" aria-label={t('ui_keypicker_shortcut')}>
+<section class="key-selector" aria-label={t('keyboard.shortcut')}>
   <div class="selector-base" hidden={pickerOpen && pickerMode === 'step'}>
     <div
       class="shortcut-preview"
-      aria-label={`${t('ui_keypicker_shortcut')}: ${summary || t('ui_keypicker_no_shortcut')}`}
+      aria-label={`${t('keyboard.shortcut')}: ${summary || t('keyboard.noShortcut')}`}
     >
-      <span>{t('ui_keypicker_shortcut')}</span>
-      <output>{summary || t('ui_keypicker_no_shortcut')}</output>
+      <span>{t('keyboard.shortcut')}</span>
+      <output>{summary || t('keyboard.noShortcut')}</output>
     </div>
 
     <div class="selector-controls">
@@ -311,7 +312,7 @@
         bind:this={recordButton}
         type="button"
         class="record"
-        title={t('ui_keypicker_capture_limits')}
+        title={t('keyboard.captureLimits')}
         aria-pressed={recorderState === 'listening'}
         onclick={startRecording}
         onkeydown={recorderKeydown}
@@ -319,8 +320,8 @@
           if (recorderState === 'listening') stopRecording();
         }}
         >{recorderState === 'listening'
-          ? t('ui_keypicker_recording')
-          : t('ui_keypicker_record_shortcut')}</button
+          ? t('keyboard.recording')
+          : t('keyboard.recordShortcut')}</button
       >
       <button
         bind:this={chooseButton}
@@ -328,12 +329,12 @@
         aria-haspopup={pickerOpen && pickerMode === 'popover' ? 'dialog' : undefined}
         aria-expanded={pickerOpen}
         aria-controls={panelId}
-        onclick={openPicker}>{t('ui_keypicker_choose_keys')}</button
+        onclick={openPicker}>{t('keyboard.chooseKeys')}</button
       >
     </div>
 
     {#if capabilities?.availability === 'unsupported'}<p class="host-status" role="status">
-        {t('ui_keypicker_host_unsupported')}
+        {t('keyboard.hostUnsupported')}
       </p>{/if}
     <p class="recorder-status" aria-live="polite" aria-atomic="true">{recorderMessage}</p>
   </div>
@@ -346,7 +347,7 @@
       class="picker"
       popover={pickerMode === 'popover' ? 'auto' : undefined}
       role={pickerMode === 'popover' ? 'dialog' : 'region'}
-      aria-label={t('ui_keypicker_choose_keys')}
+      aria-label={t('keyboard.chooseKeys')}
       ontoggle={popoverToggled}
       onfocusout={queueFocusExit}
       onkeydown={pickerKeydown}
@@ -362,9 +363,9 @@
         />
       </div>
       <div class="picker-actions">
-        <button type="button" onclick={() => closePicker(true)}>{t('ui_keypicker_cancel')}</button>
+        <button type="button" onclick={() => closePicker(true)}>{t('common.cancel')}</button>
         <button type="button" class="use" disabled={!canUseCandidate} onclick={useCandidate}
-          >{t('ui_keypicker_use_shortcut')}</button
+          >{t('keyboard.useShortcut')}</button
         >
       </div>
     </div>

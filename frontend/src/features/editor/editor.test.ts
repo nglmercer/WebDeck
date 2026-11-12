@@ -58,7 +58,7 @@ it('deleting a folder removes incoming links and never removes the last folder',
     ),
   ).toBe(false);
   for (const folder of [...editor.draft.layout.folders].slice(1)) editor.removeFolder(folder.id);
-  expect(() => editor.removeFolder(parent.id)).toThrow('at least one folder');
+  expect(() => editor.removeFolder(parent.id)).toThrow('errors.lastFolder');
 });
 
 it('owns save serialization and preserves changes made after the submitted snapshot', async () => {

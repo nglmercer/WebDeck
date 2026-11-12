@@ -12,8 +12,8 @@
 
 <label class="file-field"
   ><Icon name="image" size={24} /><span class="file-copy"
-    ><strong>{label}</strong><small>{filename || t('ui_choose_file')}</small></span
-  ><span class="file-action" aria-hidden="true">{t('ui_choose_file')}</span>
+    ><strong>{label}</strong><small>{filename || t('editor.chooseFile')}</small></span
+  ><span class="file-action" aria-hidden="true">{t('editor.chooseFile')}</span>
   <input
     class="sr-only"
     type="file"

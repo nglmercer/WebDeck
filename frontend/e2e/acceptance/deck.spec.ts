@@ -569,8 +569,8 @@ test('long translations and missing keys remain usable at 200 percent browser zo
   await page.route('**/api/v2/translations', async (route) => {
     const response = await route.fetch();
     const body = await response.json();
-    Object.assign(body.translations, { lang_code: 'de', ui_settings: settingsTitle, ui_save_changes: saveLabel, ui_edit_named_button: 'Ändern {label}', ui_got_it: 'Diese ausführlichen Hinweise habe ich jetzt verstanden', ui_number_bounds: 'Bitte eine Zahl zwischen {min} und {max} eingeben.' });
-    delete body.translations.ui_back_to_deck;
+    Object.assign(body.translations, { 'meta.langCode': 'de', 'common.settings': settingsTitle, 'common.save': saveLabel, 'deck.editNamedButton': 'Ändern {label}', 'common.numberBounds': 'Bitte eine Zahl zwischen {min} und {max} eingeben.' });
+    delete body.translations['settings.backToDeck'];
     await route.fulfill({ response, json: body });
   });
   await page.goto('/');

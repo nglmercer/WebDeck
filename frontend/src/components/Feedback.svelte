@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { useTranslations } from '../lib/i18n';
+  import { useTranslations, common } from '../lib/i18n';
   const t = useTranslations();
 
   let {
@@ -13,13 +13,14 @@
 <div class="notifications">
   {@render children?.()}
   {#if error}<div class="banner error" role="alert">
-      <span>{t(error)}</span><button aria-label={t('ui_dismiss_error')} onclick={() => (error = '')}
-        >×</button
+      <span>{t.message(error)}</span><button
+        aria-label={t(common.dismissError)}
+        onclick={() => (error = '')}>×</button
       >
     </div>{/if}
   {#if notice}<div class="banner" role="status">
-      <span>{t(notice)}</span><button
-        aria-label={t('ui_dismiss_notice')}
+      <span>{t.message(notice)}</span><button
+        aria-label={t(common.dismissNotice)}
         onclick={() => (notice = '')}>×</button
       >
     </div>{/if}

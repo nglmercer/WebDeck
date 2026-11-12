@@ -9,11 +9,11 @@
 </script>
 
 <div class="icon-field">
-  <span class="label">{t('ui_icon')}</span>
+  <span class="label">{t('editor.icon')}</span>
   <button
     type="button"
     class="trigger"
-    aria-label={t('ui_icon')}
+    aria-label={t('editor.icon')}
     aria-haspopup="dialog"
     data-icon={value}
     onclick={() => (open = true)}
@@ -21,8 +21,8 @@
     <Icon name={value.startsWith('asset:') ? 'image' : iconKey(value)} />
     <span
       >{value.startsWith('asset:')
-        ? t('ui_custom_images')
-        : iconKey(value) || t('ui_select_icon')}</span
+        ? t('images.customImages')
+        : iconKey(value) || t('icons.selectIcon')}</span
     >
     <Icon name="next" />
   </button>

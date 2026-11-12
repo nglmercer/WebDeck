@@ -38,11 +38,11 @@
         : button.label}</span
     >{/if}
   <strong class="metric-value"
-    >{reading.text === 'Unavailable' ? t('ui_metric_no_data') : reading.text}</strong
+    >{reading.text === 'Unavailable' ? t('deck.metricNoData') : reading.text}</strong
   >
   {#if reading.percent !== undefined}<progress
       max="100"
       value={reading.percent}
-      aria-label={t('ui_reading_usage', { label: button.label })}
+      aria-label={t('deck.readingUsage', { label: button.label })}
     ></progress>{/if}
 {/if}

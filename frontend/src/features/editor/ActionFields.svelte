@@ -40,13 +40,13 @@
   const options = commandSchema.oneOf ?? [];
   const name = (schema: Schema) => String(schema.properties?.type?.const ?? '');
   const friendly = (type: string) =>
-    t(names[type] ?? type.replaceAll('_', ' ').replace(/^./, (c) => c.toUpperCase()));
+    t.message(names[type] ?? type.replaceAll('_', ' ').replace(/^./, (c) => c.toUpperCase()));
   const visible = $derived(
     options.filter(
       (option) =>
         name(option) === value.type ||
         ((category === 'all' || group(option) === category) &&
-          `${friendly(name(option))} ${name(option)} ${t(descriptions[name(option)] ?? '')}`
+          `${friendly(name(option))} ${name(option)} ${t.message(descriptions[name(option)] ?? '')}`
             .toLowerCase()
             .includes(search.toLowerCase())),
     ),
@@ -61,23 +61,23 @@
 
 <fieldset class:configuration-only={configurationOnly}>
   {#if !configurationOnly}
-    <legend>{t('ui_command')}</legend>
+    <legend>{t('actions.command')}</legend>
     <label
-      >{t('ui_find_an_action')}<input
+      >{t('actions.findAnAction')}<input
         type="search"
         bind:value={search}
-        placeholder={t('ui_search_actions')}
+        placeholder={t('actions.searchActions')}
       /></label
     >
     <label
-      >{t('ui_category')}<select bind:value={category}
-        ><option value="all">{t('ui_all_actions')}</option
+      >{t('actions.category')}<select bind:value={category}
+        ><option value="all">{t('actions.allActions')}</option
         >{#each Object.entries(categories) as [id, label]}<option value={id}>{t(label)}</option
           >{/each}</select
       ></label
     >
     <label
-      >{t('ui_type')}<select
+      >{t('editor.type')}<select
         value={value.type}
         onchange={(e) => {
           const option = options.find((option) => name(option) === e.currentTarget.value);
@@ -94,7 +94,7 @@
     >
   {/if}
   {#if !configurationOnly && descriptions[value.type]}<p class="field-help">
-      {t(descriptions[value.type] ?? '')}
+      {t.message(descriptions[value.type] ?? '')}
     </p>{/if}
   {#if value.type === 'play_sound'}
     <AudioFields
@@ -117,7 +117,7 @@
     />
   {:else if value.type === 'write'}
     <label
-      >{t('ui_text_to_type')}<textarea
+      >{t('editor.textToType')}<textarea
         value={value.text}
         maxlength="65536"
         oninput={(event) => {
@@ -131,16 +131,16 @@
         onchange={(event) => {
           if (value.type === 'write') onchange({ ...value, send: event.currentTarget.checked });
         }}
-      />{t('ui_press_enter_after_typing')}</label
+      />{t('editor.pressEnterAfterTyping')}</label
     >
   {:else if value.type === 'open'}
     <label
-      >{t('ui_application_file_or_url')}<input
+      >{t('editor.applicationFileOrUrl')}<input
         value={value.target}
         required
         minlength="1"
         maxlength="4096"
-        placeholder={t('ui_https_example_com')}
+        placeholder={t('editor.httpsExampleCom')}
         oninput={(event) => {
           if (value.type === 'open' && event.currentTarget.checkValidity())
             onchange({ ...value, target: event.currentTarget.value });
@@ -151,7 +151,7 @@
       schema={form}
       {value}
       onchange={(value) => onchange(value as Command)}
-      label={t('ui_arguments')}
+      label={t('editor.arguments')}
     />{/if}
 </fieldset>
 

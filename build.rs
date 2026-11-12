@@ -31,6 +31,8 @@ fn main() {
     let root = std::path::PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
     for input in [
         "frontend/src",
+        "frontend/locales",
+        "tools/i18n",
         "frontend/public",
         "frontend/index.html",
         "frontend/package.json",

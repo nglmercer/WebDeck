@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { TranslationKey } from '../../lib/translations';
   import { useTranslations } from '../../lib/i18n';
   const t = useTranslations();
 
@@ -25,13 +26,13 @@
   let disposed = false;
   let generation = 0;
   let statusGeneration = 0;
-  const stateLabels: Record<IntegrationState, string> = {
-    not_configured: 'ui_not_configured',
-    not_tested: 'ui_not_checked',
-    connected: 'ui_connected',
-    failed: 'ui_connection_failed_check_the_host_port_password_and_obs_websocket_server',
-    authorization_saved: 'ui_authorization_stored_live_playback_has_not_been_checked',
-    authorization_required: 'ui_authorization_required',
+  const stateLabels: Record<IntegrationState, TranslationKey> = {
+    not_configured: 'settings.notConfigured',
+    not_tested: 'settings.notChecked',
+    connected: 'common.connected',
+    failed: 'integrations.failed',
+    authorization_saved: 'integrations.authorizationStored',
+    authorization_required: 'settings.authorizationRequired',
   };
   onMount(() => {
     const started = statusGeneration;
@@ -105,19 +106,19 @@
 </script>
 
 <div id="settings-integrations" class="settings-page">
-  <div class="settings-page-heading"><h2>{t('ui_integrations')}</h2></div>
+  <div class="settings-page-heading"><h2>{t('settings.integrations')}</h2></div>
   {#if checking || connecting}<p id="integration-work-status">
-      {checking ? t('ui_checking_connection') : t('ui_preparing_authorization')}
+      {checking ? t('integrations.checkingConnection') : t('integrations.preparingAuthorization')}
     </p>{/if}
-  {#if statusError}<p role="alert">{t(statusError)}</p>{/if}
+  {#if statusError}<p role="alert">{t.message(statusError)}</p>{/if}
   {#if changed}<p class="integration-warning">
-      {t('ui_integration_settings_changed_save_and_check_again_to_verify_the_host_configurati')}
+      {t('integrations.changed')}
     </p>{/if}
   <div class="integration-layout">
-    <SettingsCard id="guide-obs" title={t('ui_obs')} icon="monitor">
-      <p aria-label={t('ui_obs_connection_status')} role="status">
+    <SettingsCard id="guide-obs" title={t('integrations.obs')} icon="monitor">
+      <p aria-label={t('integrations.obsConnectionStatus')} role="status">
         <StatusBadge
-          label={status ? t(stateLabels[status.obs]) : t('ui_loading_connection_status')}
+          label={status ? t(stateLabels[status.obs]) : t('integrations.loadingConnectionStatus')}
           tone={status?.obs === 'connected'
             ? 'success'
             : status?.obs === 'failed'
@@ -130,14 +131,19 @@
         disabled={checking || connecting}
         data-guide="obs-check"
         onclick={checkObs}
-        >{checking ? t('ui_checking_connection') : t('ui_save_and_check_obs_connection')}</button
+        >{checking
+          ? t('integrations.checkingConnection')
+          : t('integrations.saveAndCheckObsConnection')}</button
       >
       <label
-        >{t('ui_host')}<input bind:value={editor.draft.settings.obs.host} oninput={change} /></label
+        >{t('integrations.host')}<input
+          bind:value={editor.draft.settings.obs.host}
+          oninput={change}
+        /></label
       >
       <NumberField
         controls
-        label={t('ui_port')}
+        label={t('integrations.port')}
         value={editor.draft.settings.obs.port}
         min={1}
         max={65535}
@@ -146,7 +152,7 @@
           change();
         }}
       /><label
-        >{t('ui_password')}<input
+        >{t('integrations.password')}<input
           data-guide="obs-password"
           type={revealObs ? 'text' : 'password'}
           bind:value={editor.draft.settings.obs.password}
@@ -154,28 +160,32 @@
         /></label
       >
       <button type="button" aria-pressed={revealObs} onclick={() => (revealObs = !revealObs)}
-        >{revealObs ? t('ui_hide_obs_password') : t('ui_reveal_obs_password')}</button
+        >{revealObs
+          ? t('integrations.hideObsPassword')
+          : t('integrations.revealObsPassword')}</button
       >
     </SettingsCard>
-    <SettingsCard id="guide-spotify" title={t('ui_spotify')} icon="spotify">
-      <p data-guide="spotify-status" aria-label={t('ui_spotify_authorization_status')}>
+    <SettingsCard id="guide-spotify" title={t('integrations.spotify')} icon="spotify">
+      <p data-guide="spotify-status" aria-label={t('integrations.spotifyAuthorizationStatus')}>
         <StatusBadge
-          label={status ? t(stateLabels[status.spotify]) : t('ui_loading_authorization_status')}
+          label={status
+            ? t(stateLabels[status.spotify])
+            : t('integrations.loadingAuthorizationStatus')}
         />
       </p>
       <label
-        >{t('ui_client_id')}<input
+        >{t('integrations.clientId')}<input
           bind:value={editor.draft.settings.spotify.client_id}
           oninput={change}
         /></label
       ><label
-        >{t('ui_client_secret')}<input
+        >{t('integrations.clientSecret')}<input
           type={revealSpotify ? 'text' : 'password'}
           bind:value={editor.draft.settings.spotify.client_secret}
           oninput={change}
         /></label
       ><label
-        >{t('ui_redirect_uri')}<input
+        >{t('integrations.redirectUri')}<input
           bind:value={editor.draft.settings.spotify.redirect_uri}
           oninput={change}
         /></label
@@ -184,24 +194,28 @@
         type="button"
         aria-pressed={revealSpotify}
         onclick={() => (revealSpotify = !revealSpotify)}
-        >{revealSpotify ? t('ui_hide_spotify_secret') : t('ui_reveal_spotify_secret')}</button
+        >{revealSpotify
+          ? t('integrations.hideSpotifySecret')
+          : t('integrations.revealSpotifySecret')}</button
       >
       <button
         aria-describedby={checking || connecting ? 'integration-work-status' : undefined}
         disabled={connecting || checking}
         data-guide="spotify-connect"
         onclick={() => attempt(connectSpotify)}
-        >{connecting ? t('ui_preparing_authorization') : t('ui_connect_spotify')}</button
+        >{connecting
+          ? t('integrations.preparingAuthorization')
+          : t('integrations.connectSpotify')}</button
       >
       {#if spotifyUrl}<p role="status">
-          {t('ui_settings_saved_continue_to_spotify_to_authorize_this_host')}
+          {t('integrations.settingsSavedContinueToSpotifyToAuthorizeThisHost')}
         </p>
         <a href={spotifyUrl} target="_blank" rel="noopener noreferrer"
-          >{t('ui_continue_to_spotify')}</a
+          >{t('integrations.continueToSpotify')}</a
         >{/if}
     </SettingsCard>
   </div>
-  <p>{t('ui_automatic_updates_are_disabled_for_this_prerelease')}</p>
+  <p>{t('settings.updatesDisabled')}</p>
 </div>
 
 <style>

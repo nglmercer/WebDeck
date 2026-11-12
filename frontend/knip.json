@@ -2,7 +2,8 @@
   "entry": [
     "e2e/acceptance/*.spec.ts",
     "e2e/acceptance/server.mjs",
-    "../tools/validation/*.mjs"
+    "../tools/validation/*.mjs",
+    "locales/*.ts"
   ],
   "project": [
     "src/**/*",

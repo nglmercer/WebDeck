@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { TranslationKey } from '../../lib/translations';
   import FilterSelect from '../../components/FilterSelect.svelte';
   import { id } from '../../lib/id';
   import { useTranslations } from '../../lib/i18n';
@@ -42,14 +43,14 @@
       category = 'function';
     }
   });
-  const categoryMessages: Record<string, string> = {
-    function: 'ui_keypicker_function_keys',
-    characters: 'ui_keypicker_letters_numbers',
-    navigation: 'ui_keypicker_navigation',
-    system: 'ui_keypicker_editing_special',
-    numpad: 'ui_keypicker_numpad',
-    media: 'ui_keypicker_media_system',
-    hardware: 'ui_keypicker_hardware',
+  const categoryMessages: Record<string, TranslationKey> = {
+    function: 'keyboard.functionKeys',
+    characters: 'keyboard.lettersNumbers',
+    navigation: 'keyboard.navigation',
+    system: 'keyboard.editingSpecial',
+    numpad: 'keyboard.numpad',
+    media: 'common.media',
+    hardware: 'keyboard.hardware',
   };
   const categories = [
     ...new Set(keys.map((key) => key.category).filter((group) => group !== 'modifiers')),
@@ -114,32 +115,32 @@
 <div class="picker-fields">
   <section class="selection" aria-labelledby={selectionId}>
     <div class="selection-heading">
-      <h3 id={selectionId}>{t('ui_keypicker_shortcut')}</h3>
+      <h3 id={selectionId}>{t('keyboard.shortcut')}</h3>
       <button
         type="button"
         class="clear"
         disabled={!candidate.length}
-        onclick={() => onCandidateChange([])}>{t('ui_keypicker_clear_selection')}</button
+        onclick={() => onCandidateChange([])}>{t('keyboard.clearSelection')}</button
       >
     </div>
     {#if candidate.length}
-      <div class="chips" aria-label={t('ui_keypicker_selected_keys')}>
+      <div class="chips" aria-label={t('keyboard.selectedKeys')}>
         {#each candidate as key, index (`${key}-${index}`)}
           <button
             type="button"
             class="chip"
-            aria-label={t('ui_keypicker_remove', { key: keyLabel(key) })}
+            aria-label={t('keyboard.remove', { key: keyLabel(key) })}
             onclick={() => removeAt(index)}
             >{keyLabel(key)} <span aria-hidden="true">×</span></button
           >
           {#if index < candidate.length - 1}<span class="plus" aria-hidden="true">+</span>{/if}
         {/each}
       </div>
-    {:else}<p class="empty-selection">{t('ui_keypicker_choose_one')}</p>{/if}
+    {:else}<p class="empty-selection">{t('keyboard.chooseOne')}</p>{/if}
   </section>
 
   <fieldset class="modifiers">
-    <legend>{t('ui_keypicker_modifiers')}</legend>
+    <legend>{t('keyboard.modifiers')}</legend>
     <div class="modifier-buttons">
       {#each modifiers as modifier (modifier)}<button
           type="button"
@@ -152,11 +153,11 @@
 
   <div class="filters">
     <label class="search"
-      ><span class="sr-only">{t('ui_keypicker_search_keys')}</span>
+      ><span class="sr-only">{t('keyboard.searchKeys')}</span>
       <input
         type="search"
         value={search}
-        placeholder={t('ui_keypicker_search_keys')}
+        placeholder={t('keyboard.searchKeys')}
         autocomplete="off"
         oninput={(event) => {
           search = event.currentTarget.value;
@@ -165,11 +166,11 @@
       />
     </label>
     <FilterSelect
-      label={t('ui_keypicker_category')}
+      label={t('keyboard.category')}
       value={category}
       hideLabel
       options={[
-        { value: 'all', label: t('ui_keypicker_all_keys') },
+        { value: 'all', label: t('keyboard.allKeys') },
         ...categories.map((group) => ({ value: group, label: t(categoryMessages[group]!) })),
       ]}
       onchange={(value) => (category = value)}
@@ -177,7 +178,7 @@
   </div>
 
   {#if visible.length}
-    <div class="key-grid" role="group" aria-label={t('ui_keypicker_choose_primary_key')}>
+    <div class="key-grid" role="group" aria-label={t('keyboard.choosePrimaryKey')}>
       {#each visible as key (key.id)}
         {@const unavailable = keyUnavailable(key.id, capabilities)}
         {@const support = platformSupport(key.id, capabilities?.platform)}
@@ -196,23 +197,23 @@
         >
       {/each}
     </div>
-  {:else}<p class="no-results" role="status">{t('ui_keypicker_no_results')}</p>{/if}
+  {:else}<p class="no-results" role="status">{t('keyboard.noResults')}</p>{/if}
 
   <div class="advanced">
-    <label title={t('ui_keypicker_advanced_help')}
+    <label title={t('keyboard.advancedHelp')}
       ><input
         type="checkbox"
         checked={advanced}
         onchange={(event) => onAdvancedChange(event.currentTarget.checked)}
-      />{t('ui_keypicker_multiple_keys')}</label
+      />{t('keyboard.multipleKeys')}</label
     >
-    {#if advanced}<p>{t('ui_keypicker_simultaneous_hint')}</p>{/if}
+    {#if advanced}<p>{t('keyboard.simultaneousHint')}</p>{/if}
   </div>
   {#if hasUnavailableVisible}<p id={`${selectionId}-unavailable`} class="help">
-      {t('ui_keypicker_unavailable_hint')}
+      {t('keyboard.unavailableHint')}
     </p>{/if}
   {#if candidate.length && !hasPrimaryKey}<p class="help" role="status">
-      {t('ui_keypicker_select_primary')}
+      {t('keyboard.selectPrimary')}
     </p>
   {:else if candidate.length && validationMessage}<p class="help" role="alert">
       {t(validationMessage)}

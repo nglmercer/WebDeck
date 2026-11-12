@@ -2,7 +2,7 @@
   import Icon from '../../components/Icon.svelte';
   import Modal from '../../components/Modal.svelte';
   import { iconCategory, matchingIcons } from '../../lib/icons';
-  import { useTranslations } from '../../lib/i18n';
+  import { useTranslations, common, keys } from '../../lib/i18n';
   const t = useTranslations();
 
   let {
@@ -13,7 +13,14 @@
   let query = $state('');
   let category = $state('all');
   let highlighted = $state('');
-  const categories = ['all', 'media', 'devices', 'ui', 'folders', 'system'];
+  const categories = {
+    all: keys.icons.categories.all,
+    media: common.media,
+    devices: common.devices,
+    ui: keys.icons.categories.ui,
+    folders: keys.icons.categories.folders,
+    system: keys.icons.categories.system,
+  };
   let icons = $derived(
     matchingIcons(query).filter((name) => category === 'all' || iconCategory(name) === category),
   );
@@ -53,31 +60,31 @@
   }
 </script>
 
-<Modal label={t('ui_select_icon')} {close} width="680px">
+<Modal label={t('icons.selectIcon')} {close} width="680px">
   <div class="picker">
     <header>
-      <h2>{t('ui_select_icon')}</h2>
-      <button type="button" aria-label={t('ui_close_editor')} onclick={close}
+      <h2>{t('icons.selectIcon')}</h2>
+      <button type="button" aria-label={t('editor.closeEditor')} onclick={close}
         ><Icon name="close" /></button
       >
     </header>
     <div class="tools">
-      <nav aria-label={t('ui_icon_categories')}>
-        {#each categories as item}<button
+      <nav aria-label={t('icons.category')}>
+        {#each Object.entries(categories) as [item, label]}<button
             type="button"
             aria-pressed={category === item}
             onclick={() => {
               category = item;
-            }}>{t(`ui_icon_category_${item}`)}</button
+            }}>{t(label)}</button
           >{/each}
       </nav>
-      <label>{t('ui_search_icons')}<input type="search" bind:value={query} /></label>
+      <label>{t('icons.searchIcons')}<input type="search" bind:value={query} /></label>
     </div>
     <div
       bind:this={grid}
       class="icons"
       role="listbox"
-      aria-label={t('ui_select_icon')}
+      aria-label={t('icons.selectIcon')}
       tabindex={icons.length ? -1 : 0}
       onkeydown={onKeydown}
     >
@@ -94,17 +101,17 @@
             close();
           }}><Icon name={icon} /><span>{icon}</span></button
         >{/each}
-      {#if !icons.length}<p class="empty" role="status">{t('ui_no_matching_icons')}</p>{/if}
+      {#if !icons.length}<p class="empty" role="status">{t('icons.noMatchingIcons')}</p>{/if}
     </div>
     <footer>
-      <button type="button" onclick={close}>{t('ui_cancel')}</button><button
+      <button type="button" onclick={close}>{t(common.cancel)}</button><button
         type="button"
         class="primary"
         disabled={!icons.includes(highlighted)}
         onclick={() => {
           select(highlighted);
           close();
-        }}>{t('ui_select')}</button
+        }}>{t(common.select)}</button
       >
     </footer>
   </div>

@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import Icon from '../../components/Icon.svelte';
-  import { useTranslations } from '../../lib/i18n';
+  import { useTranslations, common } from '../../lib/i18n';
   const t = useTranslations();
 
   import Modal from '../../components/Modal.svelte';
@@ -33,7 +33,7 @@
 
 {#if interactions.controls || interactions.help}
   <Modal
-    label={t(interactions.help ? 'ui_keyboard_shortcuts' : 'ui_deck_controls')}
+    label={t(interactions.help ? 'deck.keyboardShortcuts' : 'deck.deckControls')}
     close={() => {
       interactions.controls = false;
       interactions.help = false;
@@ -42,7 +42,7 @@
     <div
       data-guide="controls-menu"
       role="tablist"
-      aria-label={t('ui_deck_controls')}
+      aria-label={t('deck.deckControls')}
       class="control-tabs"
     >
       {#each ['controls', 'help'] as tab}<button
@@ -65,11 +65,11 @@
                 .getElementById(`controls-tab-${interactions.help ? 'help' : 'controls'}`)
                 ?.focus();
             }
-          }}>{t(tab === 'help' ? 'ui_shortcuts' : 'ui_deck_controls')}</button
+          }}>{t(tab === 'help' ? 'deck.shortcuts' : 'deck.deckControls')}</button
         >{/each}
     </div>
     <button
-      aria-label={t(interactions.help ? 'ui_close' : 'ui_close_controls')}
+      aria-label={t(interactions.help ? 'common.close' : 'deck.closeControls')}
       onclick={() => {
         interactions.controls = false;
         interactions.help = false;
@@ -87,31 +87,27 @@
         onclick={() => {
           back();
           interactions.controls = false;
-        }}><Icon name="back" />{t('ui_back')}</button
+        }}><Icon name="back" />{t(common.back)}</button
       >
-      <button onclick={home}><Icon name="home" />{t('ui_home')}</button>
+      <button onclick={home}><Icon name="home" />{t(common.home)}</button>
       {#if canEdit}<button
           onclick={() => {
             interactions.controls = false;
             edit();
-          }}><Icon name="edit" />{t('ui_edit')}</button
+          }}><Icon name="edit" />{t(common.edit)}</button
         >
-        <button onclick={connect}><Icon name="devices" />{t('ui_connect_device')}</button>
-        <button onclick={settings}><Icon name="settings" />{t('ui_settings')}</button>{/if}
+        <button onclick={connect}><Icon name="devices" />{t('connections.connectDevice')}</button>
+        <button onclick={settings}><Icon name="settings" />{t(common.settings)}</button>{/if}
       <button
         onclick={() => {
           interactions.controls = false;
           reload();
-        }}><Icon name="refresh" />{t('ui_reload')}</button
+        }}><Icon name="refresh" />{t(common.reload)}</button
       >
       {@render children?.()}
-      <button onclick={learn}><Icon name="grid" />{t('ui_learn')}</button>
+      <button onclick={learn}><Icon name="grid" />{t('learn.learn')}</button>
       <p>
-        {t(
-          canEdit
-            ? 'ui_right_click_or_hold_the_deck_for_controls_q_toggles_editing_f1_shows_all_shortcu'
-            : 'ui_controls_hint_viewer',
-        )}
+        {t(canEdit ? 'deck.controlsHelp' : 'deck.viewerHelp')}
       </p>
     </div>
     <div
@@ -120,15 +116,15 @@
       aria-labelledby="controls-tab-help"
       hidden={!interactions.help}
     >
-      <h2>{t('ui_shortcuts')}</h2>
+      <h2>{t('deck.shortcuts')}</h2>
       {@render children?.()}
-      <button onclick={learn}>{t('ui_learn')}</button>
-      {#if canEdit}<p>{t('ui_q_toggle_edit_mode_saves_changes_when_leaving')}</p>
-        <p>{t('ui_ctrl_settings')}</p>{/if}
-      <p>{t('ui_f1_show_or_hide_shortcuts')}</p>
-      <p>{t('ui_alt_left_return_to_home_folder')}</p>
-      <p>{t('ui_escape_close_a_dialog_or_settings')}</p>
-      <p>{t('ui_right_click_or_touch_and_hold_deck_controls')}</p>
+      <button onclick={learn}>{t('learn.learn')}</button>
+      {#if canEdit}<p>{t('deck.hints.edit')}</p>
+        <p>{t('deck.hints.settings')}</p>{/if}
+      <p>{t('deck.hints.help')}</p>
+      <p>{t('deck.hints.home')}</p>
+      <p>{t('deck.hints.close')}</p>
+      <p>{t('deck.hints.controls')}</p>
     </div>
   </Modal>
 {/if}

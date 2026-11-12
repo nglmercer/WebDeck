@@ -1,6 +1,11 @@
 <script lang="ts">
-  import { useTranslations } from '../../lib/i18n';
+  import { fieldLabels } from '../../lib/field-labels';
+  import { useTranslations, common } from '../../lib/i18n';
   const t = useTranslations();
+  const fieldLabel = (name: string) => {
+    const key = fieldLabels[name];
+    return key ? t(key) : name.replaceAll('_', ' ').replace(/^./, (value) => value.toUpperCase());
+  };
 
   import Fields from './Fields.svelte';
   import JsonField from './JsonField.svelte';
@@ -13,8 +18,15 @@
     schema,
     value,
     onchange,
-    label = 'Arguments',
-  }: { schema: Schema; value: unknown; onchange: (v: unknown) => void; label?: string } = $props();
+    label = t('editor.arguments'),
+    fieldName = '',
+  }: {
+    schema: Schema;
+    value: unknown;
+    onchange: (v: unknown) => void;
+    label?: string;
+    fieldName?: string;
+  } = $props();
   const s = $derived(resolve(schema));
   const object = $derived(
     value && typeof value === 'object' && !Array.isArray(value)
@@ -31,7 +43,7 @@
       try {
         onchange(await upload(f));
       } catch (e) {
-        error = String(e);
+        error = e instanceof Error ? e.message : String(e);
       }
     }
   }
@@ -40,7 +52,7 @@
       const r = await select('file');
       if (r.source) onchange(r.source);
     } catch (e) {
-      error = String(e);
+      error = e instanceof Error ? e.message : String(e);
     }
   }
 </script>
@@ -48,7 +60,7 @@
 {#if s.oneOf}
   <fieldset>
     <legend>{label}</legend><label
-      >{t('ui_type')}
+      >{t('editor.type')}
       <select
         value={String(object.type ?? '')}
         onchange={(e) => {
@@ -56,7 +68,7 @@
           if (option) onchange(defaultValue(option));
         }}
         >{#each s.oneOf as option}<option value={String(option.properties?.type?.const ?? '')}
-            >{t(String(option.properties?.type?.const ?? ''))}</option
+            >{fieldLabel(String(option.properties?.type?.const ?? ''))}</option
           >{/each}</select
       ></label
     >
@@ -65,10 +77,11 @@
         {value}
         {onchange}
         {label}
+        {fieldName}
       />{/each}
     {#if schema.$ref?.endsWith('/FileSource')}<label
-        >{t('ui_upload')} <input type="file" onchange={file} /></label
-      ><button type="button" onclick={picker}>{t('ui_select_a_local_file')}</button>{/if}
+        >{t(common.upload)} <input type="file" onchange={file} /></label
+      ><button type="button" onclick={picker}>{t('editor.selectALocalFile')}</button>{/if}
   </fieldset>
 {:else if s.properties}
   <div class="fields">
@@ -76,14 +89,14 @@
         schema={child}
         value={object[k]}
         onchange={(v) => field(k, v)}
-        label={t(k.replaceAll('_', ' '))}
+        label={fieldLabel(k)}
+        fieldName={k}
       />{/each}
   </div>
 {:else if s.enum}
   <label
     >{label}<select value={String(value)} onchange={(e) => onchange(e.currentTarget.value)}
-      >{#each s.enum as v}<option value={String(v)}>{t(String(v).replaceAll('_', ' '))}</option
-        >{/each}</select
+      >{#each s.enum as v}<option value={String(v)}>{fieldLabel(String(v))}</option>{/each}</select
     ></label
   >
 {:else if s.type === 'boolean'}
@@ -109,7 +122,7 @@
         const input = e.currentTarget;
         input.setCustomValidity('');
         if (!Number.isFinite(input.valueAsNumber) || !input.checkValidity()) {
-          error = t('ui_field_invalid_number', { label });
+          error = t(common.invalidNumber, { label });
           input.setCustomValidity(error);
           return;
         }
@@ -122,10 +135,10 @@
   <fieldset>
     <legend>{label}</legend>
     {#if s.minItems !== undefined}<p id={minimumId} class="field-help">
-        {t('ui_list_minimum', { count: s.minItems })}
+        {t('editor.listMinimum', { count: s.minItems })}
       </p>{/if}
     {#if s.maxItems !== undefined}<p id={maximumId} class="field-help">
-        {t('ui_list_maximum', { count: s.maxItems })}
+        {t('editor.listMaximum', { count: s.maxItems })}
       </p>{/if}
     {#each Array.isArray(value) ? value : [] as v, index}<div class="row">
         <Fields
@@ -136,13 +149,13 @@
             next[index] = v;
             onchange(next);
           }}
-          label={t('ui_field_number', { label, index: index + 1 })}
+          label={t(common.number, { label, index: index + 1 })}
         /><button
           type="button"
           disabled={(value as unknown[]).length <= (s.minItems ?? 0)}
           aria-describedby={s.minItems !== undefined ? minimumId : undefined}
           onclick={() => onchange((value as unknown[]).filter((_, i) => i !== index))}
-          >{t('ui_remove')}</button
+          >{t(common.remove)}</button
         >
       </div>{/each}<button
       type="button"
@@ -150,14 +163,14 @@
       aria-describedby={s.maxItems !== undefined ? maximumId : undefined}
       onclick={() =>
         onchange([...(Array.isArray(value) ? value : []), defaultValue(s.items ?? {})])}
-      >{t('ui_add_named_field', { label })}</button
+      >{t('editor.addNamedField', { label })}</button
     >
   </fieldset>
 {:else if s.type === 'object'}
   <fieldset>
     <legend>{label}</legend>{#each Object.entries(object) as [k, v]}<div class="row">
         <input
-          aria-label={t('ui_name')}
+          aria-label={t(common.name)}
           value={k}
           onchange={(e) => {
             const next = { ...object };
@@ -176,12 +189,12 @@
             const next = { ...object };
             delete next[k];
             onchange(next);
-          }}>{t('ui_remove')}</button
+          }}>{t(common.remove)}</button
         >
       </div>{/each}<button
       type="button"
       onclick={() => field(`field${Object.keys(object).length + 1}`, '')}
-      >{t('ui_add_field')}</button
+      >{t('editor.addField')}</button
     >
   </fieldset>
 {:else if !s.type}
@@ -189,7 +202,7 @@
 {:else}
   <label
     >{label}<textarea
-      rows={label.includes('code') || label.includes('body') ? 4 : 1}
+      rows={fieldName === 'code' || fieldName === 'body' ? 4 : 1}
       value={typeof value === 'string' ? value : JSON.stringify(value)}
       minlength={s.minLength}
       maxlength={s.maxLength}
@@ -200,7 +213,7 @@
         e.currentTarget.setCustomValidity('');
         const next = e.currentTarget.value;
         if (!e.currentTarget.checkValidity() || (s.pattern && !new RegExp(s.pattern).test(next))) {
-          error = t('ui_field_invalid_value', { label });
+          error = t(common.invalidValue, { label });
           e.currentTarget.setCustomValidity(error);
           return;
         }
@@ -209,7 +222,7 @@
       }}></textarea></label
   >
 {/if}
-{#if error}<p id={errorId} role="alert">{t(error)}</p>{/if}
+{#if error}<p id={errorId} role="alert">{t.message(error)}</p>{/if}
 
 <style>
   .fields {

@@ -3,7 +3,7 @@
   import { tutorialActive } from '../learn/tour-state';
   import Icon from '../../components/Icon.svelte';
   import Modal from '../../components/Modal.svelte';
-  import { useTranslations } from '../../lib/i18n';
+  import { useTranslations, common } from '../../lib/i18n';
   import { contract } from '../../lib/schema';
   import type { Editor } from './editor.svelte';
   import type { Folder } from '../../lib/contracts';
@@ -41,14 +41,14 @@
   );
   const saveText = $derived(
     editor.saving
-      ? t('ui_saving')
+      ? t('editor.saving')
       : editor.conflict
-        ? t('ui_conflict_draft_preserved')
+        ? t('editor.conflictDraftPreserved')
         : editor.failure
-          ? t('ui_save_failed_draft_preserved')
+          ? t('editor.saveFailedDraftPreserved')
           : editor.dirty
-            ? t('ui_unsaved_changes')
-            : t('ui_all_changes_saved'),
+            ? t('editor.unsavedChanges')
+            : t('editor.allChangesSaved'),
   );
   let menuOpen = $state(false);
   let overflow = $state<HTMLDivElement>();
@@ -150,11 +150,12 @@
     }
   }}
 />
-<section data-tour="editor" class="editor-toolbar" aria-label={t('ui_deck_editor')}>
+<section data-tour="editor" class="editor-toolbar" aria-label={t('editor.deckEditor')}>
   <div class="editor-context">
     <Icon name={isFolder ? 'folder' : 'grid'} size={22} />
     <div class="editor-title" class:folder-context={isFolder}>
-      {#if editing}<span class="context-label">{t(isFolder ? 'ui_folder' : 'ui_editing')}</span
+      {#if editing}<span class="context-label"
+          >{t(isFolder ? 'editor.folder' : 'editor.editing')}</span
         >{/if}
       {#if renaming}
         <div class="rename-row">
@@ -162,7 +163,7 @@
             bind:this={nameInput}
             data-guide="folder-name"
             bind:value={name}
-            aria-label={t('ui_folder_name')}
+            aria-label={t('editor.folderName')}
             aria-invalid={nameError}
             aria-describedby={nameError ? 'folder-name-error' : undefined}
             oninput={() => (nameError = false)}
@@ -189,18 +190,18 @@
           />
           <button
             class="icon-button"
-            aria-label={t('ui_confirm_folder_name')}
+            aria-label={t('editor.confirmFolderName')}
             onclick={() => confirmRename(true)}><Icon name="check" size={18} /></button
           >
           <button
             class="icon-button"
             data-rename-cancel
-            aria-label={t('ui_cancel_rename')}
+            aria-label={t('editor.cancelRename')}
             onclick={cancelRename}><Icon name="close" size={18} /></button
           >
         </div>
         {#if nameError}<span id="folder-name-error" class="rename-error" role="alert"
-            >{t('ui_invalid_folder_name')}</span
+            >{t('editor.invalidFolderName')}</span
           >{/if}
       {:else}
         <div class="name-row">
@@ -209,7 +210,7 @@
               bind:this={renameButton}
               class="icon-button rename-button"
               data-guide="rename-folder"
-              aria-label={t('ui_rename_folder')}
+              aria-label={t('editor.renameFolder')}
               onclick={beginRename}><Icon name="edit" size={16} /></button
             >{/if}
         </div>
@@ -221,19 +222,19 @@
         class="save-status"
         data-state={saveState}
         role="status"
-        aria-label={t('ui_save_status')}
+        aria-label={t('editor.saveStatus')}
         title={saveText}><span id="deck-save-status">{saveText}</span></span
       >{/if}
     {#if editing && editor.dirty}<button
         class="primary save-action"
         aria-describedby="deck-save-status"
         disabled={editor.saving}
-        onclick={() => run(save)}>{t('ui_save_changes')}</button
+        onclick={() => run(save)}>{t(common.save)}</button
       >{/if}
     {#if editing && editor.canUndoDeletion}<button
         class="icon-button"
-        aria-label={t('ui_undo_deletion')}
-        title={t('ui_removed_from_your_draft')}
+        aria-label={t('editor.undoDeletion')}
+        title={t('editor.removedFromYourDraft')}
         onclick={() => editor.undoDeletion()}><Icon name="back" size={18} /></button
       >{/if}
   </div>
@@ -242,7 +243,7 @@
       <div class="secondary-actions">
         <button
           class="icon-button"
-          aria-label={t(isFolder ? 'ui_folder_settings' : 'ui_deck_settings')}
+          aria-label={t(isFolder ? 'editor.folderSettings' : 'actions.deckSettings')}
           onclick={() => run(settings)}><Icon name="settings" size={20} /></button
         >
         <div class="overflow" bind:this={overflow}>
@@ -250,7 +251,7 @@
             bind:this={menuButton}
             data-guide="folder-actions"
             class="icon-button"
-            aria-label={t(isFolder ? 'ui_folder_actions' : 'ui_deck_actions')}
+            aria-label={t(isFolder ? 'editor.folderActions' : 'editor.deckActions')}
             aria-haspopup="menu"
             aria-expanded={menuOpen}
             aria-controls={menuOpen ? 'editor-actions-menu' : undefined}
@@ -266,7 +267,7 @@
               class="actions-menu"
               role="menu"
               tabindex="-1"
-              aria-label={t(isFolder ? 'ui_folder_actions' : 'ui_deck_actions')}
+              aria-label={t(isFolder ? 'editor.folderActions' : 'editor.deckActions')}
               onkeydown={menuKeyboard}
               onfocusout={(event) => {
                 if ($tutorialActive) return;
@@ -275,7 +276,7 @@
               }}
             >
               <button role="menuitem" tabindex="-1" onclick={() => run(add)}
-                ><Icon name="folder" size={18} />{t('ui_new_folder')}</button
+                ><Icon name="folder" size={18} />{t('editor.newFolder')}</button
               >
               {#if isFolder}<button
                   role="menuitem"
@@ -284,7 +285,7 @@
                   onclick={() => {
                     closeMenu();
                     deleting = true;
-                  }}><Icon name="trash" size={18} />{t('ui_delete_folder')}</button
+                  }}><Icon name="trash" size={18} />{t('editor.deleteFolder')}</button
                 >{/if}
             </div>{/if}
         </div>
@@ -294,34 +295,35 @@
         data-guide="editing-done"
         aria-describedby={editor.saving ? 'deck-save-status' : undefined}
         disabled={editor.saving}
-        onclick={() => run(done)}>{t('ui_done')}</button
+        onclick={() => run(done)}>{t(common.done)}</button
       >
-    {:else}<button class="done" onclick={done}><Icon name="edit" size={18} />{t('ui_edit')}</button
+    {:else}<button class="done" onclick={done}
+        ><Icon name="edit" size={18} />{t(common.edit)}</button
       >{/if}
   </div>
 </section>
 {#if deleting && isFolder}
   <Modal
-    label={t('ui_delete_folder')}
+    label={t('editor.deleteFolder')}
     close={() => {
       deleting = false;
       menuButton?.focus();
     }}
   >
-    <h2>{t('ui_delete_folder')}</h2>
-    <p>{t('ui_delete_folder_help', { label: current.label })}</p>
+    <h2>{t('editor.deleteFolder')}</h2>
+    <p>{t('editor.deleteFolderHelp', { label: current.label })}</p>
     <button
       onclick={() => {
         deleting = false;
         menuButton?.focus();
-      }}>{t('ui_cancel')}</button
+      }}>{t(common.cancel)}</button
     >
     <button
       class="danger"
       onclick={() => {
         deleting = false;
         remove();
-      }}>{t('ui_delete_folder')}</button
+      }}>{t('editor.deleteFolder')}</button
     >
   </Modal>
 {/if}

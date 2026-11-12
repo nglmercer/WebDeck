@@ -1,0 +1,77 @@
+import type { Locale } from './schema';
+
+export default {
+  meta: {
+    nativeName: '한국어',
+    englishName: 'Korean',
+    langCode: 'ko',
+    authorName: 'KiiMyu(KiMyu)',
+    authorGithubUsername: 'KiiMyu',
+  },
+  actions: {
+    workflow: 'Workflow',
+  },
+  runtime: {
+    runtime: 'Runtime and plugins',
+    runtimeStatus: 'Runtime status',
+    reloadPlugins: 'Reload plugins',
+    runtimeReady: 'Ready',
+    runtimeFailed: 'Unavailable',
+    runtimeCommands: 'Commands: {count}',
+    runtimeNoPlugins: 'No external plugins installed',
+    enablePlugin: 'Enable plugin',
+    disablePlugin: 'Disable plugin',
+    sandboxPlugin: 'Sandbox JavaScript',
+    trustedNativePlugin: 'Trusted native process',
+  },
+  keyboard: {
+    shortcut: '단축키',
+    noShortcut: '선택된 단축키 없음',
+    chooseKeys: '키 선택',
+    recordShortcut: '단축키 녹음',
+    recording: '녹음 중…',
+    recordPrompt: '지금 단축키를 누르세요. Escape를 누르면 녹음이 취소됩니다.',
+    recorded: '이 브라우저에서 단축키를 캡처했습니다.',
+    recordTimeout: '녹음 시간이 초과되었습니다. 다시 시도하세요.',
+    captureUnavailable: '이 키는 여기서 녹음할 수 없습니다. 키 선택기에서 선택하세요.',
+    altgraphUnavailable: '여기서는 AltGr을 안정적으로 재현할 수 없습니다. 키를 직접 선택하세요.',
+    captureLimits:
+      '일부 단축키는 브라우저나 운영 체제가 예약합니다. 녹음은 호스트에서 단축키가 실행되는지 확인하지 않습니다.',
+    choosePrimaryKey: '기본 키',
+    selectedKeys: '선택한 키',
+    modifiers: '수정 키',
+    advancedHelp:
+      '선택한 키를 동시에 누릅니다. Ctrl+K 다음 Ctrl+C와 같은 순차 입력은 별도의 키 입력이며 여기서는 설정할 수 없습니다.',
+    searchKeys: '키 검색',
+    category: '키 범주',
+    functionKeys: '기능 키',
+    lettersNumbers: '문자 및 숫자',
+    navigation: '탐색',
+    editingSpecial: '편집 및 특수 키',
+    numpad: '숫자 키패드',
+    hardware: '하드웨어',
+    hostUnknown: '호스트 지원을 확인하지 못했습니다. 기능 응답이 없습니다.',
+    hostUnsupported: '이 호스트에서는 키보드 입력을 지원하지 않습니다.',
+    permissionRequired:
+      '데스크톱 권한이 필요합니다. Wayland는 시스템 포털을 통해 권한을 요청할 수 있으며, 지원 여부는 컴포지터와 백엔드에 따라 달라집니다.',
+    readyToTry:
+      '시도할 준비가 되었습니다. 정적 매핑은 데스크톱 권한이나 실제 출력을 확인하지 않습니다.',
+    keyUnavailable: '이 호스트 또는 백엔드에서 사용할 수 없습니다.',
+    noResults: '일치하는 키가 없습니다.',
+    clearSelection: '선택 지우기',
+    useShortcut: '단축키 사용',
+    chooseBetween1And16Keys: '1~16개의 키를 선택하세요.',
+    unknownKey: '알 수 없는 키입니다. 선택기에서 키를 선택하세요.',
+    duplicateKeys: '중복 키 또는 수정 키 별칭을 제거하세요.',
+    unavailableKey:
+      '이 키는 사용할 수 없습니다. Fn은 일반적으로 키보드 펌웨어에서 처리됩니다. 가능하면 전용 미디어 동작을 사용하세요.',
+    tooManyModifiers: '단축키에는 최대 4개의 수정 키를 사용할 수 있습니다.',
+    selectPrimary: '이 단축키를 사용하려면 기본 키를 하나 선택하세요.',
+    enableAdvanced: '여러 기본 키를 사용하려면 고급 동시 조합 모드를 켜세요.',
+    remove: '{key} 제거',
+  },
+  common: {
+    cancel: '취소',
+    media: '미디어',
+  },
+} satisfies Locale;

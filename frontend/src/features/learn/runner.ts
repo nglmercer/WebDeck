@@ -27,7 +27,7 @@ export function waitForTarget(
   return new Promise((resolve, reject) => {
     let frame = 0;
     const observer = new MutationObserver(check);
-    const timer = setTimeout(() => finish(new Error('ui_guide_target_missing')), timeout);
+    const timer = setTimeout(() => finish(new Error('guides.library.targetMissing')), timeout);
     function finish(error?: Error, target?: HTMLElement) {
       observer.disconnect();
       cancelAnimationFrame(frame);
@@ -180,16 +180,16 @@ export class GuideRunner {
           disableActiveInteraction: true,
           popoverClass: 'webdeck-tour',
           stageRadius: 12,
-          nextBtnText: escape(t('ui_next_step')),
-          prevBtnText: escape(t('ui_previous_step')),
-          doneBtnText: escape(t('ui_finish_tour')),
-          progressText: escape(t('ui_tour_progress')),
+          nextBtnText: escape(t('common.next')),
+          prevBtnText: escape(t('common.previous')),
+          doneBtnText: escape(t('learn.finishTour')),
+          progressText: escape(t('learn.tourProgress')),
           onNextClick: () => void this.go(this.index + 1),
           onPrevClick: () => void this.go(this.index - 1),
           onCloseClick: () => void this.stop(),
           onDestroyStarted: () => void this.stop(),
           onPopoverRender: (popover) => {
-            popover.closeButton.setAttribute('aria-label', t('ui_close_tour'));
+            popover.closeButton.setAttribute('aria-label', t('learn.closeTour'));
             popover.wrapper.dataset.guide = this.guide!.id;
             popover.wrapper.dataset.guideStep = this.steps[this.index]!.id;
             popover.wrapper.setAttribute('aria-modal', 'true');
@@ -199,7 +199,7 @@ export class GuideRunner {
         this.tour.drive(index);
       } else this.tour.moveTo(index);
       // The prepared target must remain present after Driver.js measures it.
-      if (!target.isConnected) throw new Error('ui_guide_target_missing');
+      if (!target.isConnected) throw new Error('guides.library.targetMissing');
       this.tour.refresh();
       document
         .querySelector<HTMLButtonElement>('.driver-popover-next-btn')

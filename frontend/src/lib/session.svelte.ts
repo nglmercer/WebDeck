@@ -39,9 +39,7 @@ export class Session {
     private feedback: { error: (message: string) => void; notice: (message: string) => void },
     private api = defaults,
     private confirmDiscard = () =>
-      window.confirm(
-        createTranslator(() => this.translations)('Discard unsaved changes and reload?'),
-      ),
+      window.confirm(createTranslator(() => this.translations)('editor.confirmReload')),
   ) {
     this.cache = new AssetCache(api.asset);
   }
@@ -49,7 +47,7 @@ export class Session {
     return this.editor?.draft.layout ?? this.deck?.layout;
   }
   async load(): Promise<boolean> {
-    if (this.editor?.saving) throw new Error('Wait for saving to finish before reloading.');
+    if (this.editor?.saving) throw new Error('errors.saveInProgress');
     if (this.editor?.dirty && !this.confirmDiscard()) return false;
     const generation = ++this.generation;
     this.refreshGeneration++;
@@ -103,7 +101,7 @@ export class Session {
     this.themeUrls = themes.flatMap((id) => (result.urls[id] ? [result.urls[id]!] : []));
     this.backgroundUrls = backgrounds.flatMap((id) => (result.urls[id] ? [result.urls[id]!] : []));
     this.assetUrls = result.urls;
-    if (result.missing.length) this.feedback.notice('Some deck assets are unavailable');
+    if (result.missing.length) this.feedback.notice('errors.assetsUnavailable');
   }
   async refreshAfterSave() {
     const generation = this.generation;
@@ -117,7 +115,7 @@ export class Session {
       await this.assets();
     } catch {
       if (generation === this.generation && refreshGeneration === this.refreshGeneration)
-        this.feedback.notice('Saved. Display refresh failed; reload when ready.');
+        this.feedback.notice('errors.refreshAfterSave');
     }
   }
   dispose() {

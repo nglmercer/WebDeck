@@ -1,3 +1,4 @@
+import { createTranslator, type Translator } from '../../lib/translations';
 import type { Button, Folder } from '../../lib/contracts';
 import type { Editor } from './editor.svelte';
 import { clone } from './editor.svelte';
@@ -19,6 +20,7 @@ export class ButtonDraft {
   constructor(
     private editor: () => Editor | null,
     private current: () => Folder | undefined,
+    private translate: Translator = createTranslator(() => ({})),
   ) {}
   open(button: Button) {
     const editor = this.editor(),
@@ -40,7 +42,7 @@ export class ButtonDraft {
     this.folder = this.origin = this.current()!.id;
     this.button = {
       id: id(),
-      label: 'New button',
+      label: this.translate('editor.newButton'),
       icon: '✦',
       color: '#6654e8',
       action: { type: 'command', command: { type: 'play_pause' } },

@@ -22,11 +22,11 @@
         error = '';
         event.currentTarget.setCustomValidity('');
       } catch {
-        error = 'Enter valid JSON, for example true, 42, "text", or {"key": "value"}.';
-        event.currentTarget.setCustomValidity(t(error));
+        error = 'errors.invalidJson';
+        event.currentTarget.setCustomValidity(t.message(error));
       }
     }}
     aria-invalid={!!error}
     aria-describedby={error ? errorId : undefined}></textarea></label
 >
-{#if error}<p id={errorId} role="alert">{t(error)}</p>{/if}
+{#if error}<p id={errorId} role="alert">{t.message(error)}</p>{/if}

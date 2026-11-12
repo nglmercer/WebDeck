@@ -1,11 +1,12 @@
-export const localActionNames: Record<string, string> = {
-  command: 'ui_host_command',
-  folder: 'ui_open_folder',
-  back: 'ui_back',
-  reload: 'ui_reload',
-  fullscreen: 'ui_fullscreen',
-  settings: 'ui_settings',
-  metric: 'ui_live_reading',
-  edit: 'ui_edit_deck',
-  none: 'ui_no_action',
+import type { TranslationKey } from './translations';
+export const localActionNames: Record<string, TranslationKey> = {
+  command: 'commands.hostCommand',
+  folder: 'commands.openFolder',
+  back: 'common.back',
+  reload: 'common.reload',
+  fullscreen: 'commands.fullscreen',
+  settings: 'common.settings',
+  metric: 'commands.liveReading',
+  edit: 'commands.editDeck',
+  none: 'fields.none',
 };

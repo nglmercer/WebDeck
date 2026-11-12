@@ -1464,10 +1464,18 @@ async fn json_translation_catalogs_merge_locale_values_and_preserve_english_fall
         .await
         .unwrap();
     let dictionary: Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(dictionary["translations"]["ui_settings"], "Configuración");
-    assert_eq!(dictionary["translations"]["lang_code"], "es");
     assert_eq!(
-        dictionary["translations"]["ui_network_apply_note"],
+        dictionary["translations"]["common.settings"],
+        "Configuración"
+    );
+    assert_eq!(dictionary["translations"]["meta.langCode"], "es");
+    assert!(dictionary["translations"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .all(|key| key.contains('.')));
+    assert_eq!(
+        dictionary["translations"]["connections.networkApplyNote"],
         "Network changes apply immediately."
     );
     assert!(dictionary["languages"]
@@ -1498,8 +1506,8 @@ async fn json_translation_catalogs_merge_locale_values_and_preserve_english_fall
         .await
         .unwrap();
     let fallback: Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(fallback["translations"]["ui_settings"], "Settings");
-    assert_eq!(fallback["translations"]["lang_code"], "en");
+    assert_eq!(fallback["translations"]["common.settings"], "Settings");
+    assert_eq!(fallback["translations"]["meta.langCode"], "en");
 }
 
 #[test]

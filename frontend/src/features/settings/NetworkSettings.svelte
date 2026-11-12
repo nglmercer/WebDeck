@@ -5,7 +5,7 @@
   import NumberField from '../../components/NumberField.svelte';
   import SwitchField from './ui/SwitchField.svelte';
   import { onMount, onDestroy } from 'svelte';
-  import { useTranslations } from '../../lib/i18n';
+  import { useTranslations, common } from '../../lib/i18n';
   import { request } from '../../lib/api/client';
   import { credentials } from '../../lib/api/http';
   import type { NetworkSettings, NetworkStatus } from '../../lib/contracts';
@@ -41,7 +41,7 @@
       headers: credentials(),
       cache: 'no-store',
     });
-    if (!response.ok) throw new Error(t('ui_phone_qr_failed'));
+    if (!response.ok) throw new Error(t('connections.phoneQrFailed'));
     const blob = await response.blob();
     if (destroyed || current !== generation) return;
     qr = URL.createObjectURL(blob);
@@ -90,24 +90,26 @@
 
 <section class="network-card">
   <header class="network-heading">
-    <h3>{t('ui_phone_access')}</h3>
-    <button aria-label={t('ui_refresh_connection')} disabled={loading || working} onclick={load}
-      ><Icon name="refresh" size={18} /></button
+    <h3>{t('connections.phoneAccess')}</h3>
+    <button
+      aria-label={t('connections.refreshConnection')}
+      disabled={loading || working}
+      onclick={load}><Icon name="refresh" size={18} /></button
     >
   </header>
-  {#if loading}<p role="status">{t('ui_loading_connection_status')}</p>
-  {:else if error}<p role="alert">{error}</p>
-    <button onclick={load}>{t('ui_retry')}</button>
+  {#if loading}<p role="status">{t('integrations.loadingConnectionStatus')}</p>
+  {:else if error}<p role="alert">{t.message(error)}</p>
+    <button onclick={load}>{t(common.retry)}</button>
   {:else}
     <fieldset disabled={working}>
       <SwitchField
-        label={t('ui_enable_phone_access')}
+        label={t('connections.enablePhoneAccess')}
         checked={settings.enabled}
         onchange={(value) => (settings.enabled = value)}
       />
       <div class="network-fields">
         <label
-          >{t('ui_computer_address')}<input
+          >{t('connections.computerAddress')}<input
             bind:value={settings.address}
             placeholder={status?.suggested_address}
           /></label
@@ -115,7 +117,7 @@
         <NumberField
           controls
           onvalidity={(valid) => (validPort = valid)}
-          label={t('ui_phone_port')}
+          label={t('connections.phonePort')}
           value={settings.port}
           min={1}
           max={65535}
@@ -124,21 +126,23 @@
       </div>
       <div class="network-actions">
         <button class="primary" disabled={!validPort} onclick={() => attempt(apply)}
-          >{working ? t('ui_applying') : t('ui_apply_phone_access')}</button
+          >{working ? t(common.applying) : t('connections.applyPhoneAccess')}</button
         >
         <button
           disabled={!status?.suggested_address}
           onclick={() => {
             if (status) settings.address = status.suggested_address;
-          }}>{t('ui_use_detected_address')}</button
+          }}>{t('connections.useDetectedAddress')}</button
         >
       </div>
     </fieldset>
-    <p class="apply-help">{t('ui_network_apply_note')}</p>
+    <p class="apply-help">{t('connections.networkApplyNote')}</p>
     <div class="network-footer">
       <span role="status"
         ><StatusBadge
-          label={t(status?.settings.enabled ? 'ui_network_ready' : 'ui_network_off')}
+          label={t(
+            status?.settings.enabled ? 'connections.networkReady' : 'connections.networkOff',
+          )}
           tone={status?.settings.enabled ? 'success' : 'neutral'}
         /></span
       >
@@ -147,34 +151,34 @@
             attempt(async () => {
               qrOpen = true;
               await loadQr();
-            })}><Icon name="grid" size={16} />{t('ui_show_qr')}</button
+            })}><Icon name="grid" size={16} />{t('connections.showQr')}</button
         >{/if}
     </div>
   {/if}
   {#if qrOpen && status?.settings.enabled}<Modal
       nonModal
-      label={t('ui_show_qr')}
+      label={t('connections.showQr')}
       width="440px"
       close={closeQr}
     >
       <div class="heading">
-        <h2>{t('ui_show_qr')}</h2>
-        <button onclick={closeQr}>{t('ui_close')}</button>
+        <h2>{t('connections.showQr')}</h2>
+        <button onclick={closeQr}>{t(common.close)}</button>
       </div>
       <div class="network-qr">
-        {#if qr}<img src={qr} alt={t('ui_phone_qr_alt')} width="240" height="240" />{:else}<p
+        {#if qr}<img src={qr} alt={t('connections.phoneQrAlt')} width="240" height="240" />{:else}<p
             role="status"
           >
-            {t('ui_loading_connection_status')}
+            {t('integrations.loadingConnectionStatus')}
           </p>{/if}
         <a href={status.url} target="_blank" rel="noreferrer">{status.url}</a>
       </div>
       <ol>
-        <li>{t('ui_phone_pair_step')}</li>
-        <li>{t('ui_phone_scan_step')}</li>
-        <li>{t('ui_phone_token_step')}</li>
+        <li>{t('connections.phonePairStep')}</li>
+        <li>{t('connections.phoneScanStep')}</li>
+        <li>{t('connections.phoneTokenStep')}</li>
       </ol>
-      <button onclick={load}>{t('ui_refresh_connection')}</button>
+      <button onclick={load}>{t('connections.refreshConnection')}</button>
     </Modal>{/if}
 </section>
 

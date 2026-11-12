@@ -1,12 +1,13 @@
 <script lang="ts">
   import { onDestroy, tick } from 'svelte';
   import 'driver.js/dist/driver.css';
+  import type { TranslationKey } from '../../lib/translations';
   import type { GuideRunner } from './runner';
   import { availableGuides, guideSteps, type GuideId, type GuideStep } from './guides';
   import Modal from '../../components/Modal.svelte';
   import Icon from '../../components/Icon.svelte';
   import FilterSelect from '../../components/FilterSelect.svelte';
-  import { useTranslations } from '../../lib/i18n';
+  import { useTranslations, common, keys } from '../../lib/i18n';
   import { tutorialActive } from './tour-state';
   const t = useTranslations();
   let {
@@ -25,7 +26,7 @@
     focus: () => void;
   } = $props();
   let view = $state<'learn' | 'demo' | null>(null);
-  let scene = $state('ui_scene_focus');
+  let scene = $state('learn.sceneFocus');
   let microphone = $state(true);
   let recording = $state(false);
   let feedback = $state('');
@@ -75,7 +76,7 @@
     });
   }
   function reset() {
-    scene = 'ui_scene_focus';
+    scene = 'learn.sceneFocus';
     microphone = true;
     recording = false;
     feedback = '';
@@ -123,7 +124,7 @@
         }
       },
       error: (message) => {
-        error = t(message);
+        error = t.message(message);
         view = 'learn';
       },
     });
@@ -137,50 +138,50 @@
     request++;
     void runner?.stop();
   });
-  function choose(next: string) {
+  function choose(next: TranslationKey) {
     scene = next;
-    feedback = t('ui_demo_scene', { scene: t(next) });
+    feedback = t('learn.demoScene', { scene: t(next) });
   }
   function toggle(control: 'microphone' | 'recording') {
     if (control === 'microphone') microphone = !microphone;
     else recording = !recording;
-    feedback = t('ui_demo_toggle', {
-      control: t(control === 'microphone' ? 'ui_mic' : 'ui_record'),
-      state: t((control === 'microphone' ? microphone : recording) ? 'ui_on' : 'ui_off'),
+    feedback = t('learn.demoToggle', {
+      control: t(control === 'microphone' ? 'audio.microphone' : 'learn.record'),
+      state: t((control === 'microphone' ? microphone : recording) ? 'common.on' : 'common.off'),
     });
   }
 </script>
 
 {#if view}
-  <Modal label={t(view === 'demo' ? 'ui_practice' : 'ui_learn')} width="760px" {close}>
+  <Modal label={t(view === 'demo' ? 'learn.practice' : 'learn.learn')} width="760px" {close}>
     <div class="heading" data-learning-dialog>
-      <h2>{t(view === 'demo' ? 'ui_practice' : 'ui_learn')}</h2>
-      <button type="button" onclick={close}>{t('ui_close')}</button>
+      <h2>{t(view === 'demo' ? 'learn.practice' : 'learn.learn')}</h2>
+      <button type="button" onclick={close}>{t(common.close)}</button>
     </div>
     {#if view === 'learn'}
-      <p>{t('ui_learn_help')}</p>
+      <p>{t('learn.learnHelp')}</p>
       {#if error}<p role="alert">{error}</p>{/if}
       <div class="guide-filters">
         <label
-          ><span class="sr-only">{t('ui_guide_search')}</span><input
+          ><span class="sr-only">{t('guides.library.search')}</span><input
             type="search"
             bind:value={search}
-            placeholder={t('ui_guide_search')}
+            placeholder={t('guides.library.search')}
           /></label
         >
         <FilterSelect
-          label={t('ui_guide_category')}
+          label={t('guides.library.category')}
           hideLabel
           value={category}
           options={[
-            { value: 'all', label: t('ui_guide_all') },
-            ...groups.map((value) => ({ value, label: t(`ui_guide_${value}`) })),
+            { value: 'all', label: t('guides.library.all') },
+            ...groups.map((value) => ({ value, label: t(keys.guides.groups[value]) })),
           ]}
           onchange={(value) => (category = value)}
         />
       </div>
       <p class="guide-progress" role="status">
-        {t('ui_guide_progress', { done, total: available.length })}
+        {t('guides.library.progress', { done, total: available.length })}
       </p>
       <div class="lessons">
         {#each visible as guide}<button
@@ -193,15 +194,15 @@
             <span class="lesson-copy"
               ><strong>{t(guide.title)}</strong><small>{t(guide.description)}</small><span
                 class="lesson-meta"
-                >{t('ui_guide_steps', {
+                >{t('guides.library.steps', {
                   count: guideSteps(guide, canEdit, hasFolders).length,
                 })}{#if completed.includes(guide.id)}<span class="completed"
-                    >{t('ui_guide_completed')}</span
+                    >{t('guides.library.completed')}</span
                   >{/if}</span
               ></span
             ><span aria-hidden="true">→</span>
           </button>{/each}
-        {#if !visible.length}<p role="status">{t('ui_guide_no_results')}</p>{/if}
+        {#if !visible.length}<p role="status">{t('guides.library.noResults')}</p>{/if}
       </div>
       <button
         type="button"
@@ -212,27 +213,27 @@
         }}
       >
         <span class="lesson-icon"><Icon name="play" /></span><span class="lesson-copy"
-          ><strong>{t('ui_demo')}</strong><small>{t('ui_demo_help')}</small></span
+          ><strong>{t('learn.demo')}</strong><small>{t('learn.demoHelp')}</small></span
         ><span aria-hidden="true">→</span>
       </button>
     {:else}
       <div class="demo-heading">
-        <span class="demo-safe">{t('ui_demo_safe')}</span><button
+        <span class="demo-safe">{t('learn.demoSafe')}</span><button
           type="button"
           data-guide="practice-start"
           disabled={$tutorialActive}
-          onclick={() => void startGuide('practice')}>{t('ui_guide_practice_title')}</button
+          onclick={() => void startGuide('practice')}>{t('guides.practice.title')}</button
         >
       </div>
-      <p>{t('ui_demo_prompt')}</p>
+      <p>{t('learn.demoPrompt')}</p>
       <div class="practice-grid" data-guide="practice-grid">
-        {#each ['ui_scene_focus', 'ui_scene_break'] as item}<button
+        {#each ['learn.sceneFocus', 'learn.sceneBreak'] as const as item}<button
             type="button"
-            data-guide={item === 'ui_scene_break' ? 'practice-scene' : undefined}
+            data-guide={item === 'learn.sceneBreak' ? 'practice-scene' : undefined}
             aria-pressed={scene === item}
             onclick={() => choose(item)}
             ><Icon name="folder" size={28} /><strong>{t(item)}</strong><small
-              >{scene === item ? t('ui_on') : t('ui_off')}</small
+              >{scene === item ? t(common.on) : t(common.off)}</small
             ></button
           >{/each}
         <button
@@ -240,8 +241,8 @@
           data-guide="practice-microphone"
           aria-pressed={microphone}
           onclick={() => toggle('microphone')}
-          ><Icon name="microphone" size={28} /><strong>{t('ui_mic')}</strong><small
-            >{t(microphone ? 'ui_on' : 'ui_off')}</small
+          ><Icon name="microphone" size={28} /><strong>{t('audio.microphone')}</strong><small
+            >{t(microphone ? 'common.on' : 'common.off')}</small
           ></button
         >
         <button
@@ -249,16 +250,15 @@
           data-guide="practice-recording"
           aria-pressed={recording}
           onclick={() => toggle('recording')}
-          ><span class="record-dot" class:recording></span><strong>{t('ui_record')}</strong><small
-            >{t(recording ? 'ui_on' : 'ui_off')}</small
-          ></button
+          ><span class="record-dot" class:recording></span><strong>{t('learn.record')}</strong
+          ><small>{t(recording ? 'common.on' : 'common.off')}</small></button
         >
       </div>
-      <p class="practice-feedback" role="status">{feedback || t('ui_demo_safe')}</p>
+      <p class="practice-feedback" role="status">{feedback || t('learn.demoSafe')}</p>
       <div class="row">
         <button type="button" data-guide="practice-reset" onclick={reset}
-          >{t('ui_reset_demo')}</button
-        ><button type="button" onclick={() => (view = 'learn')}>{t('ui_back')}</button>
+          >{t('learn.resetDemo')}</button
+        ><button type="button" onclick={() => (view = 'learn')}>{t(common.back)}</button>
       </div>
     {/if}
   </Modal>

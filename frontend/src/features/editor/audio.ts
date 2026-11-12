@@ -30,7 +30,7 @@ export async function decodeAudio(bytes: ArrayBuffer): Promise<AudioBuffer> {
   const context = new OfflineAudioContext(1, 1, 44100);
   const buffer = await context.decodeAudioData(bytes);
   if (!Number.isFinite(buffer.duration) || buffer.duration <= 0)
-    throw new Error('ui_audio_unreadable');
+    throw new Error('audio.unreadable');
   return buffer;
 }
 

@@ -1,3 +1,4 @@
+import type { TranslationKey } from '../../lib/translations';
 import catalog from '../../../../contracts/keys.json';
 import type { KeyboardCapabilities } from '../../lib/contracts';
 
@@ -22,12 +23,11 @@ export function isModifier(value: string): boolean {
 }
 
 /** Mirrors Rust's catalog, alias, duplicate and 1–16 key validation. */
-export function validateChord(values: string[]): string | undefined {
-  if (!values.length || values.length > 16) return 'Choose between 1 and 16 keys.';
+export function validateChord(values: string[]): TranslationKey | undefined {
+  if (!values.length || values.length > 16) return 'keyboard.chooseBetween1And16Keys';
   const normalized = values.map(normalizeKey);
-  if (normalized.some((key) => !key)) return 'Unknown key. Choose a key from the picker.';
-  if (new Set(normalized).size !== normalized.length)
-    return 'Remove duplicate keys or modifier aliases.';
+  if (normalized.some((key) => !key)) return 'keyboard.unknownKey';
+  if (new Set(normalized).size !== normalized.length) return 'keyboard.duplicateKeys';
   if (
     normalized.some((id) => {
       const entry = keys.find((key) => key.id === id);
@@ -36,33 +36,35 @@ export function validateChord(values: string[]): string | undefined {
       );
     })
   )
-    return 'This key is unavailable. Fn is usually handled by keyboard firmware. Use a dedicated media action when available.';
+    return 'keyboard.unavailableKey';
 }
 
 /** The standard picker uses modifiers plus one primary key; advanced mode is simultaneous. */
-export function validatePickerChord(values: string[], advanced: boolean): string | undefined {
+export function validatePickerChord(
+  values: string[],
+  advanced: boolean,
+): TranslationKey | undefined {
   const chordError = validateChord(values);
   if (chordError) return chordError;
   const normalized = values.map((key) => normalizeKey(key)!);
   const modifierCount = normalized.filter((key) => modifierSet.has(key)).length;
-  if (modifierCount > 4) return 'A shortcut can use up to four modifiers.';
+  if (modifierCount > 4) return 'keyboard.tooManyModifiers';
   const primaryCount = normalized.length - modifierCount;
-  if (primaryCount === 0) return 'Select one primary key to use this shortcut.';
-  if (primaryCount > 1 && !advanced)
-    return 'Enable advanced simultaneous chord mode to use multiple primary keys.';
+  if (primaryCount === 0) return 'keyboard.selectPrimary';
+  if (primaryCount > 1 && !advanced) return 'keyboard.enableAdvanced';
 }
 
 export function validatePickerChordForHost(
   values: string[],
   advanced: boolean,
   capabilities?: KeyboardCapabilities,
-): string | undefined {
+): TranslationKey | undefined {
   const chordError = validatePickerChord(values, advanced);
   if (chordError || !capabilities) return chordError;
   if (capabilities.platform === 'unsupported' || capabilities.availability === 'unsupported')
-    return 'Keyboard input is unsupported on this host.';
+    return 'keyboard.hostUnsupported';
   if (values.some((key) => platformSupport(key, capabilities.platform) === 'unsupported'))
-    return 'Unavailable on this host/backend.';
+    return 'keyboard.keyUnavailable';
 }
 
 export function toggleModifier(values: string[], modifier: string): string[] {
@@ -103,32 +105,32 @@ export function platformSupport(id: string, platform?: string): string {
   return (entry.platformSupport as Record<string, string>)[platform] ?? 'unknown';
 }
 
-export function hostStatusMessage(capabilities?: KeyboardCapabilities): string {
-  if (!capabilities) return 'ui_keypicker_host_unknown';
+export function hostStatusMessage(capabilities?: KeyboardCapabilities): TranslationKey {
+  if (!capabilities) return 'keyboard.hostUnknown';
   if (capabilities.platform === 'unsupported' || capabilities.availability === 'unsupported')
-    return 'ui_keypicker_host_unsupported';
+    return 'keyboard.hostUnsupported';
   if (
     capabilities.platform === 'linux_wayland' &&
     capabilities.availability === 'portal_approval_required'
   )
-    return 'ui_keypicker_permission_required';
-  return 'ui_keypicker_ready_to_try';
+    return 'keyboard.permissionRequired';
+  return 'keyboard.readyToTry';
 }
 
-export function keyStatusMessage(id: string, capabilities?: KeyboardCapabilities): string {
+export function keyStatusMessage(id: string, capabilities?: KeyboardCapabilities): TranslationKey {
   const support = platformSupport(id, capabilities?.platform);
-  if (support === 'unsupported') return 'ui_keypicker_key_unavailable';
-  if (!capabilities) return 'ui_keypicker_host_unknown';
+  if (support === 'unsupported') return 'keyboard.keyUnavailable';
+  if (!capabilities) return 'keyboard.hostUnknown';
   if (capabilities.platform === 'unsupported' || capabilities.availability === 'unsupported')
-    return 'ui_keypicker_host_unsupported';
-  if (support === 'unknown') return 'ui_keypicker_host_unknown';
+    return 'keyboard.hostUnsupported';
+  if (support === 'unknown') return 'keyboard.hostUnknown';
   if (
     support === 'supported_if_portal_approved' ||
     (capabilities.platform === 'linux_wayland' &&
       capabilities.availability === 'portal_approval_required')
   )
-    return 'ui_keypicker_permission_required';
-  return 'ui_keypicker_ready_to_try';
+    return 'keyboard.permissionRequired';
+  return 'keyboard.readyToTry';
 }
 
 export function keyUnavailable(id: string, capabilities?: KeyboardCapabilities): boolean {

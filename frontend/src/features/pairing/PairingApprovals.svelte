@@ -66,7 +66,7 @@
   }
   const example: PairingPending = {
     id: 'webdeck-example-approval',
-    name: t('ui_guide_local_sample'),
+    name: t('guides.library.localSample'),
     code: '123456',
     address: '192.0.2.10',
     expires_at: Math.floor(Date.now() / 1000) + 900,
@@ -87,7 +87,7 @@
       for (const request of list.requests)
         if (!grants[request.id] && !notifications.has(request.id)) {
           try {
-            const notification = new Notification(t('ui_pending_pairing_requests'), {
+            const notification = new Notification(t('pairing.pendingPairingRequests'), {
               body: `${request.name} · ${request.code}`,
               tag: `webdeck-pairing-${request.id}`,
             });
@@ -134,7 +134,7 @@
       choices.includes(capability),
     );
     if (!selected.length) return;
-    if (profile[request.id] === 'full' && !window.confirm(t('ui_full_controller_help'))) return;
+    if (profile[request.id] === 'full' && !window.confirm(t('devices.fullControllerHelp'))) return;
     action = 'approve';
     working = request.id;
     try {
@@ -186,13 +186,13 @@
     role="region"
     aria-labelledby="pairing-approvals-title"
   >
-    <h2 id="pairing-approvals-title">{t('ui_pending_pairing_requests')}</h2>
-    <p class="help">{t(tutorial ? 'ui_guide_example' : 'ui_pairing_requests_help')}</p>
+    <h2 id="pairing-approvals-title">{t('pairing.pendingPairingRequests')}</h2>
+    <p class="help">{t(tutorial ? 'guides.library.example' : 'pairing.pairingRequestsHelp')}</p>
     {#each upgrades as upgrade (upgrade.id)}
       <article>
         <h3>{upgrade.device.name}</h3>
-        <p>{t('ui_permission_request_help')}</p>
-        <p>{upgrade.capabilities.map((c) => t(capabilityNames[c] ?? c)).join(', ')}</p>
+        <p>{t('connections.permissionRequestHelp')}</p>
+        <p>{upgrade.capabilities.map((c) => t.message(capabilityNames[c] ?? c)).join(', ')}</p>
         <div class="actions">
           <button
             class="primary"
@@ -204,7 +204,7 @@
                   { method: 'POST' },
                 );
                 await refresh();
-              })}>{t('ui_approve_device')}</button
+              })}>{t('pairing.approveDevice')}</button
           >
           <button
             onclick={() =>
@@ -215,7 +215,7 @@
                   { method: 'DELETE' },
                 );
                 await refresh();
-              })}>{t('ui_reject')}</button
+              })}>{t('pairing.reject')}</button
           >
         </div>
       </article>
@@ -226,9 +226,9 @@
           <h3>{request.name}</h3>
           <code>{request.address}</code>
         </div>
-        <p class="code"><span class="sr-only">{t('ui_pair_code')}</span>{request.code}</p>
+        <p class="code"><span class="sr-only">{t('pairing.pairCode')}</span>{request.code}</p>
         <p class="muted">
-          {t('ui_device_expiry', {
+          {t('devices.deviceExpiry', {
             expiry: new Date(request.expires_at * 1000).toLocaleString(
               document.documentElement.lang,
             ),
@@ -240,15 +240,15 @@
           recommended={profiles?.recommended ?? ['read']}
           full={choices}
         />
-        <p class="muted" id={`pair-grant-help-${request.id}`}>{t('ui_pair_grant_help')}</p>
+        <p class="muted" id={`pair-grant-help-${request.id}`}>{t('pairing.pairGrantHelp')}</p>
         <label
-          >{t('ui_expires_after')}<select data-guide="approval-expiry" bind:value={ttl}
-            ><option value={900}>{t('ui_current_session')}</option><option value={2592000}
-              >{t('ui_30_days')}</option
-            ><option value={315360000}>{t('ui_until_revoked')}</option><option value={3600}
-              >{t('ui_1_hour')}</option
-            ><option value={28800}>{t('ui_8_hours')}</option><option value={86400}
-              >{t('ui_1_day')}</option
+          >{t('devices.expiresAfter')}<select data-guide="approval-expiry" bind:value={ttl}
+            ><option value={900}>{t('devices.currentSession')}</option><option value={2592000}
+              >{t('devices.thirtyDays')}</option
+            ><option value={315360000}>{t('devices.untilRevoked')}</option><option value={3600}
+              >{t('devices.oneHour')}</option
+            ><option value={28800}>{t('devices.eightHours')}</option><option value={86400}
+              >{t('devices.oneDay')}</option
             ></select
           ></label
         >
@@ -259,14 +259,14 @@
             disabled={working !== '' || !grants[request.id]?.length}
             onclick={() => void approve(request)}
             >{working === request.id && action === 'approve'
-              ? t('ui_approving_device')
-              : t('ui_approve_device')}</button
+              ? t('pairing.approvingDevice')
+              : t('pairing.approveDevice')}</button
           >
           <button
             class="danger"
             aria-describedby={`pair-grant-help-${request.id}`}
             disabled={working !== ''}
-            onclick={() => void reject(request)}>{t('ui_reject')}</button
+            onclick={() => void reject(request)}>{t('pairing.reject')}</button
           >
         </div>
       </article>

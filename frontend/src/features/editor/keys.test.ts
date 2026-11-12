@@ -18,7 +18,7 @@ describe('canonical keyboard chords', () => {
   it('normalizes aliases without changing legacy values until they are edited', () => {
     expect(normalizeKey('Control')).toBe('ctrl');
     expect(validateChord(['Control', 'c'])).toBeUndefined();
-    expect(validateChord(['Ctrl', 'Control'])).toBe('Remove duplicate keys or modifier aliases.');
+    expect(validateChord(['Ctrl', 'Control'])).toBe('keyboard.duplicateKeys');
   });
 
   it('keeps every function key discoverable and the Fn key unsupported', () => {
@@ -31,8 +31,8 @@ describe('canonical keyboard chords', () => {
   it('separates catalog validation from host mapping and permission state', () => {
     expect(platformSupport('f13')).toBe('unknown');
     expect(platformSupport('f13', 'windows')).toBe('supported');
-    expect(hostStatusMessage()).toBe('ui_keypicker_host_unknown');
-    expect(keyStatusMessage('f24')).toBe('ui_keypicker_host_unknown');
+    expect(hostStatusMessage()).toBe('keyboard.hostUnknown');
+    expect(keyStatusMessage('f24')).toBe('keyboard.hostUnknown');
     expect(keyUnavailable('f24')).toBe(false);
     expect(
       hostStatusMessage({
@@ -41,7 +41,7 @@ describe('canonical keyboard chords', () => {
         availability: 'portal_approval_required',
         fn_status: 'unsupported',
       }),
-    ).toBe('ui_keypicker_permission_required');
+    ).toBe('keyboard.permissionRequired');
     expect(validatePickerChordForHost(['f24'], false)).toBeUndefined();
     expect(
       validatePickerChordForHost(['f24'], false, {
@@ -50,12 +50,12 @@ describe('canonical keyboard chords', () => {
         availability: 'unsupported',
         fn_status: 'unsupported',
       }),
-    ).toBe('Keyboard input is unsupported on this host.');
+    ).toBe('keyboard.hostUnsupported');
   });
 
   it('uses one primary key by default and preserves multiple keys in advanced mode', () => {
-    expect(validatePickerChord(['ctrl'], false)).toContain('primary key');
-    expect(validatePickerChord(['ctrl', 'f1', 'c'], false)).toContain('advanced');
+    expect(validatePickerChord(['ctrl'], false)).toBe('keyboard.selectPrimary');
+    expect(validatePickerChord(['ctrl', 'f1', 'c'], false)).toBe('keyboard.enableAdvanced');
     expect(validatePickerChord(['ctrl', 'f1', 'c'], true)).toBeUndefined();
     expect(validatePickerChord(['ctrl', 'shift', 'alt', 'meta', 'f1', 'a'], true)).toBeUndefined();
     expect(
@@ -63,7 +63,7 @@ describe('canonical keyboard chords', () => {
         Array.from({ length: 17 }, (_, index) => String(index)),
         true,
       ),
-    ).toBe('Choose between 1 and 16 keys.');
+    ).toBe('keyboard.chooseBetween1And16Keys');
   });
 
   it('toggles modifiers and replaces only the primary key in normal mode', () => {

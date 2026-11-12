@@ -48,6 +48,6 @@ export async function select(kind: NativeSelection['kind']) {
 export async function asset(id: string) {
   const headers = credentials();
   const r = await fetch(`/api/v2/assets/${encodeURIComponent(id)}`, { headers });
-  if (!r.ok) throw new Error('Asset unavailable');
+  if (!r.ok) throw new Error('errors.assetUnavailable');
   return URL.createObjectURL(await r.blob());
 }

@@ -28,22 +28,22 @@
 </script>
 
 <ChoiceField
-  label={t('ui_permission_profile')}
+  label={t('devices.permissionProfile')}
   value={profile}
   options={[
-    { value: 'view', label: t('ui_profile_view') },
-    { value: 'deck', label: t('ui_profile_deck') },
-    { value: 'full', label: t('ui_profile_full') },
-    { value: 'custom', label: t('ui_profile_custom') },
+    { value: 'view', label: t('devices.profileView') },
+    { value: 'deck', label: t('devices.profileDeck') },
+    { value: 'full', label: t('devices.profileFull') },
+    { value: 'custom', label: t('devices.profileCustom') },
   ]}
   onchange={choose}
 />
-{#if profile === 'full'}<p>{t('ui_full_controller_help')}</p>{/if}
+{#if profile === 'full'}<p>{t('devices.fullControllerHelp')}</p>{/if}
 {#if profile === 'custom'}<fieldset>
-    <legend>{t('ui_permissions')}</legend>
+    <legend>{t('devices.permissions')}</legend>
     {#each full as capability}<label class="check"
-        ><input type="checkbox" value={capability} bind:group={selected} />{t(
+        ><input type="checkbox" value={capability} bind:group={selected} />{t.message(
           capabilityNames[capability] ?? capability,
         )}</label
       >{/each}
-  </fieldset>{:else}<p>{selected.map((c) => t(capabilityNames[c] ?? c)).join(', ')}</p>{/if}
+  </fieldset>{:else}<p>{selected.map((c) => t.message(capabilityNames[c] ?? c)).join(', ')}</p>{/if}

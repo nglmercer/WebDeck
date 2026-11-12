@@ -49,7 +49,7 @@
     if (!current || destroyed) return;
     if (Date.now() / 1000 >= current.expires_at) {
       clearRequest();
-      message = t('ui_pair_expired');
+      message = t('pairing.pairExpired');
       return;
     }
     try {
@@ -60,12 +60,12 @@
       if (destroyed || challenge !== current) return;
       if (result.state === 'approved') {
         clearRequest();
-        if (!(await connect(result.token, remember))) error = t('ui_pair_connect_failed');
+        if (!(await connect(result.token, remember))) error = t('pairing.pairConnectFailed');
         return;
       }
       if (result.state !== 'pending') {
         clearRequest();
-        message = t(result.state === 'rejected' ? 'ui_pair_rejected' : 'ui_pair_expired');
+        message = t(result.state === 'rejected' ? 'pairing.pairRejected' : 'pairing.pairExpired');
         return;
       }
       error = '';
@@ -108,13 +108,13 @@
       if (await connect(credential, remember)) {
         credential = '';
         clearRequest();
-      } else error = t('ui_pair_invalid_token');
+      } else error = t('pairing.pairInvalidToken');
     } finally {
       working = false;
     }
   }
   onMount(() => {
-    if (!name) name = t('ui_phone_name_example');
+    if (!name) name = t('pairing.phoneNameExample');
     const fragment = new URLSearchParams(location.hash.slice(1));
     invitation = fragment.get('connect') ?? '';
     if (invitation) history.replaceState(null, '', location.pathname + location.search);
@@ -138,23 +138,23 @@
 <main class="pairing" data-guide="pairing-screen">
   <div class="pair-icon" aria-hidden="true">↗</div>
   <div class="pairing-heading">
-    <h1>{t('ui_connect_your_device')}</h1>
-    <GuideButton guide="pairing" label={t('ui_connect_your_device')} />
+    <h1>{t('pairing.connectYourDevice')}</h1>
+    <GuideButton guide="pairing" label={t('pairing.connectYourDevice')} />
   </div>
-  <p>{t('ui_pair_intro')}</p>
-  {#if error}<p class="pair-error" role="alert">{error}</p>{/if}
-  {#if message}<p role="status">{message}</p>{/if}
+  <p>{t('pairing.pairIntro')}</p>
+  {#if error}<p class="pair-error" role="alert">{t.message(error)}</p>{/if}
+  {#if message}<p role="status">{t.message(message)}</p>{/if}
   <label class="check" data-guide="pairing-remember"
-    ><input type="checkbox" bind:checked={remember} />{t('ui_remember_device')}</label
+    ><input type="checkbox" bind:checked={remember} />{t('pairing.rememberDevice')}</label
   >
-  <p class="muted">{t('ui_remember_device_help')}</p>
+  <p class="muted">{t('pairing.rememberDeviceHelp')}</p>
   {#if shownChallenge}
     <div class="waiting" role="status">
-      <h2>{t('ui_waiting_host')}</h2>
+      <h2>{t('pairing.waitingHost')}</h2>
       <div class="pair-code" data-guide="pairing-code">{shownChallenge.code}</div>
-      {#if $tutorialActive}<p>{t('ui_guide_example')}</p>{/if}
-      <p>{t('ui_pair_compare_code')}</p>
-      <p>{t('ui_pair_wait_help')}</p>
+      {#if $tutorialActive}<p>{t('guides.library.example')}</p>{/if}
+      <p>{t('pairing.pairCompareCode')}</p>
+      <p>{t('pairing.pairWaitHelp')}</p>
     </div>
   {:else}
     <form
@@ -164,17 +164,17 @@
       }}
     >
       <label
-        >{t('ui_device_name')}<input
+        >{t('devices.deviceName')}<input
           bind:value={name}
           data-guide="pairing-name"
-          placeholder={t('ui_phone_name_example')}
+          placeholder={t('pairing.phoneNameExample')}
           maxlength="128"
           autocomplete="nickname"
           required
         /></label
       >
       <button data-guide="pairing-request" class="primary" disabled={working || !name.trim()}
-        >{working ? t('ui_connecting') : t('ui_request_access')}</button
+        >{working ? t('pairing.connecting') : t('pairing.requestAccess')}</button
       >
     </form>
   {/if}
@@ -185,11 +185,11 @@
       if (!$tutorialActive) manualOpen = event.currentTarget.open;
     }}
   >
-    <summary>{t('ui_use_pairing_token')}</summary>
-    <p id="manual-pair-help">{t('ui_manual_pair_help')}</p>
+    <summary>{t('pairing.usePairingToken')}</summary>
+    <p id="manual-pair-help">{t('pairing.manualPairHelp')}</p>
     <form onsubmit={submit}>
       <label
-        >{t('ui_pairing_token')}<input
+        >{t('pairing.pairingToken')}<input
           type="password"
           bind:value={credential}
           aria-describedby="manual-pair-help"
@@ -201,7 +201,7 @@
         class="primary"
         aria-describedby="manual-pair-help"
         disabled={working || !credential.trim()}
-        >{working ? t('ui_connecting') : t('ui_connect')}</button
+        >{working ? t('pairing.connecting') : t('pairing.connect')}</button
       >
     </form>
   </details>

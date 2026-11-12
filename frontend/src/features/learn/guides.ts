@@ -1,4 +1,5 @@
 import data from './guide-data.json';
+import type { TranslationKey } from '../../lib/translations';
 
 export type GuideId =
   | 'overview'
@@ -31,8 +32,8 @@ export type GuideFrame = {
 export type GuideStep = {
   id: string;
   target: string;
-  title: string;
-  description: string;
+  title: TranslationKey;
+  description: TranslationKey;
   frame: GuideFrame;
   admin?: boolean;
   optional?: 'folders';
@@ -43,8 +44,8 @@ export type Guide = {
   group: 'start' | 'buttons' | 'settings' | 'connection';
   access: 'all' | 'admin' | 'pairing';
   icon: string;
-  title: string;
-  description: string;
+  title: TranslationKey;
+  description: TranslationKey;
   steps: GuideStep[];
 };
 export const guides = data as Guide[];

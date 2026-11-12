@@ -11,13 +11,13 @@ export function permissionReason(
 ): string {
   if (editing) return '';
   if (button.action.type === 'settings' || button.action.type === 'edit')
-    return deck?.can_edit ? '' : t('This device has no deck editing permission.');
+    return deck?.can_edit ? '' : t('errors.editForbidden');
   if (button.action.type === 'command') {
     const capability = deck?.button_capabilities[button.id];
-    if (!capability) return t('This action is unavailable. Reload the deck.');
+    if (!capability) return t('errors.actionUnavailable');
     if (!deck?.capabilities.includes(capability))
-      return t('ui_device_needs_permission', {
-        permission: t(capabilityNames[capability] ?? capability),
+      return t('devices.deviceNeedsPermission', {
+        permission: t.message(capabilityNames[capability] ?? capability),
       });
   }
   return '';

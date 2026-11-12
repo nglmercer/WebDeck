@@ -37,7 +37,7 @@
     if (destroyed || !pending) return;
     if (Date.now() / 1000 >= challenge.expires_at) {
       pending = false;
-      message = t('ui_pair_expired');
+      message = t('pairing.pairExpired');
       return;
     }
     try {
@@ -50,10 +50,10 @@
         pending = false;
         message = t(
           value.state === 'approved'
-            ? 'ui_permission_approved_retry'
+            ? 'connections.permissionApprovedRetry'
             : value.state === 'rejected'
-              ? 'ui_pair_rejected'
-              : 'ui_pair_expired',
+              ? 'pairing.pairRejected'
+              : 'pairing.pairExpired',
         );
         if (value.state === 'approved') {
           selected = [];
@@ -65,7 +65,7 @@
       if (destroyed) return;
       if (error instanceof ApiError && error.status === 401) {
         pending = false;
-        message = t('ui_connection_expired');
+        message = t('connections.connectionExpired');
         authorizationChanged();
         return;
       }
@@ -99,18 +99,18 @@
 
 {#if available.some((c) => !capabilities.includes(c))}
   <details data-guide="permission-request">
-    <summary>{t('ui_request_permission')}</summary>
-    <p>{t('ui_permission_request_help')}</p>
+    <summary>{t('connections.requestPermission')}</summary>
+    <p>{t('connections.permissionRequestHelp')}</p>
     {#each available.filter((c) => !capabilities.includes(c)) as capability}<label class="check"
-        ><input type="checkbox" value={capability} bind:group={selected} />{t(
+        ><input type="checkbox" value={capability} bind:group={selected} />{t.message(
           capabilityNames[capability] ?? capability,
         )}</label
       >{/each}
     <button
       disabled={working || pending || !selected.some((cap) => !capabilities.includes(cap))}
-      onclick={() => attempt(ask)}>{t('ui_request_permission')}</button
+      onclick={() => attempt(ask)}>{t('connections.requestPermission')}</button
     >
-    {#if pending}<p role="status">{t('ui_permission_requested')}</p>{/if}
-    {#if message}<p role="status">{message}</p>{/if}
+    {#if pending}<p role="status">{t('connections.permissionRequested')}</p>{/if}
+    {#if message}<p role="status">{t.message(message)}</p>{/if}
   </details>
 {/if}

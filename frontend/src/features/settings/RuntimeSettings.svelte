@@ -48,24 +48,24 @@
 </script>
 
 <div id="settings-runtime" class="settings-page" aria-labelledby="runtime-title">
-  <div class="settings-page-heading"><h2 id="runtime-title">{t('ui_runtime')}</h2></div>
-  <SettingsCard id="guide-runtime-status" title={t('ui_runtime_status')} icon="grid">
+  <div class="settings-page-heading"><h2 id="runtime-title">{t('runtime.runtime')}</h2></div>
+  <SettingsCard id="guide-runtime-status" title={t('runtime.runtimeStatus')} icon="grid">
     {#if status}
       <p>
         <StatusBadge
-          label={status.healthy ? t('ui_runtime_ready') : t('ui_runtime_failed')}
+          label={status.healthy ? t('runtime.runtimeReady') : t('runtime.runtimeFailed')}
           tone={status.healthy ? 'success' : 'error'}
         />
       </p>
-      <p>{t('ui_runtime_commands', { count: status.commands.length })}</p>
+      <p>{t('runtime.runtimeCommands', { count: status.commands.length })}</p>
       {#if status.plugins.length}
         <ul class="plugin-list">
           {#each status.plugins as plugin}<li>
               <span
                 ><strong>{plugin.id}</strong><small
                   >{plugin.version} · {plugin.backend === 'trusted_process'
-                    ? t('ui_trusted_native_plugin')
-                    : t('ui_sandbox_plugin')}</small
+                    ? t('runtime.trustedNativePlugin')
+                    : t('runtime.sandboxPlugin')}</small
                 ></span
               >
               {#if !plugin.id.startsWith('builtin.')}
@@ -73,17 +73,17 @@
                   onclick={() =>
                     attempt(() => toggle(plugin.id, status!.disabled_plugins.includes(plugin.id)))}
                   >{status.disabled_plugins.includes(plugin.id)
-                    ? t('ui_enable_plugin')
-                    : t('ui_disable_plugin')}</button
+                    ? t('runtime.enablePlugin')
+                    : t('runtime.disablePlugin')}</button
                 >
               {/if}
             </li>{/each}
         </ul>
-      {:else}<p>{t('ui_runtime_no_plugins')}</p>{/if}
+      {:else}<p>{t('runtime.runtimeNoPlugins')}</p>{/if}
     {/if}
     {#if failure}<p role="alert">{failure}</p>{/if}
     <button data-guide="runtime-reload" disabled={busy} onclick={() => attempt(refresh)}
-      >{t('ui_reload_plugins')}</button
+      >{t('runtime.reloadPlugins')}</button
     >
   </SettingsCard>
 </div>

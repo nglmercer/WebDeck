@@ -3,7 +3,7 @@
   import FilterSelect from '../../components/FilterSelect.svelte';
   import Modal from '../../components/Modal.svelte';
   import Icon from '../../components/Icon.svelte';
-  import { useTranslations } from '../../lib/i18n';
+  import { useTranslations, common } from '../../lib/i18n';
   import { actionOptions, categories, type ActionOption } from './action-options';
   const t = useTranslations();
   let {
@@ -18,7 +18,7 @@
     actionOptions.filter(
       (option) =>
         (category === 'all' || option.category === category) &&
-        `${t(option.label)} ${option.command ?? option.type}`
+        `${t.message(option.label)} ${option.command ?? option.type}`
           .toLowerCase()
           .includes(query.trim().toLowerCase()),
     ),
@@ -26,34 +26,34 @@
   const candidate = $derived(visible.find((option) => option.id === selected));
 </script>
 
-<Modal label={t('ui_select_action')} {close} width="560px">
+<Modal label={t('actions.selectAction')} {close} width="560px">
   <div class="guide-action-picker" data-guide="action-picker">
     <header>
-      <h2>{t('ui_select_action')}</h2>
-      <button type="button" aria-label={t('ui_close_editor')} onclick={close}
+      <h2>{t('actions.selectAction')}</h2>
+      <button type="button" aria-label={t('editor.closeEditor')} onclick={close}
         ><Icon name="close" /></button
       >
     </header>
     <div class="filters" data-guide="action-picker-filters">
       <label
-        ><span class="sr-only">{t('ui_find_an_action')}</span><input
+        ><span class="sr-only">{t('actions.findAnAction')}</span><input
           type="search"
           bind:value={query}
-          placeholder={t('ui_search_actions')}
+          placeholder={t('actions.searchActions')}
         /></label
       >
       <FilterSelect
-        label={t('ui_category')}
+        label={t('actions.category')}
         value={category}
         hideLabel
         options={[
-          { value: 'all', label: t('ui_all_actions') },
+          { value: 'all', label: t('actions.allActions') },
           ...Object.entries(categories).map(([value, label]) => ({ value, label: t(label) })),
         ]}
         onchange={(value) => (category = value)}
       />
     </div>
-    <div class="options" role="group" aria-label={t('ui_select_action')}>
+    <div class="options" role="group" aria-label={t('actions.selectAction')}>
       {#each visible as option}<button
           type="button"
           class="option"
@@ -61,15 +61,15 @@
           aria-pressed={selected === option.id}
           onclick={() => (selected = option.id)}
           ><Icon name={option.icon} /><span
-            ><strong>{t(option.label)}</strong>{#if option.description}<small
-                >{t(option.description)}</small
+            ><strong>{t.message(option.label)}</strong>{#if option.description}<small
+                >{t.message(option.description)}</small
               >{/if}</span
           ></button
         >{/each}
-      {#if !visible.length}<p role="status">{t('ui_no_actions_found')}</p>{/if}
+      {#if !visible.length}<p role="status">{t('actions.noActionsFound')}</p>{/if}
     </div>
     <footer>
-      <button type="button" onclick={close}>{t('ui_cancel')}</button><button
+      <button type="button" onclick={close}>{t(common.cancel)}</button><button
         type="button"
         class="primary"
         disabled={!candidate}
@@ -78,7 +78,7 @@
             select(candidate);
             close();
           }
-        }}>{t('ui_select_action')}</button
+        }}>{t('actions.selectAction')}</button
       >
     </footer>
   </div>

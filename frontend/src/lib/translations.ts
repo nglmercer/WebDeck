@@ -1,16 +1,20 @@
-import { messages } from './messages';
+import englishCatalog from '../../locales/en_US';
+import { flattenMessages, type MessageKey } from '../../locales/schema';
+export const messages = flattenMessages(englishCatalog);
 type TranslationValues = Record<string, string | number>;
-export type Translator = (key: string, values?: TranslationValues) => string;
+export type TranslationKey = MessageKey;
+export type Translator = {
+  (key: TranslationKey, values?: TranslationValues): string;
+  /** Runtime errors, schema labels and extension-provided text may not have known keys. */
+  message: (message: string, values?: TranslationValues) => string;
+};
 const english = messages as Record<string, string>;
-const keysByText = new Map<string, string>(
-  Object.entries(messages).map(([key, text]) => [text, key]),
-);
-/** Known English copy also resolves to its stable key; unknown server errors remain readable. */
+/** Only explicit message paths are localized; external server errors remain readable. */
 export function createTranslator(dictionary: () => Record<string, string>): Translator {
-  return (message, values = {}) => {
-    const key = keysByText.get(message) ?? message;
-    const translated = Object.hasOwn(dictionary(), key) ? dictionary()[key] : undefined;
-    const fallback = Object.hasOwn(english, key) ? english[key] : undefined;
+  const translate: Translator['message'] = (message, values = {}) => {
+    const localized = dictionary();
+    const translated = Object.hasOwn(localized, message) ? localized[message] : undefined;
+    const fallback = Object.hasOwn(english, message) ? english[message] : undefined;
     const text = (typeof translated === 'string' && translated) || fallback || message;
     return text.replace(
       /\{([a-zA-Z0-9_]+)\}|%([a-zA-Z0-9_]+)%/g,
@@ -20,4 +24,5 @@ export function createTranslator(dictionary: () => Record<string, string>): Tran
       },
     );
   };
+  return Object.assign(translate, { message: translate });
 }

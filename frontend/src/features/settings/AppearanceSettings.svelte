@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useTranslations } from '../../lib/i18n';
+  import { useTranslations, common } from '../../lib/i18n';
   const t = useTranslations();
 
   import type { Editor } from '../editor/editor.svelte';
@@ -28,10 +28,10 @@
   } = $props();
   const appearance = $derived(appearanceOf(editor.draft.layout));
   const properties = [
-    ['button_height', 'ui_button_height', 140],
-    ['gap', 'ui_gap', 10],
-    ['radius', 'ui_corner_radius', 8],
-    ['icon_size', 'ui_icon_size', 42],
+    ['button_height', 'settings.buttonHeight', 140],
+    ['gap', 'settings.gap', 10],
+    ['radius', 'settings.cornerRadius', 8],
+    ['icon_size', 'editor.iconSize', 42],
   ] as const;
   async function uploadBackground(event: Event, theme = false) {
     const file = (event.target as HTMLInputElement).files?.[0];
@@ -57,16 +57,16 @@
 
 <div id="settings-appearance" class="settings-page">
   <div class="settings-page-heading">
-    <h2>{t('ui_appearance')}</h2>
-    <p>{t('ui_appearance_description')}</p>
+    <h2>{t('editor.appearance')}</h2>
+    <p>{t('settings.appearanceDescription')}</p>
   </div>
   <div class="appearance-layout">
     <div class="settings-stack">
-      <SettingsCard id="guide-layout" title={t('ui_layout')} icon="grid">
+      <SettingsCard id="guide-layout" title={t('settings.layout')} icon="grid">
         <div class="settings-fields two-columns">
           <NumberField
             controls
-            label={t('ui_columns')}
+            label={t('settings.columns')}
             value={editor.draft.layout.columns}
             min={1}
             max={128}
@@ -74,7 +74,7 @@
           />
           <NumberField
             controls
-            label={t('ui_rows')}
+            label={t('settings.rows')}
             value={editor.draft.layout.rows}
             min={1}
             max={128}
@@ -82,7 +82,7 @@
           />
         </div>
       </SettingsCard>
-      <SettingsCard id="guide-button-style" title={t('ui_button_style')} icon="settings">
+      <SettingsCard id="guide-button-style" title={t('settings.buttonStyle')} icon="settings">
         <div class="settings-fields two-columns">
           {#each properties as [key, label, fallback]}<NumberField
               controls
@@ -100,14 +100,14 @@
             />{/each}
         </div>
         <SwitchField
-          label={t('ui_show_button_labels')}
+          label={t('settings.showButtonLabels')}
           checked={appearance.show_labels !== false}
           onchange={(value) => editor.updateAppearance('show_labels', value)}
         />
       </SettingsCard>
     </div>
     <div class="settings-stack">
-      <SettingsCard id="guide-appearance-preview" title={t('ui_preview')} icon="monitor">
+      <SettingsCard id="guide-appearance-preview" title={t('settings.preview')} icon="monitor">
         <div
           class="appearance-preview"
           aria-hidden="true"
@@ -137,10 +137,10 @@
           {/each}
         </div>
       </SettingsCard>
-      <SettingsCard id="guide-language" title={t('ui_language')}>
+      <SettingsCard id="guide-language" title={t('settings.language')}>
         <ChoiceField
           hideLabel
-          label={t('ui_language')}
+          label={t('settings.language')}
           value={editor.draft.settings.language}
           options={languages.map((value) => ({ value, label: languageLabel(value) }))}
           onchange={(value) => {
@@ -151,13 +151,13 @@
       </SettingsCard>
     </div>
   </div>
-  <SettingsCard id="guide-theme-files" title={t('ui_files')} icon="image">
+  <SettingsCard id="guide-theme-files" title={t('editor.files')} icon="image">
     <div class="settings-fields two-columns">
       {#each ['backgrounds', 'themes'] as assetType}{@const key = assetType as
           'backgrounds' | 'themes'}
         <div>
           <FileField
-            label={t(key === 'themes' ? 'ui_upload_a_theme' : 'ui_upload_a_background')}
+            label={t(key === 'themes' ? 'settings.uploadATheme' : 'settings.uploadABackground')}
             accept={key === 'themes' ? '.css' : 'image/*'}
             onchange={(event) => void attempt(() => uploadBackground(event, key === 'themes'))}
           />
@@ -166,7 +166,7 @@
                 onclick={() => {
                   editor.removeAsset(key, asset);
                   void assets();
-                }}>{t('ui_remove')}</button
+                }}>{t(common.remove)}</button
               >
             </div>{/each}
         </div>{/each}

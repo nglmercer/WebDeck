@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy, untrack } from 'svelte';
   import { tutorialActive } from '../learn/tour-state';
-  import { useTranslations } from '../../lib/i18n';
+  import { useTranslations, common } from '../../lib/i18n';
   import { request } from '../../lib/api/client';
   import { onConnectionChange } from '../../lib/api/realtime';
   import { credentials } from '../../lib/api/http';
@@ -122,7 +122,7 @@
         `/api/v2/connection/invitations/${encodeURIComponent(invite.id)}/qr`,
         { headers: credentials(), cache: 'no-store' },
       );
-      if (!response.ok) throw new Error(t('ui_phone_qr_failed'));
+      if (!response.ok) throw new Error(t('connections.phoneQrFailed'));
       const blob = await response.blob();
       if (destroyed || current !== generation) return;
       if (qr) URL.revokeObjectURL(qr);
@@ -168,23 +168,25 @@
 <div class="settings-page connection-page">
   <div class="connection-heading">
     <div class="settings-page-heading">
-      <h2>{t('ui_devices_connections')}</h2>
-      <p>{t('ui_connection_intro')}</p>
+      <h2>{t('connections.devicesConnections')}</h2>
+      <p>{t('connections.connectionIntro')}</p>
     </div>
     <StatusBadge
-      label={t(status?.listener_started ? 'ui_network_ready' : 'ui_network_off')}
+      label={t(status?.listener_started ? 'connections.networkReady' : 'connections.networkOff')}
       tone={status?.listener_started ? 'success' : 'neutral'}
     />
   </div>
-  {#if error}<p role="alert">{error}</p>{/if}
+  {#if error}<p role="alert">{t.message(error)}</p>{/if}
   <div class="connect-strip">
     <span class="connect-icon"><Icon name="devices" size={25} /></span>
     <div>
-      <strong>{t('ui_connect_device')}</strong>
-      <p>{t('ui_scan_approve_short')}</p>
+      <strong>{t('connections.connectDevice')}</strong>
+      <p>{t('connections.scanApproveShort')}</p>
     </div>
     <button class="primary" disabled={working} onclick={() => attempt(start)}
-      ><Icon name="plus" size={17} />{working ? t('ui_connecting') : t('ui_connect_device')}</button
+      ><Icon name="plus" size={17} />{working
+        ? t('pairing.connecting')
+        : t('connections.connectDevice')}</button
     >
   </div>
   <div class="connection-columns">
@@ -195,18 +197,18 @@
     />
     <div class="settings-stack">
       <NetworkSettings {attempt} />
-      <SettingsCard title={t('ui_connection')} icon="layers">
-        {#snippet actions()}<span aria-label={t('ui_realtime_connection')}
-            ><StatusBadge label={t(connected ? 'ui_connected' : 'ui_offline')} /></span
+      <SettingsCard title={t('connections.connection')} icon="layers">
+        {#snippet actions()}<span aria-label={t('connections.realtimeConnection')}
+            ><StatusBadge label={t(connected ? 'common.connected' : 'common.offline')} /></span
           >{/snippet}
         <div id="settings-connection">
           <ChoiceField
             hideLabel
-            label={t('ui_connection')}
+            label={t('connections.connection')}
             value={transport}
             options={[
-              { value: 'http' as const, label: t('ui_http') },
-              { value: 'socket' as const, label: t('ui_realtime') },
+              { value: 'http' as const, label: t('connections.http') },
+              { value: 'socket' as const, label: t('connections.realtime') },
             ]}
             onchange={(value) => (transport = value)}
           />
@@ -216,75 +218,79 @@
   </div>
   <div class="connection-utilities">
     <button onclick={() => (diagnosticsOpen = true)}
-      ><Icon name="bug" size={17} />{t('ui_connection_diagnostics')}</button
+      ><Icon name="bug" size={17} />{t('connections.connectionDiagnostics')}</button
     >
     {#if typeof Notification !== 'undefined'}<button
         onclick={() =>
           attempt(async () => {
             await Notification.requestPermission();
-          })}><Icon name="devices" size={17} />{t('ui_pairing_notifications')}</button
+          })}><Icon name="devices" size={17} />{t('devices.pairingNotifications')}</button
       >{/if}
   </div>
   {#if shownInvitation}<Modal
       nonModal
-      label={t('ui_connect_device')}
+      label={t('connections.connectDevice')}
       width="560px"
       close={() => void attempt(closeInvitation)}
     >
       <div class="heading">
-        <h2>{t('ui_connect_device')}</h2>
-        <button disabled={working} onclick={() => attempt(closeInvitation)}>{t('ui_close')}</button>
+        <h2>{t('connections.connectDevice')}</h2>
+        <button disabled={working} onclick={() => attempt(closeInvitation)}
+          >{t(common.close)}</button
+        >
       </div>
       <div class="invitation" aria-live="polite" data-guide="connection-invitation">
-        {#if guideInvite}<p class="demo-safe">{t('ui_guide_example')}</p>{/if}
+        {#if guideInvite}<p class="demo-safe">{t('guides.library.example')}</p>{/if}
         {#if shownProgress === 'approved'}<p role="status">
-            {t('ui_device_connected_success')}
+            {t('devices.deviceConnectedSuccess')}
           </p>{:else if shownProgress === 'rejected'}<p>
-            {t('ui_pair_rejected')}
+            {t('pairing.pairRejected')}
           </p>{:else if !guideInvite && (expired || shownProgress === 'expired')}<p>
-            {t('ui_pair_expired')}
+            {t('pairing.pairExpired')}
           </p>{:else}
-          <h3>{t('ui_scan_approve')}</h3>
+          <h3>{t('connections.scanApprove')}</h3>
           {#if guideInvite}<div class="invitation-placeholder">
               <Icon name="grid" size={44} />
-              <p>{t('ui_guide_invitation_placeholder')}</p>
+              <p>{t('guides.library.invitationPlaceholder')}</p>
             </div>{:else if qr}<img
               src={qr}
-              alt={t('ui_phone_qr_alt')}
+              alt={t('connections.phoneQrAlt')}
               width="290"
               height="290"
             />{/if}
           <div class="connection-link">
-            <p>{t('ui_connection_link')}</p>
+            <p>{t('connections.connectionLink')}</p>
             <a href={shownInvitation.url} target="_blank" rel="noreferrer">{shownInvitation.url}</a
             ><button
               onclick={() => attempt(() => navigator.clipboard.writeText(shownInvitation!.url))}
-              >{t('ui_copy_link')}</button
+              >{t('connections.copyLink')}</button
             >
           </div>
-          <p>{t(shownProgress === 'pending' ? 'ui_waiting_host' : 'ui_pair_compare_code')}</p>
+          <p>
+            {t(shownProgress === 'pending' ? 'pairing.waitingHost' : 'pairing.pairCompareCode')}
+          </p>
         {/if}
         <button disabled={working || guideInvite} onclick={() => attempt(start)}
-          >{t('ui_refresh_connection')}</button
+          >{t('connections.refreshConnection')}</button
         >
       </div>
     </Modal>{/if}
   {#if diagnosticsOpen}<Modal
-      label={t('ui_connection_diagnostics')}
+      label={t('connections.connectionDiagnostics')}
       width="640px"
       close={() => (diagnosticsOpen = false)}
     >
       <div class="heading">
-        <h2>{t('ui_connection_diagnostics')}</h2>
-        <button onclick={() => (diagnosticsOpen = false)}>{t('ui_close')}</button>
+        <h2>{t('connections.connectionDiagnostics')}</h2>
+        <button onclick={() => (diagnosticsOpen = false)}>{t(common.close)}</button>
       </div>
-      <p data-guide="connection-diagnostics">{t('ui_connect_disclosure')}</p>
-      <p>{t('ui_phone_troubleshooting')}</p>
-      <p>{t('ui_origin_recovery')}</p>
+      <p data-guide="connection-diagnostics">{t('connections.connectDisclosure')}</p>
+      <p>{t('connections.phoneTroubleshooting')}</p>
+      <p>{t('connections.originRecovery')}</p>
       {#if status}<dl>
-          <dt>{t('ui_computer_address')}</dt>
+          <dt>{t('connections.computerAddress')}</dt>
           <dd>{status.network.settings.address}</dd>
-          <dt>{t('ui_phone_port')}</dt>
+          <dt>{t('connections.phonePort')}</dt>
           <dd>{status.network.settings.port}</dd>
         </dl>
         <ul>

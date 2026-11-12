@@ -5,22 +5,21 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "format": "prettier --write src",
+    "format": "prettier --write src locales",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "knip": "knip",
-    "test": "vitest run",
+    "test": "vitest run && node --test ../tools/i18n/catalog.test.mjs",
     "preview": "vite preview",
     "check:components": "node ../tools/component-check/node_modules/svelte-check/bin/svelte-check --workspace . --tsconfig ./tsconfig.json",
     "test:acceptance": "playwright test --config acceptance.config.ts",
     "check:contracts": "node ../tools/contracts/generate.mjs --check",
-    "format:check": "prettier --check src",
+    "format:check": "prettier --check src locales",
     "check:i18n": "node ../tools/validation/i18n.mjs",
     "check:budget": "node ../tools/validation/performance-budget.mjs",
     "demo:capture": "node ../tools/demo/capture.mjs",
     "test:devices": "playwright test --config devices.config.ts",
-    "i18n:generate": "node ../tools/i18n/generate.mjs",
-    "prebuild": "npm run i18n:generate"
+    "i18n:generate": "node ../tools/i18n/generate.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

@@ -106,11 +106,11 @@ it('numeric-limit collisions and spans fail without changing stored placement', 
   first.extensions = { appearance: { cell: Number.MAX_SAFE_INTEGER } };
   second.extensions = { appearance: { cell: Number.MAX_SAFE_INTEGER } };
   const original = JSON.stringify([first, second]);
-  expect(() => preserveCells([first, second], 4, 3)).toThrow('supported integer range');
+  expect(() => preserveCells([first, second], 4, 3)).toThrow('deck.gridPositionOutOfRange');
   expect(JSON.stringify([first, second])).toBe(original);
   first.extensions = { appearance: { cell: Number.MAX_SAFE_INTEGER, rows: 2 } };
   const span = JSON.stringify(first);
-  expect(() => preserveCells([first], 4, 3)).toThrow('supported integer range');
+  expect(() => preserveCells([first], 4, 3)).toThrow('deck.gridPositionOutOfRange');
   expect(JSON.stringify(first)).toBe(span);
 });
 

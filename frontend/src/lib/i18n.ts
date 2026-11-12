@@ -1,5 +1,6 @@
 import { getContext, setContext } from 'svelte';
 import { createTranslator, type Translator } from './translations';
+export { common, keys } from './translation-keys';
 const context = Symbol('webdeck.translations');
 export function provideTranslations(dictionary: () => Record<string, string>): Translator {
   const translate = createTranslator(dictionary);

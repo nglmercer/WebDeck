@@ -1,7 +1,7 @@
 <script lang="ts">
   import GuideButton from '../learn/GuideButton.svelte';
   import Icon from '../../components/Icon.svelte';
-  import { useTranslations } from '../../lib/i18n';
+  import { useTranslations, common, keys } from '../../lib/i18n';
   const t = useTranslations();
   let actionValid = $state(true);
   let moreOpen = $state(false);
@@ -150,7 +150,7 @@
         }
       })
       .catch(() => {
-        if (!destroyed) libraryError = 'ui_icon_library_unavailable';
+        if (!destroyed) libraryError = 'icons.iconLibraryUnavailable';
       });
   });
   $effect(() => {
@@ -188,7 +188,7 @@
         if (!disposed && result) previewUrl = result.urls[id];
       })
       .catch(() => {
-        if (!disposed) formError = 'Image preview could not be loaded. Your draft is unchanged.';
+        if (!disposed) formError = 'images.previewFailed';
       });
     return () => {
       disposed = true;
@@ -413,7 +413,7 @@
     <div class="editor-header">
       <div class="heading">
         <h2 id="button-title">
-          {mobilePickerOpen ? t('ui_keypicker_choose_keys') : t('ui_edit_button')}
+          {mobilePickerOpen ? t('keyboard.chooseKeys') : t('editor.editButton')}
         </h2>
         <GuideButton
           guide={activeTab === 'appearance'
@@ -425,16 +425,16 @@
                 : activeTab === 'action'
                   ? 'actions'
                   : 'content'}
-          label={t('ui_edit_button')}
+          label={t('editor.editButton')}
         />
-        <button aria-label={t('ui_close_editor')} onclick={close}><Icon name="close" /></button>
+        <button aria-label={t('editor.closeEditor')} onclick={close}><Icon name="close" /></button>
       </div>
       {#if !mobilePickerOpen}
         <div class="preview" data-guide="button-preview">
           <div
             class="deck-button preview-tile"
             role="img"
-            aria-label={t('ui_button_preview')}
+            aria-label={t('editor.buttonPreview')}
             style={`--button-color:${button.color};--button-foreground:${colors.foreground};--icon-size:${appearance.icon_size ?? 42}px;`}
           >
             <ButtonContent {button} assetUrl={previewUrl} showLabels={false} />
@@ -445,7 +445,7 @@
     </div>
     <form onsubmit={apply}>
       {#if !mobilePickerOpen}
-        <div role="tablist" aria-label={t('ui_edit_button')} class="editor-tabs">
+        <div role="tablist" aria-label={t('editor.editButton')} class="editor-tabs">
           {#each ['content', 'appearance', 'action'] as tab}<button
               type="button"
               role="tab"
@@ -472,7 +472,16 @@
                   document.getElementById(`editor-tab-${activeTab}`)?.focus();
                 }
               }}
-              onclick={() => (activeTab = tab)}>{t(`ui_${tab}`)}</button
+              onclick={() => (activeTab = tab)}
+              >{t(
+                (
+                  {
+                    content: keys.editor.content,
+                    appearance: keys.editor.appearance,
+                    action: keys.editor.action,
+                  } as const
+                )[tab as 'content' | 'appearance' | 'action'],
+              )}</button
             >{/each}
         </div>
       {/if}
@@ -486,15 +495,15 @@
           >
             <div class="basics-grid">
               <label data-guide="button-label"
-                >{t('ui_label')}<input bind:value={button.label} maxlength="256" /></label
+                >{t('editor.label')}<input bind:value={button.label} maxlength="256" /></label
               >
-              <span class="field-label">{t('ui_button_visual')}</span>
+              <span class="field-label">{t('editor.buttonVisual')}</span>
               <SegmentedControl
-                label={t('ui_button_visual')}
+                label={t('editor.buttonVisual')}
                 value={visualSource}
                 options={[
-                  { value: 'icon', label: t('ui_icon') },
-                  { value: 'image', label: t('ui_visual_image') },
+                  { value: 'icon', label: t('editor.icon') },
+                  { value: 'image', label: t('editor.visualImage') },
                 ]}
                 onchange={changeVisual}
               />
@@ -529,15 +538,15 @@
                 />
                 {#if button.icon.startsWith('asset:') && liveIds.includes(button.icon.slice(6))}
                   <button type="button" disabled={imageBusy} onclick={() => attempt(refreshImage)}
-                    >{t('ui_refresh_live_image')}</button
+                    >{t('images.refreshLiveImage')}</button
                   >
                 {/if}
                 {#if imageIds.length}
-                  <h3 class="library-title">{t('ui_image_library')}</h3>
+                  <h3 class="library-title">{t('images.imageLibrary')}</h3>
                   <div class="image-library">
                     {#each pageIds as id}<button
                         type="button"
-                        aria-label={`${t('ui_select_uploaded_icon')} ${id}`}
+                        aria-label={`${t('images.selectUploadedIcon')} ${id}`}
                         aria-pressed={button.icon === `asset:${id}`}
                         onclick={() => (button.icon = lastImage = `asset:${id}`)}
                       >
@@ -551,16 +560,16 @@
                   </div>
                   {#if imageIds.length > 12}<div class="library-pages">
                       <button type="button" disabled={imagePage === 0} onclick={() => imagePage--}
-                        >{t('ui_previous')}</button
+                        >{t('common.previous')}</button
                       >
                       <button
                         type="button"
                         disabled={(imagePage + 1) * 12 >= imageIds.length}
-                        onclick={() => imagePage++}>{t('ui_next')}</button
+                        onclick={() => imagePage++}>{t('common.next')}</button
                       >
                     </div>{/if}
                 {/if}
-                {#if libraryError}<p role="status">{t(libraryError)}</p>{/if}
+                {#if libraryError}<p role="status">{t.message(libraryError)}</p>{/if}
               {/if}
             </div>
           </div>
@@ -571,14 +580,14 @@
             hidden={activeTab !== 'appearance'}
           >
             <label class="background-color"
-              >{t('ui_background_color')}<span class="color-row"
+              >{t('editor.backgroundColor')}<span class="color-row"
                 ><input
                   class="color-input"
                   type="color"
                   bind:value={button.color}
-                  aria-label={t('ui_background_color')}
+                  aria-label={t('editor.backgroundColor')}
                 /><input
-                  aria-label={t('ui_color_hex')}
+                  aria-label={t('editor.colorHex')}
                   bind:value={button.color}
                   maxlength="7"
                   required
@@ -587,21 +596,21 @@
             >
             <div class="appearance-fields">
               <NumberField
-                label={t('ui_column_span')}
+                label={t('editor.columnSpan')}
                 value={Number(appearance.columns ?? 1)}
                 min={1}
                 max={layout.columns}
                 onchange={(value) => setAppearance('columns', value)}
               />
               <NumberField
-                label={t('ui_row_span')}
+                label={t('editor.rowSpan')}
                 value={Number(appearance.rows ?? 1)}
                 min={1}
                 max={128}
                 onchange={(value) => setAppearance('rows', value)}
               />
               <NumberField
-                label={t('ui_icon_size')}
+                label={t('editor.iconSize')}
                 value={Number(appearance.icon_size ?? 42)}
                 min={0}
                 max={200}
@@ -612,7 +621,7 @@
                   type="checkbox"
                   checked={appearance.show_label !== false}
                   onchange={(e) => setAppearance('show_label', e.currentTarget.checked)}
-                />{t('ui_show_label')}</label
+                />{t('editor.showLabel')}</label
               >
             </div>
           </div>
@@ -627,15 +636,17 @@
           {#if !mobilePickerOpen}
             <div class="action-summary">
               <Icon name={selectedAction?.icon ?? 'settings'} />
-              <span>{selectedAction ? t(selectedAction.label) : button.action.type}</span>
+              <span>{selectedAction ? t.message(selectedAction.label) : button.action.type}</span>
               <button
                 type="button"
                 disabled={protectedSettings}
-                title={protectedSettings ? t('ui_settings_protected') : undefined}
-                onclick={() => (actionPickerOpen = true)}>{t('ui_change_action')}</button
+                title={protectedSettings ? t('editor.settingsProtected') : undefined}
+                onclick={() => (actionPickerOpen = true)}>{t('actions.changeAction')}</button
               >
             </div>
-            {#if !hasConfiguration}<p class="field-help">{t('ui_no_configuration_needed')}</p>{/if}
+            {#if !hasConfiguration}<p class="field-help">
+                {t('actions.noConfigurationNeeded')}
+              </p>{/if}
             {#if actionPickerOpen}<ActionPickerModal
                 value={selectedActionId}
                 close={() => (actionPickerOpen = false)}
@@ -651,23 +662,23 @@
               onchange={(action) => {
                 if (button) button.action = action as ButtonAction;
               }}
-              label={t('ui_action')}
+              label={t('editor.action')}
             />
           {:else if button.action.type === 'metric'}
             <label
-              >{t('ui_metric')}<select bind:value={button.action.metric}
+              >{t('editor.metric')}<select bind:value={button.action.metric}
                 >{#each ['cpu', 'memory', 'gpu', 'gpu_memory', 'disk', 'clock'] as metric}<option
                     value={metric}>{metric}</option
                   >{/each}</select
               ></label
             >
             <label
-              >{t('ui_device_name_or_index_empty_uses_default')}<input
+              >{t('editor.deviceNameOrIndexEmptyUsesDefault')}<input
                 bind:value={button.action.target}
               /></label
             >
             <NumberField
-              label={t('ui_update_interval_ms')}
+              label={t('fields.intervalMs')}
               value={button.action.interval_ms}
               min={250}
               max={3600000}
@@ -676,7 +687,7 @@
               }}
             />
           {:else if button.action.type === 'folder'}<label
-              >{t('ui_destination')}<select bind:value={button.action.folder_id}
+              >{t('editor.destination')}<select bind:value={button.action.folder_id}
                 >{#each layout?.folders ?? [] as f}<option value={f.id}>{f.label}</option
                   >{/each}</select
               ></label
@@ -691,7 +702,7 @@
               value={button.action.command}
               onchange={(c) => chooseCommand(c as Command)}
             />{#if button.action.command.type === 'plugin'}<label
-                >{t('ui_plugin')}<select
+                >{t('editor.plugin')}<select
                   value={button.action.command.plugin_id}
                   onchange={(e) => {
                     const m = catalog?.plugins.find((m) => m.id === e.currentTarget.value);
@@ -702,7 +713,7 @@
                     >{/each}</select
                 ></label
               >{#if selectedPlugin}<label
-                  >{t('ui_plugin_action')}<select
+                  >{t('editor.pluginAction')}<select
                     value={button.action.command.action_id}
                     onchange={(e) => {
                       if (
@@ -728,10 +739,10 @@
                     )
                       button.action.command.args = args as Record<string, unknown>;
                   }}
-                  label={t('ui_plugin_arguments')}
-                />{:else}<p>{t('ui_no_v2_plugins_are_installed')}</p>{/if}{/if}{/if}
+                  label={t('editor.pluginArguments')}
+                />{:else}<p>{t('editor.noV2PluginsAreInstalled')}</p>{/if}{/if}{/if}
         </div>
-        {#if formError}<p role="alert">{t(formError)}</p>{/if}
+        {#if formError}<p role="alert">{t.message(formError)}</p>{/if}
       </div>
       {#if !mobilePickerOpen}<div class="actions">
           <div class="more-actions" bind:this={moreActions}>
@@ -739,38 +750,39 @@
               bind:this={moreTrigger}
               type="button"
               class="more-trigger"
-              aria-label={t('ui_more_button_actions')}
+              aria-label={t('editor.moreButtonActions')}
               aria-expanded={moreOpen}
               aria-controls="button-more-actions"
               onclick={() => (moreOpen = !moreOpen)}
-              ><Icon name="more" size={20} /><span>{t('ui_editor_more')}</span></button
+              ><Icon name="more" size={20} /><span>{t('editor.editorMore')}</span></button
             >
             {#if moreOpen}<div
                 id="button-more-actions"
                 class="menu"
                 role="group"
-                aria-label={t('ui_more_button_actions')}
+                aria-label={t('editor.moreButtonActions')}
               >
-                <button type="button" onclick={() => moveButton(-1)}>{t('ui_move_left')}</button>
-                <button type="button" onclick={() => moveButton(1)}>{t('ui_move_right')}</button>
-                <button type="button" onclick={duplicateButton}>{t('ui_duplicate')}</button>
+                <button type="button" onclick={() => moveButton(-1)}>{t('editor.moveLeft')}</button>
+                <button type="button" onclick={() => moveButton(1)}>{t('editor.moveRight')}</button>
+                <button type="button" onclick={duplicateButton}>{t('editor.duplicate')}</button>
                 <button
                   type="button"
                   class="danger"
                   disabled={protectedSettings || button.action.type === 'settings'}
                   title={protectedSettings || button.action.type === 'settings'
-                    ? t('ui_settings_protected')
+                    ? t('editor.settingsProtected')
                     : undefined}
-                  onclick={removeButton}>{t('ui_delete')}</button
+                  onclick={removeButton}>{t(common.delete)}</button
                 >
               </div>{/if}
           </div>
-          <span class="spacer"></span><button type="button" onclick={close}>{t('ui_cancel')}</button
+          <span class="spacer"></span><button type="button" onclick={close}
+            >{t(common.cancel)}</button
           ><button
             data-guide="button-apply"
             type="submit"
             class="primary"
-            disabled={imageBusy || !actionValid}>{t('ui_apply_to_draft')}</button
+            disabled={imageBusy || !actionValid}>{t('editor.applyToDraft')}</button
           >
         </div>
       {/if}

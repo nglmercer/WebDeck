@@ -192,7 +192,7 @@ appears only after entering edit mode.
 - [Automation](docs/automation.md): generate buttons from recipes and use plugin actions.
 - [Build and release](docs/build-release.md): build and package the application.
 - [Contributing](CONTRIBUTING.md): development workflow and validation.
-- [Translations](docs/i18n.md): JSON catalogs and the generated TypeScript fallback.
+- [Translations](docs/i18n.md): grouped TypeScript catalogs and generated JSON for Rust.
 - [v2 documentation](docs/v2/README.md): architecture, migration and implementation status.
 
 ### Keyboard shortcuts and OBS projects

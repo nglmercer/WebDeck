@@ -1,18 +1,27 @@
-import fs from 'node:fs';
+import fs from 'node:fs/promises';
 import path from 'node:path';
-const root = path.resolve(import.meta.dirname, '../..');
-const catalog = JSON.parse(fs.readFileSync(path.join(root, 'webdeck/translations/en_US.json'), 'utf8'));
-const messages = Object.fromEntries(Object.entries(catalog).filter(([key]) => key.startsWith('ui_')));
-if (!Object.keys(messages).length || Object.values(messages).some(value => typeof value !== 'string' || !value)) throw Error('English UI catalog must contain non-empty string values');
-const output = '// Generated from webdeck/translations/en_US.json by tools/i18n/generate.mjs.\n' +
-  '// Edit the JSON catalog; run npm run i18n:generate --prefix frontend.\n' +
-  '// prettier-ignore\n' + `export const messages = ${JSON.stringify(messages, null, 2)} as const;\n`;
-const target = path.join(root, 'frontend/src/lib/messages.ts');
-if (process.argv.includes('--check')) {
-  if (!fs.existsSync(target) || fs.readFileSync(target, 'utf8') !== output) {
-    console.error('English fallback is stale. Run npm run i18n:generate --prefix frontend.');
+import { root, readCatalogs, flattenMessages, checkGenerated } from './catalog.mjs';
+
+const { catalogs } = await readCatalogs();
+const directory = path.join(root, 'webdeck/translations');
+for (const [locale, catalog] of catalogs) {
+  const file = path.join(root, `webdeck/translations/${locale}.json`);
+  const content = JSON.stringify(flattenMessages(catalog), null, 2) + '\n';
+  if (await checkGenerated(file, content)) continue;
+  if (process.argv.includes('--check')) {
+    console.error(
+      `${path.relative(root, file)} is stale. Run npm run i18n:generate --prefix frontend.`,
+    );
     process.exitCode = 1;
-  }
-} else if (!fs.existsSync(target) || fs.readFileSync(target, 'utf8') !== output) {
-  fs.writeFileSync(target, output);
+  } else await fs.writeFile(file, content);
+}
+// This directory contains generated output only. Removing a source locale must also
+// remove its exported dictionary from Rust's available-language list.
+for (const entry of await fs.readdir(directory, { withFileTypes: true })) {
+  if (!entry.isFile() || !entry.name.endsWith('.json') || catalogs.has(entry.name.slice(0, -5)))
+    continue;
+  if (process.argv.includes('--check')) {
+    console.error(`${entry.name} has no TypeScript locale source. Regenerate translations.`);
+    process.exitCode = 1;
+  } else await fs.unlink(path.join(directory, entry.name));
 }

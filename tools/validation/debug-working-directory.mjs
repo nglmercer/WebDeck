@@ -32,7 +32,7 @@ try {
   assert.equal(response.status, 200, 'Translations must load when started from target/release');
   const dictionary = await response.json();
   assert(dictionary.languages.includes('en_US'));
-  assert.equal(dictionary.translations.ui_phone_access, 'Phone access');
+  assert.equal(dictionary.translations['connections.phoneAccess'], 'Phone access');
   const require = createRequire(path.join(root, 'frontend/package.json'));
   browser = await require('@playwright/test').chromium.launch({ headless: true, executablePath: process.env.WEBDECK_CHROMIUM ?? (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined), args: ['--no-sandbox'] });
   const page = await browser.newPage();

@@ -30,7 +30,7 @@
     if (disabled || !files?.length) return;
     error = '';
     if (files.length !== 1) {
-      error = t('ui_file_one');
+      error = t('files.one');
       return;
     }
     const file = files[0]!;
@@ -43,11 +43,11 @@
           : file.type === rule;
     });
     if (!matches) {
-      error = t('ui_file_type');
+      error = t('files.type');
       return;
     }
     if (file.size > 16 * 1024 * 1024) {
-      error = t('ui_file_size');
+      error = t('files.size');
       return;
     }
     pending = true;
@@ -88,11 +88,11 @@
     >
     <span class="file-copy"
       ><strong title={filename || undefined}
-        >{disabled ? t('ui_file_loading') : filename || t('ui_file_drop')}</strong
+        >{disabled ? t('files.loading') : filename || t('files.drop')}</strong
       >{#if metadata}<small>{metadata}</small>{/if}</span
     >
     <button type="button" {disabled} onclick={() => input.click()}
-      >{t(filename ? 'ui_file_change' : 'ui_choose_file')}</button
+      >{t(filename ? 'files.change' : 'editor.chooseFile')}</button
     >
     <input
       bind:this={input}
@@ -108,7 +108,7 @@
       }}
     />
   </div>
-  {#if error}<p role="alert">{t(error)}</p>{/if}
+  {#if error}<p role="alert">{t.message(error)}</p>{/if}
 </div>
 
 <style>

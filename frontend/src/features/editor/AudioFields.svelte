@@ -140,7 +140,7 @@
             body: JSON.stringify(source),
             signal: controller.signal,
           });
-          if (!response.ok) throw new Error('ui_audio_unreadable');
+          if (!response.ok) throw new Error('audio.unreadable');
           bytes = await response.arrayBuffer();
         }
         const byteLength = bytes.byteLength;
@@ -152,7 +152,7 @@
           position = start;
         }
       } catch {
-        if (!stale) loadError = 'ui_audio_unreadable';
+        if (!stale) loadError = 'audio.unreadable';
       } finally {
         if (url) URL.revokeObjectURL(url);
         if (!stale) loading = false;
@@ -217,7 +217,7 @@
       advance();
     } catch {
       stop();
-      loadError = 'ui_audio_preview_failed';
+      loadError = 'audio.previewFailed';
     }
   }
   async function choose(file: File) {
@@ -226,7 +226,7 @@
       try {
         await decodeAudio(await file.arrayBuffer());
       } catch {
-        throw new Error(t('ui_audio_unreadable'));
+        throw new Error(t('audio.unreadable'));
       }
       const source = await upload(file);
       if (destroyed) return;
@@ -257,8 +257,8 @@
     const ms = parseTime(input.value);
     const valid =
       ms !== null && (which === 'start' ? ms >= 0 && ms < end : ms > start && ms <= duration);
-    fieldError = valid ? '' : 'ui_audio_time_invalid';
-    input.setCustomValidity(valid ? '' : t(fieldError));
+    fieldError = valid ? '' : 'audio.timeInvalid';
+    input.setCustomValidity(valid ? '' : t.message(fieldError));
     if (valid) trim(which, ms!);
   }
   function reset() {
@@ -330,7 +330,7 @@
 
 <div class="audio-fields">
   <FilePicker
-    label={t('ui_audio_file')}
+    label={t('audio.file')}
     accept=".mp3,.wav,.ogg,.flac"
     {filename}
     metadata={fileMetadata}
@@ -338,22 +338,22 @@
     busy={busy || loading}
     onselect={choose}
   />
-  {#if loadError}<p class="error" role="alert">{t(loadError)}</p>{/if}
+  {#if loadError}<p class="error" role="alert">{t.message(loadError)}</p>{/if}
   {#if key}
     <div class="fragment">
       <div class="section-heading">
-        <span>{t('ui_audio_fragment')}</span><button
+        <span>{t('audio.fragment')}</span><button
           type="button"
           class="text-button"
           disabled={!decoded}
-          onclick={reset}>{t('ui_audio_reset')}</button
+          onclick={reset}>{t('audio.reset')}</button
         >
       </div>
       <div class="waveform" class:loading aria-busy={loading}>
         <div
           class="track"
           role="group"
-          aria-label={t('ui_audio_fragment')}
+          aria-label={t('audio.fragment')}
           bind:this={track}
           onpointerenter={(event) => {
             overTrack = true;
@@ -390,7 +390,7 @@
             class="seek"
             role="slider"
             tabindex={ready ? 0 : -1}
-            aria-label={t('ui_audio_position')}
+            aria-label={t('audio.position')}
             aria-valuemin={start}
             aria-valuemax={end}
             aria-valuenow={Math.round(position)}
@@ -420,7 +420,7 @@
               data-edge={edge}
               role="slider"
               tabindex={ready ? 0 : -1}
-              aria-label={t(edge === 'start' ? 'ui_audio_start' : 'ui_audio_end')}
+              aria-label={t(edge === 'start' ? 'audio.start' : 'audio.end')}
               aria-disabled={!ready}
               aria-valuemin={edge === 'start' ? 0 : start + 1}
               aria-valuemax={edge === 'start' ? end - 1 : duration}
@@ -472,15 +472,15 @@
           type="button"
           class="play"
           disabled={!ready}
-          aria-label={t(playing ? 'ui_audio_stop_preview' : 'ui_audio_play_preview')}
+          aria-label={t(playing ? 'audio.stopPreview' : 'audio.playPreview')}
           onclick={play}><Icon name={playing ? 'pause' : 'play'} size={24} /></button
         >
       </div>
       <div class="time-fields">
         <label
-          >{t('ui_audio_start')}<input
+          >{t('audio.start')}<input
             bind:this={startInput}
-            aria-label={t('ui_audio_start')}
+            aria-label={t('audio.start')}
             value={formatTime(start)}
             disabled={!decoded}
             required
@@ -489,9 +489,9 @@
           /></label
         >
         <label
-          >{t('ui_audio_end')}<input
+          >{t('audio.end')}<input
             bind:this={endInput}
-            aria-label={t('ui_audio_end')}
+            aria-label={t('audio.end')}
             value={formatTime(end)}
             disabled={!decoded}
             required
@@ -500,39 +500,39 @@
           /></label
         >
         <label
-          >{t('ui_audio_duration')}<output
+          >{t('audio.duration')}<output
             >{(Math.max(0, end - start) / 1000).toLocaleString(undefined, {
               minimumFractionDigits: 3,
               maximumFractionDigits: 3,
             })}
-            {t('ui_audio_seconds')}</output
+            {t('audio.seconds')}</output
           ></label
         >
       </div>
       {#if fieldError || (decoded && !ready)}<p class="error" role="alert">
-          {t(fieldError || 'ui_audio_time_invalid')}
+          {t.message(fieldError || 'audio.timeInvalid')}
         </p>{/if}
     </div>
   {/if}
   <RangeField
-    label={t('ui_volume_2')}
+    label={t('audio.volume')}
     value={value.volume}
     unit="%"
     onchange={(volume) => onchange({ ...value, volume })}
   />
   <label class="output-device"
-    >{t('ui_audio_output')}<select
+    >{t('audio.output')}<select
       value={value.output_device}
       onchange={(event) => onchange({ ...value, output_device: event.currentTarget.value })}
     >
-      <option value="">{t('ui_audio_default_output')}</option>
+      <option value="">{t('audio.defaultOutput')}</option>
       {#if value.output_device && !outputs.includes(value.output_device)}<option
           value={value.output_device}>{value.output_device}</option
         >{/if}
       {#each outputs as output}<option value={output}>{output}</option>{/each}
     </select></label
   >
-  {#if deviceError}<p class="error" role="status">{t('ui_audio_devices_unavailable')}</p>{/if}
+  {#if deviceError}<p class="error" role="status">{t('audio.devicesUnavailable')}</p>{/if}
 </div>
 
 <style>

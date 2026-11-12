@@ -11,8 +11,8 @@
 {#if open && !$tutorialActive}<button
     type="button"
     class="guide-button"
-    aria-label={t('ui_guide_context_help', { topic: label })}
-    title={t('ui_guide_context_help', { topic: label })}
+    aria-label={t('guides.library.contextHelp', { topic: label })}
+    title={t('guides.library.contextHelp', { topic: label })}
     onclick={() => open?.(guide)}><span aria-hidden="true">?</span></button
   >{/if}
 

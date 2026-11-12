@@ -1,0 +1,84 @@
+{
+  "baseline": "ad86e97",
+  "architecture": {
+    "source": "frontend/locales/*.ts",
+    "typed_calls": [
+      "t(common.save)",
+      "t(keys.audio.volume)",
+      "t('audio.volume')"
+    ],
+    "backend": "Generated flat dotted-key JSON; existing serde_json dictionary merge",
+    "fallback": "Direct English TypeScript import; no generated fallback module or English-copy aliases"
+  },
+  "cleanup": {
+    "retired_english_entries": 496,
+    "unified_duplicate_entries": 22,
+    "unused_entries_removed": 77,
+    "current_dictionary_entries": 845
+  },
+  "validation": {
+    "frontend_unit_tests": 102,
+    "serializer_tests": 3,
+    "browser_tests_passed": 84,
+    "focused_browser_suite": 32,
+    "deck_suite_excluding_reproduced_baseline_failures": 52,
+    "rust_translation_merge": "passed",
+    "static_checks": [
+      "Svelte: 0 errors/warnings",
+      "TypeScript",
+      "translations and generated JSON",
+      "contracts",
+      "knip",
+      "formatting",
+      "bundle budget"
+    ],
+    "development_watcher": "Isolated fixture verified source edits regenerate JSON and removed locale sources remove JSON exports"
+  },
+  "bundle": {
+    "before": {
+      "js_bytes": 468496,
+      "gzip_bytes": 135232
+    },
+    "after": {
+      "js_bytes": 463833,
+      "gzip_bytes": 134797
+    },
+    "chunks": [
+      {
+        "name": "Learn-CSKrDJIo.js",
+        "bytes": 29786,
+        "gzip_bytes": 6009
+      },
+      {
+        "name": "driver.js-XlMiXr6O.js",
+        "bytes": 19932,
+        "gzip_bytes": 5836
+      },
+      {
+        "name": "index-lJ7706ef.js",
+        "bytes": 408706,
+        "gzip_bytes": 120797
+      },
+      {
+        "name": "runner-wAn63KMx.js",
+        "bytes": 5409,
+        "gzip_bytes": 2155
+      }
+    ]
+  },
+  "existing_failures": {
+    "baseline_reproduction": "All ten also fail on ad86e97 in an isolated archive using the same native binary, dependencies and browser. The full deck suite remains red; the passing regression run explicitly excludes these cases. No product code or tests for these unrelated failures were changed.",
+    "cases": [
+      "theme and image uploads, folder creation and settings round trip",
+      "shortcut controls stage typed keys and deletion undo restores a duplicate",
+      "saving Spanish updates controls and action names while preserving configured button content",
+      "saved notices and command errors remain visible and independently dismissible on mobile",
+      "touch dialog controls retain a 44 pixel target in both dimensions",
+      "live preview and numeric validation preserve the host until a valid draft is saved",
+      "touch settings controls expose usable targets including checkbox labels and navigation",
+      "touch action fields keep full-size controls across specialized and generic forms",
+      "icon registry search and uploaded icon reuse persist through reload",
+      "local imports survive removal of the source file and URL imports offer live refresh"
+    ]
+  }
+}

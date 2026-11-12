@@ -211,8 +211,8 @@ mod translation_tests {
 
     #[test]
     fn catalog_requires_a_flat_string_dictionary() {
-        assert!(decode_catalog(r#"{"ui_settings":42}"#).is_none());
-        assert!(decode_catalog(r#"{"ui_settings":{"nested":"value"}}"#).is_none());
+        assert!(decode_catalog(r#"{"common.settings":42}"#).is_none());
+        assert!(decode_catalog(r#"{"common.settings":{"nested":"value"}}"#).is_none());
         assert!(decode_catalog("not json").is_none());
     }
 

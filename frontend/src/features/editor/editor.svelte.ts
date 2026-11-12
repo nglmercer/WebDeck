@@ -53,7 +53,7 @@ export class Editor {
   }
   setDimensions(key: 'columns' | 'rows', value: number) {
     if (!Number.isInteger(value) || value < 1 || value > 128)
-      throw new Error('Grid dimensions must be integers from 1 to 128.');
+      throw new Error('errors.invalidDimensions');
     this.draft.layout[key] = value;
     this.change();
   }
@@ -100,7 +100,7 @@ export class Editor {
       throw new Error('The Settings button must keep its settings action.');
     contract('Button', button);
     const folder = this.draft.layout.folders.find((folder) => folder.id === folderId);
-    if (!folder) throw new Error('Destination folder is unavailable');
+    if (!folder) throw new Error('errors.destinationUnavailable');
     this.freezeCells();
     const next = clone(button);
     const appearance = (next.extensions.appearance ?? {}) as Record<string, unknown>;
@@ -137,7 +137,7 @@ export class Editor {
   createFolder(parentId: string): Folder {
     this.freezeCells();
     const parent = this.draft.layout.folders.find((folder) => folder.id === parentId);
-    if (!parent) throw new Error('Parent folder is unavailable');
+    if (!parent) throw new Error('errors.parentUnavailable');
     const cell = placeButtons(
       parent.buttons,
       this.draft.layout.columns,
@@ -186,8 +186,7 @@ export class Editor {
     this.change();
   }
   removeFolder(folderId: string) {
-    if (this.draft.layout.folders.length <= 1)
-      throw new Error('The deck needs at least one folder');
+    if (this.draft.layout.folders.length <= 1) throw new Error('errors.lastFolder');
     if (folderId === this.draft.layout.folders[0]?.id || folderId === 'home')
       throw new Error('The root deck cannot be deleted');
     if (!this.draft.layout.folders.some((folder) => folder.id === folderId)) return;
@@ -225,7 +224,7 @@ export class Editor {
   }
   duplicateButton(button: Button, folderId: string, label = `${button.label} copy`) {
     const folder = this.draft.layout.folders.find((folder) => folder.id === folderId);
-    if (!folder) throw new Error('Destination folder is unavailable');
+    if (!folder) throw new Error('errors.destinationUnavailable');
     this.freezeCells();
     const cell = placeButtons(
       folder.buttons,

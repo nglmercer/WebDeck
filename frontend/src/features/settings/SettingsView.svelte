@@ -1,7 +1,7 @@
 <script lang="ts">
   import GuideButton from '../learn/GuideButton.svelte';
   import type { GuideId } from '../learn/guides';
-  import { useTranslations } from '../../lib/i18n';
+  import { useTranslations, common } from '../../lib/i18n';
   const t = useTranslations();
 
   import { tick } from 'svelte';
@@ -53,7 +53,7 @@
   }
   async function validatedPersist() {
     await updateValidity();
-    if (invalid) throw new Error(t('ui_correct_invalid_fields'));
+    if (invalid) throw new Error(t('editor.correctInvalidFields'));
     await persist();
   }
   function observeValidity(node: HTMLDivElement) {
@@ -73,11 +73,11 @@
     runtime: 'runtime',
   };
   const sections = [
-    ['appearance', 'ui_appearance', 'monitor'],
-    ['integrations', 'ui_integrations', 'layers'],
-    ['devices', 'ui_devices_connections', 'devices'],
-    ['backups', 'ui_backups', 'folder'],
-    ['runtime', 'ui_runtime', 'grid'],
+    ['appearance', 'editor.appearance', 'monitor'],
+    ['integrations', 'settings.integrations', 'layers'],
+    ['devices', 'connections.devicesConnections', 'devices'],
+    ['backups', 'backups.backups', 'folder'],
+    ['runtime', 'runtime.runtime', 'grid'],
   ] as const;
 </script>
 
@@ -85,35 +85,35 @@
   <header class="settings-header">
     <div class="settings-heading">
       <button class="settings-back" onclick={back}
-        ><Icon name="back" size={18} />{t('ui_back_to_deck')}</button
+        ><Icon name="back" size={18} />{t('settings.backToDeck')}</button
       >
-      <h1>{t('ui_settings')}</h1>
+      <h1>{t(common.settings)}</h1>
     </div>
     <div class="settings-header-actions">
-      <GuideButton guide={helpTopics[activeTab] ?? 'overview'} label={t('ui_settings')} />
+      <GuideButton guide={helpTopics[activeTab] ?? 'overview'} label={t(common.settings)} />
       <button
         class="primary"
         data-guide="settings-save"
         aria-describedby="settings-save-status"
         disabled={!editor.dirty || editor.saving || invalid}
-        onclick={() => attempt(validatedPersist)}>{t('ui_save_changes')}</button
+        onclick={() => attempt(validatedPersist)}>{t(common.save)}</button
       >
     </div>
     <p id="settings-save-status" class:unsaved={editor.dirty} aria-live="polite">
       {editor.saving
-        ? t('ui_saving')
+        ? t('editor.saving')
         : editor.conflict
-          ? t('ui_conflict_draft_preserved')
+          ? t('editor.conflictDraftPreserved')
           : editor.failure
-            ? t('ui_save_failed_draft_preserved')
+            ? t('editor.saveFailedDraftPreserved')
             : editor.dirty
-              ? t('ui_unsaved_changes')
-              : t('ui_all_changes_saved')}
+              ? t('editor.unsavedChanges')
+              : t('editor.allChangesSaved')}
     </p>
   </header>
   <div class="settings-layout">
     <nav class="settings-navigation">
-      <div class="settings-tabs" role="tablist" aria-label={t('ui_settings_sections')}>
+      <div class="settings-tabs" role="tablist" aria-label={t('settings.settingsSections')}>
         {#each sections as [id, label, icon]}<button
             role="tab"
             id={`tab-${id}`}
@@ -142,7 +142,7 @@
           >{/each}
       </div>
       <button class="settings-help" onclick={learn}
-        ><Icon name="grid" size={17} />{t('ui_settings_help')}</button
+        ><Icon name="grid" size={17} />{t('settings.settingsHelp')}</button
       >
     </nav>
     <div class="settings-sections">

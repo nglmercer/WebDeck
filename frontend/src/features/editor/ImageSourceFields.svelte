@@ -37,7 +37,7 @@
 
 <div class="image-sources">
   <FilePicker
-    label={t('ui_visual_image')}
+    label={t('editor.visualImage')}
     accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
     {filename}
     {metadata}
@@ -51,39 +51,41 @@
       class="text-button"
       disabled={busy}
       aria-expanded={source === 'local'}
-      onclick={() => (source = source === 'local' ? null : 'local')}>{t('ui_local_file')}</button
+      onclick={() => (source = source === 'local' ? null : 'local')}>{t('common.localFile')}</button
     >
     <button
       type="button"
       class="text-button"
       aria-expanded={source === 'url'}
       disabled={busy}
-      onclick={() => (source = source === 'url' ? null : 'url')}>{t('ui_image_import_url')}</button
+      onclick={() => (source = source === 'url' ? null : 'url')}
+      >{t('images.imageImportUrl')}</button
     >
   </div>
   {#if source === 'url'}
     <div class="url-source">
-      <label>{t('ui_image_url')}<input type="url" bind:value={imageUrl} disabled={busy} /></label>
+      <label>{t('images.imageUrl')}<input type="url" bind:value={imageUrl} disabled={busy} /></label
+      >
       <label class="check"
         ><input type="checkbox" bind:checked={liveImage} disabled={busy} />{t(
-          'ui_live_image',
+          'images.liveImage',
         )}</label
       >
       <button type="button" class="primary" disabled={busy || !imageUrl.trim()} onclick={importUrl}
-        >{t('ui_import_image_url')}</button
+        >{t('images.importImageUrl')}</button
       >
     </div>
   {:else if source === 'local'}
     <div class="url-source">
-      <label>{t('ui_local_image_path')}<input bind:value={imagePath} disabled={busy} /></label>
+      <label>{t('images.localImagePath')}<input bind:value={imagePath} disabled={busy} /></label>
       <div class="local-actions">
         <button type="button" disabled={busy} onclick={chooseLocal}
-          >{t('ui_choose_local_image')}</button
+          >{t('images.chooseLocalImage')}</button
         ><button
           type="button"
           class="primary"
           disabled={busy || !imagePath.trim()}
-          onclick={importLocal}>{t('ui_import_local_image')}</button
+          onclick={importLocal}>{t('editor.importLocalImage')}</button
         >
       </div>
     </div>

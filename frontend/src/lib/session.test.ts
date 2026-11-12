@@ -53,7 +53,7 @@ it('a display refresh failure does not turn a committed save into a write failur
   await session.load();
   client.boot = vi.fn().mockRejectedValue(new Error('offline'));
   await expect(session.refreshAfterSave()).resolves.toBeUndefined();
-  expect(notice).toHaveBeenCalledWith('Saved. Display refresh failed; reload when ready.');
+  expect(notice).toHaveBeenCalledWith('errors.refreshAfterSave');
   expect(session.deck?.revision).toBe(2);
   session.dispose();
 });

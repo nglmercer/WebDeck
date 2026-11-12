@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useTranslations } from '../lib/i18n';
+  import { useTranslations, common } from '../lib/i18n';
   const t = useTranslations();
 
   import { id } from '../lib/id';
@@ -35,7 +35,7 @@
   <div class="number-input" class:with-controls={controls}>
     {#if controls}<button
         type="button"
-        aria-label={t('ui_decrease_value', { label })}
+        aria-label={t('editor.decreaseValue', { label })}
         disabled={value <= min}
         onclick={() => {
           error = false;
@@ -62,7 +62,7 @@
     />
     {#if controls}<button
         type="button"
-        aria-label={t('ui_increase_value', { label })}
+        aria-label={t('editor.increaseValue', { label })}
         disabled={value >= max}
         onclick={() => {
           error = false;
@@ -73,7 +73,7 @@
   </div>
 </div>
 {#if error}<p id={errorId} class="field-error">
-    {t('ui_number_bounds', { min, max })}
+    {t(common.numberBounds, { min, max })}
   </p>{/if}
 
 <style>

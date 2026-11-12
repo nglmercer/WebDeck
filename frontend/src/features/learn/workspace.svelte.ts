@@ -124,7 +124,7 @@ export class GuideWorkspace {
     const root = layout.folders[0]!;
     root.buttons.push({
       id: `${folderId}-link`,
-      label: this.options.translate('ui_guide_sample_folder'),
+      label: this.options.translate('guides.library.sampleFolder'),
       icon: 'icon:folder',
       color: '#6654e8',
       action: { type: 'folder', folder_id: folderId },
@@ -132,12 +132,12 @@ export class GuideWorkspace {
     });
     layout.folders.push({
       id: folderId,
-      label: this.options.translate('ui_guide_sample_folder'),
+      label: this.options.translate('guides.library.sampleFolder'),
       extensions: {},
       buttons: [
         {
           id: `${folderId}-back`,
-          label: this.options.translate('ui_back'),
+          label: this.options.translate('common.back'),
           icon: 'icon:back',
           color: '#252936',
           action: { type: 'back' },
@@ -151,7 +151,7 @@ export class GuideWorkspace {
   private exampleButton(flavor: EditorFlavor): Button {
     const button: Button = {
       id: 'webdeck-tutorial-button',
-      label: this.options.translate('ui_guide_sample_button'),
+      label: this.options.translate('guides.library.sampleButton'),
       icon: 'icon:grid',
       color: '#6654e8',
       action: { type: 'command', command: { type: 'open', target: 'https://example.com' } },

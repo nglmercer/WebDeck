@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { provideTranslations } from './lib/i18n';
+  import { provideTranslations, common } from './lib/i18n';
 
   import { onMount, tick } from 'svelte';
   import type Learn from './features/learn/Learn.svelte';
@@ -61,6 +61,7 @@
     error: (message) => (error = message),
     notice: (message) => (notice = message),
   });
+  const t = provideTranslations(() => session.translations);
   const lessons: GuideWorkspace = new GuideWorkspace({
     get: () => ({ folder: navigation.active, panel: navigation.panel, editing, settingsTab }),
     set: (state) => {
@@ -74,7 +75,7 @@
       interactions.controls = mode === 'controls';
       interactions.help = mode === 'shortcuts';
     },
-    translate: (key, values) => t(key, values),
+    translate: t,
   });
   const layout: Layout | undefined = $derived(lessons.layout ?? session.layout);
   const current = $derived(
@@ -83,12 +84,12 @@
   const draft = new ButtonDraft(
     () => session.editor,
     () => current,
+    t,
   );
   const execution = new Execution();
-  const t = provideTranslations(() => session.translations);
   provideGuideHelp((id) => void openLearning(id));
   $effect(() => {
-    document.documentElement.lang = session.translations.lang_code || 'en';
+    document.documentElement.lang = t('meta.langCode');
   });
   $effect(() => {
     if (!session.deck || session.deck.can_edit) return;
@@ -143,7 +144,7 @@
     if (editing && (session.editor.dirty || session.editor.saving)) {
       await persist();
       if (session.editor.dirty)
-        throw new Error('Changes were added during saving. Save again before leaving edit mode.');
+        throw new Error('editor.changesWereAddedDuringSavingSaveAgainBeforeLeavingEditMode');
     }
     interactions.controls = false;
     navigation.panel = 'deck';
@@ -228,11 +229,11 @@
     });
   }
   async function persist() {
-    if ($tutorialActive) throw new Error(t('ui_guide_readonly'));
+    if ($tutorialActive) throw new Error(t('guides.library.readonly'));
     if (!session.editor) return;
     notice = '';
     await session.editor.persist();
-    notice = t('ui_saved');
+    notice = t(common.saved);
     await session.refreshAfterSave();
   }
   onMount(() => {
@@ -263,7 +264,7 @@
 />
 
 <svelte:head
-  ><title>{t('ui_webdeck_v2')}</title>{#each session.themeUrls as href}<link
+  ><title>{t('deck.webdeckV2')}</title>{#each session.themeUrls as href}<link
       rel="stylesheet"
       {href}
     />{/each}</svelte:head
@@ -285,24 +286,24 @@
         return !session.pairing && !!session.deck;
       }}
     />
-  {:else if session.loading}<main aria-busy="true"><p>{t('ui_loading_webdeck')}</p></main>
+  {:else if session.loading}<main aria-busy="true"><p>{t('deck.loadingWebdeck')}</p></main>
   {:else if session.deck}
     <main class:deck-main={navigation.panel === 'deck'} class:editing>
       {#if ['reconnecting', 'offline'].includes(connection.state)}<p role="status">
-          {t('ui_connection_reconnecting')}
+          {t('connections.connectionReconnecting')}
         </p>{/if}
       {#if ['authorization_expired', 'revoked'].includes(connection.state)}<p role="alert">
-          {t('ui_connection_expired')}
+          {t('connections.connectionExpired')}
         </p>
         <button
           onclick={() => {
             setToken('');
             connection.state = 'pairing';
             session.pairing = true;
-          }}>{t('ui_request_access')}</button
+          }}>{t('pairing.requestAccess')}</button
         >{/if}
       {#if navigation.panel === 'deck'}
-        <h1 class="sr-only">{current?.label ?? t('ui_control_deck')}</h1>
+        <h1 class="sr-only">{current?.label ?? t('deck.controlDeck')}</h1>
         {#if editing && current && session.editor}<EditorToolbar
             {editing}
             editor={session.editor}
@@ -362,12 +363,12 @@
   {:else}
     <main>
       <section role="status">
-        <h1>{t('ui_loading_failed')}</h1>
-        <p>{t('ui_loading_failed_help')}</p>
+        <h1>{t(common.loadingFailed)}</h1>
+        <p>{t(common.loadingFailedHelp)}</p>
         <button
           onclick={() => {
             void load();
-          }}>{t('ui_reload')}</button
+          }}>{t(common.reload)}</button
         >
       </section>
     </main>
@@ -459,16 +460,16 @@
 {/if}
 
 {#if discarding}
-  <Modal label={t('ui_unsaved_button_changes')} close={() => (discarding = false)}>
-    <h2>{t('ui_unsaved_button_changes')}</h2>
-    <p>{t('ui_discard_button_help')}</p>
-    <button class="primary" onclick={() => (discarding = false)}>{t('ui_keep_editing')}</button>
+  <Modal label={t('editor.unsavedButtonChanges')} close={() => (discarding = false)}>
+    <h2>{t('editor.unsavedButtonChanges')}</h2>
+    <p>{t('editor.discardButtonHelp')}</p>
+    <button class="primary" onclick={() => (discarding = false)}>{t('editor.keepEditing')}</button>
     <button
       class="danger"
       onclick={() => {
         discarding = false;
         draft.button = null;
-      }}>{t('ui_discard_changes')}</button
+      }}>{t('editor.discardChanges')}</button
     >
   </Modal>
 {/if}

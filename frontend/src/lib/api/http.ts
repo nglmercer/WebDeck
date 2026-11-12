@@ -33,17 +33,13 @@ export async function request<T>(path: string, name: string, init: RequestInit =
     });
   } catch (e) {
     if (e instanceof DOMException && (e.name === 'TimeoutError' || e.name === 'AbortError'))
-      throw new Error(
-        path === 'commands'
-          ? 'Request timed out; execution outcome is unknown. No retry was sent.'
-          : 'Request timed out. Try again.',
-      );
+      throw new Error(path === 'commands' ? 'errors.commandTimeout' : 'errors.requestTimeout');
     throw e;
   }
   const v: unknown = await r.json();
   if (!r.ok) {
     const e = v as { message?: string; code?: string };
-    throw new ApiError(r.status, e.message ?? 'Request failed', e.code);
+    throw new ApiError(r.status, e.message ?? 'errors.requestFailed', e.code);
   }
   return contract<T>(name, v);
 }

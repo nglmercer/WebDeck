@@ -12,7 +12,7 @@
         dynamic[event.button_id] = { label: event.label, active: event.active };
     }),
   );
-  import { useTranslations } from '../../lib/i18n';
+  import { useTranslations, common } from '../../lib/i18n';
   const t = useTranslations();
 
   import type { Button, Layout, UsageResponse } from '../../lib/contracts';
@@ -143,15 +143,15 @@
 
 <svelte:window bind:innerWidth={viewportWidth} bind:innerHeight={viewportHeight} />
 
-{#if placementState.error}<p role="alert">{t(placementState.error)}</p>{/if}
-{#if paged}<div class="row-range" role="group" aria-label={t('ui_grid_row_navigation')}>
+{#if placementState.error}<p role="alert">{t.message(placementState.error)}</p>{/if}
+{#if paged}<div class="row-range" role="group" aria-label={t('deck.gridRowNavigation')}>
     <button
       aria-describedby="grid-row-range"
       disabled={startRow === 0}
-      onclick={() => (selectedRow = Math.max(0, startRow - 128))}>{t('ui_previous_rows')}</button
+      onclick={() => (selectedRow = Math.max(0, startRow - 128))}>{t('deck.previousRows')}</button
     >
     <NumberField
-      label={t('ui_first_visible_row')}
+      label={t('deck.firstVisibleRow')}
       value={startRow + 1}
       min={1}
       max={totalRows}
@@ -161,10 +161,10 @@
       aria-describedby="grid-row-range"
       disabled={startRow + 128 >= totalRows}
       onclick={() => (selectedRow = Math.min(totalRows - 1, startRow + 128))}
-      >{t('ui_next_rows')}</button
+      >{t('deck.nextRows')}</button
     >
     <p id="grid-row-range">
-      {t('ui_visible_grid_rows', {
+      {t('deck.visibleGridRows', {
         first: startRow + 1,
         last: Math.min(totalRows, startRow + 128),
         total: totalRows,
@@ -182,7 +182,7 @@
     ? `${coarse ? Math.max(180, viewportHeight - deckTop - 8) : naturalHeight * scale}px`
     : undefined}
   role="region"
-  aria-label={t('ui_control_deck')}
+  aria-label={t('deck.controlDeck')}
   tabindex="0"
 >
   <div
@@ -215,12 +215,13 @@
             class:blank={b.action.type === 'none'}
             disabled={!editing && (running[b.id] || !canRun(b))}
             aria-label={editing && coarse && b.action.type !== 'folder' && b.action.type !== 'back'
-              ? t('ui_edit_named_button', { label: dynamic[b.id]?.label ?? b.label })
+              ? t('deck.editNamedButton', { label: dynamic[b.id]?.label ?? b.label })
               : (dynamic[b.id]?.label ?? b.label)}
             aria-describedby={reason(b) || running[b.id] || outcomeMessages[b.id]
               ? `state-${b.id}`
               : undefined}
-            title={reason(b) || (outcomeMessages[b.id] ? t(outcomeMessages[b.id]!) : undefined)}
+            title={reason(b) ||
+              (outcomeMessages[b.id] ? t.message(outcomeMessages[b.id]!) : undefined)}
             onclick={() => {
               invoke(b);
             }}
@@ -237,15 +238,15 @@
               class:failed={outcomes[b.id] === 'failed'}
               role={outcomes[b.id] === 'completed' ? 'status' : undefined}
               >{running[b.id]
-                ? t('ui_running')
+                ? t(common.running)
                 : outcomes[b.id] === 'completed'
-                  ? t('ui_completed')
+                  ? t(common.completed)
                   : outcomes[b.id] === 'failed'
-                    ? t('ui_failed')
+                    ? t(common.failed)
                     : (b.action.type === 'usage' ||
                           (b.action.type === 'metric' && b.action.metric !== 'clock')) &&
                         usageStatus === 'stale'
-                      ? t('ui_reading_unavailable_stale')
+                      ? t('editor.readingUnavailableStale')
                       : ''}</small
             ></button
           >
@@ -257,24 +258,24 @@
               id={`state-${b.id}`}
               class="sr-only"
               >{reason(b) ||
-                (running[b.id] ? t('ui_running') : t(outcomeMessages[b.id] ?? ''))}</span
+                (running[b.id] ? t(common.running) : t.message(outcomeMessages[b.id] ?? ''))}</span
             >{/if}
           {#if editing}<div
               class="cell-actions"
               class:folder-navigation={b.action.type === 'folder' || b.action.type === 'back'}
             >
               <button
-                aria-label={t('ui_edit_named_button', { label: b.label })}
+                aria-label={t('deck.editNamedButton', { label: b.label })}
                 onclick={() => edit(b)}><Icon name="edit" size={18} /></button
               >{#if b.action.type !== 'settings'}<button
-                  aria-label={t('ui_remove_named_button', { label: b.label })}
+                  aria-label={t('deck.removeNamedButton', { label: b.label })}
                   onclick={() => remove(b)}><Icon name="trash" size={18} /></button
                 >{/if}
             </div>{/if}
         {:else if editing}<button
             class="deck-button add"
             onclick={() => add(slot.cell)}
-            aria-label={t('ui_add_button_at_cell', { cell: slot.cell + 1 })}
+            aria-label={t('deck.addButtonAtCell', { cell: slot.cell + 1 })}
             ><Icon name="plus" /></button
           >{:else}<div class="empty-cell" aria-hidden="true"></div>{/if}
       </div>{/each}

@@ -37,9 +37,7 @@ it('reports an HTTP timeout without replaying a native command', async () => {
   const fetch = vi.fn().mockRejectedValue(new DOMException('Timed out', 'TimeoutError'));
   vi.stubGlobal('fetch', fetch);
   try {
-    await expect(execute({ type: 'play_pause' }, 'http')).rejects.toThrow(
-      'execution outcome is unknown',
-    );
+    await expect(execute({ type: 'play_pause' }, 'http')).rejects.toThrow('errors.commandTimeout');
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
   } finally {
