@@ -1,0 +1,1127 @@
+[
+  {
+    "id": "overview",
+    "group": "start",
+    "access": "all",
+    "icon": "grid",
+    "title": "ui_guide_overview_title",
+    "description": "ui_guide_overview_description",
+    "steps": [
+      {
+        "id": "deck",
+        "target": "[data-tour=\"deck\"]",
+        "title": "ui_guide_overview_deck_title",
+        "description": "ui_guide_overview_deck_help",
+        "frame": {
+          "surface": "deck",
+          "editing": false
+        }
+      },
+      {
+        "id": "folders",
+        "target": "[data-tour=\"folders\"]",
+        "title": "ui_guide_overview_folders_title",
+        "description": "ui_guide_overview_folders_help",
+        "frame": {
+          "surface": "deck",
+          "editing": false
+        },
+        "optional": "folders"
+      },
+      {
+        "id": "editing",
+        "target": "[data-tour=\"editor\"]",
+        "title": "ui_guide_overview_editing_title",
+        "description": "ui_guide_overview_editing_help",
+        "frame": {
+          "surface": "deck",
+          "editing": true
+        },
+        "admin": true
+      },
+      {
+        "id": "connections",
+        "target": ".connect-strip",
+        "title": "ui_guide_overview_connections_title",
+        "description": "ui_guide_overview_connections_help",
+        "frame": {
+          "surface": "settings",
+          "page": "devices"
+        },
+        "admin": true
+      },
+      {
+        "id": "replay",
+        "target": "[data-tour=\"deck\"]",
+        "title": "ui_guide_overview_replay_title",
+        "description": "ui_guide_overview_replay_help",
+        "frame": {
+          "surface": "deck",
+          "editing": false
+        }
+      }
+    ]
+  },
+  {
+    "id": "controls",
+    "group": "start",
+    "access": "all",
+    "icon": "keyboard",
+    "title": "ui_guide_controls_title",
+    "description": "ui_guide_controls_description",
+    "steps": [
+      {
+        "id": "menu",
+        "target": "[data-guide=\"controls-menu\"]",
+        "title": "ui_guide_controls_menu_title",
+        "description": "ui_guide_controls_menu_help",
+        "frame": {
+          "surface": "controls"
+        }
+      },
+      {
+        "id": "navigation",
+        "target": "[data-guide=\"controls-navigation\"]",
+        "title": "ui_guide_controls_navigation_title",
+        "description": "ui_guide_controls_navigation_help",
+        "frame": {
+          "surface": "controls"
+        }
+      },
+      {
+        "id": "shortcuts",
+        "target": "#controls-panel-help",
+        "title": "ui_guide_controls_shortcuts_title",
+        "description": "ui_guide_controls_shortcuts_help",
+        "frame": {
+          "surface": "controls",
+          "detail": "shortcuts"
+        }
+      },
+      {
+        "id": "access",
+        "target": "[data-guide=\"controls-menu\"]",
+        "title": "ui_guide_controls_access_title",
+        "description": "ui_guide_controls_access_help",
+        "frame": {
+          "surface": "controls"
+        }
+      }
+    ]
+  },
+  {
+    "id": "editing",
+    "group": "start",
+    "access": "admin",
+    "icon": "edit",
+    "title": "ui_guide_editing_title",
+    "description": "ui_guide_editing_description",
+    "steps": [
+      {
+        "id": "toolbar",
+        "target": "[data-tour=\"editor\"]",
+        "title": "ui_guide_editing_toolbar_title",
+        "description": "ui_guide_editing_toolbar_help",
+        "frame": {
+          "surface": "deck",
+          "editing": true,
+          "exampleFolders": true
+        }
+      },
+      {
+        "id": "add",
+        "target": "[data-tour=\"deck\"]",
+        "title": "ui_guide_editing_add_title",
+        "description": "ui_guide_editing_add_help",
+        "frame": {
+          "surface": "deck",
+          "editing": true,
+          "exampleFolders": true
+        }
+      },
+      {
+        "id": "folders",
+        "target": "[data-guide=\"folder-menu\"]",
+        "title": "ui_guide_editing_folders_title",
+        "description": "ui_guide_editing_folders_help",
+        "frame": {
+          "surface": "deck",
+          "editing": true,
+          "detail": "folder-menu",
+          "exampleFolders": true
+        }
+      },
+      {
+        "id": "rename",
+        "target": "[data-guide=\"folder-name\"]",
+        "title": "ui_guide_editing_rename_title",
+        "description": "ui_guide_editing_rename_help",
+        "frame": {
+          "surface": "deck",
+          "editing": true,
+          "detail": "rename",
+          "exampleFolders": true
+        }
+      },
+      {
+        "id": "save",
+        "target": "[data-guide=\"editor-save\"]",
+        "title": "ui_guide_editing_save_title",
+        "description": "ui_guide_editing_save_help",
+        "frame": {
+          "surface": "deck",
+          "editing": true,
+          "detail": "child",
+          "exampleFolders": true
+        }
+      },
+      {
+        "id": "done",
+        "target": "[data-guide=\"editing-done\"]",
+        "title": "ui_guide_editing_done_title",
+        "description": "ui_guide_editing_done_help",
+        "frame": {
+          "surface": "deck",
+          "editing": true,
+          "detail": "child",
+          "exampleFolders": true
+        }
+      }
+    ]
+  },
+  {
+    "id": "content",
+    "group": "buttons",
+    "access": "admin",
+    "icon": "image",
+    "title": "ui_guide_content_title",
+    "description": "ui_guide_content_description",
+    "steps": [
+      {
+        "id": "label",
+        "target": "[data-guide=\"button-label\"]",
+        "title": "ui_guide_content_label_title",
+        "description": "ui_guide_content_label_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "basic",
+          "tab": "content"
+        },
+        "interactive": true
+      },
+      {
+        "id": "preview",
+        "target": "[data-guide=\"button-preview\"]",
+        "title": "ui_guide_content_preview_title",
+        "description": "ui_guide_content_preview_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "basic",
+          "tab": "content"
+        }
+      },
+      {
+        "id": "icon",
+        "target": ".icon-field",
+        "title": "ui_guide_content_icon_title",
+        "description": "ui_guide_content_icon_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "basic",
+          "tab": "content"
+        }
+      },
+      {
+        "id": "file",
+        "target": ".image-sources .file-picker",
+        "title": "ui_guide_content_file_title",
+        "description": "ui_guide_content_file_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "images",
+          "tab": "content"
+        }
+      },
+      {
+        "id": "imports",
+        "target": ".url-source",
+        "title": "ui_guide_content_imports_title",
+        "description": "ui_guide_content_imports_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "images",
+          "tab": "content",
+          "detail": "image-url"
+        }
+      },
+      {
+        "id": "library",
+        "target": ".image-library",
+        "title": "ui_guide_content_library_title",
+        "description": "ui_guide_content_library_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "images",
+          "tab": "content"
+        }
+      },
+      {
+        "id": "apply",
+        "target": "[data-guide=\"button-apply\"]",
+        "title": "ui_guide_content_apply_title",
+        "description": "ui_guide_content_apply_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "images",
+          "tab": "content"
+        }
+      }
+    ]
+  },
+  {
+    "id": "button-appearance",
+    "group": "buttons",
+    "access": "admin",
+    "icon": "palette",
+    "title": "ui_guide_button_appearance_title",
+    "description": "ui_guide_button_appearance_description",
+    "steps": [
+      {
+        "id": "color",
+        "target": ".background-color",
+        "title": "ui_guide_button_appearance_color_title",
+        "description": "ui_guide_button_appearance_color_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "basic",
+          "tab": "appearance"
+        },
+        "interactive": true
+      },
+      {
+        "id": "span",
+        "target": ".appearance-fields .number-field:first-child",
+        "title": "ui_guide_button_appearance_span_title",
+        "description": "ui_guide_button_appearance_span_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "basic",
+          "tab": "appearance"
+        }
+      },
+      {
+        "id": "scale",
+        "target": ".appearance-fields .number-field:nth-child(3)",
+        "title": "ui_guide_button_appearance_scale_title",
+        "description": "ui_guide_button_appearance_scale_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "basic",
+          "tab": "appearance"
+        },
+        "interactive": true
+      },
+      {
+        "id": "label",
+        "target": ".appearance-fields .check",
+        "title": "ui_guide_button_appearance_label_title",
+        "description": "ui_guide_button_appearance_label_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "basic",
+          "tab": "appearance"
+        },
+        "interactive": true
+      },
+      {
+        "id": "apply",
+        "target": "[data-guide=\"button-apply\"]",
+        "title": "ui_guide_button_appearance_apply_title",
+        "description": "ui_guide_button_appearance_apply_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "basic",
+          "tab": "appearance"
+        }
+      }
+    ]
+  },
+  {
+    "id": "actions",
+    "group": "buttons",
+    "access": "admin",
+    "icon": "layers",
+    "title": "ui_guide_actions_title",
+    "description": "ui_guide_actions_description",
+    "steps": [
+      {
+        "id": "current",
+        "target": ".action-summary",
+        "title": "ui_guide_actions_current_title",
+        "description": "ui_guide_actions_current_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "basic",
+          "tab": "action"
+        }
+      },
+      {
+        "id": "filter",
+        "target": "[data-guide=\"action-picker\"] .filters",
+        "title": "ui_guide_actions_filter_title",
+        "description": "ui_guide_actions_filter_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "basic",
+          "tab": "action",
+          "detail": "action-picker"
+        },
+        "interactive": true
+      },
+      {
+        "id": "catalog",
+        "target": "[data-guide=\"action-picker\"] .options",
+        "title": "ui_guide_actions_catalog_title",
+        "description": "ui_guide_actions_catalog_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "basic",
+          "tab": "action",
+          "detail": "action-picker"
+        }
+      },
+      {
+        "id": "arguments",
+        "target": ".configuration-only",
+        "title": "ui_guide_actions_arguments_title",
+        "description": "ui_guide_actions_arguments_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "basic",
+          "tab": "action"
+        }
+      },
+      {
+        "id": "workflow",
+        "target": "[data-guide=\"button-action\"]",
+        "title": "ui_guide_actions_workflow_title",
+        "description": "ui_guide_actions_workflow_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "workflow",
+          "tab": "action"
+        }
+      },
+      {
+        "id": "plugins",
+        "target": "[data-guide=\"button-action\"]",
+        "title": "ui_guide_actions_plugins_title",
+        "description": "ui_guide_actions_plugins_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "plugin",
+          "tab": "action"
+        }
+      }
+    ]
+  },
+  {
+    "id": "keyboard",
+    "group": "buttons",
+    "access": "admin",
+    "icon": "keyboard",
+    "title": "ui_guide_keyboard_title",
+    "description": "ui_guide_keyboard_description",
+    "steps": [
+      {
+        "id": "preview",
+        "target": ".shortcut-preview",
+        "title": "ui_guide_keyboard_preview_title",
+        "description": "ui_guide_keyboard_preview_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "key",
+          "tab": "action"
+        }
+      },
+      {
+        "id": "record",
+        "target": ".selector-controls .record",
+        "title": "ui_guide_keyboard_record_title",
+        "description": "ui_guide_keyboard_record_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "key",
+          "tab": "action"
+        },
+        "interactive": true
+      },
+      {
+        "id": "modifiers",
+        "target": ".picker .modifier-buttons",
+        "title": "ui_guide_keyboard_modifiers_title",
+        "description": "ui_guide_keyboard_modifiers_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "key",
+          "tab": "action",
+          "detail": "key-picker"
+        },
+        "interactive": true
+      },
+      {
+        "id": "search",
+        "target": ".picker .filters",
+        "title": "ui_guide_keyboard_search_title",
+        "description": "ui_guide_keyboard_search_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "key",
+          "tab": "action",
+          "detail": "key-picker"
+        },
+        "interactive": true
+      },
+      {
+        "id": "keys",
+        "target": ".picker .key-grid",
+        "title": "ui_guide_keyboard_keys_title",
+        "description": "ui_guide_keyboard_keys_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "key",
+          "tab": "action",
+          "detail": "key-picker"
+        },
+        "interactive": true
+      },
+      {
+        "id": "advanced",
+        "target": ".picker .advanced",
+        "title": "ui_guide_keyboard_advanced_title",
+        "description": "ui_guide_keyboard_advanced_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "key",
+          "tab": "action",
+          "detail": "key-picker"
+        }
+      },
+      {
+        "id": "apply",
+        "target": "[data-guide=\"button-apply\"]",
+        "title": "ui_guide_keyboard_apply_title",
+        "description": "ui_guide_keyboard_apply_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "key",
+          "tab": "action"
+        }
+      }
+    ]
+  },
+  {
+    "id": "audio",
+    "group": "buttons",
+    "access": "admin",
+    "icon": "music",
+    "title": "ui_guide_audio_title",
+    "description": "ui_guide_audio_description",
+    "steps": [
+      {
+        "id": "source",
+        "target": ".audio-fields .file-picker",
+        "title": "ui_guide_audio_source_title",
+        "description": "ui_guide_audio_source_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "audio",
+          "tab": "action"
+        }
+      },
+      {
+        "id": "wave",
+        "target": ".waveform",
+        "title": "ui_guide_audio_wave_title",
+        "description": "ui_guide_audio_wave_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "audio",
+          "tab": "action"
+        },
+        "interactive": true
+      },
+      {
+        "id": "times",
+        "target": ".time-fields",
+        "title": "ui_guide_audio_times_title",
+        "description": "ui_guide_audio_times_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "audio",
+          "tab": "action"
+        },
+        "interactive": true
+      },
+      {
+        "id": "preview",
+        "target": ".audio-fields .play",
+        "title": "ui_guide_audio_preview_title",
+        "description": "ui_guide_audio_preview_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "audio",
+          "tab": "action"
+        },
+        "interactive": true
+      },
+      {
+        "id": "volume",
+        "target": ".audio-fields .range-field",
+        "title": "ui_guide_audio_volume_title",
+        "description": "ui_guide_audio_volume_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "audio",
+          "tab": "action"
+        },
+        "interactive": true
+      },
+      {
+        "id": "output",
+        "target": ".audio-fields .output-device",
+        "title": "ui_guide_audio_output_title",
+        "description": "ui_guide_audio_output_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "audio",
+          "tab": "action"
+        }
+      },
+      {
+        "id": "apply",
+        "target": "[data-guide=\"button-apply\"]",
+        "title": "ui_guide_audio_apply_title",
+        "description": "ui_guide_audio_apply_help",
+        "frame": {
+          "surface": "editor",
+          "flavor": "audio",
+          "tab": "action"
+        }
+      }
+    ]
+  },
+  {
+    "id": "appearance",
+    "group": "settings",
+    "access": "admin",
+    "icon": "monitor",
+    "title": "ui_guide_appearance_title",
+    "description": "ui_guide_appearance_description",
+    "steps": [
+      {
+        "id": "layout",
+        "target": "#guide-layout",
+        "title": "ui_guide_appearance_layout_title",
+        "description": "ui_guide_appearance_layout_help",
+        "frame": {
+          "surface": "settings",
+          "page": "appearance"
+        }
+      },
+      {
+        "id": "style",
+        "target": "#guide-button-style",
+        "title": "ui_guide_appearance_style_title",
+        "description": "ui_guide_appearance_style_help",
+        "frame": {
+          "surface": "settings",
+          "page": "appearance"
+        }
+      },
+      {
+        "id": "preview",
+        "target": "#guide-appearance-preview",
+        "title": "ui_guide_appearance_preview_title",
+        "description": "ui_guide_appearance_preview_help",
+        "frame": {
+          "surface": "settings",
+          "page": "appearance"
+        }
+      },
+      {
+        "id": "language",
+        "target": "#guide-language",
+        "title": "ui_guide_appearance_language_title",
+        "description": "ui_guide_appearance_language_help",
+        "frame": {
+          "surface": "settings",
+          "page": "appearance"
+        }
+      },
+      {
+        "id": "files",
+        "target": "#guide-theme-files",
+        "title": "ui_guide_appearance_files_title",
+        "description": "ui_guide_appearance_files_help",
+        "frame": {
+          "surface": "settings",
+          "page": "appearance"
+        }
+      },
+      {
+        "id": "save",
+        "target": "[data-guide=\"settings-save\"]",
+        "title": "ui_guide_appearance_save_title",
+        "description": "ui_guide_appearance_save_help",
+        "frame": {
+          "surface": "settings",
+          "page": "appearance"
+        }
+      }
+    ]
+  },
+  {
+    "id": "integrations",
+    "group": "settings",
+    "access": "admin",
+    "icon": "layers",
+    "title": "ui_guide_integrations_title",
+    "description": "ui_guide_integrations_description",
+    "steps": [
+      {
+        "id": "obs",
+        "target": "#guide-obs",
+        "title": "ui_guide_integrations_obs_title",
+        "description": "ui_guide_integrations_obs_help",
+        "frame": {
+          "surface": "settings",
+          "page": "integrations"
+        }
+      },
+      {
+        "id": "password",
+        "target": "[data-guide=\"obs-password\"]",
+        "title": "ui_guide_integrations_password_title",
+        "description": "ui_guide_integrations_password_help",
+        "frame": {
+          "surface": "settings",
+          "page": "integrations"
+        }
+      },
+      {
+        "id": "check",
+        "target": "[data-guide=\"obs-check\"]",
+        "title": "ui_guide_integrations_check_title",
+        "description": "ui_guide_integrations_check_help",
+        "frame": {
+          "surface": "settings",
+          "page": "integrations"
+        }
+      },
+      {
+        "id": "spotify",
+        "target": "#guide-spotify",
+        "title": "ui_guide_integrations_spotify_title",
+        "description": "ui_guide_integrations_spotify_help",
+        "frame": {
+          "surface": "settings",
+          "page": "integrations"
+        }
+      },
+      {
+        "id": "authorize",
+        "target": "[data-guide=\"spotify-connect\"]",
+        "title": "ui_guide_integrations_authorize_title",
+        "description": "ui_guide_integrations_authorize_help",
+        "frame": {
+          "surface": "settings",
+          "page": "integrations"
+        }
+      },
+      {
+        "id": "status",
+        "target": "[data-guide=\"spotify-status\"]",
+        "title": "ui_guide_integrations_status_title",
+        "description": "ui_guide_integrations_status_help",
+        "frame": {
+          "surface": "settings",
+          "page": "integrations"
+        }
+      }
+    ]
+  },
+  {
+    "id": "connections",
+    "group": "connection",
+    "access": "admin",
+    "icon": "devices",
+    "title": "ui_guide_connections_title",
+    "description": "ui_guide_connections_description",
+    "steps": [
+      {
+        "id": "start",
+        "target": ".connect-strip",
+        "title": "ui_guide_connections_start_title",
+        "description": "ui_guide_connections_start_help",
+        "frame": {
+          "surface": "settings",
+          "page": "devices"
+        }
+      },
+      {
+        "id": "qr",
+        "target": "[data-guide=\"connection-invitation\"]",
+        "title": "ui_guide_connections_qr_title",
+        "description": "ui_guide_connections_qr_help",
+        "frame": {
+          "surface": "settings",
+          "page": "devices",
+          "detail": "invite"
+        }
+      },
+      {
+        "id": "code",
+        "target": "[data-guide=\"pair-approval\"] .code",
+        "title": "ui_guide_connections_code_title",
+        "description": "ui_guide_connections_code_help",
+        "frame": {
+          "surface": "settings",
+          "page": "devices",
+          "detail": "approval"
+        }
+      },
+      {
+        "id": "profile",
+        "target": "[data-guide=\"pair-approval\"] .choice-field",
+        "title": "ui_guide_connections_profile_title",
+        "description": "ui_guide_connections_profile_help",
+        "frame": {
+          "surface": "settings",
+          "page": "devices",
+          "detail": "approval"
+        }
+      },
+      {
+        "id": "expiry",
+        "target": "[data-guide=\"approval-expiry\"]",
+        "title": "ui_guide_connections_expiry_title",
+        "description": "ui_guide_connections_expiry_help",
+        "frame": {
+          "surface": "settings",
+          "page": "devices",
+          "detail": "approval"
+        }
+      },
+      {
+        "id": "manage",
+        "target": "#settings-devices",
+        "title": "ui_guide_connections_manage_title",
+        "description": "ui_guide_connections_manage_help",
+        "frame": {
+          "surface": "settings",
+          "page": "devices",
+          "detail": "device"
+        }
+      }
+    ]
+  },
+  {
+    "id": "network",
+    "group": "connection",
+    "access": "admin",
+    "icon": "globe",
+    "title": "ui_guide_network_title",
+    "description": "ui_guide_network_description",
+    "steps": [
+      {
+        "id": "access",
+        "target": ".network-card",
+        "title": "ui_guide_network_access_title",
+        "description": "ui_guide_network_access_help",
+        "frame": {
+          "surface": "settings",
+          "page": "devices"
+        }
+      },
+      {
+        "id": "address",
+        "target": ".network-fields",
+        "title": "ui_guide_network_address_title",
+        "description": "ui_guide_network_address_help",
+        "frame": {
+          "surface": "settings",
+          "page": "devices"
+        }
+      },
+      {
+        "id": "apply",
+        "target": ".network-actions",
+        "title": "ui_guide_network_apply_title",
+        "description": "ui_guide_network_apply_help",
+        "frame": {
+          "surface": "settings",
+          "page": "devices"
+        }
+      },
+      {
+        "id": "transport",
+        "target": "#settings-connection",
+        "title": "ui_guide_network_transport_title",
+        "description": "ui_guide_network_transport_help",
+        "frame": {
+          "surface": "settings",
+          "page": "devices"
+        }
+      },
+      {
+        "id": "diagnostics",
+        "target": "[data-guide=\"connection-diagnostics\"]",
+        "title": "ui_guide_network_diagnostics_title",
+        "description": "ui_guide_network_diagnostics_help",
+        "frame": {
+          "surface": "settings",
+          "page": "devices",
+          "detail": "diagnostics"
+        }
+      },
+      {
+        "id": "token",
+        "target": "[data-guide=\"manual-token\"]",
+        "title": "ui_guide_network_token_title",
+        "description": "ui_guide_network_token_help",
+        "frame": {
+          "surface": "settings",
+          "page": "devices",
+          "detail": "token"
+        }
+      }
+    ]
+  },
+  {
+    "id": "backups",
+    "group": "settings",
+    "access": "admin",
+    "icon": "folder",
+    "title": "ui_guide_backups_title",
+    "description": "ui_guide_backups_description",
+    "steps": [
+      {
+        "id": "inspect",
+        "target": "[data-guide=\"backup-import\"]",
+        "title": "ui_guide_backups_inspect_title",
+        "description": "ui_guide_backups_inspect_help",
+        "frame": {
+          "surface": "settings",
+          "page": "backups"
+        }
+      },
+      {
+        "id": "preview",
+        "target": ".backup-preview",
+        "title": "ui_guide_backups_preview_title",
+        "description": "ui_guide_backups_preview_help",
+        "frame": {
+          "surface": "settings",
+          "page": "backups",
+          "detail": "preview"
+        }
+      },
+      {
+        "id": "save",
+        "target": "[data-guide=\"settings-save\"]",
+        "title": "ui_guide_backups_save_title",
+        "description": "ui_guide_backups_save_help",
+        "frame": {
+          "surface": "settings",
+          "page": "backups"
+        }
+      },
+      {
+        "id": "export",
+        "target": "[data-guide=\"backup-export\"]",
+        "title": "ui_guide_backups_export_title",
+        "description": "ui_guide_backups_export_help",
+        "frame": {
+          "surface": "settings",
+          "page": "backups"
+        }
+      },
+      {
+        "id": "reload",
+        "target": "[data-guide=\"backup-reload\"]",
+        "title": "ui_guide_backups_reload_title",
+        "description": "ui_guide_backups_reload_help",
+        "frame": {
+          "surface": "settings",
+          "page": "backups"
+        }
+      }
+    ]
+  },
+  {
+    "id": "runtime",
+    "group": "settings",
+    "access": "admin",
+    "icon": "puzzle",
+    "title": "ui_guide_runtime_title",
+    "description": "ui_guide_runtime_description",
+    "steps": [
+      {
+        "id": "health",
+        "target": "#guide-runtime-status",
+        "title": "ui_guide_runtime_health_title",
+        "description": "ui_guide_runtime_health_help",
+        "frame": {
+          "surface": "settings",
+          "page": "runtime"
+        }
+      },
+      {
+        "id": "plugins",
+        "target": "#guide-runtime-status",
+        "title": "ui_guide_runtime_plugins_title",
+        "description": "ui_guide_runtime_plugins_help",
+        "frame": {
+          "surface": "settings",
+          "page": "runtime"
+        }
+      },
+      {
+        "id": "reload",
+        "target": "[data-guide=\"runtime-reload\"]",
+        "title": "ui_guide_runtime_reload_title",
+        "description": "ui_guide_runtime_reload_help",
+        "frame": {
+          "surface": "settings",
+          "page": "runtime"
+        }
+      }
+    ]
+  },
+  {
+    "id": "pairing",
+    "group": "connection",
+    "access": "pairing",
+    "icon": "devices",
+    "title": "ui_guide_pairing_title",
+    "description": "ui_guide_pairing_description",
+    "steps": [
+      {
+        "id": "intro",
+        "target": "[data-guide=\"pairing-screen\"]",
+        "title": "ui_guide_pairing_intro_title",
+        "description": "ui_guide_pairing_intro_help",
+        "frame": {
+          "surface": "pairing"
+        }
+      },
+      {
+        "id": "remember",
+        "target": "[data-guide=\"pairing-remember\"]",
+        "title": "ui_guide_pairing_remember_title",
+        "description": "ui_guide_pairing_remember_help",
+        "frame": {
+          "surface": "pairing"
+        }
+      },
+      {
+        "id": "name",
+        "target": "[data-guide=\"pairing-name\"]",
+        "title": "ui_guide_pairing_name_title",
+        "description": "ui_guide_pairing_name_help",
+        "frame": {
+          "surface": "pairing"
+        }
+      },
+      {
+        "id": "request",
+        "target": "[data-guide=\"pairing-request\"]",
+        "title": "ui_guide_pairing_request_title",
+        "description": "ui_guide_pairing_request_help",
+        "frame": {
+          "surface": "pairing"
+        }
+      },
+      {
+        "id": "code",
+        "target": "[data-guide=\"pairing-code\"]",
+        "title": "ui_guide_pairing_code_title",
+        "description": "ui_guide_pairing_code_help",
+        "frame": {
+          "surface": "pairing",
+          "detail": "waiting"
+        }
+      },
+      {
+        "id": "token",
+        "target": "[data-guide=\"pairing-token\"]",
+        "title": "ui_guide_pairing_token_title",
+        "description": "ui_guide_pairing_token_help",
+        "frame": {
+          "surface": "pairing",
+          "detail": "token"
+        }
+      }
+    ]
+  },
+  {
+    "id": "practice",
+    "group": "start",
+    "access": "all",
+    "icon": "play",
+    "title": "ui_guide_practice_title",
+    "description": "ui_guide_practice_description",
+    "steps": [
+      {
+        "id": "intro",
+        "target": "[data-guide=\"practice-grid\"]",
+        "title": "ui_guide_practice_intro_title",
+        "description": "ui_guide_practice_intro_help",
+        "frame": {
+          "surface": "practice"
+        }
+      },
+      {
+        "id": "scene",
+        "target": "[data-guide=\"practice-scene\"]",
+        "title": "ui_guide_practice_scene_title",
+        "description": "ui_guide_practice_scene_help",
+        "frame": {
+          "surface": "practice"
+        },
+        "interactive": true
+      },
+      {
+        "id": "microphone",
+        "target": "[data-guide=\"practice-microphone\"]",
+        "title": "ui_guide_practice_microphone_title",
+        "description": "ui_guide_practice_microphone_help",
+        "frame": {
+          "surface": "practice"
+        },
+        "interactive": true
+      },
+      {
+        "id": "recording",
+        "target": "[data-guide=\"practice-recording\"]",
+        "title": "ui_guide_practice_recording_title",
+        "description": "ui_guide_practice_recording_help",
+        "frame": {
+          "surface": "practice"
+        },
+        "interactive": true
+      },
+      {
+        "id": "reset",
+        "target": "[data-guide=\"practice-reset\"]",
+        "title": "ui_guide_practice_reset_title",
+        "description": "ui_guide_practice_reset_help",
+        "frame": {
+          "surface": "practice"
+        },
+        "interactive": true
+      }
+    ]
+  }
+]

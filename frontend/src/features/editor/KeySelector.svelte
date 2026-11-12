@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tutorialActive } from '../learn/tour-state';
   import { onDestroy, onMount, tick } from 'svelte';
   import { useTranslations } from '../../lib/i18n';
   import { request } from '../../lib/api/http';
@@ -19,11 +20,15 @@
     value,
     onchange,
     active = true,
+    guidePicker,
+    guideStep,
     onMobileStep = undefined,
   }: {
     value: string[];
     onchange: (keys: string[]) => void;
     active?: boolean;
+    guidePicker?: boolean | undefined;
+    guideStep?: string | undefined;
     onMobileStep?: ((open: boolean) => void) | undefined;
   } = $props();
 
@@ -226,7 +231,7 @@
     advanced = primaryCount > 1;
     const narrow = window.matchMedia?.('(max-width: 640px)').matches ?? window.innerWidth <= 640;
     const popoverAvailable = typeof HTMLElement.prototype.showPopover === 'function';
-    pickerMode = narrow || !popoverAvailable ? 'step' : 'popover';
+    pickerMode = narrow || !popoverAvailable || $tutorialActive ? 'step' : 'popover';
     pickerOpen = true;
     if (pickerMode === 'step') onMobileStep?.(true);
     await tick();
@@ -278,6 +283,11 @@
     }
   });
 
+  $effect(() => {
+    if (guidePicker === undefined) return;
+    if (guidePicker && active && !pickerOpen) void openPicker();
+    else if (!guidePicker && pickerOpen) closePicker(false);
+  });
   onDestroy(() => {
     clearRecordingTimer();
     clearTimeout(focusExitTimer);
@@ -344,6 +354,7 @@
       <div class="picker-content">
         <KeyPickerPanel
           {candidate}
+          {guideStep}
           onCandidateChange={(next) => (candidate = next)}
           {advanced}
           onAdvancedChange={(next) => (advanced = next)}

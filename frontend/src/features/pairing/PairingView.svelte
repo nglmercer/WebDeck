@@ -1,10 +1,19 @@
 <script lang="ts">
+  import GuideButton from '../learn/GuideButton.svelte';
+  import { tutorialActive } from '../learn/tour-state';
   import { onMount, onDestroy } from 'svelte';
   import { useTranslations } from '../../lib/i18n';
   import { request } from '../../lib/api/client';
   import type { PairingChallenge, PairingResult } from '../../lib/contracts';
   const t = useTranslations();
-  let { connect }: { connect: (token: string, remember: boolean) => Promise<boolean> } = $props();
+  let {
+    connect,
+    guidePart,
+  }: {
+    connect: (token: string, remember: boolean) => Promise<boolean>;
+    guidePart?: string | undefined;
+  } = $props();
+  let manualOpen = $state(false);
   let credential = $state(''),
     name = $state(''),
     remember = $state(true),
@@ -12,6 +21,16 @@
   let challenge = $state<PairingChallenge | null>(null),
     message = $state(''),
     error = $state('');
+  const example = {
+    api_version: 2 as const,
+    id: 'example',
+    secret: '',
+    code: '123456',
+    expires_at: 0,
+  };
+  const shownChallenge = $derived(
+    $tutorialActive ? (guidePart === 'waiting' ? example : null) : challenge,
+  );
   let timer: ReturnType<typeof setTimeout> | undefined;
   let destroyed = false;
   let invitation = '';
@@ -59,6 +78,7 @@
       }, 2000);
   }
   async function ask() {
+    if ($tutorialActive) return;
     if (working || !name.trim()) return;
     working = true;
     error = '';
@@ -80,6 +100,7 @@
   }
   async function submit(event: SubmitEvent) {
     event.preventDefault();
+    if ($tutorialActive) return;
     if (working || !credential.trim()) return;
     working = true;
     error = '';
@@ -114,20 +135,24 @@
   });
 </script>
 
-<main class="pairing">
+<main class="pairing" data-guide="pairing-screen">
   <div class="pair-icon" aria-hidden="true">↗</div>
-  <h1>{t('ui_connect_your_device')}</h1>
+  <div class="pairing-heading">
+    <h1>{t('ui_connect_your_device')}</h1>
+    <GuideButton guide="pairing" label={t('ui_connect_your_device')} />
+  </div>
   <p>{t('ui_pair_intro')}</p>
   {#if error}<p class="pair-error" role="alert">{error}</p>{/if}
   {#if message}<p role="status">{message}</p>{/if}
-  <label class="check"
+  <label class="check" data-guide="pairing-remember"
     ><input type="checkbox" bind:checked={remember} />{t('ui_remember_device')}</label
   >
   <p class="muted">{t('ui_remember_device_help')}</p>
-  {#if challenge}
+  {#if shownChallenge}
     <div class="waiting" role="status">
       <h2>{t('ui_waiting_host')}</h2>
-      <div class="pair-code">{challenge.code}</div>
+      <div class="pair-code" data-guide="pairing-code">{shownChallenge.code}</div>
+      {#if $tutorialActive}<p>{t('ui_guide_example')}</p>{/if}
       <p>{t('ui_pair_compare_code')}</p>
       <p>{t('ui_pair_wait_help')}</p>
     </div>
@@ -141,18 +166,25 @@
       <label
         >{t('ui_device_name')}<input
           bind:value={name}
+          data-guide="pairing-name"
           placeholder={t('ui_phone_name_example')}
           maxlength="128"
           autocomplete="nickname"
           required
         /></label
       >
-      <button class="primary" disabled={working || !name.trim()}
+      <button data-guide="pairing-request" class="primary" disabled={working || !name.trim()}
         >{working ? t('ui_connecting') : t('ui_request_access')}</button
       >
     </form>
   {/if}
-  <details>
+  <details
+    data-guide="pairing-token"
+    open={$tutorialActive ? guidePart === 'token' : manualOpen}
+    ontoggle={(event) => {
+      if (!$tutorialActive) manualOpen = event.currentTarget.open;
+    }}
+  >
     <summary>{t('ui_use_pairing_token')}</summary>
     <p id="manual-pair-help">{t('ui_manual_pair_help')}</p>
     <form onsubmit={submit}>
@@ -176,6 +208,12 @@
 </main>
 
 <style>
+  .pairing-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
   .pairing {
     max-width: 480px;
     margin: 6vh auto;

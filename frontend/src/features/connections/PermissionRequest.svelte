@@ -98,7 +98,7 @@
 </script>
 
 {#if available.some((c) => !capabilities.includes(c))}
-  <details>
+  <details data-guide="permission-request">
     <summary>{t('ui_request_permission')}</summary>
     <p>{t('ui_permission_request_help')}</p>
     {#each available.filter((c) => !capabilities.includes(c)) as capability}<label class="check"

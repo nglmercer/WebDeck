@@ -2,8 +2,12 @@
   import { provideTranslations } from './lib/i18n';
 
   import { onMount, tick } from 'svelte';
-  import Learn from './features/learn/Learn.svelte';
-  import type { Button } from './lib/contracts';
+  import type Learn from './features/learn/Learn.svelte';
+  import { GuideWorkspace, tutorialImages } from './features/learn/workspace.svelte';
+  import { tutorialActive } from './features/learn/tour-state';
+  import { provideGuideHelp } from './features/learn/context';
+  import type { GuideId } from './features/learn/guides';
+  import type { Button, Layout } from './lib/contracts';
   import { ApiError, setToken } from './lib/api/client';
   import { Session } from './lib/session.svelte';
   import { ButtonDraft } from './features/editor/button-draft.svelte';
@@ -26,12 +30,16 @@
   import { appearanceOf } from './features/editor/appearance';
   const connection = new ConnectionController();
   let connectionRequest = $state(0);
-  let learning: { open: () => void } | undefined = $state();
-  async function openLearning() {
+  let LearningView = $state<typeof Learn>();
+  let learning: { open: (id?: GuideId, origin?: HTMLElement | null) => void } | undefined =
+    $state();
+  async function openLearning(id?: GuideId) {
+    const origin = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     interactions.controls = false;
     interactions.help = false;
+    LearningView ??= (await import('./features/learn/Learn.svelte')).default;
     await tick();
-    learning?.open();
+    learning?.open(id, origin);
   }
   onMount(() => {
     connection.start();
@@ -53,7 +61,22 @@
     error: (message) => (error = message),
     notice: (message) => (notice = message),
   });
-  const layout = $derived(session.layout);
+  const lessons: GuideWorkspace = new GuideWorkspace({
+    get: () => ({ folder: navigation.active, panel: navigation.panel, editing, settingsTab }),
+    set: (state) => {
+      navigation.active = state.folder;
+      navigation.panel = state.panel;
+      editing = state.editing;
+      settingsTab = state.settingsTab;
+    },
+    layout: () => session.layout,
+    controls: (mode) => {
+      interactions.controls = mode === 'controls';
+      interactions.help = mode === 'shortcuts';
+    },
+    translate: (key, values) => t(key, values),
+  });
+  const layout: Layout | undefined = $derived(lessons.layout ?? session.layout);
   const current = $derived(
     layout?.folders.find((folder) => folder.id === navigation.active) ?? layout?.folders[0],
   );
@@ -63,6 +86,7 @@
   );
   const execution = new Execution();
   const t = provideTranslations(() => session.translations);
+  provideGuideHelp((id) => void openLearning(id));
   $effect(() => {
     document.documentElement.lang = session.translations.lang_code || 'en';
   });
@@ -74,13 +98,14 @@
     if (capabilities && capabilities.join(',') !== session.deck.capabilities.join(','))
       session.deck.capabilities = [...capabilities];
   });
-  const navigation = new Navigation(
+  const navigation: Navigation = new Navigation(
     () => layout,
     () => !!session.editor,
   );
   const interactions = new DeckInteractions({
     enabled: () => !!session.deck && navigation.panel === 'deck',
     hasDialog: () =>
+      $tutorialActive ||
       !!draft.button ||
       !!document.querySelector(
         '.settings-shell dialog[open], [data-learning-dialog], .driver-popover',
@@ -113,6 +138,7 @@
     else draft.button = null;
   }
   async function toggleEdit() {
+    if ($tutorialActive) return;
     if (!session.editor) return;
     if (editing && (session.editor.dirty || session.editor.saving)) {
       await persist();
@@ -142,6 +168,7 @@
     await session.assets();
   }
   async function invoke(b: Button) {
+    if ($tutorialActive) return;
     if (interactions.controls) return;
     if (editing) {
       if (b.action.type === 'folder') {
@@ -201,6 +228,7 @@
     });
   }
   async function persist() {
+    if ($tutorialActive) throw new Error(t('ui_guide_readonly'));
     if (!session.editor) return;
     notice = '';
     await session.editor.persist();
@@ -250,6 +278,7 @@
 >
   <Feedback bind:error bind:notice />
   {#if session.pairing}<PairingView
+      guidePart={lessons.frame?.surface === 'pairing' ? lessons.frame.detail : undefined}
       connect={async (token, remember) => {
         setToken(token, remember);
         await attempt(load);
@@ -313,6 +342,7 @@
           />{/if}
       {:else if navigation.panel === 'settings' && session.editor}
         <SettingsView
+          guidePart={lessons.frame?.surface === 'settings' ? lessons.frame.detail : undefined}
           bind:activeTab={settingsTab}
           assetUrls={session.assetUrls}
           learn={() => void openLearning()}
@@ -366,20 +396,48 @@
       authorizationChanged={() => void connection.refresh()}
     />{/if}
 </DeckControls>
-<Learn
-  bind:this={learning}
-  canEdit={!!session.editor}
-  prepare={() => navigate(navigation.active)}
-  restore={() =>
-    document
-      .querySelector<HTMLElement>(
-        navigation.panel === 'settings' ? '.settings-help' : '.deck-scroll',
-      )
-      ?.focus()}
-/>
+{#if LearningView}<LearningView
+    bind:this={learning}
+    canEdit={!!session.editor}
+    pairing={session.pairing}
+    hasFolders={!!current?.buttons.some((button) => button.action.type === 'folder')}
+    prepare={(step, signal) => lessons.prepare(step, signal)}
+    restore={() => lessons.restore()}
+    focus={() => {
+      const selector = draft.button
+        ? 'dialog.editor .guide-button'
+        : session.pairing
+          ? '.pairing .guide-button'
+          : navigation.panel === 'settings'
+            ? '.settings-help'
+            : '.deck-scroll';
+      document.querySelector<HTMLElement>(selector)?.focus({ preventScroll: true });
+    }}
+  />{/if}
+{#if lessons.button && layout}{#key lessons.frame?.flavor}<ButtonEditorDialog
+      bind:button={lessons.button}
+      bind:activeTab={lessons.tab}
+      tutorial={{
+        step: lessons.step,
+        detail: lessons.frame?.detail,
+        audio: lessons.audio,
+        images: tutorialImages,
+      }}
+      {layout}
+      catalog={session.catalog}
+      assetUrls={{ ...session.assetUrls, ...tutorialImages }}
+      refreshAssets={async () => {}}
+      moveButton={() => {}}
+      removeButton={() => {}}
+      duplicateButton={() => {}}
+      commitButton={() => {}}
+      {attempt}
+      close={() => {}}
+    />{/key}{/if}
 {#if draft.button && layout}
   <ButtonEditorDialog
     bind:button={draft.button}
+    suspended={$tutorialActive}
     {layout}
     catalog={session.catalog}
     assetUrls={session.assetUrls}
@@ -416,6 +474,7 @@
 {/if}
 
 {#if session.deck?.can_edit}<PairingApprovals
+    tutorial={lessons.frame?.detail === 'approval'}
     capabilities={session.deck.capabilities}
     suggested={Object.values(session.deck.button_capabilities)}
     {attempt}

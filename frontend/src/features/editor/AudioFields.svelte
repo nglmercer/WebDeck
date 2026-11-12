@@ -21,6 +21,7 @@
   const clipId = `wave-${id()}`;
   let {
     value,
+    previewBuffer,
     onchange,
     active = true,
     metadata,
@@ -28,6 +29,7 @@
     onvalidity = () => {},
   }: {
     value: Extract<Command, { type: 'play_sound' }>;
+    previewBuffer?: AudioBuffer | undefined;
     onchange: (value: Extract<Command, { type: 'play_sound' }>) => void;
     active?: boolean;
     metadata?: MediaMetadata | undefined;
@@ -99,6 +101,7 @@
   });
   $effect(() => {
     const currentKey = key;
+    const local = previewBuffer;
     const source = untrack(() => value.source);
     stop();
     decoded = null;
@@ -108,6 +111,14 @@
     hoverTime = null;
     loadError = '';
     fieldError = '';
+    if (local) {
+      decoded = local;
+      peaks = waveform(local);
+      size = local.length * 2 + 44;
+      position = untrack(() => start);
+      loading = false;
+      return;
+    }
     if (!currentKey) {
       loading = false;
       return;

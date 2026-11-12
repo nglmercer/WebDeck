@@ -7,7 +7,8 @@
   import { useTranslations } from '../../lib/i18n';
   const t = useTranslations();
 
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, untrack } from 'svelte';
+  import { tutorialActive } from '../learn/tour-state';
   import PermissionProfiles from '../connections/PermissionProfiles.svelte';
   import { request } from '../../lib/api/client';
   import type {
@@ -17,11 +18,27 @@
   } from '../../lib/contracts';
   import type { Device, DeviceApproval, Capability } from '../../lib/contracts';
   import { devices as listDevices, approve, revoke } from '../../lib/api/client';
-  let { attempt }: { attempt: (work: () => Promise<void>) => Promise<void> } = $props();
+  let {
+    attempt,
+    tutorial = false,
+    guideToken = false,
+  }: {
+    attempt: (work: () => Promise<void>) => Promise<void>;
+    tutorial?: boolean;
+    guideToken?: boolean;
+  } = $props();
   let presence = $state<DevicePresenceList | null>(null),
     profiles = $state<Profiles | null>(null),
     selected = $state<Device | null>(null);
   let tokenDialog = $state(false);
+  $effect(() => {
+    if (!guideToken) return;
+    const previous = untrack(() => tokenDialog);
+    tokenDialog = true;
+    return () => {
+      tokenDialog = previous;
+    };
+  });
   let newName = $state(''),
     newCapabilities = $state<Capability[]>([]),
     newTtl = $state(2592000);
@@ -29,6 +46,14 @@
   let devices = $state<Device[]>([]),
     grant = $state<DeviceApproval | null>(null),
     deviceName = $state('');
+  const example: Device = {
+    id: 'webdeck-example-phone',
+    name: t('ui_guide_local_sample'),
+    capabilities: ['read'],
+    expires_at: Math.floor(Date.now() / 1000) + 2592000,
+    revoked: false,
+  };
+  const shownDevices = $derived(tutorial ? [example] : devices);
   let grantCapabilities = $state<Capability[]>(['read', 'input']),
     grantTtl = $state(86400);
   let loading = $state(true),
@@ -88,6 +113,7 @@
     newCapabilities = [...device.capabilities];
   }
   async function saveDevice() {
+    if ($tutorialActive) return;
     if (!selected || working) return;
     if (
       newCapabilities.some(
@@ -116,6 +142,7 @@
     }
   }
   async function addDevice() {
+    if ($tutorialActive) return;
     if (working) return;
     working = true;
     try {
@@ -133,6 +160,7 @@
     }
   }
   async function copyToken() {
+    if ($tutorialActive) return;
     const candidate = grant;
     if (!candidate) return;
     await navigator.clipboard.writeText(candidate.token);
@@ -142,6 +170,7 @@
     }
   }
   async function revokeDevice(id: string) {
+    if ($tutorialActive) return;
     if (revoking[id]) return;
     revoking[id] = true;
     try {
@@ -159,14 +188,14 @@
 <section id="settings-devices">
   <div class="devices-heading">
     <h3>{t('ui_paired_devices')}</h3>
-    <span>{devices.filter((device) => !device.revoked).length}</span>
+    <span>{shownDevices.filter((device) => !device.revoked).length}</span>
   </div>
-  {#if loading && !devices.length}<p role="status">
+  {#if !tutorial && loading && !devices.length}<p role="status">
       {t('ui_loading_devices')}
-    </p>{:else if loadError}<p role="alert">
+    </p>{:else if !tutorial && loadError}<p role="alert">
       {t(loadError)}
     </p>
-    <button onclick={getDevices}>{t('ui_retry')}</button>{:else if !devices.length}<p>
+    <button onclick={getDevices}>{t('ui_retry')}</button>{:else if !shownDevices.length}<p>
       {t('ui_no_devices_paired_yet')}
     </p>{/if}
   {#if selected}
@@ -206,7 +235,7 @@
       </fieldset>
     </Modal>
   {/if}
-  {#each devices as device}<article class="device-card">
+  {#each shownDevices as device}<article class="device-card">
       <div class="device-identity">
         <div class="device-title">
           <Icon name="devices" size={20} /><strong>{device.name}</strong>
@@ -262,7 +291,7 @@
         grant = null;
       }}
     >
-      <div class="heading">
+      <div class="heading" data-guide="manual-token">
         <h3>{t('ui_use_pairing_token')}</h3>
         <button
           onclick={() => {

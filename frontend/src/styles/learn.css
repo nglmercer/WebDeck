@@ -6,13 +6,38 @@
   padding: 24px;
   box-shadow: var(--shadow-dialog);
   font-family: var(--font-body);
+  max-width: min(350px, calc(100vw - 24px));
+  box-sizing: border-box;
 }
 .webdeck-tour .driver-popover-title {
   font-size: 1.1rem;
 }
 .webdeck-tour .driver-popover-description {
   color: var(--text-muted);
-  line-height: 1.7;
+  line-height: 1.5;
+}
+
+/* Driver.js 1.4 renders in body; dialogs temporarily use their nonmodal layer. */
+dialog[data-tutorial-dialog] {
+  z-index: 40;
+}
+[data-guide-obscured] {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+.webdeck-tour .driver-popover-footer button {
+  min-height: 40px;
+}
+@media (max-width: 480px) {
+  .webdeck-tour.driver-popover {
+    padding: 16px;
+  }
+  .webdeck-tour .driver-popover-title {
+    font-size: 1rem;
+  }
+  .webdeck-tour .driver-popover-description {
+    font-size: 0.8rem;
+  }
 }
 .webdeck-tour .driver-popover-footer button {
   background: var(--surface-raised);

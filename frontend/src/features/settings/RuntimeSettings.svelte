@@ -49,7 +49,7 @@
 
 <div id="settings-runtime" class="settings-page" aria-labelledby="runtime-title">
   <div class="settings-page-heading"><h2 id="runtime-title">{t('ui_runtime')}</h2></div>
-  <SettingsCard title={t('ui_runtime_status')} icon="grid">
+  <SettingsCard id="guide-runtime-status" title={t('ui_runtime_status')} icon="grid">
     {#if status}
       <p>
         <StatusBadge
@@ -82,6 +82,8 @@
       {:else}<p>{t('ui_runtime_no_plugins')}</p>{/if}
     {/if}
     {#if failure}<p role="alert">{failure}</p>{/if}
-    <button disabled={busy} onclick={() => attempt(refresh)}>{t('ui_reload_plugins')}</button>
+    <button data-guide="runtime-reload" disabled={busy} onclick={() => attempt(refresh)}
+      >{t('ui_reload_plugins')}</button
+    >
   </SettingsCard>
 </div>

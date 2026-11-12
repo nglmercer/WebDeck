@@ -1,15 +1,15 @@
 <script lang="ts">
+  import GuideButton from '../learn/GuideButton.svelte';
   import Icon from '../../components/Icon.svelte';
   import { useTranslations } from '../../lib/i18n';
   const t = useTranslations();
-  let activeTab = $state('content');
   let actionValid = $state(true);
   let moreOpen = $state(false);
   let moreActions = $state<HTMLDivElement>();
   let moreTrigger = $state<HTMLButtonElement>();
 
   import { modal } from '../../lib/modal';
-  import { onDestroy, onMount, tick } from 'svelte';
+  import { onDestroy, onMount, tick, untrack } from 'svelte';
   import { AssetCache } from '../../lib/assets';
   import { asset, request } from '../../lib/api/client';
   import type {
@@ -38,6 +38,9 @@
   import ImageSourceFields from './ImageSourceFields.svelte';
   let {
     button = $bindable(),
+    activeTab = $bindable('content'),
+    suspended = false,
+    tutorial,
     layout,
     catalog,
     assetUrls,
@@ -51,6 +54,16 @@
     attempt,
   }: {
     button: Button;
+    activeTab?: string;
+    suspended?: boolean;
+    tutorial?:
+      | {
+          step: string;
+          detail?: string | undefined;
+          audio?: AudioBuffer | undefined;
+          images?: Record<string, string> | undefined;
+        }
+      | undefined;
     layout: Layout;
     catalog: CatalogResponse | null;
     assetUrls: Record<string, string>;
@@ -67,6 +80,9 @@
   let lastIcon = $state(button.icon.startsWith('asset:') ? 'icon:grid' : button.icon);
   let lastImage = $state(button.icon.startsWith('asset:') ? button.icon : '');
   let actionPickerOpen = $state(false);
+  $effect(() => {
+    if (tutorial) actionPickerOpen = tutorial.detail === 'action-picker';
+  });
   let mobilePickerOpen = $state(false);
   let editorDialog: HTMLDialogElement;
   let editorBody: HTMLDivElement;
@@ -99,7 +115,7 @@
   const hasConfiguration = $derived(
     Object.keys(actionSchema?.properties ?? {}).some((key) => key !== 'type'),
   );
-  let imageIds = $state<string[]>([]);
+  let imageIds = $state<string[]>(untrack(() => Object.keys(tutorial?.images ?? {})));
   let imagePage = $state(0);
   let imageUrl = $state('');
   let imagePath = $state('');
@@ -140,8 +156,9 @@
   $effect(() => {
     void refreshTick;
     let stale = false;
-    void libraryAssets.load(pageIds).then((result) => {
-      if (!stale && result) libraryUrls = result.urls;
+    const borrowed = tutorial?.images ?? {};
+    void libraryAssets.load(pageIds.filter((id) => !borrowed[id])).then((result) => {
+      if (!stale && result) libraryUrls = { ...borrowed, ...result.urls };
     });
     return () => {
       stale = true;
@@ -377,7 +394,7 @@
     if (moreOpen && !moreActions?.contains(event.target as Node)) moreOpen = false;
   }}
 />
-<div class="overlay">
+<div class="overlay" hidden={suspended}>
   <dialog
     bind:this={editorDialog}
     use:modal
@@ -398,10 +415,22 @@
         <h2 id="button-title">
           {mobilePickerOpen ? t('ui_keypicker_choose_keys') : t('ui_edit_button')}
         </h2>
+        <GuideButton
+          guide={activeTab === 'appearance'
+            ? 'button-appearance'
+            : selectedActionId === 'command:key'
+              ? 'keyboard'
+              : selectedActionId === 'command:play_sound'
+                ? 'audio'
+                : activeTab === 'action'
+                  ? 'actions'
+                  : 'content'}
+          label={t('ui_edit_button')}
+        />
         <button aria-label={t('ui_close_editor')} onclick={close}><Icon name="close" /></button>
       </div>
       {#if !mobilePickerOpen}
-        <div class="preview">
+        <div class="preview" data-guide="button-preview">
           <div
             class="deck-button preview-tile"
             role="img"
@@ -456,7 +485,9 @@
             hidden={activeTab !== 'content'}
           >
             <div class="basics-grid">
-              <label>{t('ui_label')}<input bind:value={button.label} maxlength="256" /></label>
+              <label data-guide="button-label"
+                >{t('ui_label')}<input bind:value={button.label} maxlength="256" /></label
+              >
               <span class="field-label">{t('ui_button_visual')}</span>
               <SegmentedControl
                 label={t('ui_button_visual')}
@@ -471,6 +502,11 @@
                 <IconField value={button.icon} onSelect={(value) => (button.icon = value)} />
               {:else}
                 <ImageSourceFields
+                  guideSource={tutorial
+                    ? tutorial.detail === 'image-url'
+                      ? 'url'
+                      : null
+                    : undefined}
                   bind:imageUrl
                   bind:imagePath
                   bind:liveImage
@@ -584,6 +620,7 @@
         <div
           role="tabpanel"
           id="editor-panel-action"
+          data-guide="button-action"
           aria-labelledby={mobilePickerOpen ? 'button-title' : 'editor-tab-action'}
           hidden={activeTab !== 'action' && !mobilePickerOpen}
         >
@@ -645,7 +682,8 @@
               ></label
             >{:else if button.action.type === 'command'}<ActionFields
               configurationOnly
-              active={activeTab === 'action' || mobilePickerOpen}
+              {tutorial}
+              active={!suspended && (activeTab === 'action' || mobilePickerOpen)}
               onKeyPickerStep={keyPickerStep}
               mediaMetadata={media.audio}
               onMediaMetadata={(metadata) => saveMetadata('audio', metadata)}
@@ -728,8 +766,11 @@
               </div>{/if}
           </div>
           <span class="spacer"></span><button type="button" onclick={close}>{t('ui_cancel')}</button
-          ><button type="submit" class="primary" disabled={imageBusy || !actionValid}
-            >{t('ui_apply_to_draft')}</button
+          ><button
+            data-guide="button-apply"
+            type="submit"
+            class="primary"
+            disabled={imageBusy || !actionValid}>{t('ui_apply_to_draft')}</button
           >
         </div>
       {/if}
@@ -776,6 +817,9 @@
     margin: 0;
     font-size: 1.2rem;
     font-weight: 600;
+  }
+  .heading h2 {
+    flex: 1;
   }
   .heading button {
     display: grid;

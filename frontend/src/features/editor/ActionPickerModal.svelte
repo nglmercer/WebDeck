@@ -27,62 +27,70 @@
 </script>
 
 <Modal label={t('ui_select_action')} {close} width="560px">
-  <header>
-    <h2>{t('ui_select_action')}</h2>
-    <button type="button" aria-label={t('ui_close_editor')} onclick={close}
-      ><Icon name="close" /></button
-    >
-  </header>
-  <div class="filters">
-    <label
-      ><span class="sr-only">{t('ui_find_an_action')}</span><input
-        type="search"
-        bind:value={query}
-        placeholder={t('ui_search_actions')}
-      /></label
-    >
-    <FilterSelect
-      label={t('ui_category')}
-      value={category}
-      hideLabel
-      options={[
-        { value: 'all', label: t('ui_all_actions') },
-        ...Object.entries(categories).map(([value, label]) => ({ value, label: t(label) })),
-      ]}
-      onchange={(value) => (category = value)}
-    />
-  </div>
-  <div class="options" role="group" aria-label={t('ui_select_action')}>
-    {#each visible as option}<button
+  <div class="guide-action-picker" data-guide="action-picker">
+    <header>
+      <h2>{t('ui_select_action')}</h2>
+      <button type="button" aria-label={t('ui_close_editor')} onclick={close}
+        ><Icon name="close" /></button
+      >
+    </header>
+    <div class="filters" data-guide="action-picker-filters">
+      <label
+        ><span class="sr-only">{t('ui_find_an_action')}</span><input
+          type="search"
+          bind:value={query}
+          placeholder={t('ui_search_actions')}
+        /></label
+      >
+      <FilterSelect
+        label={t('ui_category')}
+        value={category}
+        hideLabel
+        options={[
+          { value: 'all', label: t('ui_all_actions') },
+          ...Object.entries(categories).map(([value, label]) => ({ value, label: t(label) })),
+        ]}
+        onchange={(value) => (category = value)}
+      />
+    </div>
+    <div class="options" role="group" aria-label={t('ui_select_action')}>
+      {#each visible as option}<button
+          type="button"
+          class="option"
+          data-action-id={option.id}
+          aria-pressed={selected === option.id}
+          onclick={() => (selected = option.id)}
+          ><Icon name={option.icon} /><span
+            ><strong>{t(option.label)}</strong>{#if option.description}<small
+                >{t(option.description)}</small
+              >{/if}</span
+          ></button
+        >{/each}
+      {#if !visible.length}<p role="status">{t('ui_no_actions_found')}</p>{/if}
+    </div>
+    <footer>
+      <button type="button" onclick={close}>{t('ui_cancel')}</button><button
         type="button"
-        class="option"
-        data-action-id={option.id}
-        aria-pressed={selected === option.id}
-        onclick={() => (selected = option.id)}
-        ><Icon name={option.icon} /><span
-          ><strong>{t(option.label)}</strong>{#if option.description}<small
-              >{t(option.description)}</small
-            >{/if}</span
-        ></button
-      >{/each}
-    {#if !visible.length}<p role="status">{t('ui_no_actions_found')}</p>{/if}
+        class="primary"
+        disabled={!candidate}
+        onclick={() => {
+          if (candidate) {
+            select(candidate);
+            close();
+          }
+        }}>{t('ui_select_action')}</button
+      >
+    </footer>
   </div>
-  <footer>
-    <button type="button" onclick={close}>{t('ui_cancel')}</button><button
-      type="button"
-      class="primary"
-      disabled={!candidate}
-      onclick={() => {
-        if (candidate) {
-          select(candidate);
-          close();
-        }
-      }}>{t('ui_select_action')}</button
-    >
-  </footer>
 </Modal>
 
 <style>
+  .guide-action-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+  }
   header,
   footer {
     display: flex;

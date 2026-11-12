@@ -12,6 +12,7 @@
     value,
     onchange,
     configurationOnly = false,
+    tutorial,
     active = true,
     onKeyPickerStep,
     mediaMetadata,
@@ -21,6 +22,8 @@
     value: Command;
     onchange: (command: Command) => void;
     configurationOnly?: boolean;
+    tutorial?:
+      { step: string; detail?: string | undefined; audio?: AudioBuffer | undefined } | undefined;
     active?: boolean;
     onKeyPickerStep?: (open: boolean) => void;
     mediaMetadata?: MediaMetadata | undefined;
@@ -97,6 +100,7 @@
     <AudioFields
       {value}
       {active}
+      previewBuffer={tutorial?.audio}
       onchange={(command) => onchange(command)}
       metadata={mediaMetadata}
       onmetadata={onMediaMetadata}
@@ -104,6 +108,8 @@
     />
   {:else if value.type === 'key'}
     <KeySelector
+      guidePicker={tutorial ? tutorial.detail === 'key-picker' : undefined}
+      guideStep={tutorial?.step}
       value={value.keys}
       onchange={(keys) => onchange({ type: 'key', keys })}
       {active}

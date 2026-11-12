@@ -1,0 +1,35 @@
+{
+  "baseline": "7778278",
+  "measurement": "All production JavaScript chunks, including deferred guides, use node:zlib gzip defaults. The baseline measurement was recorded in button-editor-bundle.json with the same installed dependencies.",
+  "before": {
+    "bundle_js_bytes": 404732,
+    "bundle_gzip_bytes": 118166
+  },
+  "after": {
+    "bundle_js_bytes": 468496,
+    "bundle_gzip_bytes": 135232
+  },
+  "chunks": [
+    {
+      "name": "Learn-Da-Rx2-u.js",
+      "bytes": 29061,
+      "gzip_bytes": 5903
+    },
+    {
+      "name": "driver.js-XlMiXr6O.js",
+      "bytes": 19932,
+      "gzip_bytes": 5836
+    },
+    {
+      "name": "index-BMRy70Bw.js",
+      "bytes": 414108,
+      "gzip_bytes": 121343
+    },
+    {
+      "name": "runner-C-qNenQW.js",
+      "bytes": 5395,
+      "gzip_bytes": 2150
+    }
+  ],
+  "explanation": "Adds 16 bilingual guides, a replayable searchable catalogue, contextual help, accessible asynchronous navigation and disposable editor/connection examples. Learn, its runner and Driver.js are separate deferred chunks. No dependencies were added. Timing budgets are unchanged."
+}

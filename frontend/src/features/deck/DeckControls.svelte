@@ -39,7 +39,12 @@
       interactions.help = false;
     }}
   >
-    <div role="tablist" aria-label={t('ui_deck_controls')} class="control-tabs">
+    <div
+      data-guide="controls-menu"
+      role="tablist"
+      aria-label={t('ui_deck_controls')}
+      class="control-tabs"
+    >
       {#each ['controls', 'help'] as tab}<button
           role="tab"
           id={`controls-tab-${tab}`}
@@ -78,6 +83,7 @@
       class="control-actions"
     >
       <button
+        data-guide="controls-navigation"
         onclick={() => {
           back();
           interactions.controls = false;

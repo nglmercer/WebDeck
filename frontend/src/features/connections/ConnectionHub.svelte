@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, untrack } from 'svelte';
+  import { tutorialActive } from '../learn/tour-state';
   import { useTranslations } from '../../lib/i18n';
   import { request } from '../../lib/api/client';
   import { onConnectionChange } from '../../lib/api/realtime';
@@ -20,6 +21,7 @@
   let connected = $state(false);
   let diagnosticsOpen = $state(false);
   async function closeInvitation() {
+    if ($tutorialActive) return;
     if (working) return;
     if (invitation)
       await request(
@@ -35,9 +37,11 @@
   onMount(() => onConnectionChange((value) => (connected = value)));
   let {
     attempt,
+    guidePart,
     transport = $bindable('http'),
     trigger = 0,
   }: {
+    guidePart?: string | undefined;
     trigger?: number;
     transport?: 'http' | 'socket';
     attempt: (work: () => Promise<void>) => Promise<void>;
@@ -64,7 +68,7 @@
     try {
       const value = await request<ConnectionStatus>('connection/status', 'ConnectionStatus');
       if (destroyed) return;
-      if (status && invitation && status.network.url !== value.network.url) {
+      if (!$tutorialActive && status && invitation && status.network.url !== value.network.url) {
         expired = true;
         if (qr) URL.revokeObjectURL(qr);
         qr = '';
@@ -98,6 +102,7 @@
     if (!destroyed) refresh = setTimeout(() => void load(), 5000);
   }
   async function start() {
+    if ($tutorialActive) return;
     if (working) return;
     working = true;
     const current = ++generation;
@@ -137,6 +142,19 @@
       if (!destroyed) working = false;
     }
   }
+  const guideInvite = $derived(guidePart === 'invite');
+  const shownInvitation = $derived(
+    guideInvite ? { id: 'example', url: 'https://example.com', expires_at: 0 } : invitation,
+  );
+  const shownProgress = $derived(guideInvite ? 'waiting' : progress);
+  $effect(() => {
+    if (guidePart !== 'diagnostics') return;
+    const previous = untrack(() => diagnosticsOpen);
+    diagnosticsOpen = true;
+    return () => {
+      diagnosticsOpen = previous;
+    };
+  });
   let lastTrigger = 0;
   $effect(() => {
     if (trigger > lastTrigger) {
@@ -170,7 +188,11 @@
     >
   </div>
   <div class="connection-columns">
-    <DeviceSettings {attempt} />
+    <DeviceSettings
+      {attempt}
+      tutorial={guidePart === 'device'}
+      guideToken={guidePart === 'token'}
+    />
     <div class="settings-stack">
       <NetworkSettings {attempt} />
       <SettingsCard title={t('ui_connection')} icon="layers">
@@ -203,7 +225,7 @@
           })}><Icon name="devices" size={17} />{t('ui_pairing_notifications')}</button
       >{/if}
   </div>
-  {#if invitation}<Modal
+  {#if shownInvitation}<Modal
       nonModal
       label={t('ui_connect_device')}
       width="560px"
@@ -213,24 +235,36 @@
         <h2>{t('ui_connect_device')}</h2>
         <button disabled={working} onclick={() => attempt(closeInvitation)}>{t('ui_close')}</button>
       </div>
-      <div class="invitation" aria-live="polite">
-        {#if progress === 'approved'}<p role="status">
+      <div class="invitation" aria-live="polite" data-guide="connection-invitation">
+        {#if guideInvite}<p class="demo-safe">{t('ui_guide_example')}</p>{/if}
+        {#if shownProgress === 'approved'}<p role="status">
             {t('ui_device_connected_success')}
-          </p>{:else if progress === 'rejected'}<p>
+          </p>{:else if shownProgress === 'rejected'}<p>
             {t('ui_pair_rejected')}
-          </p>{:else if expired || progress === 'expired'}<p>{t('ui_pair_expired')}</p>{:else}
+          </p>{:else if !guideInvite && (expired || shownProgress === 'expired')}<p>
+            {t('ui_pair_expired')}
+          </p>{:else}
           <h3>{t('ui_scan_approve')}</h3>
-          {#if qr}<img src={qr} alt={t('ui_phone_qr_alt')} width="290" height="290" />{/if}
+          {#if guideInvite}<div class="invitation-placeholder">
+              <Icon name="grid" size={44} />
+              <p>{t('ui_guide_invitation_placeholder')}</p>
+            </div>{:else if qr}<img
+              src={qr}
+              alt={t('ui_phone_qr_alt')}
+              width="290"
+              height="290"
+            />{/if}
           <div class="connection-link">
             <p>{t('ui_connection_link')}</p>
-            <a href={invitation.url} target="_blank" rel="noreferrer">{invitation.url}</a><button
-              onclick={() => attempt(() => navigator.clipboard.writeText(invitation!.url))}
+            <a href={shownInvitation.url} target="_blank" rel="noreferrer">{shownInvitation.url}</a
+            ><button
+              onclick={() => attempt(() => navigator.clipboard.writeText(shownInvitation!.url))}
               >{t('ui_copy_link')}</button
             >
           </div>
-          <p>{t(progress === 'pending' ? 'ui_waiting_host' : 'ui_pair_compare_code')}</p>
+          <p>{t(shownProgress === 'pending' ? 'ui_waiting_host' : 'ui_pair_compare_code')}</p>
         {/if}
-        <button disabled={working} onclick={() => attempt(start)}
+        <button disabled={working || guideInvite} onclick={() => attempt(start)}
           >{t('ui_refresh_connection')}</button
         >
       </div>
@@ -244,7 +278,7 @@
         <h2>{t('ui_connection_diagnostics')}</h2>
         <button onclick={() => (diagnosticsOpen = false)}>{t('ui_close')}</button>
       </div>
-      <p>{t('ui_connect_disclosure')}</p>
+      <p data-guide="connection-diagnostics">{t('ui_connect_disclosure')}</p>
       <p>{t('ui_phone_troubleshooting')}</p>
       <p>{t('ui_origin_recovery')}</p>
       {#if status}<dl>
@@ -261,6 +295,18 @@
 </div>
 
 <style>
+  .invitation-placeholder {
+    display: grid;
+    place-items: center;
+    gap: 12px;
+    padding: 24px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-panel);
+    color: var(--text-muted);
+  }
+  .demo-safe {
+    color: var(--accent);
+  }
   .connection-heading {
     display: flex;
     align-items: center;

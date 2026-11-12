@@ -1,5 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte';
+  import { tutorialActive } from '../learn/tour-state';
   import Icon from '../../components/Icon.svelte';
   import Modal from '../../components/Modal.svelte';
   import { useTranslations } from '../../lib/i18n';
@@ -135,6 +136,7 @@
     } else if (event.key === 'Tab') closeMenu(true);
   }
   function outsideMenu(event: PointerEvent) {
+    if ($tutorialActive) return;
     if (menuOpen && event.target instanceof Node && !overflow?.contains(event.target)) closeMenu();
   }
 </script>
@@ -158,6 +160,7 @@
         <div class="rename-row">
           <input
             bind:this={nameInput}
+            data-guide="folder-name"
             bind:value={name}
             aria-label={t('ui_folder_name')}
             aria-invalid={nameError}
@@ -176,6 +179,7 @@
               }
             }}
             onblur={(event) => {
+              if ($tutorialActive) return;
               if (!(
                 event.relatedTarget instanceof Element &&
                 event.relatedTarget.closest('[data-rename-cancel]')
@@ -204,6 +208,7 @@
           {#if editing && isFolder}<button
               bind:this={renameButton}
               class="icon-button rename-button"
+              data-guide="rename-folder"
               aria-label={t('ui_rename_folder')}
               onclick={beginRename}><Icon name="edit" size={16} /></button
             >{/if}
@@ -211,7 +216,7 @@
       {/if}
     </div>
   </div>
-  <div class="status-area">
+  <div class="status-area" data-guide="editor-save">
     {#if editing || editor.dirty}<span
         class="save-status"
         data-state={saveState}
@@ -243,6 +248,7 @@
         <div class="overflow" bind:this={overflow}>
           <button
             bind:this={menuButton}
+            data-guide="folder-actions"
             class="icon-button"
             aria-label={t(isFolder ? 'ui_folder_actions' : 'ui_deck_actions')}
             aria-haspopup="menu"
@@ -256,12 +262,14 @@
           {#if menuOpen}<div
               bind:this={menu}
               id="editor-actions-menu"
+              data-guide="folder-menu"
               class="actions-menu"
               role="menu"
               tabindex="-1"
               aria-label={t(isFolder ? 'ui_folder_actions' : 'ui_deck_actions')}
               onkeydown={menuKeyboard}
               onfocusout={(event) => {
+                if ($tutorialActive) return;
                 if (event.relatedTarget instanceof Node && !overflow?.contains(event.relatedTarget))
                   closeMenu();
               }}
@@ -283,6 +291,7 @@
       </div>
       <button
         class="primary done"
+        data-guide="editing-done"
         aria-describedby={editor.saving ? 'deck-save-status' : undefined}
         disabled={editor.saving}
         onclick={() => run(done)}>{t('ui_done')}</button

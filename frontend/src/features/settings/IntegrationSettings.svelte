@@ -114,7 +114,7 @@
       {t('ui_integration_settings_changed_save_and_check_again_to_verify_the_host_configurati')}
     </p>{/if}
   <div class="integration-layout">
-    <SettingsCard title={t('ui_obs')} icon="monitor">
+    <SettingsCard id="guide-obs" title={t('ui_obs')} icon="monitor">
       <p aria-label={t('ui_obs_connection_status')} role="status">
         <StatusBadge
           label={status ? t(stateLabels[status.obs]) : t('ui_loading_connection_status')}
@@ -128,6 +128,7 @@
       <button
         aria-describedby={checking || connecting ? 'integration-work-status' : undefined}
         disabled={checking || connecting}
+        data-guide="obs-check"
         onclick={checkObs}
         >{checking ? t('ui_checking_connection') : t('ui_save_and_check_obs_connection')}</button
       >
@@ -146,6 +147,7 @@
         }}
       /><label
         >{t('ui_password')}<input
+          data-guide="obs-password"
           type={revealObs ? 'text' : 'password'}
           bind:value={editor.draft.settings.obs.password}
           oninput={change}
@@ -155,8 +157,8 @@
         >{revealObs ? t('ui_hide_obs_password') : t('ui_reveal_obs_password')}</button
       >
     </SettingsCard>
-    <SettingsCard title={t('ui_spotify')} icon="spotify">
-      <p aria-label={t('ui_spotify_authorization_status')}>
+    <SettingsCard id="guide-spotify" title={t('ui_spotify')} icon="spotify">
+      <p data-guide="spotify-status" aria-label={t('ui_spotify_authorization_status')}>
         <StatusBadge
           label={status ? t(stateLabels[status.spotify]) : t('ui_loading_authorization_status')}
         />
@@ -187,6 +189,7 @@
       <button
         aria-describedby={checking || connecting ? 'integration-work-status' : undefined}
         disabled={connecting || checking}
+        data-guide="spotify-connect"
         onclick={() => attempt(connectSpotify)}
         >{connecting ? t('ui_preparing_authorization') : t('ui_connect_spotify')}</button
       >

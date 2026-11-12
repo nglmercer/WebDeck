@@ -62,7 +62,7 @@
   </div>
   <div class="appearance-layout">
     <div class="settings-stack">
-      <SettingsCard title={t('ui_layout')} icon="grid">
+      <SettingsCard id="guide-layout" title={t('ui_layout')} icon="grid">
         <div class="settings-fields two-columns">
           <NumberField
             controls
@@ -82,7 +82,7 @@
           />
         </div>
       </SettingsCard>
-      <SettingsCard title={t('ui_button_style')} icon="settings">
+      <SettingsCard id="guide-button-style" title={t('ui_button_style')} icon="settings">
         <div class="settings-fields two-columns">
           {#each properties as [key, label, fallback]}<NumberField
               controls
@@ -107,7 +107,7 @@
       </SettingsCard>
     </div>
     <div class="settings-stack">
-      <SettingsCard title={t('ui_preview')} icon="monitor">
+      <SettingsCard id="guide-appearance-preview" title={t('ui_preview')} icon="monitor">
         <div
           class="appearance-preview"
           aria-hidden="true"
@@ -137,7 +137,7 @@
           {/each}
         </div>
       </SettingsCard>
-      <SettingsCard title={t('ui_language')}>
+      <SettingsCard id="guide-language" title={t('ui_language')}>
         <ChoiceField
           hideLabel
           label={t('ui_language')}
@@ -151,7 +151,7 @@
       </SettingsCard>
     </div>
   </div>
-  <SettingsCard title={t('ui_files')} icon="image">
+  <SettingsCard id="guide-theme-files" title={t('ui_files')} icon="image">
     <div class="settings-fields two-columns">
       {#each ['backgrounds', 'themes'] as assetType}{@const key = assetType as
           'backgrounds' | 'themes'}

@@ -20,12 +20,14 @@
   const selectionId = `selection-${id()}`;
   let {
     candidate,
+    guideStep,
     onCandidateChange,
     advanced,
     onAdvancedChange,
     capabilities,
   }: {
     candidate: string[];
+    guideStep?: string | undefined;
     onCandidateChange: (keys: string[]) => void;
     advanced: boolean;
     onAdvancedChange: (advanced: boolean) => void;
@@ -34,6 +36,12 @@
 
   let category = $state('function');
   let search = $state('');
+  $effect(() => {
+    if (guideStep === 'keys') {
+      search = '';
+      category = 'function';
+    }
+  });
   const categoryMessages: Record<string, string> = {
     function: 'ui_keypicker_function_keys',
     characters: 'ui_keypicker_letters_numbers',

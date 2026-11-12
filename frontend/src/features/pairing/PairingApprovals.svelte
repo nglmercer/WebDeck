@@ -24,21 +24,23 @@
   ];
   const pollMs = 5000;
   let {
+    tutorial = false,
     capabilities = [],
     suggested = [],
     attempt,
   }: {
+    tutorial?: boolean;
     capabilities: Capability[];
     suggested: Capability[];
     attempt: (work: () => Promise<void>) => Promise<void>;
   } = $props();
 
   let requests = $state<PairingPending[]>([]);
-  let grants = $state<Record<string, Capability[]>>({});
+  let grants = $state<Record<string, Capability[]>>({ 'webdeck-example-approval': ['read'] });
   let ttl = $state(900);
   let profiles = $state<Profiles | null>(null);
   let upgrades = $state<PermissionPending[]>([]);
-  let profile = $state<Record<string, string>>({});
+  let profile = $state<Record<string, string>>({ 'webdeck-example-approval': 'deck' });
   let working = $state('');
   let action = $state<'approve' | 'reject'>('approve');
   let listening = $state(true);
@@ -62,6 +64,14 @@
           : choices.slice(0, 1))
     );
   }
+  const example: PairingPending = {
+    id: 'webdeck-example-approval',
+    name: t('ui_guide_local_sample'),
+    code: '123456',
+    address: '192.0.2.10',
+    expires_at: Math.floor(Date.now() / 1000) + 900,
+  };
+  const shownRequests = $derived(tutorial ? [example] : requests);
   const notifications = new Map<string, Notification>();
   onDestroy(() => {
     notifications.forEach((notification) => notification.close());
@@ -119,7 +129,7 @@
     }
   }
   async function approve(request: PairingPending) {
-    if (working) return;
+    if (tutorial || working) return;
     const selected = (grants[request.id] ?? []).filter((capability) =>
       choices.includes(capability),
     );
@@ -142,7 +152,7 @@
     }
   }
   async function reject(request: PairingPending) {
-    if (working) return;
+    if (tutorial || working) return;
     action = 'reject';
     working = request.id;
     try {
@@ -169,10 +179,15 @@
   });
 </script>
 
-{#if requests.length || upgrades.length}
-  <aside class="approvals" role="region" aria-labelledby="pairing-approvals-title">
+{#if shownRequests.length || upgrades.length}
+  <aside
+    data-guide="pair-approval"
+    class="approvals"
+    role="region"
+    aria-labelledby="pairing-approvals-title"
+  >
     <h2 id="pairing-approvals-title">{t('ui_pending_pairing_requests')}</h2>
-    <p class="help">{t('ui_pairing_requests_help')}</p>
+    <p class="help">{t(tutorial ? 'ui_guide_example' : 'ui_pairing_requests_help')}</p>
     {#each upgrades as upgrade (upgrade.id)}
       <article>
         <h3>{upgrade.device.name}</h3>
@@ -205,7 +220,7 @@
         </div>
       </article>
     {/each}
-    {#each requests as request (request.id)}
+    {#each shownRequests as request (request.id)}
       <article aria-busy={working === request.id}>
         <div class="who">
           <h3>{request.name}</h3>
@@ -227,7 +242,7 @@
         />
         <p class="muted" id={`pair-grant-help-${request.id}`}>{t('ui_pair_grant_help')}</p>
         <label
-          >{t('ui_expires_after')}<select bind:value={ttl}
+          >{t('ui_expires_after')}<select data-guide="approval-expiry" bind:value={ttl}
             ><option value={900}>{t('ui_current_session')}</option><option value={2592000}
               >{t('ui_30_days')}</option
             ><option value={315360000}>{t('ui_until_revoked')}</option><option value={3600}

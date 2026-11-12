@@ -1,10 +1,29 @@
+import { tutorialActive } from '../features/learn/tour-state';
+
 /** Native modal semantics plus deterministic Tab cycling and focus restoration. */
 export function modal(dialog: HTMLDialogElement, options: { modal?: boolean } = {}) {
   const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  if (options.modal === false) dialog.show();
-  else dialog.showModal();
+  let touring = false;
+  let modalMode = false;
+  function display() {
+    const next = options.modal !== false && !touring;
+    dialog.toggleAttribute('data-tutorial-dialog', touring);
+    if (dialog.open && next === modalMode) return;
+    const focused = dialog.contains(document.activeElement)
+      ? (document.activeElement as HTMLElement)
+      : null;
+    if (dialog.open) dialog.close();
+    modalMode = next;
+    if (next) dialog.showModal();
+    else dialog.show();
+    focused?.focus({ preventScroll: true });
+  }
+  const unsubscribe = tutorialActive.subscribe((active) => {
+    touring = active;
+    display();
+  });
   const keydown = (event: KeyboardEvent) => {
-    if (options.modal === false || event.key !== 'Tab') return;
+    if (touring || options.modal === false || event.key !== 'Tab') return;
     const targets = [
       ...dialog.querySelectorAll<HTMLElement>(
         'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary, [tabindex]',
@@ -37,7 +56,12 @@ export function modal(dialog: HTMLDialogElement, options: { modal?: boolean } = 
   };
   dialog.addEventListener('keydown', keydown);
   return {
+    update(next: { modal?: boolean } = {}) {
+      options = next;
+      display();
+    },
     destroy() {
+      unsubscribe();
       dialog.removeEventListener('keydown', keydown);
       dialog.close();
       if (previous?.isConnected) previous.focus();

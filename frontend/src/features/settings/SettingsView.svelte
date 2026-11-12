@@ -1,4 +1,6 @@
 <script lang="ts">
+  import GuideButton from '../learn/GuideButton.svelte';
+  import type { GuideId } from '../learn/guides';
   import { useTranslations } from '../../lib/i18n';
   const t = useTranslations();
 
@@ -12,6 +14,7 @@
   import RuntimeSettings from './RuntimeSettings.svelte';
   import BackupSettings from './BackupSettings.svelte';
   let {
+    guidePart,
     activeTab = $bindable('appearance'),
     connectionRequest = 0,
     editor,
@@ -26,6 +29,7 @@
     learn,
     assetUrls = {},
   }: {
+    guidePart?: string | undefined;
     activeTab?: string;
     connectionRequest?: number;
     editor: Editor;
@@ -61,6 +65,13 @@
       },
     };
   }
+  const helpTopics: Record<string, GuideId> = {
+    appearance: 'appearance',
+    integrations: 'integrations',
+    devices: 'connections',
+    backups: 'backups',
+    runtime: 'runtime',
+  };
   const sections = [
     ['appearance', 'ui_appearance', 'monitor'],
     ['integrations', 'ui_integrations', 'layers'],
@@ -79,8 +90,10 @@
       <h1>{t('ui_settings')}</h1>
     </div>
     <div class="settings-header-actions">
+      <GuideButton guide={helpTopics[activeTab] ?? 'overview'} label={t('ui_settings')} />
       <button
         class="primary"
+        data-guide="settings-save"
         aria-describedby="settings-save-status"
         disabled={!editor.dirty || editor.saving || invalid}
         onclick={() => attempt(validatedPersist)}>{t('ui_save_changes')}</button
@@ -165,7 +178,7 @@
         aria-labelledby="tab-devices"
         hidden={activeTab !== 'devices'}
       >
-        <ConnectionHub {attempt} bind:transport trigger={connectionRequest} />
+        <ConnectionHub {guidePart} {attempt} bind:transport trigger={connectionRequest} />
       </div>
       <div
         role="tabpanel"
@@ -173,7 +186,7 @@
         aria-labelledby="tab-backups"
         hidden={activeTab !== 'backups'}
       >
-        <BackupSettings {editor} {reload} {notify} />
+        <BackupSettings tutorialPreview={guidePart === 'preview'} {editor} {reload} {notify} />
       </div>
     </div>
   </div>

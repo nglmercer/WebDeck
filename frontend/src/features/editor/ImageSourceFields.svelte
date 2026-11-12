@@ -3,6 +3,7 @@
   import { useTranslations } from '../../lib/i18n';
   const t = useTranslations();
   let {
+    guideSource,
     imageUrl = $bindable(''),
     imagePath = $bindable(''),
     liveImage = $bindable(false),
@@ -16,6 +17,7 @@
     chooseLocal,
   }: {
     imageUrl: string;
+    guideSource?: 'url' | 'local' | null | undefined;
     imagePath: string;
     liveImage: boolean;
     busy: boolean;
@@ -28,6 +30,9 @@
     chooseLocal: () => void;
   } = $props();
   let source = $state<'url' | 'local' | null>(null);
+  $effect(() => {
+    if (guideSource !== undefined) source = guideSource;
+  });
 </script>
 
 <div class="image-sources">
