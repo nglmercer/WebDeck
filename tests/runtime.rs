@@ -460,6 +460,16 @@ fn desktop_commands_translate_to_authorized_fake_primitives() {
             "audio.endpoint",
             json!({"device":"fake","input":false}),
         ),
+        (
+            json!({"type":"play_sound","source":{"type":"asset","id":"sound.wav"},"volume":75,"output_device":"","microphone":false,"local_only":true,"start_ms":2500,"end_ms":8700}),
+            "audio.play",
+            json!({"source":{"type":"asset","id":"sound.wav"},"volume":75,"outputDevice":"","microphone":false,"localOnly":true,"startMs":2500,"endMs":8700}),
+        ),
+        (
+            json!({"type":"play_sound","source":{"type":"asset","id":"sound.wav"},"volume":100,"output_device":"","microphone":false,"local_only":false}),
+            "audio.play",
+            json!({"source":{"type":"asset","id":"sound.wav"},"volume":100,"outputDevice":"","microphone":false,"localOnly":false,"startMs":0,"endMs":null}),
+        ),
         (json!({"type":"stop_sound"}), "audio.stopAll", json!({})),
     ];
     for (command, operation, input) in cases {

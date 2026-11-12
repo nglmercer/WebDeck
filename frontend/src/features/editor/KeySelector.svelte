@@ -6,7 +6,6 @@
   import KeyPickerPanel from './KeyPickerPanel.svelte';
   import {
     captureChord,
-    hostStatusMessage,
     isModifier,
     keyLabel,
     keyUnavailable,
@@ -40,8 +39,8 @@
   let openingKeys: string[] = [];
   let advanced = $state(false);
   let panel = $state<HTMLDivElement>();
-  let recordButton: HTMLButtonElement;
-  let chooseButton: HTMLButtonElement;
+  let recordButton = $state<HTMLButtonElement>();
+  let chooseButton = $state<HTMLButtonElement>();
   let placementListening = false;
   let focusExitTimer: ReturnType<typeof setTimeout> | undefined;
   let outsidePointerDown = false;
@@ -153,9 +152,9 @@
     const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
     const viewportHeight = document.documentElement.clientHeight || window.innerHeight;
     const margin = 12;
-    const width = Math.min(420, viewportWidth - margin * 2);
+    const width = Math.min(440, viewportWidth - margin * 2);
     panel.style.width = `${width}px`;
-    panel.style.maxHeight = `${Math.min(480, viewportHeight * 0.7)}px`;
+    panel.style.maxHeight = `${Math.min(540, viewportHeight * 0.8)}px`;
 
     const anchor = chooseButton.getBoundingClientRect();
     const bounds = panel.getBoundingClientRect();
@@ -288,42 +287,46 @@
 </script>
 
 <section class="key-selector" aria-label={t('ui_keypicker_shortcut')}>
-  <div
-    class="shortcut-preview"
-    aria-label={`${t('ui_keypicker_shortcut')}: ${summary || t('ui_keypicker_no_shortcut')}`}
-  >
-    <span>{t('ui_keypicker_shortcut')}</span>
-    <output>{summary || t('ui_keypicker_no_shortcut')}</output>
-  </div>
-
-  <div class="selector-controls">
-    <button
-      bind:this={recordButton}
-      type="button"
-      class="record"
-      aria-pressed={recorderState === 'listening'}
-      onclick={startRecording}
-      onkeydown={recorderKeydown}
-      onblur={() => {
-        if (recorderState === 'listening') stopRecording();
-      }}
-      >{recorderState === 'listening'
-        ? t('ui_keypicker_recording')
-        : t('ui_keypicker_record_shortcut')}</button
+  <div class="selector-base" hidden={pickerOpen && pickerMode === 'step'}>
+    <div
+      class="shortcut-preview"
+      aria-label={`${t('ui_keypicker_shortcut')}: ${summary || t('ui_keypicker_no_shortcut')}`}
     >
-    <button
-      bind:this={chooseButton}
-      type="button"
-      aria-haspopup={pickerOpen && pickerMode === 'popover' ? 'dialog' : undefined}
-      aria-expanded={pickerOpen}
-      aria-controls={panelId}
-      onclick={openPicker}>{t('ui_keypicker_choose_keys')}</button
-    >
-  </div>
+      <span>{t('ui_keypicker_shortcut')}</span>
+      <output>{summary || t('ui_keypicker_no_shortcut')}</output>
+    </div>
 
-  <p class="host-status" role="status">{t(hostStatusMessage(capabilities))}</p>
-  <p class="capture-help">{t('ui_keypicker_capture_limits')}</p>
-  <p class="recorder-status" aria-live="polite" aria-atomic="true">{recorderMessage}</p>
+    <div class="selector-controls">
+      <button
+        bind:this={recordButton}
+        type="button"
+        class="record"
+        title={t('ui_keypicker_capture_limits')}
+        aria-pressed={recorderState === 'listening'}
+        onclick={startRecording}
+        onkeydown={recorderKeydown}
+        onblur={() => {
+          if (recorderState === 'listening') stopRecording();
+        }}
+        >{recorderState === 'listening'
+          ? t('ui_keypicker_recording')
+          : t('ui_keypicker_record_shortcut')}</button
+      >
+      <button
+        bind:this={chooseButton}
+        type="button"
+        aria-haspopup={pickerOpen && pickerMode === 'popover' ? 'dialog' : undefined}
+        aria-expanded={pickerOpen}
+        aria-controls={panelId}
+        onclick={openPicker}>{t('ui_keypicker_choose_keys')}</button
+      >
+    </div>
+
+    {#if capabilities?.availability === 'unsupported'}<p class="host-status" role="status">
+        {t('ui_keypicker_host_unsupported')}
+      </p>{/if}
+    <p class="recorder-status" aria-live="polite" aria-atomic="true">{recorderMessage}</p>
+  </div>
 
   {#if pickerOpen}
     <div
@@ -370,7 +373,12 @@
     background: transparent;
     min-width: 0;
   }
+  .selector-base {
+    display: grid;
+    gap: 9px;
+  }
   .shortcut-preview {
+    position: relative;
     display: grid;
     gap: 5px;
     min-width: 0;
@@ -404,7 +412,6 @@
     background: var(--accent-surface, #ffffff14);
   }
   .host-status,
-  .capture-help,
   .recorder-status {
     margin: 0;
     color: var(--text-muted);
@@ -421,9 +428,9 @@
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
-    width: min(420px, calc(100vw - 24px));
+    width: min(440px, calc(100vw - 24px));
     height: max-content;
-    max-height: min(480px, 70dvh);
+    max-height: min(540px, 80dvh);
     margin: 0;
     padding: 14px;
     overflow: hidden;
@@ -476,6 +483,7 @@
   }
   .picker-actions .use {
     font-weight: 650;
+    background: var(--accent-surface);
   }
   .picker-actions .use:disabled {
     cursor: not-allowed;

@@ -161,6 +161,19 @@ pub fn validate_command(c: &Command) -> Result<()> {
         "Command",
         &serde_json::to_value(c).map_err(|_| Error::invalid())?,
     )?;
+    if let Command::PlaySound {
+        start_ms,
+        end_ms: Some(end),
+        ..
+    } = c
+    {
+        if *end <= start_ms.unwrap_or(0) {
+            return Err(Error::new(
+                ErrorCode::InvalidInput,
+                "Audio end must be after its start",
+            ));
+        }
+    }
     if let Command::Key { keys } = c {
         crate::keys::chord(keys)?;
     }

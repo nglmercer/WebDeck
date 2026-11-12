@@ -119,21 +119,25 @@ test('desktop picker stays outside editor layout and commits Ctrl+Alt+F24 only o
   expect(bounds!.y).toBeGreaterThanOrEqual(12);
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(1012);
   expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(888);
+  const category = picker.getByRole('combobox', { name: 'Key category', exact: true });
+  await expect(category).toHaveValue('function');
+  await expect(picker.getByRole('button', { name: 'Function', exact: true })).toHaveCount(0);
+  await expect(picker.locator('.key-grid').getByRole('button', { name: 'F24', exact: true })).toBeInViewport();
+  await category.selectOption('characters');
+  await expect(picker.locator('.key-grid').getByRole('button', { name: 'C', exact: true })).toBeVisible();
+  const search = picker.getByRole('searchbox', { name: 'Search keys', exact: true });
+  await search.fill('F24');
+  await expect(category).toHaveValue('all');
+  await expect(picker.locator('.key-grid button')).toHaveCount(1);
+  await expect(picker.locator('.selection')).toContainText('Ctrl');
+  await category.selectOption('hardware');
+  await expect(picker.getByRole('status')).toHaveText('No matching keys.');
+  await search.fill('');
+  await expect(picker.locator('.key-grid').getByRole('button', { name: 'Fn', exact: true })).toBeDisabled();
+  await category.selectOption('function');
   const pickerContent = picker.locator('.picker-content');
-  const contentMetrics = await pickerContent.evaluate((element) => ({
-    scrollHeight: element.scrollHeight,
-    clientHeight: element.clientHeight,
-  }));
-  expect(contentMetrics.scrollHeight).toBeGreaterThan(contentMetrics.clientHeight);
-  await pickerContent.evaluate((element) => (element.scrollTop = element.scrollHeight));
-  expect(await pickerContent.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
-  const grid = picker.locator('.key-grid');
-  const gridMetrics = await grid.evaluate((element) => ({
-    scrollHeight: element.scrollHeight,
-    clientHeight: element.clientHeight,
-  }));
-  expect(gridMetrics.scrollHeight).toBeGreaterThan(gridMetrics.clientHeight);
-  await grid.evaluate((element) => (element.scrollTop = 0));
+  expect(await pickerContent.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await expect(picker.getByText(/Wayland|Static mappings/)).toHaveCount(0);
   await page.screenshot({ path: path.join(screenshotDirectory, 'keyboard-shortcut-popover.png') });
   await testInfo.attach('shortcut-editor-with-picker.png', {
     body: await page.screenshot(),

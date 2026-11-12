@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Icon from '../../components/Icon.svelte';
+  import FilePicker from '../../components/FilePicker.svelte';
   import { useTranslations } from '../../lib/i18n';
   const t = useTranslations();
   let {
@@ -7,6 +7,9 @@
     imagePath = $bindable(''),
     liveImage = $bindable(false),
     busy,
+    filename = '',
+    metadata = '',
+    preview,
     upload,
     importUrl,
     importLocal,
@@ -16,158 +19,108 @@
     imagePath: string;
     liveImage: boolean;
     busy: boolean;
-    upload: (event: Event) => void;
+    filename?: string;
+    metadata?: string;
+    preview?: string | undefined;
+    upload: (file: File) => Promise<void>;
     importUrl: () => void;
     importLocal: () => void;
     chooseLocal: () => void;
   } = $props();
-  let fileInput = $state<HTMLInputElement>();
-  let source = $state('upload');
+  let source = $state<'url' | 'local' | null>(null);
 </script>
 
-<div class="image-sources" aria-busy={busy}>
-  <div class="source-switch" role="group" aria-label={t('ui_image_source')}>
-    {#each ['upload', 'url', 'local'] as item}
-      <button type="button" aria-pressed={source === item} onclick={() => (source = item)}>
-        {t(
-          item === 'upload' ? 'ui_upload_image' : item === 'url' ? 'ui_image_url' : 'ui_local_file',
-        )}
-      </button>
-    {/each}
+<div class="image-sources">
+  <FilePicker
+    label={t('ui_visual_image')}
+    accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
+    {filename}
+    {metadata}
+    {preview}
+    {busy}
+    onselect={upload}
+  />
+  <div class="source-actions">
+    <button
+      type="button"
+      class="text-button"
+      disabled={busy}
+      aria-expanded={source === 'local'}
+      onclick={() => (source = source === 'local' ? null : 'local')}>{t('ui_local_file')}</button
+    >
+    <button
+      type="button"
+      class="text-button"
+      aria-expanded={source === 'url'}
+      disabled={busy}
+      onclick={() => (source = source === 'url' ? null : 'url')}>{t('ui_image_import_url')}</button
+    >
   </div>
-  <div class="source-body">
-    {#if source === 'upload'}
-      <input
-        bind:this={fileInput}
-        class="sr-only"
-        tabindex="-1"
-        type="file"
-        accept="image/*"
-        aria-label={t('ui_upload_image')}
-        disabled={busy}
-        onchange={upload}
-      />
-      <button type="button" class="upload-card" disabled={busy} onclick={() => fileInput?.click()}>
-        <span class="upload-icon"><Icon name="image" /></span>
-        <strong>{t('ui_choose_image')}</strong>
-        <span>{t('ui_upload_image_help')}</span>
-      </button>
-    {:else if source === 'url'}
-      <label
-        >{t('ui_image_url')}<input
-          type="text"
-          inputmode="url"
-          bind:value={imageUrl}
-          disabled={busy}
-        /></label
-      >
+  {#if source === 'url'}
+    <div class="url-source">
+      <label>{t('ui_image_url')}<input type="url" bind:value={imageUrl} disabled={busy} /></label>
       <label class="check"
         ><input type="checkbox" bind:checked={liveImage} disabled={busy} />{t(
           'ui_live_image',
         )}</label
       >
-      <div class="source-actions">
-        <button
-          type="button"
-          class="primary"
-          disabled={busy || !imageUrl.trim()}
-          onclick={importUrl}>{t('ui_import_image_url')}</button
-        >
-      </div>
-    {:else}
+      <button type="button" class="primary" disabled={busy || !imageUrl.trim()} onclick={importUrl}
+        >{t('ui_import_image_url')}</button
+      >
+    </div>
+  {:else if source === 'local'}
+    <div class="url-source">
       <label>{t('ui_local_image_path')}<input bind:value={imagePath} disabled={busy} /></label>
-      <div class="source-actions">
+      <div class="local-actions">
         <button type="button" disabled={busy} onclick={chooseLocal}
           >{t('ui_choose_local_image')}</button
-        >
-        <button
+        ><button
           type="button"
           class="primary"
           disabled={busy || !imagePath.trim()}
           onclick={importLocal}>{t('ui_import_local_image')}</button
         >
       </div>
-    {/if}
-    {#if busy}<p class="status" role="status">{t('ui_importing_image')}</p>{/if}
-  </div>
-  <p class="help">{t('ui_image_import_help')}</p>
+    </div>
+  {/if}
 </div>
 
 <style>
-  .image-sources {
-    margin-top: 12px;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-panel);
-    overflow: hidden;
-  }
-  .source-switch {
-    display: flex;
-    gap: 4px;
-    padding: 6px;
-    background: var(--canvas);
-    border-bottom: 1px solid var(--border-subtle);
-  }
-  .source-switch button {
-    flex: 1;
-    min-width: 0;
-    padding: 9px 6px;
-    font-size: 0.8rem;
-    border-color: transparent;
-    background: transparent;
-    color: var(--text-muted);
-  }
-  .source-switch button[aria-pressed='true'] {
-    background: var(--surface-raised);
-    border-color: var(--border);
-    color: var(--text);
-  }
-  .source-body {
-    padding: 14px;
-  }
-  .source-body label {
-    margin: 0 0 12px;
-  }
-  .upload-card {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 20px 12px;
-    background: var(--canvas);
-    border: 1px dashed var(--border);
-  }
-  .upload-card:hover {
-    border-color: var(--accent);
-    background: var(--surface-hover);
-  }
-  .upload-icon {
-    color: var(--accent);
-  }
-  .upload-card > span:last-child {
-    color: var(--text-muted);
-    font-size: 0.8rem;
-  }
   .source-actions {
     display: flex;
     justify-content: flex-end;
     flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 8px;
+  }
+  .text-button {
+    border: 0;
+    padding: 4px 0;
+    background: transparent;
+    color: var(--accent);
+    font-size: 0.75rem;
+  }
+  .url-source {
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-control);
+  }
+  .url-source label:first-child {
+    margin-top: 0;
+  }
+  .local-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 8px;
   }
-  .source-actions button {
-    font-size: 0.85rem;
+  .local-actions button {
+    font-size: 0.8rem;
   }
-  .help {
-    margin: 0;
-    padding: 12px 14px;
-    border-top: 1px solid var(--border-subtle);
-    color: var(--text-muted);
-    font-size: 0.78rem;
-    line-height: 1.5;
-  }
-  .status {
-    margin: 12px 0 0;
-    color: var(--text-muted);
-    font-size: 0.85rem;
+  .url-source > button {
+    display: block;
+    margin-left: auto;
+    font-size: 0.8rem;
   }
 </style>

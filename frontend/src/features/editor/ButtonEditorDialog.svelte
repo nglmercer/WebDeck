@@ -3,6 +3,10 @@
   import { useTranslations } from '../../lib/i18n';
   const t = useTranslations();
   let activeTab = $state('content');
+  let actionValid = $state(true);
+  let moreOpen = $state(false);
+  let moreActions = $state<HTMLDivElement>();
+  let moreTrigger = $state<HTMLButtonElement>();
 
   import { modal } from '../../lib/modal';
   import { onDestroy, onMount, tick } from 'svelte';
@@ -29,10 +33,11 @@
   import IconField from './IconField.svelte';
   import ActionPickerModal from './ActionPickerModal.svelte';
   import { actionOptions, type ActionOption } from './action-options';
+  import SegmentedControl from '../../components/SegmentedControl.svelte';
+  import { fileSize, type MediaMetadata } from './audio';
   import ImageSourceFields from './ImageSourceFields.svelte';
   let {
     button = $bindable(),
-    buttonFolder = $bindable(),
     layout,
     catalog,
     assetUrls,
@@ -46,7 +51,6 @@
     attempt,
   }: {
     button: Button;
-    buttonFolder: string;
     layout: Layout;
     catalog: CatalogResponse | null;
     assetUrls: Record<string, string>;
@@ -59,13 +63,17 @@
     close: () => void;
     attempt: (work: () => Promise<void>) => Promise<void>;
   } = $props();
+  let visualSource = $state(button.icon.startsWith('asset:') ? 'image' : 'icon');
+  let lastIcon = $state(button.icon.startsWith('asset:') ? 'icon:grid' : button.icon);
+  let lastImage = $state(button.icon.startsWith('asset:') ? button.icon : '');
   let actionPickerOpen = $state(false);
   let mobilePickerOpen = $state(false);
   let editorDialog: HTMLDialogElement;
+  let editorBody: HTMLDivElement;
   let editorScrollBeforePicker = 0;
   function keyPickerStep(open: boolean) {
     if (open) {
-      editorScrollBeforePicker = editorDialog?.scrollTop ?? 0;
+      editorScrollBeforePicker = editorBody?.scrollTop ?? 0;
       activeTab = 'action';
       mobilePickerOpen = true;
       return;
@@ -73,7 +81,7 @@
     mobilePickerOpen = false;
     void tick().then(() => {
       requestAnimationFrame(() => {
-        if (editorDialog?.isConnected) editorDialog.scrollTop = editorScrollBeforePicker;
+        if (editorDialog?.isConnected) editorBody.scrollTop = editorScrollBeforePicker;
       });
     });
   }
@@ -103,7 +111,20 @@
   let libraryUrls = $state<Record<string, string>>({});
   let libraryError = $state('');
   const libraryAssets = new AssetCache(asset);
-  const pageIds = $derived(imageIds.slice(imagePage * 24, (imagePage + 1) * 24));
+  const pageIds = $derived(imageIds.slice(imagePage * 12, (imagePage + 1) * 12));
+  const media = $derived((button.extensions.media ?? {}) as Record<string, MediaMetadata>);
+  const imageMetadata = $derived(
+    media.image?.source === button.icon.slice(6) ? media.image : undefined,
+  );
+  function saveMetadata(kind: string, metadata: MediaMetadata) {
+    button.extensions.media = { ...media, [kind]: metadata };
+  }
+  function changeVisual(source: string) {
+    if (visualSource === 'icon') lastIcon = button.icon;
+    else if (button.icon.startsWith('asset:')) lastImage = button.icon;
+    visualSource = source;
+    button.icon = source === 'icon' ? lastIcon : lastImage;
+  }
   onMount(() => {
     void request<ImageAssetList>('assets', 'ImageAssetList')
       .then((value) => {
@@ -169,6 +190,7 @@
   }
   function apply(event: SubmitEvent) {
     event.preventDefault();
+    if (imageBusy || !actionValid) return;
     try {
       contract('Button', button);
       formError = '';
@@ -199,9 +221,13 @@
   }
   function selectAction(option: ActionOption) {
     if (!button) return;
+    actionValid = true;
     const type = option.type;
-    if (type === 'command' && option.schema) chooseCommand(defaultValue(option.schema) as Command);
-    else if (type === 'workflow')
+    if (type === 'command' && option.schema) {
+      const command = defaultValue(option.schema) as Command;
+      if (command.type === 'play_sound') command.volume = 100;
+      chooseCommand(command);
+    } else if (type === 'workflow')
       button.action = {
         type,
         workflow: {
@@ -242,21 +268,19 @@
       if (m) pluginCommand(m);
     }
   }
-  async function image(e: Event) {
-    const input = e.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file || imageBusy) return;
+  async function image(file: File) {
+    if (imageBusy) return;
     const candidate = button;
     imageBusy = true;
     try {
       const result = await upload(file);
       if (!destroyed && button === candidate && result.type === 'asset') {
-        button.icon = `asset:${result.id}`;
+        button.icon = lastImage = `asset:${result.id}`;
+        saveMetadata('image', { source: result.id, name: file.name, size: file.size });
         imageIds = [result.id, ...imageIds.filter((id) => id !== result.id)];
         imagePage = 0;
       }
     } finally {
-      input.value = '';
       if (!destroyed) imageBusy = false;
     }
   }
@@ -273,7 +297,16 @@
         imageIds = [result.id, ...imageIds.filter((id) => id !== result.id)];
         imagePage = 0;
         if (source.type === 'url' && source.live) liveIds = [...liveIds, result.id];
-        if (button === candidate) button.icon = `asset:${result.id}`;
+        if (button === candidate) {
+          button.icon = lastImage = `asset:${result.id}`;
+          saveMetadata('image', {
+            source: result.id,
+            name:
+              source.type === 'url'
+                ? source.url.split('/').pop()?.split('?')[0] || result.id
+                : source.path.split(/[\\/]/).pop() || result.id,
+          });
+        }
       }
     } finally {
       if (!destroyed) imageBusy = false;
@@ -307,8 +340,7 @@
       },
     );
     if (!destroyed && result.source?.type === 'external') {
-      imagePath = result.source.path;
-      await importImage({ type: 'local', path: imagePath });
+      await importImage({ type: 'local', path: result.source.path });
     }
   }
   function pluginCommand(m: PluginManifest) {
@@ -340,37 +372,48 @@
   }
 </script>
 
+<svelte:window
+  onpointerdown={(event) => {
+    if (moreOpen && !moreActions?.contains(event.target as Node)) moreOpen = false;
+  }}
+/>
 <div class="overlay">
   <dialog
     bind:this={editorDialog}
     use:modal
     oncancel={(event) => {
       event.preventDefault();
-      close();
+      if (moreOpen) {
+        moreOpen = false;
+        moreTrigger?.focus();
+      } else close();
     }}
     aria-modal="true"
     aria-labelledby="button-title"
     class="editor"
     class:picker-step={mobilePickerOpen}
   >
-    <div class="heading">
-      <h2 id="button-title">
-        {mobilePickerOpen ? t('ui_keypicker_choose_keys') : t('ui_edit_button')}
-      </h2>
-      <button aria-label={t('ui_close_editor')} onclick={close}><Icon name="close" /></button>
-    </div>
-    {#if !mobilePickerOpen}
-      <div class="preview">
-        <div
-          class="deck-button preview-tile"
-          role="img"
-          aria-label={t('ui_button_preview')}
-          style={`--button-color:${button.color};--button-foreground:${colors.foreground};--icon-size:${appearance.icon_size ?? 42}px;`}
-        >
-          <ButtonContent {button} assetUrl={previewUrl} />
-        </div>
+    <div class="editor-header">
+      <div class="heading">
+        <h2 id="button-title">
+          {mobilePickerOpen ? t('ui_keypicker_choose_keys') : t('ui_edit_button')}
+        </h2>
+        <button aria-label={t('ui_close_editor')} onclick={close}><Icon name="close" /></button>
       </div>
-    {/if}
+      {#if !mobilePickerOpen}
+        <div class="preview">
+          <div
+            class="deck-button preview-tile"
+            role="img"
+            aria-label={t('ui_button_preview')}
+            style={`--button-color:${button.color};--button-foreground:${colors.foreground};--icon-size:${appearance.icon_size ?? 42}px;`}
+          >
+            <ButtonContent {button} assetUrl={previewUrl} showLabels={false} />
+          </div>
+          <strong class="preview-name">{button.label}</strong>
+        </div>
+      {/if}
+    </div>
     <form onsubmit={apply}>
       {#if !mobilePickerOpen}
         <div role="tablist" aria-label={t('ui_edit_button')} class="editor-tabs">
@@ -403,324 +446,298 @@
               onclick={() => (activeTab = tab)}>{t(`ui_${tab}`)}</button
             >{/each}
         </div>
-        <div
-          role="tabpanel"
-          id="editor-panel-content"
-          aria-labelledby="editor-tab-content"
-          hidden={activeTab !== 'content'}
-        >
-          <div class="basics-grid">
-            <label
-              >{t('ui_button_folder')}<select bind:value={buttonFolder}
-                >{#each layout?.folders ?? [] as f}<option value={f.id}>{f.label}</option
-                  >{/each}</select
-              ></label
-            >
-            <label>{t('ui_label')}<input bind:value={button.label} /></label>
-            <div class="row icon-color">
-              <IconField value={button.icon} onSelect={(value) => (button.icon = value)} /><label
-                >{t('ui_color')}<input
+      {/if}
+      <div class="editor-scroll" bind:this={editorBody}>
+        {#if !mobilePickerOpen}
+          <div
+            role="tabpanel"
+            id="editor-panel-content"
+            aria-labelledby="editor-tab-content"
+            hidden={activeTab !== 'content'}
+          >
+            <div class="basics-grid">
+              <label>{t('ui_label')}<input bind:value={button.label} maxlength="256" /></label>
+              <span class="field-label">{t('ui_button_visual')}</span>
+              <SegmentedControl
+                label={t('ui_button_visual')}
+                value={visualSource}
+                options={[
+                  { value: 'icon', label: t('ui_icon') },
+                  { value: 'image', label: t('ui_visual_image') },
+                ]}
+                onchange={changeVisual}
+              />
+              {#if visualSource === 'icon'}
+                <IconField value={button.icon} onSelect={(value) => (button.icon = value)} />
+              {:else}
+                <ImageSourceFields
+                  bind:imageUrl
+                  bind:imagePath
+                  bind:liveImage
+                  busy={imageBusy}
+                  filename={button.icon.startsWith('asset:')
+                    ? (imageMetadata?.name ?? button.icon.slice(6))
+                    : ''}
+                  metadata={imageMetadata?.size
+                    ? `${imageMetadata.name.split('.').pop()?.toUpperCase()} · ${fileSize(imageMetadata.size)}`
+                    : ''}
+                  preview={previewUrl}
+                  upload={image}
+                  importUrl={() =>
+                    attempt(() =>
+                      importImage({ type: 'url', url: imageUrl.trim(), live: liveImage }),
+                    )}
+                  importLocal={() =>
+                    attempt(() => importImage({ type: 'local', path: imagePath.trim() }))}
+                  chooseLocal={() => attempt(chooseLocalImage)}
+                />
+                {#if button.icon.startsWith('asset:') && liveIds.includes(button.icon.slice(6))}
+                  <button type="button" disabled={imageBusy} onclick={() => attempt(refreshImage)}
+                    >{t('ui_refresh_live_image')}</button
+                  >
+                {/if}
+                {#if imageIds.length}
+                  <h3 class="library-title">{t('ui_image_library')}</h3>
+                  <div class="image-library">
+                    {#each pageIds as id}<button
+                        type="button"
+                        aria-label={`${t('ui_select_uploaded_icon')} ${id}`}
+                        aria-pressed={button.icon === `asset:${id}`}
+                        onclick={() => (button.icon = lastImage = `asset:${id}`)}
+                      >
+                        {#if libraryUrls[id]}<img
+                            src={libraryUrls[id]}
+                            alt=""
+                            width="72"
+                            height="72"
+                          />{:else}<span class="image-loading" aria-hidden="true"></span>{/if}
+                      </button>{/each}
+                  </div>
+                  {#if imageIds.length > 12}<div class="library-pages">
+                      <button type="button" disabled={imagePage === 0} onclick={() => imagePage--}
+                        >{t('ui_previous')}</button
+                      >
+                      <button
+                        type="button"
+                        disabled={(imagePage + 1) * 12 >= imageIds.length}
+                        onclick={() => imagePage++}>{t('ui_next')}</button
+                      >
+                    </div>{/if}
+                {/if}
+                {#if libraryError}<p role="status">{t(libraryError)}</p>{/if}
+              {/if}
+            </div>
+          </div>
+          <div
+            role="tabpanel"
+            id="editor-panel-appearance"
+            aria-labelledby="editor-tab-appearance"
+            hidden={activeTab !== 'appearance'}
+          >
+            <label class="background-color"
+              >{t('ui_background_color')}<span class="color-row"
+                ><input
                   class="color-input"
                   type="color"
                   bind:value={button.color}
-                /></label
+                  aria-label={t('ui_background_color')}
+                /><input
+                  aria-label={t('ui_color_hex')}
+                  bind:value={button.color}
+                  maxlength="7"
+                  required
+                /></span
+              ></label
+            >
+            <div class="appearance-fields">
+              <NumberField
+                label={t('ui_column_span')}
+                value={Number(appearance.columns ?? 1)}
+                min={1}
+                max={layout.columns}
+                onchange={(value) => setAppearance('columns', value)}
+              />
+              <NumberField
+                label={t('ui_row_span')}
+                value={Number(appearance.rows ?? 1)}
+                min={1}
+                max={128}
+                onchange={(value) => setAppearance('rows', value)}
+              />
+              <NumberField
+                label={t('ui_icon_size')}
+                value={Number(appearance.icon_size ?? 42)}
+                min={0}
+                max={200}
+                onchange={(value) => setAppearance('icon_size', value)}
+              />
+              <label class="check"
+                ><input
+                  type="checkbox"
+                  checked={appearance.show_label !== false}
+                  onchange={(e) => setAppearance('show_label', e.currentTarget.checked)}
+                />{t('ui_show_label')}</label
               >
             </div>
           </div>
-          <details class="custom-images">
-            <summary>{t('ui_custom_images')}</summary>
-            <ImageSourceFields
-              bind:imageUrl
-              bind:imagePath
-              bind:liveImage
-              busy={imageBusy}
-              upload={(event) => attempt(() => image(event))}
-              importUrl={() =>
-                attempt(() => importImage({ type: 'url', url: imageUrl.trim(), live: liveImage }))}
-              importLocal={() =>
-                attempt(() => importImage({ type: 'local', path: imagePath.trim() }))}
-              chooseLocal={() => attempt(chooseLocalImage)}
-            />
-            {#if button.icon.startsWith('asset:') && liveIds.includes(button.icon.slice(6))}
-              <button type="button" disabled={imageBusy} onclick={() => attempt(refreshImage)}
-                >{t('ui_refresh_live_image')}</button
-              >
-              <p>{t('ui_refresh_live_image_help')}</p>
-            {/if}
-            <h3 class="library-title">{t('ui_uploaded_icons')}<span>{imageIds.length}</span></h3>
-            {#if !imageIds.length && !libraryError}<p class="library-empty">
-                {t('ui_image_library_empty')}
-              </p>{/if}
-            {#if libraryError}<p role="status">{t(libraryError)}</p>{/if}
-            <div class="icon-picker">
-              {#each pageIds as id}<button
-                  type="button"
-                  aria-label={`${t('ui_select_uploaded_icon')} ${id}`}
-                  aria-pressed={button.icon === `asset:${id}`}
-                  onclick={() => (button.icon = `asset:${id}`)}
-                >
-                  {#if libraryUrls[id]}<img
-                      src={libraryUrls[id]}
-                      alt=""
-                      width="32"
-                      height="32"
-                    />{:else}<Icon name="image" />{/if}
-                </button>{/each}
-            </div>
-            {#if imageIds.length > 24}
-              <button type="button" disabled={imagePage === 0} onclick={() => imagePage--}
-                >{t('ui_previous')}</button
-              >
-              <button
-                type="button"
-                disabled={(imagePage + 1) * 24 >= imageIds.length}
-                onclick={() => imagePage++}>{t('ui_next')}</button
-              >
-            {/if}
-          </details>
-        </div>
+        {/if}
         <div
           role="tabpanel"
-          id="editor-panel-appearance"
-          aria-labelledby="editor-tab-appearance"
-          hidden={activeTab !== 'appearance'}
+          id="editor-panel-action"
+          aria-labelledby={mobilePickerOpen ? 'button-title' : 'editor-tab-action'}
+          hidden={activeTab !== 'action' && !mobilePickerOpen}
         >
-          <div class="appearance-fields">
-            <NumberField
-              label={t('ui_column_span')}
-              value={Number(appearance.columns ?? 1)}
-              min={1}
-              max={layout.columns}
-              onchange={(value) => setAppearance('columns', value)}
+          {#if !mobilePickerOpen}
+            <div class="action-summary">
+              <Icon name={selectedAction?.icon ?? 'settings'} />
+              <span>{selectedAction ? t(selectedAction.label) : button.action.type}</span>
+              <button
+                type="button"
+                disabled={protectedSettings}
+                title={protectedSettings ? t('ui_settings_protected') : undefined}
+                onclick={() => (actionPickerOpen = true)}>{t('ui_change_action')}</button
+              >
+            </div>
+            {#if !hasConfiguration}<p class="field-help">{t('ui_no_configuration_needed')}</p>{/if}
+            {#if actionPickerOpen}<ActionPickerModal
+                value={selectedActionId}
+                close={() => (actionPickerOpen = false)}
+                select={selectAction}
+              />{/if}
+          {/if}
+          {#if button.action.type === 'workflow' || button.action.type === 'script' || button.action.type === 'plugin'}
+            <Fields
+              schema={resolve({ $ref: '#/$defs/ButtonAction' }).oneOf?.find(
+                (option) => option.properties?.type?.const === button!.action.type,
+              ) ?? {}}
+              value={button.action}
+              onchange={(action) => {
+                if (button) button.action = action as ButtonAction;
+              }}
+              label={t('ui_action')}
             />
-            <NumberField
-              label={t('ui_row_span')}
-              value={Number(appearance.rows ?? 1)}
-              min={1}
-              max={128}
-              onchange={(value) => setAppearance('rows', value)}
-            />
-            <NumberField
-              label={t('ui_icon_size')}
-              value={Number(appearance.icon_size ?? 42)}
-              min={0}
-              max={200}
-              onchange={(value) => setAppearance('icon_size', value)}
-            />
-            <label class="check"
-              ><input
-                type="checkbox"
-                checked={appearance.show_label !== false}
-                onchange={(e) => setAppearance('show_label', e.currentTarget.checked)}
-              />{t('ui_show_label')}</label
-            >
-          </div>
-        </div>
-      {/if}
-      <div
-        role="tabpanel"
-        id="editor-panel-action"
-        aria-labelledby={mobilePickerOpen ? 'button-title' : 'editor-tab-action'}
-        hidden={activeTab !== 'action' && !mobilePickerOpen}
-      >
-        {#if !mobilePickerOpen}
-          <div class="action-summary">
-            <Icon name={selectedAction?.icon ?? 'settings'} />
-            <span>{selectedAction ? t(selectedAction.label) : button.action.type}</span>
-            <button
-              type="button"
-              disabled={protectedSettings}
-              title={protectedSettings ? t('ui_settings_protected') : undefined}
-              onclick={() => (actionPickerOpen = true)}>{t('ui_change_action')}</button
-            >
-          </div>
-          {#if !hasConfiguration}<p class="field-help">{t('ui_no_configuration_needed')}</p>{/if}
-          {#if actionPickerOpen}<ActionPickerModal
-              value={selectedActionId}
-              close={() => (actionPickerOpen = false)}
-              select={selectAction}
-            />{/if}
-        {/if}
-        {#if button.action.type === 'workflow' || button.action.type === 'script' || button.action.type === 'plugin'}
-          <Fields
-            schema={resolve({ $ref: '#/$defs/ButtonAction' }).oneOf?.find(
-              (option) => option.properties?.type?.const === button!.action.type,
-            ) ?? {}}
-            value={button.action}
-            onchange={(action) => {
-              if (button) button.action = action as ButtonAction;
-            }}
-            label={t('ui_action')}
-          />
-        {:else if button.action.type === 'metric'}
-          <label
-            >{t('ui_metric')}<select bind:value={button.action.metric}
-              >{#each ['cpu', 'memory', 'gpu', 'gpu_memory', 'disk', 'clock'] as metric}<option
-                  value={metric}>{metric}</option
-                >{/each}</select
-            ></label
-          >
-          <label
-            >{t('ui_device_name_or_index_empty_uses_default')}<input
-              bind:value={button.action.target}
-            /></label
-          >
-          <NumberField
-            label={t('ui_update_interval_ms')}
-            value={button.action.interval_ms}
-            min={250}
-            max={3600000}
-            onchange={(value) => {
-              if (button.action.type === 'metric') button.action.interval_ms = value;
-            }}
-          />
-        {:else if button.action.type === 'folder'}<label
-            >{t('ui_destination')}<select bind:value={button.action.folder_id}
-              >{#each layout?.folders ?? [] as f}<option value={f.id}>{f.label}</option
-                >{/each}</select
-            ></label
-          >{:else if button.action.type === 'command'}<ActionFields
-            configurationOnly
-            active={activeTab === 'action' || mobilePickerOpen}
-            onKeyPickerStep={keyPickerStep}
-            value={button.action.command}
-            onchange={(c) => chooseCommand(c as Command)}
-          />{#if button.action.command.type === 'plugin'}<label
-              >{t('ui_plugin')}<select
-                value={button.action.command.plugin_id}
-                onchange={(e) => {
-                  const m = catalog?.plugins.find((m) => m.id === e.currentTarget.value);
-                  if (m) pluginCommand(m);
-                }}
-                >{#each catalog?.plugins ?? [] as m}<option value={m.id}
-                    >{m.id} · {m.version}</option
+          {:else if button.action.type === 'metric'}
+            <label
+              >{t('ui_metric')}<select bind:value={button.action.metric}
+                >{#each ['cpu', 'memory', 'gpu', 'gpu_memory', 'disk', 'clock'] as metric}<option
+                    value={metric}>{metric}</option
                   >{/each}</select
               ></label
-            >{#if selectedPlugin}<label
-                >{t('ui_plugin_action')}<select
-                  value={button.action.command.action_id}
+            >
+            <label
+              >{t('ui_device_name_or_index_empty_uses_default')}<input
+                bind:value={button.action.target}
+              /></label
+            >
+            <NumberField
+              label={t('ui_update_interval_ms')}
+              value={button.action.interval_ms}
+              min={250}
+              max={3600000}
+              onchange={(value) => {
+                if (button.action.type === 'metric') button.action.interval_ms = value;
+              }}
+            />
+          {:else if button.action.type === 'folder'}<label
+              >{t('ui_destination')}<select bind:value={button.action.folder_id}
+                >{#each layout?.folders ?? [] as f}<option value={f.id}>{f.label}</option
+                  >{/each}</select
+              ></label
+            >{:else if button.action.type === 'command'}<ActionFields
+              configurationOnly
+              active={activeTab === 'action' || mobilePickerOpen}
+              onKeyPickerStep={keyPickerStep}
+              mediaMetadata={media.audio}
+              onMediaMetadata={(metadata) => saveMetadata('audio', metadata)}
+              onValidity={(valid) => (actionValid = valid)}
+              value={button.action.command}
+              onchange={(c) => chooseCommand(c as Command)}
+            />{#if button.action.command.type === 'plugin'}<label
+                >{t('ui_plugin')}<select
+                  value={button.action.command.plugin_id}
                   onchange={(e) => {
+                    const m = catalog?.plugins.find((m) => m.id === e.currentTarget.value);
+                    if (m) pluginCommand(m);
+                  }}
+                  >{#each catalog?.plugins ?? [] as m}<option value={m.id}
+                      >{m.id} · {m.version}</option
+                    >{/each}</select
+                ></label
+              >{#if selectedPlugin}<label
+                  >{t('ui_plugin_action')}<select
+                    value={button.action.command.action_id}
+                    onchange={(e) => {
+                      if (
+                        button?.action.type === 'command' &&
+                        button.action.command.type === 'plugin'
+                      ) {
+                        button.action.command.action_id = e.currentTarget.value;
+                        button.action.command.args = defaultValue(
+                          pluginActionSchema(selectedPlugin!, e.currentTarget.value),
+                        ) as Record<string, unknown>;
+                      }
+                    }}
+                    >{#each selectedPlugin.actions as a}<option value={a.id}>{a.label}</option
+                      >{/each}</select
+                  ></label
+                ><Fields
+                  schema={pluginActionSchema(selectedPlugin, button.action.command.action_id)}
+                  value={button.action.command.args}
+                  onchange={(args) => {
                     if (
                       button?.action.type === 'command' &&
                       button.action.command.type === 'plugin'
-                    ) {
-                      button.action.command.action_id = e.currentTarget.value;
-                      button.action.command.args = defaultValue(
-                        pluginActionSchema(selectedPlugin!, e.currentTarget.value),
-                      ) as Record<string, unknown>;
-                    }
+                    )
+                      button.action.command.args = args as Record<string, unknown>;
                   }}
-                  >{#each selectedPlugin.actions as a}<option value={a.id}>{a.label}</option
-                    >{/each}</select
-                ></label
-              ><Fields
-                schema={pluginActionSchema(selectedPlugin, button.action.command.action_id)}
-                value={button.action.command.args}
-                onchange={(args) => {
-                  if (button?.action.type === 'command' && button.action.command.type === 'plugin')
-                    button.action.command.args = args as Record<string, unknown>;
-                }}
-                label={t('ui_plugin_arguments')}
-              />{:else}<p>{t('ui_no_v2_plugins_are_installed')}</p>{/if}{/if}{/if}
+                  label={t('ui_plugin_arguments')}
+                />{:else}<p>{t('ui_no_v2_plugins_are_installed')}</p>{/if}{/if}{/if}
+        </div>
+        {#if formError}<p role="alert">{t(formError)}</p>{/if}
       </div>
       {#if !mobilePickerOpen}<div class="actions">
-          <details class="more-actions">
-            <summary aria-label={t('ui_more_button_actions')}><Icon name="more" /></summary>
-            <div class="menu">
-              <button type="button" onclick={() => moveButton(-1)}>{t('ui_move_left')}</button
-              ><button type="button" onclick={() => moveButton(1)}>{t('ui_move_right')}</button
-              ><button type="button" onclick={duplicateButton}>{t('ui_duplicate')}</button><button
-                type="button"
-                class="danger"
-                disabled={protectedSettings || button.action.type === 'settings'}
-                title={protectedSettings || button.action.type === 'settings'
-                  ? t('ui_settings_protected')
-                  : undefined}
-                onclick={removeButton}>{t('ui_delete')}</button
+          <div class="more-actions" bind:this={moreActions}>
+            <button
+              bind:this={moreTrigger}
+              type="button"
+              class="more-trigger"
+              aria-label={t('ui_more_button_actions')}
+              aria-expanded={moreOpen}
+              aria-controls="button-more-actions"
+              onclick={() => (moreOpen = !moreOpen)}
+              ><Icon name="more" size={20} /><span>{t('ui_editor_more')}</span></button
+            >
+            {#if moreOpen}<div
+                id="button-more-actions"
+                class="menu"
+                role="group"
+                aria-label={t('ui_more_button_actions')}
               >
-            </div>
-          </details>
+                <button type="button" onclick={() => moveButton(-1)}>{t('ui_move_left')}</button>
+                <button type="button" onclick={() => moveButton(1)}>{t('ui_move_right')}</button>
+                <button type="button" onclick={duplicateButton}>{t('ui_duplicate')}</button>
+                <button
+                  type="button"
+                  class="danger"
+                  disabled={protectedSettings || button.action.type === 'settings'}
+                  title={protectedSettings || button.action.type === 'settings'
+                    ? t('ui_settings_protected')
+                    : undefined}
+                  onclick={removeButton}>{t('ui_delete')}</button
+                >
+              </div>{/if}
+          </div>
           <span class="spacer"></span><button type="button" onclick={close}>{t('ui_cancel')}</button
-          ><button type="submit" class="primary">{t('ui_apply_to_draft')}</button>
+          ><button type="submit" class="primary" disabled={imageBusy || !actionValid}
+            >{t('ui_apply_to_draft')}</button
+          >
         </div>
       {/if}
-      {#if formError}<p role="alert">{t(formError)}</p>{/if}
     </form>
   </dialog>
 </div>
 
 <style>
-  .action-summary {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-control);
-    margin-bottom: 12px;
-  }
-  .action-summary span {
-    flex: 1;
-    min-width: 0;
-    font-size: 0.9rem;
-  }
-  .action-summary button {
-    font-size: 0.8rem;
-    padding: 8px 10px;
-  }
-  .icon-picker {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
-    gap: 8px;
-    margin: 12px 0;
-  }
-  .icon-picker button {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 60px;
-    padding: 8px;
-  }
-  .icon-picker [aria-pressed='true'] {
-    border-color: var(--accent);
-    background: var(--accent-surface);
-  }
-  .icon-picker img {
-    object-fit: contain;
-  }
-  .library-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 18px 0 8px;
-    font-size: 0.85rem;
-  }
-  .library-title span {
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    font-weight: normal;
-  }
-  .library-empty {
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    padding: 16px;
-    margin: 0;
-    text-align: center;
-    border: 1px dashed var(--border-subtle);
-    border-radius: var(--radius-control);
-  }
-  .editor-tabs {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 16px;
-  }
-  .editor-tabs button {
-    flex: 1;
-  }
-  .editor-tabs [aria-selected='true'] {
-    background: var(--accent-surface);
-    color: var(--text);
-  }
   .overlay {
     position: fixed;
     inset: 0;
@@ -732,68 +749,209 @@
     z-index: 20;
   }
   .editor {
-    width: min(520px, 100%);
-    max-height: 90dvh;
-    overflow: auto;
-    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    width: min(620px, 100%);
+    max-height: 92dvh;
+    padding: 0;
+    overflow: hidden;
     color: inherit;
-    border: 1px solid #ffffff25;
-    border-radius: 8px;
-    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
     box-shadow: var(--shadow-dialog);
-  }
-  .editor.picker-step {
-    width: min(520px, 100%);
-    max-height: 94dvh;
   }
   .editor::backdrop {
     background: transparent;
   }
+  .editor-header {
+    padding: 16px 22px 0;
+    flex-shrink: 0;
+  }
+  .heading {
+    margin: 0 0 12px;
+    flex-wrap: nowrap;
+  }
+  h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+  .heading button {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    min-height: 34px;
+    padding: 5px;
+    border: 0;
+    background: transparent;
+  }
   .preview {
     display: flex;
-    justify-content: center;
-    padding: 8px;
-    margin-bottom: 12px;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-panel);
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 10px;
   }
   .preview-tile {
-    width: 92px;
-    min-height: 82px;
-    padding: 8px;
+    width: 56px;
+    height: 56px;
+    min-height: 56px;
+    flex: 0 0 56px;
+    border-radius: 10px;
+    padding: 7px;
+    --icon-size: 32px !important;
+    overflow: hidden;
+  }
+  .preview-name {
+    border-left: 1px solid var(--border);
+    padding-left: 16px;
+    font-size: 1rem;
+    font-weight: 550;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  form {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .editor-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0 22px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .editor-tabs button {
+    min-width: 0;
+    padding: 11px 6px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 8px 8px 0 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    background: transparent;
+  }
+  .editor-tabs [aria-selected='true'] {
+    background: var(--accent-surface);
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+  .editor-scroll {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 16px 22px;
   }
   .basics-grid {
     display: grid;
-    gap: 10px;
+    gap: 14px;
   }
-  .row.icon-color {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 100px;
-    align-items: end;
-    gap: 10px;
+  .basics-grid > label {
+    margin: 0 0 2px;
   }
-  .basics-grid label {
-    margin: 0;
+  .field-label {
+    font-size: 0.85rem;
+    font-weight: 550;
+    margin-bottom: -6px;
   }
-  .color-input {
-    height: 42px;
+  .background-color {
+    margin: 0 0 18px;
+  }
+  .color-row {
+    display: flex;
+    align-items: center;
+    width: min(240px, 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+    overflow: hidden;
+    background: var(--canvas);
+  }
+  .color-row input {
+    border: 0;
+    background: transparent;
+  }
+  .color-row .color-input {
+    width: 44px;
+    height: 40px;
+    flex: 0 0 44px;
     padding: 4px;
   }
-  .custom-images {
-    margin-top: 10px;
-    border-top: 1px solid var(--border-subtle);
-    padding-top: 9px;
+  .image-library {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+    gap: 10px;
   }
-  .custom-images summary {
-    cursor: pointer;
-    color: var(--text-muted);
+  .image-library button {
+    display: grid;
+    place-items: center;
+    padding: 3px;
+    aspect-ratio: 1;
+    min-width: 0;
+    overflow: hidden;
   }
-
+  .image-library button[aria-pressed='true'] {
+    border-color: var(--accent);
+    outline: 1px solid var(--accent);
+  }
+  .image-library img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 5px;
+  }
+  .image-loading {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: var(--surface-raised);
+  }
+  .library-title {
+    margin: 4px 0 -4px;
+    font-size: 0.85rem;
+    font-weight: 550;
+  }
+  .library-pages {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .library-pages button {
+    font-size: 0.8rem;
+  }
+  .action-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+    margin-bottom: 14px;
+    background: var(--canvas);
+  }
+  .action-summary span {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.85rem;
+    font-weight: 550;
+  }
+  .action-summary button {
+    font-size: 0.75rem;
+    padding: 7px 10px;
+  }
   .actions {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 14px;
+    padding: 12px 22px;
+    border-top: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+    background: var(--surface);
+  }
+  .actions > button {
+    font-size: 0.8rem;
+    padding: 10px 12px;
   }
   .spacer {
     flex: 1;
@@ -801,37 +959,37 @@
   .more-actions {
     position: relative;
   }
-  .more-actions summary {
-    list-style: none;
-    cursor: pointer;
-    display: grid;
-    place-items: center;
-    width: 38px;
-    height: 38px;
-    border: 1px solid var(--border-subtle);
-    border-radius: 8px;
-  }
-  .more-actions summary::-webkit-details-marker {
-    display: none;
+  .more-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border: 0;
+    background: transparent;
+    font-size: 0.8rem;
   }
   .menu {
     position: absolute;
-    bottom: calc(100% + 6px);
+    bottom: calc(100% + 14px);
     left: 0;
     z-index: 5;
     display: grid;
-    min-width: 150px;
+    min-width: 160px;
     padding: 6px;
-    background: var(--surface);
-    border: 1px solid var(--border-subtle);
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
     border-radius: 9px;
     box-shadow: var(--shadow-dialog);
   }
   .menu button {
     text-align: left;
+    font-size: 0.85rem;
+    border: 0;
   }
-  .editor-tabs {
-    margin: 10px 0;
+  .appearance-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0 12px;
   }
   @media (max-width: 520px) {
     .overlay {
@@ -839,15 +997,25 @@
     }
     .editor {
       max-height: 94dvh;
-      padding: 12px;
     }
-    .row.icon-color {
-      grid-template-columns: minmax(0, 1fr) 82px;
+    .editor-header {
+      padding: 16px 14px 0;
     }
-  }
-  .appearance-fields {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 0 12px;
+    .editor-tabs {
+      margin: 0 14px;
+    }
+    .editor-scroll {
+      padding: 16px 14px;
+    }
+    .actions {
+      padding: 12px 14px;
+      gap: 6px;
+    }
+    .more-trigger span {
+      display: none;
+    }
+    .actions > button {
+      padding: 10px;
+    }
   }
 </style>

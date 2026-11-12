@@ -380,7 +380,6 @@
 {#if draft.button && layout}
   <ButtonEditorDialog
     bind:button={draft.button}
-    bind:buttonFolder={draft.folder}
     {layout}
     catalog={session.catalog}
     assetUrls={session.assetUrls}

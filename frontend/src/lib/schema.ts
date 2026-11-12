@@ -92,7 +92,9 @@ export function defaultValue(raw: Schema): unknown {
   if (s.enum) return s.enum[0];
   if (s.type === 'object')
     return Object.fromEntries(
-      Object.entries(s.properties ?? {}).map(([k, s]) => [k, defaultValue(s)]),
+      Object.entries(s.properties ?? {})
+        .filter(([key]) => !s.required || s.required.includes(key))
+        .map(([k, s]) => [k, defaultValue(s)]),
     );
   if (s.type === 'array')
     return Array.from({ length: s.minItems ?? 0 }, () => defaultValue(s.items ?? {}));

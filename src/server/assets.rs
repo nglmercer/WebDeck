@@ -73,6 +73,53 @@ pub(super) async fn asset(
     )
         .into_response())
 }
+
+/// Preview an existing host audio file in the local editor. Remote clients cannot read host paths.
+pub(super) async fn audio_preview(
+    State(a): State<App>,
+    axum::Extension(i): axum::Extension<Identity>,
+    Json(source): Json<FileSource>,
+) -> Result<Response> {
+    i.local()?;
+    i.require(Capability::Settings)?;
+    domain::validate(
+        "FileSource",
+        &serde_json::to_value(&source).map_err(|_| Error::invalid())?,
+    )?;
+    let bytes = blocking(a.io.clone(), move || {
+        use std::io::Read;
+        let path = a.assets.resolve(&source)?;
+        let extension = path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        if !["mp3", "wav", "ogg", "flac", "m4a", "aac", "opus"].contains(&extension.as_str()) {
+            return Err(Error::invalid());
+        }
+        let file = std::fs::File::open(path).map_err(|_| Error::execution())?;
+        if !file.metadata().map_err(|_| Error::execution())?.is_file() {
+            return Err(Error::invalid());
+        }
+        let mut bytes = Vec::new();
+        file.take(32 * 1024 * 1024 + 1)
+            .read_to_end(&mut bytes)
+            .map_err(|_| Error::execution())?;
+        if bytes.len() > 32 * 1024 * 1024 {
+            return Err(Error::invalid());
+        }
+        Ok(bytes)
+    })
+    .await?;
+    Ok((
+        [
+            ("content-type", "application/octet-stream"),
+            ("cache-control", "no-store"),
+        ],
+        bytes,
+    )
+        .into_response())
+}
 pub(super) async fn selection(
     axum::Extension(i): axum::Extension<Identity>,
     Json(r): Json<NativeSelection>,

@@ -1501,3 +1501,95 @@ async fn json_translation_catalogs_merge_locale_values_and_preserve_english_fall
     assert_eq!(fallback["translations"]["ui_settings"], "Settings");
     assert_eq!(fallback["translations"]["lang_code"], "en");
 }
+
+#[test]
+fn audio_fragments_preserve_old_commands_and_validate_order() {
+    let legacy = json!({"type":"play_sound","source":{"type":"asset","id":"sound.wav"},"volume":75,"output_device":"","microphone":false,"local_only":false});
+    let command: Command = serde_json::from_value(legacy.clone()).unwrap();
+    domain::validate_command(&command).unwrap();
+    assert_eq!(serde_json::to_value(command).unwrap(), legacy);
+    for (start, end, valid) in [
+        (2500, 8700, true),
+        (0, 1, true),
+        (500, 500, false),
+        (750, 250, false),
+    ] {
+        let mut value = legacy.clone();
+        value["start_ms"] = json!(start);
+        value["end_ms"] = json!(end);
+        let command = serde_json::from_value(value).unwrap();
+        assert_eq!(domain::validate_command(&command).is_ok(), valid);
+    }
+}
+
+#[tokio::test]
+async fn audio_preview_is_bounded_and_local_to_the_editor() {
+    let temp = Temp::new();
+    let application = app(&temp);
+    let path = temp.0.join("preview.wav");
+    std::fs::write(&path, b"audio-preview-bytes").unwrap();
+    let source = json!({"type":"external","path":path});
+    let response = call(
+        &application,
+        "POST",
+        "/api/v2/audio/preview",
+        source.clone(),
+        false,
+        None,
+        "127.0.0.1:5000",
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.headers()["cache-control"], "no-store");
+    assert_eq!(
+        &axum::body::to_bytes(response.into_body(), 100)
+            .await
+            .unwrap()[..],
+        b"audio-preview-bytes"
+    );
+    let device = application
+        .sessions
+        .approve(DeviceRequest {
+            name: "Remote editor".into(),
+            capabilities: vec![Capability::Read, Capability::Settings],
+            ttl_seconds: 60,
+        })
+        .unwrap();
+    let remote = call(
+        &application,
+        "POST",
+        "/api/v2/audio/preview",
+        source.clone(),
+        true,
+        Some(&device.token),
+        "127.0.0.1:5000",
+    )
+    .await;
+    assert_eq!(remote.status(), StatusCode::FORBIDDEN);
+    std::fs::File::create(&path)
+        .unwrap()
+        .set_len(32 * 1024 * 1024 + 1)
+        .unwrap();
+    let oversized = call(
+        &application,
+        "POST",
+        "/api/v2/audio/preview",
+        source,
+        false,
+        None,
+        "127.0.0.1:5000",
+    )
+    .await;
+    assert_eq!(oversized.status(), StatusCode::BAD_REQUEST);
+    let invalid = call(
+        &application,
+        "POST",
+        "/api/v2/audio/preview",
+        json!({"type":"external","path":temp.0.join("config.json")}),
+        false,
+        None,
+        "127.0.0.1:5000",
+    )
+    .await;
+    assert_eq!(invalid.status(), StatusCode::BAD_REQUEST);
+}

@@ -60,6 +60,7 @@ try {
         id: `tile-${index}`, label: `Tile ${index}`, icon: `asset:${icon.id}`, color: '', extensions: {},
         action: index === 0 ? { type: 'usage' } : { type: 'none' },
       })) }];
+    config.layout.folders.push({ id: 'benchmark-folder', label: 'Benchmark folder', extensions: {}, buttons: [] });
     await json('/api/v2/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ revision: snapshot.revision, config }) });
     const boot = [];
@@ -95,16 +96,24 @@ try {
         await page.getByRole('region', { name: 'Deck editor' }).waitFor();
         await page.getByRole('button', { name: 'Edit Tile 0', exact: true }).waitFor();
         enterEditing.push(performance.now() - editStarted);
+        // Root names are protected; measure the current contextual rename control in a child folder.
+        await page.evaluate(() => { location.hash = '#folder=benchmark-folder'; });
+        await page.getByRole('button', { name: 'Rename folder', exact: true }).click();
         const field = page.getByLabel('Folder name', { exact: true });
         const editChanged = performance.now();
         await field.fill('Temporary benchmark edit');
+        await field.press('Enter');
         await page.waitForFunction(() => document.querySelector('.save-status')?.textContent === 'Unsaved changes');
         edits.push(performance.now() - editChanged);
+        await page.getByRole('button', { name: 'Rename folder', exact: true }).click();
         const editReverted = performance.now();
-        await field.fill('Home');
+        await field.fill('Benchmark folder');
+        await field.press('Enter');
         await page.waitForFunction(() => document.querySelector('.save-status')?.textContent === 'All changes saved');
-        assert.equal(await page.getByRole('button', { name: 'Save changes', exact: true }).isDisabled(), true);
+        assert.equal(await page.getByRole('button', { name: 'Save changes', exact: true }).count(), 0);
         reverts.push(performance.now() - editReverted);
+        await page.evaluate(() => { location.hash = '#folder=home'; });
+        await page.getByRole('button', { name: 'Edit Tile 0', exact: true }).waitFor();
         await page.getByRole('region', { name: 'Control deck', exact: true }).focus();
         const leaveStarted = performance.now();
         await page.keyboard.press('q');

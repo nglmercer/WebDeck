@@ -104,6 +104,16 @@
         },
         "local_only": {
           "type": "boolean"
+        },
+        "start_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86400000
+        },
+        "end_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400000
         }
       },
       "required": [

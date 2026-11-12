@@ -228,7 +228,7 @@ it('keeps manual selection transactional and Clear disables Use shortcut', async
   button(panel, 'Clear selection').click();
   await settle();
   expect(button(panel, 'Use shortcut').disabled).toBe(true);
-  expect(panel.textContent).toContain('Choose a primary key to continue');
+  expect(panel.textContent).toContain('Choose a key');
   expect(onchange).not.toHaveBeenCalled();
   button(panel, 'Cancel').click();
   await settle();
@@ -265,7 +265,7 @@ it('preserves legacy simultaneous chords in explicit advanced mode', async () =>
   const panel = await openPicker(target);
   const advanced = panel.querySelector<HTMLInputElement>('.advanced input')!;
   expect(advanced.checked).toBe(true);
-  expect(panel.textContent).toContain('Sequences such as Ctrl+K');
+  expect(panel.textContent).toContain('Keys are pressed together.');
   expect(onchange).not.toHaveBeenCalled();
   button(panel, 'Cancel').click();
   await settle();
@@ -289,7 +289,9 @@ it('does not clear selection when search changes and discards stale candidates a
   const { target, onchange } = renderHarness();
   await settle();
   const panel = await openPicker(target);
-  button(panel, 'Letters & numbers').click();
+  const category = panel.querySelector<HTMLSelectElement>('select')!;
+  category.value = 'characters';
+  category.dispatchEvent(new Event('change', { bubbles: true }));
   await settle();
   expect(panel.textContent).toContain('Ctrl');
   expect(panel.textContent).toContain('C');

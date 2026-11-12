@@ -195,6 +195,16 @@ impl CapabilityHost for Platform {
                 &field::<String>(input, "outputDevice")?,
                 field(input, "microphone")?,
                 field(input, "localOnly")?,
+                input
+                    .get("startMs")
+                    .map(|_| field(input, "startMs"))
+                    .transpose()?
+                    .unwrap_or(0),
+                input
+                    .get("endMs")
+                    .filter(|v| !v.is_null())
+                    .map(|_| field(input, "endMs"))
+                    .transpose()?,
                 context,
             ),
             "storage.source" => {

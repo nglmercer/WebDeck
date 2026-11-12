@@ -1,5 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
+  import FilterSelect from '../../components/FilterSelect.svelte';
   import Modal from '../../components/Modal.svelte';
   import Icon from '../../components/Icon.svelte';
   import { useTranslations } from '../../lib/i18n';
@@ -40,13 +41,16 @@
         placeholder={t('ui_search_actions')}
       /></label
     >
-    <label
-      ><span class="sr-only">{t('ui_category')}</span><select bind:value={category}
-        ><option value="all">{t('ui_all_actions')}</option
-        >{#each Object.entries(categories) as [id, label]}<option value={id}>{t(label)}</option
-          >{/each}</select
-      ></label
-    >
+    <FilterSelect
+      label={t('ui_category')}
+      value={category}
+      hideLabel
+      options={[
+        { value: 'all', label: t('ui_all_actions') },
+        ...Object.entries(categories).map(([value, label]) => ({ value, label: t(label) })),
+      ]}
+      onchange={(value) => (category = value)}
+    />
   </div>
   <div class="options" role="group" aria-label={t('ui_select_action')}>
     {#each visible as option}<button

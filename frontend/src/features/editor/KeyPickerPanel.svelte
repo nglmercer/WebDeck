@@ -1,4 +1,6 @@
 <script lang="ts">
+  import FilterSelect from '../../components/FilterSelect.svelte';
+  import { id } from '../../lib/id';
   import { useTranslations } from '../../lib/i18n';
   import type { KeyboardCapabilities } from '../../lib/contracts';
   import {
@@ -15,6 +17,7 @@
   } from './keys';
 
   const t = useTranslations();
+  const selectionId = `selection-${id()}`;
   let {
     candidate,
     onCandidateChange,
@@ -46,7 +49,7 @@
   const visible = $derived(
     keys.filter((key) => {
       if (key.category === 'modifiers') return false;
-      const matchesCategory = search.trim() || key.category === category;
+      const matchesCategory = category === 'all' || key.category === category;
       const query = search.trim().toLowerCase();
       const matchesSearch =
         !query ||
@@ -101,8 +104,16 @@
 </script>
 
 <div class="picker-fields">
-  <section class="selection" aria-labelledby="picker-selection-title">
-    <h3 id="picker-selection-title">{t('ui_keypicker_shortcut')}</h3>
+  <section class="selection" aria-labelledby={selectionId}>
+    <div class="selection-heading">
+      <h3 id={selectionId}>{t('ui_keypicker_shortcut')}</h3>
+      <button
+        type="button"
+        class="clear"
+        disabled={!candidate.length}
+        onclick={() => onCandidateChange([])}>{t('ui_keypicker_clear_selection')}</button
+      >
+    </div>
     {#if candidate.length}
       <div class="chips" aria-label={t('ui_keypicker_selected_keys')}>
         {#each candidate as key, index (`${key}-${index}`)}
@@ -116,93 +127,94 @@
           {#if index < candidate.length - 1}<span class="plus" aria-hidden="true">+</span>{/if}
         {/each}
       </div>
-    {:else}
-      <p class="empty-selection">{t('ui_keypicker_selection_empty')}</p>
-    {/if}
+    {:else}<p class="empty-selection">{t('ui_keypicker_choose_one')}</p>{/if}
   </section>
 
   <fieldset class="modifiers">
     <legend>{t('ui_keypicker_modifiers')}</legend>
     <div class="modifier-buttons">
-      {#each modifiers as modifier (modifier)}
-        <button
+      {#each modifiers as modifier (modifier)}<button
           type="button"
           aria-pressed={selected(modifier)}
           onclick={() => onCandidateChange(toggleModifier(candidate, modifier))}
           >{keyLabel(modifier)}</button
-        >
-      {/each}
+        >{/each}
     </div>
   </fieldset>
 
-  <div class="advanced">
-    <label>
+  <div class="filters">
+    <label class="search"
+      ><span class="sr-only">{t('ui_keypicker_search_keys')}</span>
       <input
-        type="checkbox"
-        checked={advanced}
-        onchange={(event) => onAdvancedChange(event.currentTarget.checked)}
+        type="search"
+        value={search}
+        placeholder={t('ui_keypicker_search_keys')}
+        autocomplete="off"
+        oninput={(event) => {
+          search = event.currentTarget.value;
+          if (search.trim()) category = 'all';
+        }}
       />
-      {t('ui_keypicker_advanced_simultaneous')}
     </label>
-    {#if advanced}<p>{t('ui_keypicker_advanced_help')}</p>{/if}
+    <FilterSelect
+      label={t('ui_keypicker_category')}
+      value={category}
+      hideLabel
+      options={[
+        { value: 'all', label: t('ui_keypicker_all_keys') },
+        ...categories.map((group) => ({ value: group, label: t(categoryMessages[group]!) })),
+      ]}
+      onchange={(value) => (category = value)}
+    />
   </div>
 
-  <label class="search">
-    {t('ui_keypicker_search_keys')}
-    <input type="search" bind:value={search} autocomplete="off" />
-  </label>
-
-  {#if !search.trim()}
-    <div class="categories" role="group" aria-label={t('ui_keypicker_category')}>
-      {#each categories as group (group)}
-        <button type="button" aria-pressed={category === group} onclick={() => (category = group)}
-          >{t(categoryMessages[group]!)}</button
-        >
-      {/each}
-    </div>
-  {/if}
-
-  <div class="host-status" role="status">{t(keyStatusMessage('f1', capabilities))}</div>
   {#if visible.length}
     <div class="key-grid" role="group" aria-label={t('ui_keypicker_choose_primary_key')}>
       {#each visible as key (key.id)}
         {@const unavailable = keyUnavailable(key.id, capabilities)}
         {@const support = platformSupport(key.id, capabilities?.platform)}
+        {@const label = key.id === 'fn' ? 'Fn' : key.label}
         <button
           type="button"
           aria-pressed={selected(key.id)}
-          aria-label={`${key.label}, ${t(keyStatusMessage(key.id, capabilities))}`}
-          aria-describedby={unavailable ? 'key-picker-unavailable-help' : undefined}
+          aria-label={label}
+          title={unavailable ? t(keyStatusMessage(key.id, capabilities)) : undefined}
+          aria-describedby={unavailable ? `${selectionId}-unavailable` : undefined}
           disabled={unavailable}
           data-support={support}
           onkeydown={moveGridFocus}
           onclick={() => onCandidateChange(selectPrimaryKey(candidate, key.id, advanced))}
-          >{key.label}</button
+          >{label}</button
         >
       {/each}
     </div>
-  {:else}
-    <p class="no-results" role="status">{t('ui_keypicker_no_results')}</p>
-  {/if}
+  {:else}<p class="no-results" role="status">{t('ui_keypicker_no_results')}</p>{/if}
 
-  {#if hasUnavailableVisible}
-    <p id="key-picker-unavailable-help" class="help">{t('ui_keypicker_unavailable_help')}</p>
-  {/if}
-
-  <button type="button" class="clear" onclick={() => onCandidateChange([])}>
-    {t('ui_keypicker_clear_selection')}
-  </button>
-  {#if !candidate.length || !hasPrimaryKey}
-    <p class="help">{t('ui_keypicker_empty_help')}</p>
-  {:else if validationMessage}
-    <p class="help" role="alert">{t(validationMessage)}</p>
-  {/if}
+  <div class="advanced">
+    <label title={t('ui_keypicker_advanced_help')}
+      ><input
+        type="checkbox"
+        checked={advanced}
+        onchange={(event) => onAdvancedChange(event.currentTarget.checked)}
+      />{t('ui_keypicker_multiple_keys')}</label
+    >
+    {#if advanced}<p>{t('ui_keypicker_simultaneous_hint')}</p>{/if}
+  </div>
+  {#if hasUnavailableVisible}<p id={`${selectionId}-unavailable`} class="help">
+      {t('ui_keypicker_unavailable_hint')}
+    </p>{/if}
+  {#if candidate.length && !hasPrimaryKey}<p class="help" role="status">
+      {t('ui_keypicker_select_primary')}
+    </p>
+  {:else if candidate.length && validationMessage}<p class="help" role="alert">
+      {t(validationMessage)}
+    </p>{/if}
 </div>
 
 <style>
   .picker-fields {
     display: grid;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
   }
   h3,
@@ -210,40 +222,65 @@
     margin: 0;
   }
   h3 {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted);
   }
   .selection {
     display: grid;
     gap: 6px;
     max-width: none;
     margin: 0;
-    padding: 0;
+    padding: 0 0 10px;
     border: 0;
+    border-bottom: 1px solid var(--border-subtle);
     border-radius: 0;
     background: transparent;
   }
-  .chips,
-  .modifier-buttons,
-  .categories {
+  .selection-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .chips {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 6px;
-  }
-  .chip,
-  .plus {
-    min-height: 36px;
+    min-height: 32px;
   }
   .chip {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
+    min-height: 32px;
     padding: 4px 10px;
-    border-radius: 999px;
+    border-radius: 6px;
+    background: var(--canvas);
+    font-size: 0.85rem;
+  }
+  .chip span,
+  .plus {
+    color: var(--text-muted);
   }
   .empty-selection {
+    min-height: 32px;
+    display: flex;
+    align-items: center;
     color: var(--text-muted);
     font-size: 0.82rem;
+  }
+  .clear {
+    min-height: 24px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+  }
+  .clear:hover:not(:disabled) {
+    color: var(--text);
   }
   fieldset {
     min-width: 0;
@@ -253,21 +290,28 @@
   }
   legend {
     margin-bottom: 6px;
-    font-size: 0.82rem;
-    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--text-muted);
   }
-  button {
-    min-height: 44px;
-    padding: 7px 10px;
+  .modifier-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .modifier-buttons button {
+    min-height: 40px;
+    padding: 7px;
+    font-size: 0.85rem;
   }
   [aria-pressed='true'] {
-    outline: 2px solid var(--accent, currentColor);
-    background: var(--accent-surface, #ffffff18);
+    border-color: var(--accent);
+    background: var(--accent-surface);
   }
   .advanced {
-    padding: 8px 10px;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-control);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
   }
   .advanced label {
     display: flex;
@@ -275,44 +319,40 @@
     align-items: center;
     gap: 8px;
     margin: 0;
+    font-size: 0.8rem;
   }
   .advanced input {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
+    min-height: 16px;
     margin: 0;
+    accent-color: var(--accent);
   }
   .advanced p,
   .help,
-  .host-status,
   .no-results {
     color: var(--text-muted);
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     line-height: 1.4;
   }
-  .advanced p {
-    margin: 6px 0 0 26px;
+  .filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(140px, 0.85fr);
+    gap: 8px;
   }
   .search {
-    display: grid;
-    gap: 5px;
     margin: 0;
   }
   .search input {
-    min-height: 42px;
-  }
-  .categories {
-    gap: 5px;
-  }
-  .categories button {
-    min-height: 38px;
-    padding: 5px 9px;
-    font-size: 0.76rem;
+    min-height: 44px;
+    border-radius: var(--radius-control);
+    font-size: 0.8rem;
   }
   .key-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
     gap: 6px;
-    max-height: 190px;
+    max-height: min(30dvh, 208px);
     overflow: auto;
     overscroll-behavior: contain;
     padding: 2px;
@@ -323,20 +363,15 @@
     min-width: 0;
     min-height: 44px;
     padding: 4px;
+    font-size: 0.8rem;
   }
   .key-grid button:disabled {
     cursor: not-allowed;
     opacity: 0.48;
   }
-  .clear {
-    justify-self: start;
-  }
-  @media (max-width: 640px) {
-    .key-grid {
-      max-height: min(30dvh, 220px);
-    }
-    .categories button {
-      min-height: 44px;
+  @media (max-width: 380px) {
+    .filters {
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 </style>

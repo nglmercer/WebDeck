@@ -157,6 +157,8 @@ const primitiveCommands = {
             outputDevice: c.output_device,
             microphone: c.microphone,
             localOnly: c.local_only,
+            startMs: c.start_ms ?? 0,
+            endMs: c.end_ms ?? null,
         }),
     },
     stop_sound: { capability: "audio", execute: () => call("audio.stopAll", {}) },

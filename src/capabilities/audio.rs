@@ -10,9 +10,14 @@ impl Platform {
         device: &str,
         microphone: bool,
         local_only: bool,
+        start_ms: u64,
+        end_ms: Option<u64>,
         context: &Context,
     ) -> Result<Value> {
         context.check(Capability::Audio)?;
+        if start_ms > 86_400_000 || end_ms.is_some_and(|end| end <= start_ms || end > 86_400_000) {
+            return Err(Error::invalid());
+        }
         use rodio::cpal::traits::{DeviceTrait, HostTrait};
         let host = rodio::cpal::default_host();
         let mut targets = Vec::new();
@@ -45,7 +50,8 @@ impl Platform {
             targets.push(virtual_device);
         }
         let p = self.assets.resolve(s)?;
-        self.audio.play(targets, &p, volume, context)
+        self.audio
+            .play(targets, &p, volume, start_ms, end_ms, context)
     }
 }
 
@@ -198,6 +204,8 @@ mod tests {
                     Vec::new(),
                     std::path::Path::new("missing.wav"),
                     100,
+                    0,
+                    None,
                     &context
                 )
                 .unwrap_err()

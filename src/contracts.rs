@@ -94,6 +94,10 @@ pub enum Command {
         output_device: String,
         microphone: bool,
         local_only: bool,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        start_ms: Option<u64>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        end_ms: Option<u64>,
     },
     #[serde(rename = "shutdown")]
     Shutdown,

@@ -1,5 +1,7 @@
 <script lang="ts">
   import KeySelector from './KeySelector.svelte';
+  import AudioFields from './AudioFields.svelte';
+  import type { MediaMetadata } from './audio';
   import { useTranslations } from '../../lib/i18n';
   const t = useTranslations();
 
@@ -12,13 +14,22 @@
     configurationOnly = false,
     active = true,
     onKeyPickerStep,
+    mediaMetadata,
+    onMediaMetadata,
+    onValidity = () => {},
   }: {
     value: Command;
     onchange: (command: Command) => void;
     configurationOnly?: boolean;
     active?: boolean;
     onKeyPickerStep?: (open: boolean) => void;
+    mediaMetadata?: MediaMetadata | undefined;
+    onMediaMetadata?: (metadata: MediaMetadata) => void;
+    onValidity?: (valid: boolean) => void;
   } = $props();
+  $effect(() => {
+    if (value.type !== 'play_sound') onValidity(true);
+  });
   let search = $state('');
   let category = $state('all');
   const group = (option: Schema) => option['x-capability'] ?? 'read';
@@ -82,7 +93,16 @@
   {#if !configurationOnly && descriptions[value.type]}<p class="field-help">
       {t(descriptions[value.type] ?? '')}
     </p>{/if}
-  {#if value.type === 'key'}
+  {#if value.type === 'play_sound'}
+    <AudioFields
+      {value}
+      {active}
+      onchange={(command) => onchange(command)}
+      metadata={mediaMetadata}
+      onmetadata={onMediaMetadata}
+      onvalidity={onValidity}
+    />
+  {:else if value.type === 'key'}
     <KeySelector
       value={value.keys}
       onchange={(keys) => onchange({ type: 'key', keys })}
