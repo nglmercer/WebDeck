@@ -430,6 +430,16 @@ export default {
     runtimeNoPlugins: 'Aucune extension externe installée',
   },
   pairing: {
+    flow: {
+      scan: 'Scanner',
+      confirm: 'Confirmer',
+      connected: 'Connecté',
+      invitation: 'Invitation de connexion',
+      received: 'Demande reçue',
+      waiting: 'En attente d’un appareil',
+      compare: 'Comparez ce code avec celui de votre appareil.',
+      expiresIn: 'Expire dans {time}',
+    },
     connectYourDevice: 'Connecter votre appareil',
     pairingToken: 'Jeton d’appairage',
     connecting: 'Connexion…',

@@ -65,3 +65,36 @@ HTTP requests use `HttpFields.svelte`: method and URL share a row, headers use `
 ![Script source editor](screenshots/button-editor-script.png)
 
 ![Searchable application selector](screenshots/button-editor-applications.png)
+
+## Device connection dialog
+
+The invitation QR and host approval share one modal. `ConnectionHub.svelte`
+continues to own invitation creation, progress polling, expiry and QR object URLs;
+its presentation store lets `PairingApprovals.svelte` place approval beside the
+QR without a second floating form or duplicate polling. Outside this flow, pending
+pairing and permission requests use a compact launcher. Multiple phones use a
+request selector; each pairing retains its own name, permission profile and access
+lifetime. Stale poll responses cannot restore a request after a decision.
+
+The dialog reuses `SelectField`, `PermissionProfiles`, `SwitchField`, `Modal` and
+the shared icon registry. At narrow widths it stacks the panels and collapses the
+QR after the invitation is used. Approval remains explicit, full control retains
+its additional confirmation, and closing the invitation does not revoke an
+already approved device. The host compares the six-digit code and sees the real
+request expiry as a countdown.
+
+A phone suggests its browser and platform (for example, Chrome · Android or
+Safari · iPhone). When available, browser Client Hints can supply a model; denied,
+missing, empty and slow hints fall back without blocking pairing. Touch iPads
+using a desktop user agent are recognized. The host can edit the display name
+before approval, and the backend now preserves that name. No user-agent string,
+model metadata, device fingerprint or new identifier is sent to the backend;
+only the existing device name field is used. Browser names are suggestions, never
+proof of device identity. Local HTTP and browsers without Client Hints generally
+cannot expose the exact model or the phone's user-assigned system name.
+
+All added interface text is translated in the seven shipped locales.
+
+![Unified connection dialog](screenshots/device-connection-desktop.png)
+
+![Connection approval on a narrow host](screenshots/device-connection-mobile.png)

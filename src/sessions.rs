@@ -359,13 +359,12 @@ impl Sessions {
             token,
         })
     }
-    pub fn accept_pairing(&self, id: &str, mut grant: DeviceRequest) -> Result<()> {
+    pub fn accept_pairing(&self, id: &str, grant: DeviceRequest) -> Result<()> {
         let mut pending = self.pending.lock().unwrap_or_else(|p| p.into_inner());
         let p = pending
             .iter_mut()
             .find(|p| p.request.id == id && p.state == "pending" && p.request.expires_at > now())
             .ok_or_else(Error::invalid)?;
-        grant.name = p.request.name.clone();
         let approval = self.approve(grant)?;
         p.token = approval.token;
         p.state = "approved".into();
@@ -868,7 +867,13 @@ mod connection_tests {
                 ip
             )
             .is_err());
-        f.sessions.accept_pairing(&challenge.id, grant()).unwrap();
+        let mut invalid = grant();
+        invalid.name.clear();
+        assert!(f.sessions.accept_pairing(&challenge.id, invalid).is_err());
+        let mut renamed = grant();
+        renamed.name = "Living room phone".into();
+        f.sessions.accept_pairing(&challenge.id, renamed).unwrap();
+        assert_eq!(f.sessions.list()[0].name, "Living room phone");
         assert!(f.sessions.accept_pairing(&challenge.id, grant()).is_err());
         let result = f.sessions.claim_pairing(claim.clone(), ip).unwrap();
         assert_eq!(result.state, "approved");

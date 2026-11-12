@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { suggestDeviceName } from './device-name';
   import SwitchField from '../../components/SwitchField.svelte';
   import GuideButton from '../learn/GuideButton.svelte';
   import { tutorialActive } from '../learn/tour-state';
@@ -115,7 +116,12 @@
     }
   }
   onMount(() => {
-    if (!name) name = t('pairing.phoneNameExample');
+    const initialName = name;
+    const naming = suggestDeviceName(navigator, t('pairing.phoneNameExample')).then(
+      (suggestion) => {
+        if (!destroyed && name === initialName) name = suggestion;
+      },
+    );
     const fragment = new URLSearchParams(location.hash.slice(1));
     invitation = fragment.get('connect') ?? '';
     if (invitation) history.replaceState(null, '', location.pathname + location.search);
@@ -132,7 +138,10 @@
     } catch {
       clearRequest();
     }
-    if (invitation && !challenge && !invitationRequest) invitationRequest = ask();
+    if (invitation && !challenge && !invitationRequest)
+      invitationRequest = naming.then(() => {
+        if (!destroyed) return ask();
+      });
   });
 </script>
 
@@ -155,6 +164,7 @@
   {#if shownChallenge}
     <div class="waiting" role="status">
       <h2>{t('pairing.waitingHost')}</h2>
+      <p class="device-name">{name}</p>
       <div class="pair-code" data-guide="pairing-code">{shownChallenge.code}</div>
       {#if $tutorialActive}<p>{t('guides.library.example')}</p>{/if}
       <p>{t('pairing.pairCompareCode')}</p>

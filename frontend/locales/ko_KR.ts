@@ -419,6 +419,16 @@ export default {
     runtimeNoPlugins: '설치된 외부 플러그인이 없습니다',
   },
   pairing: {
+    flow: {
+      scan: '스캔',
+      confirm: '확인',
+      connected: '연결됨',
+      invitation: '초대',
+      received: '요청 수신됨',
+      waiting: '기기를 기다리는 중',
+      compare: '이 코드를 기기에 표시된 코드와 비교하세요.',
+      expiresIn: '{time} 후 만료',
+    },
     connectYourDevice: '내 기기 연결',
     pairingToken: '페어링 토큰',
     connecting: '연결 중…',

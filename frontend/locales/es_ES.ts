@@ -217,6 +217,16 @@ export default {
     previewFailed: 'No se pudo cargar la vista previa de la imagen. El borrador no ha cambiado.',
   },
   pairing: {
+    flow: {
+      scan: 'Escanear',
+      confirm: 'Confirmar',
+      connected: 'Conectado',
+      invitation: 'Invitación',
+      received: 'Solicitud recibida',
+      waiting: 'Esperando un dispositivo',
+      compare: 'Compara este código con el de tu dispositivo.',
+      expiresIn: 'Caduca en {time}',
+    },
     connectYourDevice: 'Conecta tu dispositivo',
     pairingToken: 'Token de vinculación',
     connecting: 'Conectando…',

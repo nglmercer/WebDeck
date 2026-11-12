@@ -422,6 +422,16 @@ export default {
     runtimeNoPlugins: 'Brak zainstalowanych zewnętrznych wtyczek',
   },
   pairing: {
+    flow: {
+      scan: 'Skanowanie',
+      confirm: 'Potwierdzenie',
+      connected: 'Połączono',
+      invitation: 'Zaproszenie',
+      received: 'Otrzymano prośbę',
+      waiting: 'Oczekiwanie na urządzenie',
+      compare: 'Porównaj ten kod z kodem na urządzeniu.',
+      expiresIn: 'Wygasa za {time}',
+    },
     connectYourDevice: 'Połącz swoje urządzenie',
     pairingToken: 'Token parowania',
     connecting: 'Łączenie…',

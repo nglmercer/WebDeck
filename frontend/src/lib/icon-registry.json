@@ -313,6 +313,18 @@
     "key-value": {
       "path": "M3 6h6m-6 6h6m-6 6h6M13 6h8m-8 6h8m-8 6h8",
       "category": "ui"
+    },
+    "clock": {
+      "path": "M12 8v4l3 2 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z",
+      "category": "ui"
+    },
+    "eye": {
+      "path": "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
+      "category": "ui"
+    },
+    "chevron-up": {
+      "path": "m6 15 6-6 6 6",
+      "category": "ui"
     }
   },
   "aliases": {

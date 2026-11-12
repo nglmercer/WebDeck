@@ -1,0 +1,80 @@
+{
+  "scope": "Unified responsive connection approval and browser device naming",
+  "baseline_commit": "cf6002facc89072116d115f311324a0b867f2aa0",
+  "method": "Same-toolchain production builds; isolated HEAD checkout and working tree. gzip uses node:zlib, matching the bundle budget check.",
+  "before": {
+    "js_bytes": 897731,
+    "gzip_bytes": 281757,
+    "chunks": [
+      {
+        "name": "Learn-DTFWND-G.js",
+        "bytes": 29788,
+        "gzip_bytes": 6011
+      },
+      {
+        "name": "driver.js-XlMiXr6O.js",
+        "bytes": 19932,
+        "gzip_bytes": 5836
+      },
+      {
+        "name": "editor-D4nQLMVm.js",
+        "bytes": 409497,
+        "gzip_bytes": 139639
+      },
+      {
+        "name": "index-DKINoXKG.js",
+        "bytes": 433110,
+        "gzip_bytes": 128117
+      },
+      {
+        "name": "runner-C6RItkM7.js",
+        "bytes": 5404,
+        "gzip_bytes": 2154
+      }
+    ]
+  },
+  "after": {
+    "js_bytes": 903562,
+    "gzip_bytes": 283830,
+    "chunks": [
+      {
+        "name": "Learn-DkB0DWwe.js",
+        "bytes": 29788,
+        "gzip_bytes": 6012
+      },
+      {
+        "name": "driver.js-XlMiXr6O.js",
+        "bytes": 19932,
+        "gzip_bytes": 5836
+      },
+      {
+        "name": "editor-D4nQLMVm.js",
+        "bytes": 409497,
+        "gzip_bytes": 139639
+      },
+      {
+        "name": "index-Nt3wB5WC.js",
+        "bytes": 438941,
+        "gzip_bytes": 130188
+      },
+      {
+        "name": "runner-AjkJxFBD.js",
+        "bytes": 5404,
+        "gzip_bytes": 2155
+      }
+    ]
+  },
+  "dependencies_added": [],
+  "upstream_warning_fix": {
+    "published": false,
+    "template_tests_passed": 2,
+    "external_git_consumer": {
+      "before_duplicate_warnings": 2,
+      "after_duplicate_warnings": 0
+    },
+    "repository": "https://github.com/nglmercer/napi-vm",
+    "local_branch": "fix/cargo-template-discovery",
+    "commit": "9a6da9306312b83f5cd43d8d1c882a4edd521f3f",
+    "webdeck_dependency_updated": false
+  }
+}

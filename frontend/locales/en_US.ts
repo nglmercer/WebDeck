@@ -413,6 +413,16 @@ export default {
     runtimeNoPlugins: 'No external plugins installed',
   },
   pairing: {
+    flow: {
+      scan: 'Scan',
+      confirm: 'Confirm',
+      connected: 'Connected',
+      invitation: 'Invitation',
+      received: 'Request received',
+      waiting: 'Waiting for a device',
+      compare: 'Compare this code with the one on your device.',
+      expiresIn: 'Expires in {time}',
+    },
     connectYourDevice: 'Connect your device',
     pairingToken: 'Pairing token',
     connecting: 'Connecting…',

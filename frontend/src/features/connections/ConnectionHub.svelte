@@ -11,6 +11,7 @@
     ConnectionProgress,
   } from '../../lib/contracts';
   import Modal from '../../components/Modal.svelte';
+  import { connectionInvitation } from './invitation';
   import Icon from '../../components/Icon.svelte';
   import StatusBadge from '../settings/ui/StatusBadge.svelte';
   import SettingsCard from '../settings/ui/SettingsCard.svelte';
@@ -58,6 +59,7 @@
   let timer: ReturnType<typeof setTimeout> | undefined;
   let refresh: ReturnType<typeof setTimeout> | undefined;
   onDestroy(() => {
+    connectionInvitation.set(null);
     destroyed = true;
     generation++;
     clearTimeout(timer);
@@ -155,6 +157,23 @@
       diagnosticsOpen = previous;
     };
   });
+  $effect(() => {
+    connectionInvitation.set(
+      shownInvitation
+        ? {
+            url: shownInvitation.url,
+            qr,
+            progress: shownProgress,
+            expired,
+            working,
+            tutorial: guideInvite,
+            close: () => void attempt(closeInvitation),
+            refresh: () => void attempt(start),
+            copy: () => void attempt(() => navigator.clipboard.writeText(shownInvitation!.url)),
+          }
+        : null,
+    );
+  });
   let lastTrigger = 0;
   $effect(() => {
     if (trigger > lastTrigger) {
@@ -227,54 +246,6 @@
           })}><Icon name="devices" size={17} />{t('devices.pairingNotifications')}</button
       >{/if}
   </div>
-  {#if shownInvitation}<Modal
-      nonModal
-      label={t('connections.connectDevice')}
-      width="560px"
-      close={() => void attempt(closeInvitation)}
-    >
-      <div class="heading">
-        <h2>{t('connections.connectDevice')}</h2>
-        <button disabled={working} onclick={() => attempt(closeInvitation)}
-          >{t(common.close)}</button
-        >
-      </div>
-      <div class="invitation" aria-live="polite" data-guide="connection-invitation">
-        {#if guideInvite}<p class="demo-safe">{t('guides.library.example')}</p>{/if}
-        {#if shownProgress === 'approved'}<p role="status">
-            {t('devices.deviceConnectedSuccess')}
-          </p>{:else if shownProgress === 'rejected'}<p>
-            {t('pairing.pairRejected')}
-          </p>{:else if !guideInvite && (expired || shownProgress === 'expired')}<p>
-            {t('pairing.pairExpired')}
-          </p>{:else}
-          <h3>{t('connections.scanApprove')}</h3>
-          {#if guideInvite}<div class="invitation-placeholder">
-              <Icon name="grid" size={44} />
-              <p>{t('guides.library.invitationPlaceholder')}</p>
-            </div>{:else if qr}<img
-              src={qr}
-              alt={t('connections.phoneQrAlt')}
-              width="290"
-              height="290"
-            />{/if}
-          <div class="connection-link">
-            <p>{t('connections.connectionLink')}</p>
-            <a href={shownInvitation.url} target="_blank" rel="noreferrer">{shownInvitation.url}</a
-            ><button
-              onclick={() => attempt(() => navigator.clipboard.writeText(shownInvitation!.url))}
-              >{t('connections.copyLink')}</button
-            >
-          </div>
-          <p>
-            {t(shownProgress === 'pending' ? 'pairing.waitingHost' : 'pairing.pairCompareCode')}
-          </p>
-        {/if}
-        <button disabled={working || guideInvite} onclick={() => attempt(start)}
-          >{t('connections.refreshConnection')}</button
-        >
-      </div>
-    </Modal>{/if}
   {#if diagnosticsOpen}<Modal
       label={t('connections.connectionDiagnostics')}
       width="640px"
@@ -301,18 +272,6 @@
 </div>
 
 <style>
-  .invitation-placeholder {
-    display: grid;
-    place-items: center;
-    gap: 12px;
-    padding: 24px;
-    border: 1px dashed var(--border);
-    border-radius: var(--radius-panel);
-    color: var(--text-muted);
-  }
-  .demo-safe {
-    color: var(--accent);
-  }
   .connection-heading {
     display: flex;
     align-items: center;
@@ -371,32 +330,6 @@
     background: transparent;
     border: 0;
     text-align: left;
-  }
-  .invitation {
-    text-align: center;
-  }
-  .invitation img {
-    display: block;
-    width: 240px;
-    max-width: 100%;
-    height: auto;
-    margin: 16px auto;
-  }
-  .connection-link {
-    text-align: left;
-    padding: 12px;
-    border: 1px solid var(--border-subtle);
-    border-radius: 7px;
-    margin: 16px 0;
-  }
-  .connection-link p {
-    margin: 0 0 8px;
-  }
-  .connection-link a {
-    display: block;
-    font-size: 0.8rem;
-    overflow-wrap: anywhere;
-    margin-bottom: 8px;
   }
   .heading {
     margin: 0;

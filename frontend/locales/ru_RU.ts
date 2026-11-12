@@ -423,6 +423,16 @@ export default {
     runtimeNoPlugins: 'Внешние плагины не установлены',
   },
   pairing: {
+    flow: {
+      scan: 'Сканирование',
+      confirm: 'Подтверждение',
+      connected: 'Подключено',
+      invitation: 'Приглашение',
+      received: 'Получен запрос',
+      waiting: 'Ожидание устройства',
+      compare: 'Сравните этот код с кодом на устройстве.',
+      expiresIn: 'Истекает через {time}',
+    },
     connectYourDevice: 'Подключение вашего устройства',
     pairingToken: 'Токен сопряжения',
     connecting: 'Подключение…',

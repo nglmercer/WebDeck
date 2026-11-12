@@ -14,7 +14,6 @@ test('QR invitation connects a separate phone, remembers trust, recovers Wi-Fi a
   await page.goto('/');
   await connect(page);
   await expect(page.getByAltText('QR code to open the deck on your phone').first()).toBeVisible();
-  await page.getByText('Connection link', { exact: true }).click();
   const link = page.locator('a[href*="#connect="]');
   const url = (await link.getAttribute('href'))!;
   expect(url).not.toContain('token');
@@ -26,11 +25,13 @@ test('QR invitation connects a separate phone, remembers trust, recovers Wi-Fi a
   const code = await mobile.locator('.pair-code').textContent();
   const approval = page.locator('.approvals article').filter({ hasText: code!.trim() });
   await expect(approval).toBeVisible({ timeout: 10000 });
-  await approval.getByLabel('Expires after').selectOption('2592000');
+  await approval.getByRole('combobox', { name: 'Expires after' }).click();
+  await page.getByRole('option', { name: '30 days', exact: true }).click();
   await approval.getByRole('button', { name: 'Approve device', exact: true }).click();
   await expect(mobile.getByRole('button', { name: 'Play / pause', exact: true })).toBeVisible();
   await mobile.reload();
   await expect(mobile.getByRole('button', { name: 'Play / pause', exact: true })).toBeVisible();
+  const suggestedName = await mobile.evaluate(() => navigator.userAgent.includes('Chrome') ? 'Chrome · Linux' : 'My phone');
   const remembered = await phone.storageState();
   await phone.close();
   const returning = await browser.newContext({ storageState: remembered, viewport: { width: 844, height: 390 } });
@@ -44,7 +45,7 @@ test('QR invitation connects a separate phone, remembers trust, recovers Wi-Fi a
   await expect(resumed.getByText('Connection lost. Reconnecting automatically.')).not.toBeVisible({ timeout: 35000 });
   const token = await resumed.evaluate(() => localStorage.getItem('webdeck.device'));
   const devices = await (await request.get('/api/v2/devices')).json();
-  const device = devices.devices.find((d: { name: string }) => d.name === 'My phone');
+  const device = devices.devices.find((d: { name: string }) => d.name === suggestedName);
   expect(device).toBeTruthy();
   await request.delete(`/api/v2/devices/${device.id}`);
   await expect(resumed.getByText('Access expired or was revoked. Request approval on your computer again.')).toBeVisible();
@@ -54,7 +55,6 @@ test('QR invitation connects a separate phone, remembers trust, recovers Wi-Fi a
 test('a phone request can be rejected and invitations cannot be replayed', async ({ page, browser, request }) => {
   await page.goto('/');
   await connect(page);
-  await page.getByText('Connection link', { exact: true }).click();
   const url = (await page.locator('a[href*="#connect="]').getAttribute('href'))!;
   const phone = await browser.newContext(); const mobile = await phone.newPage();
   await mobile.goto(url);
@@ -70,13 +70,13 @@ test('a phone request can be rejected and invitations cannot be replayed', async
 });
 test('view-only phone requests permission, host approves, and a new action attempt succeeds', async ({ page, browser, request }) => {
   await page.goto('/'); await connect(page);
-  await page.getByText('Connection link', { exact: true }).click();
   const url = (await page.locator('a[href*="#connect="]').getAttribute('href'))!;
   const phone = await browser.newContext(); const mobile = await phone.newPage();
   await mobile.goto(url);
   const code = await mobile.locator('.pair-code').textContent();
   const approval = page.locator('.approvals article').filter({ hasText: code!.trim() });
-  await approval.locator('input[type=radio][value=view]').check();
+  await approval.getByRole('combobox', { name: 'Permission profile' }).click();
+  await page.getByRole('option', { name: 'View Only', exact: true }).click();
   await approval.getByRole('button', { name: 'Approve device', exact: true }).click();
   await expect(mobile.getByRole('button', { name: 'Play / pause', exact: true })).toBeDisabled();
   await controls(mobile);
@@ -142,8 +142,11 @@ test('two phones pair independently and presence reflects their authenticated so
   try {
     const mobiles = await Promise.all(contexts.map((context) => context.newPage()));
     await Promise.all(mobiles.map((mobile, index) => mobile.goto(invitations[index]!)));
+    await expect(page.getByRole('combobox', { name: 'Pairing requests', exact: true })).toBeVisible({ timeout: 10000 });
     for (const mobile of mobiles) {
       const code = await mobile.locator('.pair-code').textContent();
+      const chooser = page.getByRole('combobox', { name: 'Pairing requests', exact: true });
+      if (await chooser.isVisible()) { await chooser.click(); await page.getByRole('option').filter({ hasText: code!.trim() }).click(); }
       const approval = page.locator('.approvals article').filter({ hasText: code!.trim() });
       await approval.getByRole('button', { name: 'Approve device', exact: true }).click();
       await expect(mobile.getByRole('button', { name: 'Play / pause', exact: true })).toBeVisible();
@@ -160,7 +163,6 @@ test('two phones pair independently and presence reflects their authenticated so
 test('a new network origin requires fresh host approval rather than transferring browser credentials', async ({ page, browser, request }) => {
   const { createServer } = await import('node:net');
   await page.goto('/'); await connect(page);
-  await page.getByText('Connection link', { exact: true }).click();
   const original = (await page.locator('a[href*="#connect="]').getAttribute('href'))!;
   const phone = await browser.newContext(); const mobile = await phone.newPage();
   const saved = (await (await request.get('/api/v2/network')).json()).settings;
@@ -187,7 +189,6 @@ test('a new network origin requires fresh host approval rather than transferring
 
 test('a phone pairing timeout clears its challenge and offers another request', async ({ page, browser, request }) => {
   await page.goto('/'); await connect(page);
-  await page.getByText('Connection link', { exact: true }).click();
   const url = (await page.locator('a[href*="#connect="]').getAttribute('href'))!;
   const phone = await browser.newContext(); const mobile = await phone.newPage();
   try {
@@ -202,6 +203,7 @@ test('a phone pairing timeout clears its challenge and offers another request', 
 test('permission rejection and approval work through HTTP polling when realtime is unavailable', async ({ page, browser, request }) => {
   await page.goto('/'); await connect(page);
   const network = await (await request.get('/api/v2/network')).json();
+  await page.getByRole('dialog', {name: 'Connect Device', exact: true}).getByRole('button', {name: 'Close', exact: true}).click();
   const grant = await (await request.post('/api/v2/devices', { data: { name: 'HTTP fallback phone', capabilities: ['read'], ttl_seconds: 900 } })).json();
   const phone = await browser.newContext();
   try {
@@ -214,6 +216,7 @@ test('permission rejection and approval work through HTTP polling when realtime 
   await mobile.getByText('Request Permission', { exact: true }).first().click();
     await mobile.getByRole('switch', { name: 'Audio and media', exact: true }).check();
     await mobile.getByRole('button', { name: 'Request Permission', exact: true }).click();
+    await page.getByRole('button', { name: /Pairing requests/ }).click();
     let upgrade = page.locator('.approvals article').filter({ hasText: 'HTTP fallback phone' });
     await upgrade.getByRole('button', { name: 'Reject', exact: true }).click();
     await expect(mobile.getByText('The host rejected this pairing request.')).toBeVisible();
@@ -233,7 +236,6 @@ test('permission rejection and approval work through HTTP polling when realtime 
 test('an outstanding QR refreshes automatically when the network address changes', async ({ page, request }) => {
   const { createServer } = await import('node:net');
   await page.goto('/'); await connect(page);
-  await page.getByText('Connection link', { exact: true }).click();
   const link = page.locator('a[href*="#connect="]');
   const original = (await link.getAttribute('href'))!;
   const saved = (await (await request.get('/api/v2/network')).json()).settings;
@@ -249,4 +251,32 @@ test('an outstanding QR refreshes automatically when the network address changes
     const old = await (await request.get(`/api/v2/connection/invitations/${original.split('#connect=')[1]}`)).json();
     expect(old.state).toBe('expired');
   } finally { await request.put('/api/v2/network', { data: saved }); }
+});
+
+test('one responsive dialog combines invitation and approval, names Android, and preserves host renaming', async ({ page, browser, request }, testInfo) => {
+  await page.setViewportSize({width: 1280, height: 960});
+  await page.goto('/'); await connect(page);
+  const dialog = page.getByRole('dialog', {name: 'Connect Device', exact: true});
+  const url = (await dialog.getByRole('link', {name: 'Connection link', exact: true}).getAttribute('href'))!;
+  const phone = await browser.newContext({viewport: {width: 390, height: 844}, userAgent: 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 Chrome/140.0.0.0 Mobile Safari/537.36'});
+  try {
+    const mobile = await phone.newPage(); await mobile.goto(url);
+    await expect(mobile.locator('.device-name')).toHaveText('Chrome · Android');
+    await expect(dialog.getByRole('textbox', {name: 'Device name'})).toHaveValue('Chrome · Android', {timeout: 10000});
+    expect(await page.locator('dialog[open]').count()).toBe(1);
+    await dialog.getByRole('textbox', {name: 'Device name'}).fill('Living room phone');
+    await expect(dialog.getByRole('timer')).toContainText(/Expires in 1:/);
+    await testInfo.attach('connection-desktop', {body: await page.screenshot({path: '../docs/screenshots/device-connection-desktop.png'}), contentType: 'image/png'});
+    const { default: AxeBuilder } = await import('@axe-core/playwright');
+    expect((await new AxeBuilder({page}).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()).violations).toEqual([]);
+    await page.setViewportSize({width: 390, height: 844});
+    await expect(dialog.getByRole('button', {name: 'Show QR code', exact: true})).toBeVisible();
+    await expect(dialog.getByAltText('QR code to open the deck on your phone')).not.toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await dialog.getByRole('button', {name: 'Approve device', exact: true}).scrollIntoViewIfNeeded();
+    await testInfo.attach('connection-mobile-host', {body: await page.screenshot({path: '../docs/screenshots/device-connection-mobile.png'}), contentType: 'image/png'});
+    await dialog.getByRole('button', {name: 'Approve device', exact: true}).click();
+    await expect(mobile.getByRole('button', {name: 'Play / pause', exact: true})).toBeVisible();
+    expect((await (await request.get('/api/v2/devices')).json()).devices.some((device: {name: string}) => device.name === 'Living room phone')).toBe(true);
+  } finally { await phone.close(); }
 });

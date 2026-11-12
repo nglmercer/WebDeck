@@ -793,7 +793,7 @@
       },
       {
         "id": "profile",
-        "target": "[data-guide=\"pair-approval\"] .choice-field",
+        "target": "[data-guide=\"pair-approval\"] .select-field",
         "title": "guides.connections.steps.profile.title",
         "description": "guides.connections.steps.profile.help",
         "frame": {
