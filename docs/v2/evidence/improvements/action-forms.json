@@ -1,0 +1,85 @@
+{
+  "scope": "Shared HTTP, script, application and boolean form controls",
+  "bundle": {
+    "before": {
+      "js_bytes": 463833,
+      "gzip_bytes": 134797,
+      "source": "typed-i18n.json"
+    },
+    "after": {
+      "js_bytes": 897277,
+      "gzip_bytes": 281684
+    },
+    "chunks": [
+      {
+        "name": "Learn-BLjJU4yR.js",
+        "bytes": 29788,
+        "gzip_bytes": 6012,
+        "deferred": true
+      },
+      {
+        "name": "driver.js-XlMiXr6O.js",
+        "bytes": 19932,
+        "gzip_bytes": 5836,
+        "deferred": true
+      },
+      {
+        "name": "editor-D4nQLMVm.js",
+        "bytes": 409497,
+        "gzip_bytes": 139639,
+        "deferred": true
+      },
+      {
+        "name": "index-DkKY9u1M.js",
+        "bytes": 432656,
+        "gzip_bytes": 128043,
+        "deferred": false
+      },
+      {
+        "name": "runner-Dp4769uq.js",
+        "bytes": 5404,
+        "gzip_bytes": 2154,
+        "deferred": true
+      }
+    ],
+    "loading": "CodeMirror is imported dynamically only when a code field mounts; normal deck navigation does not request the editor chunk. Learn and its tour remain deferred."
+  },
+  "validation": {
+    "frontend": [
+      "Svelte: 0 errors, 0 warnings",
+      "TypeScript",
+      "knip",
+      "i18n catalog validation",
+      "generated contracts",
+      "102 unit tests and 3 catalog serialization tests",
+      "Production build and measured bundle budget",
+      "Runtime build unchanged"
+    ],
+    "native": [
+      "read-only application discovery requires Settings access and preserves configuration",
+      "script upload suffix allowlist and traversal validation",
+      "audio discovery fixture parsing",
+      "Native binary build",
+      "Clippy passes with the pre-existing too_many_arguments lint allowed; strict run remains blocked by that existing function"
+    ],
+    "browser": {
+      "distinct_passed": 47,
+      "skipped": 1,
+      "regression": "34 passed / 1 device-profile-only skip across action forms, experience, guides, keyboard shortcuts and settings",
+      "additional": "9 connections, 2 i18n and 2 media editor scenarios passed; 2 connections scenarios needed a repeat after initial timing failures under concurrent native compilation.",
+      "final": "Latest HTTP, script (including uploaded filename after reload), application and mobile accessibility scenarios: 4/4 passed; media regression after shared metadata wiring: 2/2 passed.",
+      "lazy_loading": "Browser checks confirm the code-editor chunk is absent before opening a code field."
+    },
+    "limitations": [
+      "Windows WASAPI discovery is implemented but has not been executed on this Linux host.",
+      "Strict Clippy reports the existing 9-argument Platform::play function in src/capabilities/audio.rs."
+    ]
+  },
+  "screenshots": [
+    "docs/screenshots/button-editor-http.png",
+    "docs/screenshots/button-editor-http-mobile.png",
+    "docs/screenshots/button-editor-script.png",
+    "docs/screenshots/button-editor-script-file.png",
+    "docs/screenshots/button-editor-applications.png"
+  ]
+}

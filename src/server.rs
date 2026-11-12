@@ -158,6 +158,7 @@ pub fn router(a: App) -> Router {
         .route("/api/v2/runtime/reload", post(runtime_reload))
         .route("/api/v2/usage", get(usage))
         .route("/api/v2/audio/devices", get(audio_devices))
+        .route("/api/v2/applications", get(applications))
         .route("/api/v2/audio/preview", post(audio_preview))
         .route("/api/v2/translations", get(translations))
         .route("/api/v2/devices", get(devices).post(approve))

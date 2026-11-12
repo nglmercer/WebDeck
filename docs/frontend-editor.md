@@ -49,3 +49,19 @@ The pencil opens a temporary rename input. Enter confirms, Escape cancels, and b
 The overflow menu holds New folder and, inside a folder only, Delete folder. Folder creation still calls `createFolder` and creates the existing parent link and Back button. Deletion uses the shared confirmation dialog before calling the existing removal handler, and its original undo snapshot remains available. Menu arrows/Home/End move focus, Enter activates, Escape closes and restores trigger focus, and outside clicks dismiss it.
 
 Save status distinguishes saved, dirty, saving, conflict and failure states. Save changes appears only for a dirty editor draft and is disabled during an in-flight save. Done keeps the existing save-before-exit behavior and remains disabled while saving. One icon-only settings action uses a context-specific accessible label. No autosave, routing, contract or storage-format change is introduced.
+
+## Shared action forms
+
+HTTP requests use `HttpFields.svelte`: method and URL share a row, headers use `MapField.svelte`, and body text uses `CodeEditor.svelte`. Header names keep stable row identities while typing. Empty, duplicate (case insensitive), or invalid HTTP header names and newline-containing values block Apply. Plus adds a blank row; the × control removes it and restores focus. JSON argument maps reuse the row component with compact JSON editors. Invalid JSON remains editable and blocks Apply without replacing the last valid model value.
+
+`CodeEditor.svelte` loads CodeMirror only when a code field mounts, with JavaScript/JSON highlighting, line numbers, copy and expand controls. Shell sources use a plain text editor. A native textarea remains the fallback if the editor chunk cannot load and carries form validity after it mounts. Code is rendered as text and editing never executes it. Script source selection caches inline and file drafts while switching modes. File sources reuse `FilePicker.svelte` for upload and drag and drop, with optional native host selection and an explicit server path. Top-level script file names and sizes persist in the existing media extension metadata, so reopening a saved script retains its readable file name. Script uploads are limited to 64 KB; normal file uploads remain limited to 16 MB.
+
+`ApplicationField.svelte` uses the searchable, keyboard-operated `SelectField.svelte`. The local Settings-protected `GET /api/v2/applications?kind=processes|audio` endpoint discovers running processes or audio applications, returns at most 512 stable targets, and never changes application state. Linux audio discovery uses PulseAudio/PipeWire's pactl interface; Windows uses WASAPI sessions. Unavailable discovery preserves manual target entry. Open commands use executable paths when available; process and volume commands use the native matcher's application name. Refresh preserves the selected target. Popovers stay within the viewport and Escape restores trigger focus.
+
+`VolumeField.svelte` shares the existing slider/percentage control for absolute 0–100 values and relative −100–100 changes. `SwitchField.svelte` is the sole boolean control used by the editor, pairing, connection permissions and settings. The controls retain native form validation and accessible names. All edits remain staged until Apply to draft and Save changes.
+
+![HTTP request editor](screenshots/button-editor-http.png)
+
+![Script source editor](screenshots/button-editor-script.png)
+
+![Searchable application selector](screenshots/button-editor-applications.png)

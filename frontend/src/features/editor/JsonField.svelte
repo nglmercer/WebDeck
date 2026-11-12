@@ -1,32 +1,43 @@
 <script lang="ts">
-  import { id } from '../../lib/id';
-  const errorId = `json-${id()}`;
+  import { untrack } from 'svelte';
+  import CodeEditor from '../../components/CodeEditor.svelte';
   import { useTranslations } from '../../lib/i18n';
   const t = useTranslations();
   let {
     value,
     onchange,
     label,
-  }: { value: unknown; onchange: (value: unknown) => void; label: string } = $props();
+    compact = false,
+    hideLabel = false,
+  }: {
+    value: unknown;
+    onchange: (value: unknown) => void;
+    label: string;
+    compact?: boolean;
+    hideLabel?: boolean;
+  } = $props();
+  let text = $state(untrack(() => JSON.stringify(value, null, 2) ?? ''));
+  let accepted = untrack(() => JSON.stringify(value));
   let error = $state('');
+  $effect(() => {
+    const next = JSON.stringify(value);
+    if (next !== accepted) {
+      accepted = next;
+      text = JSON.stringify(value, null, 2) ?? '';
+      error = '';
+    }
+  });
+  function change(next: string) {
+    text = next;
+    try {
+      const parsed: unknown = JSON.parse(next);
+      accepted = JSON.stringify(parsed);
+      error = '';
+      onchange(parsed);
+    } catch {
+      error = t('errors.invalidJson');
+    }
+  }
 </script>
 
-<label
-  >{label}<textarea
-    rows="3"
-    value={JSON.stringify(value, null, 2)}
-    onchange={(event) => {
-      try {
-        const next: unknown = JSON.parse(event.currentTarget.value);
-        onchange(next);
-        error = '';
-        event.currentTarget.setCustomValidity('');
-      } catch {
-        error = 'errors.invalidJson';
-        event.currentTarget.setCustomValidity(t.message(error));
-      }
-    }}
-    aria-invalid={!!error}
-    aria-describedby={error ? errorId : undefined}></textarea></label
->
-{#if error}<p id={errorId} role="alert">{t.message(error)}</p>{/if}
+<CodeEditor {label} value={text} onchange={change} language="json" {error} {compact} {hideLabel} />

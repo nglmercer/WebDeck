@@ -905,6 +905,21 @@ pub struct ObsKeyModifiers {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub command: Option<bool>,
 }
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ApplicationOption {
+    pub name: String,
+    pub value: String,
+    pub description: String,
+    pub executable: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ApplicationList {
+    pub api_version: u64,
+    pub available: bool,
+    pub applications: Vec<ApplicationOption>,
+}
 impl Command {
     pub fn capability(&self) -> Capability {
         match self {

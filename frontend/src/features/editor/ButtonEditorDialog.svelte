@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SwitchField from '../../components/SwitchField.svelte';
   import GuideButton from '../learn/GuideButton.svelte';
   import Icon from '../../components/Icon.svelte';
   import { useTranslations, common, keys } from '../../lib/i18n';
@@ -616,13 +617,11 @@
                 max={200}
                 onchange={(value) => setAppearance('icon_size', value)}
               />
-              <label class="check"
-                ><input
-                  type="checkbox"
-                  checked={appearance.show_label !== false}
-                  onchange={(e) => setAppearance('show_label', e.currentTarget.checked)}
-                />{t('editor.showLabel')}</label
-              >
+              <SwitchField
+                label={t('editor.showLabel')}
+                checked={appearance.show_label !== false}
+                onchange={(checked) => setAppearance('show_label', checked)}
+              />
             </div>
           </div>
         {/if}
@@ -696,8 +695,16 @@
               {tutorial}
               active={!suspended && (activeTab === 'action' || mobilePickerOpen)}
               onKeyPickerStep={keyPickerStep}
-              mediaMetadata={media.audio}
-              onMediaMetadata={(metadata) => saveMetadata('audio', metadata)}
+              mediaMetadata={media[
+                button.action.command.type === 'play_sound' ? 'audio' : 'script'
+              ]}
+              onMediaMetadata={(metadata) => {
+                if (button.action.type === 'command')
+                  saveMetadata(
+                    button.action.command.type === 'play_sound' ? 'audio' : 'script',
+                    metadata,
+                  );
+              }}
               onValidity={(valid) => (actionValid = valid)}
               value={button.action.command}
               onchange={(c) => chooseCommand(c as Command)}
@@ -836,8 +843,8 @@
   .heading button {
     display: grid;
     place-items: center;
-    width: 34px;
-    min-height: 34px;
+    width: 44px;
+    min-height: 44px;
     padding: 5px;
     border: 0;
     background: transparent;

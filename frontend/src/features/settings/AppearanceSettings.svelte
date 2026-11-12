@@ -9,7 +9,7 @@
   import SettingsCard from './ui/SettingsCard.svelte';
   import ChoiceField from './ui/ChoiceField.svelte';
   import FileField from './ui/FileField.svelte';
-  import SwitchField from './ui/SwitchField.svelte';
+  import SwitchField from '../../components/SwitchField.svelte';
   import Icon from '../../components/Icon.svelte';
   import { tileColors } from '../editor/appearance';
   import NumberField from '../../components/NumberField.svelte';

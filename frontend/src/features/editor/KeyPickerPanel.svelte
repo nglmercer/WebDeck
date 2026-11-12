@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SwitchField from '../../components/SwitchField.svelte';
   import type { TranslationKey } from '../../lib/translations';
   import FilterSelect from '../../components/FilterSelect.svelte';
   import { id } from '../../lib/id';
@@ -200,13 +201,11 @@
   {:else}<p class="no-results" role="status">{t('keyboard.noResults')}</p>{/if}
 
   <div class="advanced">
-    <label title={t('keyboard.advancedHelp')}
-      ><input
-        type="checkbox"
-        checked={advanced}
-        onchange={(event) => onAdvancedChange(event.currentTarget.checked)}
-      />{t('keyboard.multipleKeys')}</label
-    >
+    <SwitchField
+      label={t('keyboard.multipleKeys')}
+      checked={advanced}
+      onchange={onAdvancedChange}
+    />
     {#if advanced}<p>{t('keyboard.simultaneousHint')}</p>{/if}
   </div>
   {#if hasUnavailableVisible}<p id={`${selectionId}-unavailable`} class="help">
@@ -321,21 +320,6 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 6px 12px;
-  }
-  .advanced label {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    font-size: 0.8rem;
-  }
-  .advanced input {
-    width: 16px;
-    height: 16px;
-    min-height: 16px;
-    margin: 0;
-    accent-color: var(--accent);
   }
   .advanced p,
   .help,

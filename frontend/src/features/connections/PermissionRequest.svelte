@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SwitchField from '../../components/SwitchField.svelte';
   import { onDestroy } from 'svelte';
   import { useTranslations } from '../../lib/i18n';
   import { capabilityNames } from '../../lib/capability-labels';
@@ -101,11 +102,15 @@
   <details data-guide="permission-request">
     <summary>{t('connections.requestPermission')}</summary>
     <p>{t('connections.permissionRequestHelp')}</p>
-    {#each available.filter((c) => !capabilities.includes(c)) as capability}<label class="check"
-        ><input type="checkbox" value={capability} bind:group={selected} />{t.message(
-          capabilityNames[capability] ?? capability,
-        )}</label
-      >{/each}
+    {#each available.filter((c) => !capabilities.includes(c)) as capability}<SwitchField
+        label={t.message(capabilityNames[capability] ?? capability)}
+        checked={selected.includes(capability)}
+        onchange={(checked) => {
+          selected = checked
+            ? [...selected, capability]
+            : selected.filter((value) => value !== capability);
+        }}
+      />{/each}
     <button
       disabled={working || pending || !selected.some((cap) => !capabilities.includes(cap))}
       onclick={() => attempt(ask)}>{t('connections.requestPermission')}</button

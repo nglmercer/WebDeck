@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SwitchField from '../../components/SwitchField.svelte';
   import GuideButton from '../learn/GuideButton.svelte';
   import { tutorialActive } from '../learn/tour-state';
   import { onMount, onDestroy } from 'svelte';
@@ -144,10 +145,13 @@
   <p>{t('pairing.pairIntro')}</p>
   {#if error}<p class="pair-error" role="alert">{t.message(error)}</p>{/if}
   {#if message}<p role="status">{t.message(message)}</p>{/if}
-  <label class="check" data-guide="pairing-remember"
-    ><input type="checkbox" bind:checked={remember} />{t('pairing.rememberDevice')}</label
-  >
-  <p class="muted">{t('pairing.rememberDeviceHelp')}</p>
+  <div data-guide="pairing-remember">
+    <SwitchField
+      label={t('pairing.rememberDevice')}
+      description={t('pairing.rememberDeviceHelp')}
+      bind:checked={remember}
+    />
+  </div>
   {#if shownChallenge}
     <div class="waiting" role="status">
       <h2>{t('pairing.waitingHost')}</h2>
@@ -237,9 +241,6 @@
   }
   h1 {
     margin-top: 20px;
-  }
-  .muted {
-    font-size: 0.8rem;
   }
   form button {
     width: 100%;

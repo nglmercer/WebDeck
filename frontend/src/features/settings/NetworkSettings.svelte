@@ -3,7 +3,7 @@
   import Icon from '../../components/Icon.svelte';
   import StatusBadge from './ui/StatusBadge.svelte';
   import NumberField from '../../components/NumberField.svelte';
-  import SwitchField from './ui/SwitchField.svelte';
+  import SwitchField from '../../components/SwitchField.svelte';
   import { onMount, onDestroy } from 'svelte';
   import { useTranslations, common } from '../../lib/i18n';
   import { request } from '../../lib/api/client';

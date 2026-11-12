@@ -127,3 +127,40 @@ pub(super) fn windows_app_volume(
         }
     }
 }
+
+pub(super) fn audio_applications() -> Result<Vec<ApplicationOption>> {
+    use ::windows::core::Interface;
+    let _com = Com::init()?;
+    unsafe {
+        let enumerator: IMMDeviceEnumerator =
+            CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)
+                .map_err(|_| Error::execution())?;
+        let device = enumerator
+            .GetDefaultAudioEndpoint(eRender, eConsole)
+            .map_err(|_| Error::execution())?;
+        let manager: IAudioSessionManager2 = device
+            .Activate(CLSCTX_ALL, None)
+            .map_err(|_| Error::execution())?;
+        let sessions = manager
+            .GetSessionEnumerator()
+            .map_err(|_| Error::execution())?;
+        let count = sessions.GetCount().map_err(|_| Error::execution())?;
+        let system = sysinfo::System::new_all();
+        let mut result = Vec::new();
+        for index in 0..count {
+            let session = sessions.GetSession(index).map_err(|_| Error::execution())?;
+            let control: IAudioSessionControl2 = session.cast().map_err(|_| Error::execution())?;
+            let pid = control.GetProcessId().map_err(|_| Error::execution())?;
+            if let Some(process) = system.process(sysinfo::Pid::from_u32(pid)) {
+                let name = process.name().to_string_lossy().to_string();
+                result.push(ApplicationOption {
+                    name: name.clone(),
+                    value: name,
+                    description: String::new(),
+                    executable: String::new(),
+                });
+            }
+        }
+        Ok(result)
+    }
+}

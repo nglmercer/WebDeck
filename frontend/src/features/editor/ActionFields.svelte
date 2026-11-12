@@ -1,4 +1,10 @@
 <script lang="ts">
+  import HttpFields from './HttpFields.svelte';
+  import ScriptSourceField from './ScriptSourceField.svelte';
+  import VolumeField from './VolumeField.svelte';
+  import ApplicationField from './ApplicationField.svelte';
+  import SwitchField from '../../components/SwitchField.svelte';
+  import NumberField from '../../components/NumberField.svelte';
   import KeySelector from './KeySelector.svelte';
   import AudioFields from './AudioFields.svelte';
   import type { MediaMetadata } from './audio';
@@ -96,7 +102,54 @@
   {#if !configurationOnly && descriptions[value.type]}<p class="field-help">
       {t.message(descriptions[value.type] ?? '')}
     </p>{/if}
-  {#if value.type === 'play_sound'}
+  {#if value.type === 'fetch'}
+    <HttpFields {value} onchange={(next) => onchange(next)} />
+  {:else if value.type === 'script' || value.type === 'shell'}
+    <ScriptSourceField
+      value={value.source}
+      language={value.type === 'script' ? 'javascript' : 'shell'}
+      metadata={mediaMetadata}
+      onmetadata={onMediaMetadata}
+      onchange={(source) => {
+        if (value.type === 'script' || value.type === 'shell') onchange({ ...value, source });
+      }}
+    />
+    {#if value.type === 'shell'}<NumberField
+        label={t('forms.http.timeout')}
+        value={value.timeout_seconds}
+        min={1}
+        max={30}
+        unit="s"
+        onchange={(timeout_seconds) => {
+          if (value.type === 'shell') onchange({ ...value, timeout_seconds });
+        }}
+      />{/if}
+  {:else if value.type === 'app_volume'}
+    <ApplicationField
+      label={t('forms.apps.label')}
+      value={value.application}
+      mode="audio"
+      onchange={(application) => {
+        if (value.type === 'app_volume') onchange({ ...value, application });
+      }}
+    />
+    <VolumeField
+      value={value.change}
+      onchange={(change) => {
+        if (value.type === 'app_volume') onchange({ ...value, change });
+      }}
+    />
+  {:else if value.type === 'volume'}
+    <VolumeField value={value.change} onchange={(change) => onchange({ type: 'volume', change })} />
+  {:else if value.type === 'kill' || value.type === 'restart'}
+    <ApplicationField
+      label={t('forms.apps.label')}
+      value={value.target}
+      onchange={(target) => {
+        if (value.type === 'kill' || value.type === 'restart') onchange({ ...value, target });
+      }}
+    />
+  {:else if value.type === 'play_sound'}
     <AudioFields
       {value}
       {active}
@@ -124,29 +177,20 @@
           if (value.type === 'write') onchange({ ...value, text: event.currentTarget.value });
         }}></textarea></label
     >
-    <label class="check"
-      ><input
-        type="checkbox"
-        checked={value.send}
-        onchange={(event) => {
-          if (value.type === 'write') onchange({ ...value, send: event.currentTarget.checked });
-        }}
-      />{t('editor.pressEnterAfterTyping')}</label
-    >
+    <SwitchField
+      label={t('editor.pressEnterAfterTyping')}
+      checked={value.send}
+      onchange={(send) => {
+        if (value.type === 'write') onchange({ ...value, send });
+      }}
+    />
   {:else if value.type === 'open'}
-    <label
-      >{t('editor.applicationFileOrUrl')}<input
-        value={value.target}
-        required
-        minlength="1"
-        maxlength="4096"
-        placeholder={t('editor.httpsExampleCom')}
-        oninput={(event) => {
-          if (value.type === 'open' && event.currentTarget.checkValidity())
-            onchange({ ...value, target: event.currentTarget.value });
-        }}
-      /></label
-    >
+    <ApplicationField
+      label={t('editor.applicationFileOrUrl')}
+      value={value.target}
+      mode="open"
+      onchange={(target) => onchange({ type: 'open', target })}
+    />
   {:else if form}<Fields
       schema={form}
       {value}
@@ -157,6 +201,8 @@
 
 <style>
   .configuration-only {
+    display: grid;
+    gap: 16px;
     border: 0;
     padding: 0;
     margin: 0;

@@ -1,4 +1,11 @@
 <script lang="ts">
+  import FileSourceField from './FileSourceField.svelte';
+  import ScriptSourceField from './ScriptSourceField.svelte';
+  import VolumeField from './VolumeField.svelte';
+  import MapField from './MapField.svelte';
+  import SwitchField from '../../components/SwitchField.svelte';
+  import Icon from '../../components/Icon.svelte';
+  import type { FileSource, ScriptSource, VolumeChange } from '../../lib/contracts';
   import { fieldLabels } from '../../lib/field-labels';
   import { useTranslations, common } from '../../lib/i18n';
   const t = useTranslations();
@@ -13,7 +20,7 @@
   const errorId = `field-${id()}`;
   const minimumId = `${errorId}-minimum`;
   const maximumId = `${errorId}-maximum`;
-  import { resolve, defaultValue, type Schema, upload, select } from '../../lib/api/client';
+  import { resolve, defaultValue, type Schema } from '../../lib/api/client';
   let {
     schema,
     value,
@@ -37,27 +44,25 @@
     onchange({ ...object, [k]: v });
   }
   let error = $state('');
-  async function file(e: Event) {
-    const f = (e.target as HTMLInputElement).files?.[0];
-    if (f) {
-      try {
-        onchange(await upload(f));
-      } catch (e) {
-        error = e instanceof Error ? e.message : String(e);
-      }
-    }
-  }
-  async function picker() {
-    try {
-      const r = await select('file');
-      if (r.source) onchange(r.source);
-    } catch (e) {
-      error = e instanceof Error ? e.message : String(e);
-    }
-  }
 </script>
 
-{#if s.oneOf}
+{#if schema.$ref?.endsWith('/FileSource')}
+  <FileSourceField
+    {label}
+    value={(value as FileSource) ?? { type: 'asset', id: '' }}
+    onchange={(source) => onchange(source)}
+  />
+{:else if schema.$ref?.endsWith('/ScriptSource')}
+  <ScriptSourceField
+    value={(value as ScriptSource) ?? { type: 'inline', code: '' }}
+    onchange={(source) => onchange(source)}
+  />
+{:else if schema.$ref?.endsWith('/VolumeChange')}
+  <VolumeField
+    value={(value as VolumeChange) ?? { type: 'set', percent: 0 }}
+    onchange={(change) => onchange(change)}
+  />
+{:else if s.oneOf}
   <fieldset>
     <legend>{label}</legend><label
       >{t('editor.type')}
@@ -79,13 +84,10 @@
         {label}
         {fieldName}
       />{/each}
-    {#if schema.$ref?.endsWith('/FileSource')}<label
-        >{t(common.upload)} <input type="file" onchange={file} /></label
-      ><button type="button" onclick={picker}>{t('editor.selectALocalFile')}</button>{/if}
   </fieldset>
 {:else if s.properties}
   <div class="fields">
-    {#each Object.entries(s.properties).filter(([k]) => k !== 'type') as [k, child]}<Fields
+    {#each Object.entries(s.properties).filter(([k, child]) => k !== 'type' && !(k === 'language' && child.enum?.length === 1 && child.enum[0] === 'javascript')) as [k, child]}<Fields
         schema={child}
         value={object[k]}
         onchange={(v) => field(k, v)}
@@ -100,13 +102,7 @@
     ></label
   >
 {:else if s.type === 'boolean'}
-  <label class="check"
-    ><input
-      type="checkbox"
-      checked={Boolean(value)}
-      onchange={(e) => onchange(e.currentTarget.checked)}
-    />{label}</label
-  >
+  <SwitchField {label} checked={Boolean(value)} onchange={(next) => onchange(next)} />
 {:else if s.type === 'integer' || s.type === 'number'}
   <label
     >{label}<input
@@ -155,7 +151,7 @@
           disabled={(value as unknown[]).length <= (s.minItems ?? 0)}
           aria-describedby={s.minItems !== undefined ? minimumId : undefined}
           onclick={() => onchange((value as unknown[]).filter((_, i) => i !== index))}
-          >{t(common.remove)}</button
+          ><Icon name="close" size={18} /><span class="sr-only">{t(common.remove)}</span></button
         >
       </div>{/each}<button
       type="button"
@@ -163,40 +159,17 @@
       aria-describedby={s.maxItems !== undefined ? maximumId : undefined}
       onclick={() =>
         onchange([...(Array.isArray(value) ? value : []), defaultValue(s.items ?? {})])}
-      >{t('editor.addNamedField', { label })}</button
+      ><Icon name="plus" size={18} />{t('editor.addNamedField', { label })}</button
     >
   </fieldset>
 {:else if s.type === 'object'}
-  <fieldset>
-    <legend>{label}</legend>{#each Object.entries(object) as [k, v]}<div class="row">
-        <input
-          aria-label={t(common.name)}
-          value={k}
-          onchange={(e) => {
-            const next = { ...object };
-            delete next[k];
-            next[e.currentTarget.value] = v;
-            onchange(next);
-          }}
-        /><Fields
-          schema={typeof s.additionalProperties === 'object' ? s.additionalProperties : {}}
-          value={v}
-          onchange={(v) => field(k, v)}
-          label={k}
-        /><button
-          type="button"
-          onclick={() => {
-            const next = { ...object };
-            delete next[k];
-            onchange(next);
-          }}>{t(common.remove)}</button
-        >
-      </div>{/each}<button
-      type="button"
-      onclick={() => field(`field${Object.keys(object).length + 1}`, '')}
-      >{t('editor.addField')}</button
-    >
-  </fieldset>
+  <MapField
+    {label}
+    value={object}
+    stringValues={typeof s.additionalProperties === 'object' &&
+      s.additionalProperties.type === 'string'}
+    onchange={(next) => onchange(next)}
+  />
 {:else if !s.type}
   <JsonField {value} {onchange} {label} />
 {:else}

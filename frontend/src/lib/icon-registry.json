@@ -265,24 +265,72 @@
     "devices": {
       "path": "M4 3h11a2 2 0 0 1 2 2v7M8 18H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2ZM5 21h4m-2-3v3M14 9h6a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1Zm2 9h2",
       "category": "devices"
+    },
+    "chevron-down": {
+      "path": "m6 9 6 6 6-6",
+      "category": "ui"
+    },
+    "search": {
+      "path": "M21 21l-5.2-5.2M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z",
+      "category": "ui"
+    },
+    "file-code": {
+      "path": "M14 2H5v20h14V7ZM14 2v5h5M10 11l-3 3 3 3m4-6 3 3-3 3",
+      "category": "ui"
+    },
+    "upload": {
+      "path": "M12 16V3m-5 5 5-5 5 5M4 16v5h16v-5",
+      "category": "ui"
+    },
+    "link": {
+      "path": "m10 13 4-4M8 15l-2 2a3.5 3.5 0 0 1-5-5l5-5a3.5 3.5 0 0 1 5 0m2 2 2-2a3.5 3.5 0 0 1 5 5l-5 5a3.5 3.5 0 0 1-5 0",
+      "category": "ui"
+    },
+    "app-window": {
+      "path": "M3 3h18v18H3ZM3 8h18M6 5.5h.01m3 0h.01",
+      "category": "devices"
+    },
+    "browser": {
+      "path": "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM3 12h18M12 3c4 5 4 13 0 18-4-5-4-13 0-18Z",
+      "category": "devices"
+    },
+    "firefox": {
+      "path": "M17 3c0 3 4 4 4 10a9 9 0 0 1-18-1c0-4 1-6 3-8l1 5 5-4-1 5 5 2c-2 4-6 5-8 2 0 5 7 7 10 2",
+      "category": "devices"
+    },
+    "discord": {
+      "path": "M7 5h10l3 3 2 10-5 2-2-3H9l-2 3-5-2L4 8ZM8 10v3m8-3v3M9 16h6",
+      "category": "devices"
+    },
+    "vlc": {
+      "path": "m12 2 7 18H5ZM9 9h6M7 15h10M3 22h18",
+      "category": "devices"
+    },
+    "json": {
+      "path": "M9 3H7v7l-3 2 3 2v7h2m6-18h2v7l3 2-3 2v7h-2",
+      "category": "ui"
+    },
+    "key-value": {
+      "path": "M3 6h6m-6 6h6m-6 6h6M13 6h8m-8 6h8m-8 6h8",
+      "category": "ui"
     }
   },
   "aliases": {
-    "\u25b6": "play",
-    "\u25b6\ufe0f": "play",
-    "\u2699": "settings",
-    "\u2699\ufe0f": "settings",
-    "\ud83d\udcc1": "folder",
-    "\u26f6": "fullscreen",
-    "\u25a6": "grid",
-    "\u25c9": "cpu",
-    "\u25a4": "memory",
-    "\u25a7": "image",
-    "\u25a8": "cpu",
-    "\u21bb": "refresh",
-    "\u21a9": "back",
-    "\u2726": "grid",
-    "\u25a1": "fullscreen",
-    "\ud83c\udfb5": "music"
+    "▶": "play",
+    "▶️": "play",
+    "⚙": "settings",
+    "⚙️": "settings",
+    "📁": "folder",
+    "⛶": "fullscreen",
+    "▦": "grid",
+    "◉": "cpu",
+    "▤": "memory",
+    "▧": "image",
+    "▨": "cpu",
+    "↻": "refresh",
+    "↩": "back",
+    "✦": "grid",
+    "□": "fullscreen",
+    "🎵": "music"
   }
 }

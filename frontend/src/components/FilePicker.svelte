@@ -4,7 +4,9 @@
   const t = useTranslations();
   let {
     label,
-    accept,
+    hideLabel = false,
+    accept = '',
+    maxSize = 16 * 1024 * 1024,
     filename = '',
     metadata = '',
     preview,
@@ -13,7 +15,9 @@
     onselect,
   }: {
     label: string;
-    accept: string;
+    hideLabel?: boolean;
+    accept?: string;
+    maxSize?: number;
     filename?: string;
     metadata?: string;
     preview?: string | undefined;
@@ -34,20 +38,24 @@
       return;
     }
     const file = files[0]!;
-    const matches = accept.split(',').some((item) => {
-      const rule = item.trim();
-      return rule.startsWith('.')
-        ? file.name.toLowerCase().endsWith(rule.toLowerCase())
-        : rule.endsWith('/*')
-          ? file.type.startsWith(rule.slice(0, -1))
-          : file.type === rule;
-    });
+    const matches =
+      !accept.trim() ||
+      accept.split(',').some((item) => {
+        const rule = item.trim();
+        return rule.startsWith('.')
+          ? file.name.toLowerCase().endsWith(rule.toLowerCase())
+          : rule.endsWith('/*')
+            ? file.type.startsWith(rule.slice(0, -1))
+            : file.type === rule;
+      });
     if (!matches) {
       error = t('files.type');
       return;
     }
-    if (file.size > 16 * 1024 * 1024) {
-      error = t('files.size');
+    if (file.size > maxSize) {
+      error = t('forms.source.tooLarge', {
+        size: maxSize >= 1024 * 1024 ? `${maxSize / 1024 / 1024} MB` : `${maxSize / 1024} KB`,
+      });
       return;
     }
     pending = true;
@@ -62,7 +70,7 @@
 </script>
 
 <div class="file-picker">
-  <span class="label">{label}</span>
+  <span class="label" class:sr-only={hideLabel}>{label}</span>
   <div
     class="drop-area"
     class:dragging

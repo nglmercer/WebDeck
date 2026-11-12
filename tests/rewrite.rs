@@ -324,6 +324,19 @@ fn uploaded_assets_reject_escape_and_external_sources_are_explicit() {
     for p in ["..", "../config.json", "a/b", "a\\b", ":"] {
         assert!(a.path(p).is_err());
     }
+    for extension in [
+        "js", "mjs", "cjs", "sh", "bash", "zsh", "bat", "cmd", "ps1", "txt",
+    ] {
+        let source = a.upload(extension, b"example code").unwrap();
+        let FileSource::Asset { id } = source else {
+            panic!("uploaded asset expected")
+        };
+        assert_eq!(
+            std::fs::read(a.path(&id).unwrap()).unwrap(),
+            b"example code"
+        );
+    }
+    assert!(a.upload("exe", b"unsupported").is_err());
     let s = a.upload("png", b"test").unwrap();
     let FileSource::Asset { id } = s else {
         panic!()
@@ -1600,4 +1613,62 @@ async fn audio_preview_is_bounded_and_local_to_the_editor() {
     )
     .await;
     assert_eq!(invalid.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn application_discovery_is_read_only_and_requires_settings_access() {
+    let t = Temp::new();
+    let a = app(&t);
+    let original = a.config.snapshot().unwrap();
+    let viewer = a
+        .sessions
+        .approve(DeviceRequest {
+            name: "Viewer".into(),
+            capabilities: vec![Capability::Read],
+            ttl_seconds: 60,
+        })
+        .unwrap();
+    let denied = call(
+        &a,
+        "GET",
+        "/api/v2/applications?kind=processes",
+        Value::Null,
+        true,
+        Some(&viewer.token),
+        "192.168.1.2:5000",
+    )
+    .await;
+    assert_eq!(denied.status(), StatusCode::FORBIDDEN);
+    let response = call(
+        &a,
+        "GET",
+        "/api/v2/applications?kind=processes",
+        Value::Null,
+        false,
+        None,
+        "127.0.0.1:5000",
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let list: ApplicationList = serde_json::from_slice(&bytes).unwrap();
+    assert!(list.available);
+    assert!(list.applications.len() <= 512);
+    let unique: std::collections::BTreeSet<_> =
+        list.applications.iter().map(|app| &app.value).collect();
+    assert_eq!(unique.len(), list.applications.len());
+    let invalid = call(
+        &a,
+        "GET",
+        "/api/v2/applications?kind=invalid",
+        Value::Null,
+        false,
+        None,
+        "127.0.0.1:5000",
+    )
+    .await;
+    assert_eq!(invalid.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(a.config.snapshot().unwrap(), original);
 }

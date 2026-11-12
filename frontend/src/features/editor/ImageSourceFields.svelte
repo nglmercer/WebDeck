@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SwitchField from '../../components/SwitchField.svelte';
   import FilePicker from '../../components/FilePicker.svelte';
   import { useTranslations } from '../../lib/i18n';
   const t = useTranslations();
@@ -66,11 +67,7 @@
     <div class="url-source">
       <label>{t('images.imageUrl')}<input type="url" bind:value={imageUrl} disabled={busy} /></label
       >
-      <label class="check"
-        ><input type="checkbox" bind:checked={liveImage} disabled={busy} />{t(
-          'images.liveImage',
-        )}</label
-      >
+      <SwitchField label={t('images.liveImage')} bind:checked={liveImage} disabled={busy} />
       <button type="button" class="primary" disabled={busy || !imageUrl.trim()} onclick={importUrl}
         >{t('images.importImageUrl')}</button
       >

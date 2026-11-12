@@ -83,3 +83,5 @@ export type DeviceRenew = { ttl_seconds: number };
 export type ConnectionProgress = { api_version: 2; state: "waiting" | "pending" | "approved" | "rejected" | "expired" };
 export type KeyboardCapabilities = { platform: "windows" | "linux_x11" | "linux_wayland" | "unsupported"; availability: "portal_approval_required" | "desktop_access_unverified" | "unsupported"; fn_status: "unsupported"; catalog_version: 1 };
 export type ObsKeyModifiers = { shift?: boolean; control?: boolean; alt?: boolean; command?: boolean };
+export type ApplicationOption = { name: string; value: string; description: string; executable: string };
+export type ApplicationList = { api_version: 2; available: boolean; applications: Array<ApplicationOption> };

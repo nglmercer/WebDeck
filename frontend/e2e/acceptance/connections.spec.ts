@@ -81,7 +81,7 @@ test('view-only phone requests permission, host approves, and a new action attem
   await expect(mobile.getByRole('button', { name: 'Play / pause', exact: true })).toBeDisabled();
   await controls(mobile);
   await mobile.getByText('Request Permission', { exact: true }).first().click();
-  await mobile.getByRole('checkbox', { name: 'Audio and media', exact: true }).check();
+  await mobile.getByRole('switch', { name: 'Audio and media', exact: true }).check();
   await mobile.getByRole('button', { name: 'Request Permission', exact: true }).click();
   const upgrade = page.locator('.approvals article').filter({ hasText: 'This device requests additional access.' });
   await upgrade.getByRole('button', { name: 'Approve device', exact: true }).click();
@@ -212,7 +212,7 @@ test('permission rejection and approval work through HTTP polling when realtime 
     await mobile.goto(network.url);
     await controls(mobile);
   await mobile.getByText('Request Permission', { exact: true }).first().click();
-    await mobile.getByRole('checkbox', { name: 'Audio and media', exact: true }).check();
+    await mobile.getByRole('switch', { name: 'Audio and media', exact: true }).check();
     await mobile.getByRole('button', { name: 'Request Permission', exact: true }).click();
     let upgrade = page.locator('.approvals article').filter({ hasText: 'HTTP fallback phone' });
     await upgrade.getByRole('button', { name: 'Reject', exact: true }).click();

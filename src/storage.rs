@@ -270,7 +270,7 @@ impl Assets {
     pub fn upload(&self, extension: &str, bytes: &[u8]) -> Result<FileSource> {
         let allowed = [
             "png", "jpg", "jpeg", "webp", "gif", "svg", "mp3", "wav", "ogg", "flac", "css", "js",
-            "txt",
+            "txt", "mjs", "cjs", "sh", "bash", "zsh", "bat", "cmd", "ps1",
         ];
         if !allowed.contains(&extension) || bytes.len() > 16 * 1024 * 1024 {
             return Err(Error::invalid());

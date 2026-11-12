@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SwitchField from '../../components/SwitchField.svelte';
   import ChoiceField from '../settings/ui/ChoiceField.svelte';
   import { useTranslations } from '../../lib/i18n';
   import { capabilityNames } from '../../lib/capability-labels';
@@ -41,9 +42,13 @@
 {#if profile === 'full'}<p>{t('devices.fullControllerHelp')}</p>{/if}
 {#if profile === 'custom'}<fieldset>
     <legend>{t('devices.permissions')}</legend>
-    {#each full as capability}<label class="check"
-        ><input type="checkbox" value={capability} bind:group={selected} />{t.message(
-          capabilityNames[capability] ?? capability,
-        )}</label
-      >{/each}
+    {#each full as capability}<SwitchField
+        label={t.message(capabilityNames[capability] ?? capability)}
+        checked={selected.includes(capability)}
+        onchange={(checked) => {
+          selected = checked
+            ? [...selected, capability]
+            : selected.filter((value) => value !== capability);
+        }}
+      />{/each}
   </fieldset>{:else}<p>{selected.map((c) => t.message(capabilityNames[c] ?? c)).join(', ')}</p>{/if}

@@ -20,10 +20,10 @@
   .guide-button {
     display: grid;
     place-items: center;
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    min-height: 32px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     padding: 5px;
     border: 1px solid var(--border);
     border-radius: 50%;

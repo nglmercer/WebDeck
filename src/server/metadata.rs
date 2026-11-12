@@ -89,6 +89,37 @@ fn translation_snapshot(a: App) -> Result<Value> {
     Ok(json!({"api_version":2,"translations":result,"languages":languages}))
 }
 
+#[derive(Default, serde::Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+enum ApplicationKind {
+    #[default]
+    Processes,
+    Audio,
+}
+
+#[derive(Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct ApplicationQuery {
+    #[serde(default)]
+    kind: ApplicationKind,
+}
+
+pub(super) async fn applications(
+    State(a): State<App>,
+    axum::Extension(i): axum::Extension<Identity>,
+    axum::extract::Query(query): axum::extract::Query<ApplicationQuery>,
+) -> Result<Json<ApplicationList>> {
+    i.require(Capability::Settings)?;
+    Ok(Json(
+        blocking(a.queries.clone(), move || {
+            Ok(crate::capabilities::application_options(
+                query.kind == ApplicationKind::Audio,
+            ))
+        })
+        .await?,
+    ))
+}
+
 pub(super) async fn audio_devices(
     State(a): State<App>,
     axum::Extension(i): axum::Extension<Identity>,

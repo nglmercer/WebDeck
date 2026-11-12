@@ -625,7 +625,7 @@ test('saving Spanish updates controls and action names while preserving configur
   await expect(page.locator('html')).toHaveAttribute('lang', 'es');
   await page.getByRole('tab', { name: 'Dispositivos y conexiones', exact: true }).click();
   await page.locator('#settings-devices > button').click();
-  await expect(page.getByRole('checkbox', { name: 'Ver el panel y las mediciones', exact: true })).toBeVisible();
+  await expect(page.getByRole('switch', { name: 'Ver el panel y las mediciones', exact: true })).toBeVisible();
   await page.getByRole('dialog').getByRole('button', { name: 'Cerrar', exact: true }).click();
   const snapshot = await (await request.get('/api/v2/config')).json();
   expect(snapshot.config.settings.language).toBe('es_ES');

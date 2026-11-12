@@ -3589,6 +3589,60 @@
           "type": "boolean"
         }
       }
+    },
+    "ApplicationOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "executable": {
+          "type": "string",
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "name",
+        "value",
+        "description",
+        "executable"
+      ]
+    },
+    "ApplicationList": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "api_version": {
+          "const": 2
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "applications": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/ApplicationOption"
+          }
+        }
+      },
+      "required": [
+        "api_version",
+        "available",
+        "applications"
+      ]
     }
   }
 }
