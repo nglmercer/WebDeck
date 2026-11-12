@@ -1438,3 +1438,66 @@ fn recommended_profile_collects_nested_commands_scripts_and_plugin_manifest_perm
     assert!(!profile.contains(&Capability::Admin));
     assert!(!profile.contains(&Capability::Settings));
 }
+
+#[tokio::test]
+async fn json_translation_catalogs_merge_locale_values_and_preserve_english_fallback() {
+    let t = Temp::new();
+    let a = app(&t);
+    a.config
+        .mutate(a.config.last_valid().revision, |config| {
+            config.settings.language = "es_ES".into();
+            Ok(())
+        })
+        .unwrap();
+    let response = call(
+        &a,
+        "GET",
+        "/api/v2/translations",
+        Value::Null,
+        false,
+        None,
+        "127.0.0.1:5000",
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let dictionary: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(dictionary["translations"]["ui_settings"], "Configuración");
+    assert_eq!(dictionary["translations"]["lang_code"], "es");
+    assert_eq!(
+        dictionary["translations"]["ui_network_apply_note"],
+        "Network changes apply immediately."
+    );
+    assert!(dictionary["languages"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("en_US")));
+    assert!(dictionary["languages"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("es_ES")));
+    a.config
+        .mutate(a.config.last_valid().revision, |config| {
+            config.settings.language = "zz_ZZ".into();
+            Ok(())
+        })
+        .unwrap();
+    let response = call(
+        &a,
+        "GET",
+        "/api/v2/translations",
+        Value::Null,
+        false,
+        None,
+        "127.0.0.1:5000",
+    )
+    .await;
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let fallback: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(fallback["translations"]["ui_settings"], "Settings");
+    assert_eq!(fallback["translations"]["lang_code"], "en");
+}

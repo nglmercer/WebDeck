@@ -45,11 +45,13 @@ To set up the development environment, follow these steps:
 
 - Translation files are in `webdeck/translations/*`.
 - To add or update a translation:
-  1. Copy `en_US.lang` to a new file named with your language code (e.g., `fr_FR.lang`).
-  2. Follow the instructions in the file to translate only the necessary text.
+  1. Copy `en_US.json` to a new file named with your language code (e.g., `fr_FR.json`).
+  2. Translate JSON string values, keeping keys and `{name}` / `%name%` placeholders unchanged. Preserve the locale metadata (`native_name`, `english_name`, `lang_code`, and author fields).
+  3. The English JSON catalog is canonical. After editing it, run `npm run i18n:generate --prefix frontend`; do not edit the generated `frontend/src/lib/messages.ts`.
+  4. Run `npm run check:i18n --prefix frontend` to check JSON shape, duplicate keys, UI keys, placeholders, and generated fallback freshness.
 
 > **Note**:
-> - Only translate the `.lang` files. Do not translate other files like `webdeck/version.json`.
+> - Only translate the `.json` files. Do not translate other files like `webdeck/version.json`.
 > - Translating `README.md` files is optional but not recommended as it increases maintenance work.
 
 

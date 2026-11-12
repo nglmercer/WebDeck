@@ -39,6 +39,7 @@
     refreshAssets,
     moveButton,
     removeButton,
+    protectedSettings = false,
     duplicateButton,
     commitButton,
     close,
@@ -52,6 +53,7 @@
     refreshAssets: (id: string) => Promise<void>;
     moveButton: (delta: number) => void;
     removeButton: () => void;
+    protectedSettings?: boolean;
     duplicateButton: () => void;
     commitButton: () => void;
     close: () => void;
@@ -525,8 +527,11 @@
           <div class="action-summary">
             <Icon name={selectedAction?.icon ?? 'settings'} />
             <span>{selectedAction ? t(selectedAction.label) : button.action.type}</span>
-            <button type="button" onclick={() => (actionPickerOpen = true)}
-              >{t('ui_change_action')}</button
+            <button
+              type="button"
+              disabled={protectedSettings}
+              title={protectedSettings ? t('ui_settings_protected') : undefined}
+              onclick={() => (actionPickerOpen = true)}>{t('ui_change_action')}</button
             >
           </div>
           {#if !hasConfiguration}<p class="field-help">{t('ui_no_configuration_needed')}</p>{/if}
@@ -627,6 +632,10 @@
               ><button type="button" onclick={duplicateButton}>{t('ui_duplicate')}</button><button
                 type="button"
                 class="danger"
+                disabled={protectedSettings || button.action.type === 'settings'}
+                title={protectedSettings || button.action.type === 'settings'
+                  ? t('ui_settings_protected')
+                  : undefined}
                 onclick={removeButton}>{t('ui_delete')}</button
               >
             </div>

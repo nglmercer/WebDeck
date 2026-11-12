@@ -2,6 +2,8 @@
   import { useTranslations } from '../../lib/i18n';
   const t = useTranslations();
 
+  import SettingsCard from './ui/SettingsCard.svelte';
+  import FileField from './ui/FileField.svelte';
   import { onDestroy } from 'svelte';
   import type { Editor } from '../editor/editor.svelte';
   import type { Config } from '../../lib/contracts';
@@ -12,7 +14,6 @@
     notify,
   }: { editor: Editor; reload: () => Promise<void>; notify: (message: string) => void } = $props();
   let preview = $state<Config | null>(null),
-    filename = $state(''),
     error = $state('');
   let inspection = 0;
   onDestroy(() => {
@@ -28,7 +29,6 @@
       error = 'This backup exceeds the 16 MB restore limit. Your draft has not changed.';
       return;
     }
-    filename = file.name;
     try {
       const candidate = contract<Config>('Config', JSON.parse(await file.text()));
       if (generation === inspection) preview = candidate;
@@ -57,39 +57,41 @@
   }
 </script>
 
-<section id="settings-backups" aria-labelledby="backups-title">
-  <h2 id="backups-title">{t('ui_backups')}</h2>
-  <p>{t('ui_restore_loads_a_draft_save_changes_to_apply_it_to_the_host')}</p>
-  <label>{t('ui_restore_a_v2_backup')}<input type="file" accept=".json" onchange={inspect} /></label
-  >
-  {#if error}<p role="alert">{t(error)}</p>{/if}
-  {#if preview}<div class="backup-preview">
-      <strong>{filename}</strong>
-      <p>
-        {t('ui_backup_counts', {
-          folders: preview.layout.folders.length,
-          buttons: preview.layout.folders.reduce(
-            (count, folder) => count + folder.buttons.length,
-            0,
-          ),
-        })}
-      </p>
-      <button onclick={apply}>{t('ui_apply_backup_to_draft')}</button><button
-        onclick={() => {
-          inspection++;
-          preview = null;
-        }}>{t('ui_cancel_restore')}</button
+<div id="settings-backups" class="settings-page" aria-labelledby="backups-title">
+  <div class="settings-page-heading"><h2 id="backups-title">{t('ui_backups')}</h2></div>
+  <SettingsCard title={t('ui_backup_restore')} icon="folder">
+    <p>{t('ui_restore_loads_a_draft_save_changes_to_apply_it_to_the_host')}</p>
+    <FileField label={t('ui_restore_a_v2_backup')} accept=".json" onchange={inspect} />
+    {#if error}<p role="alert">{t(error)}</p>{/if}
+    {#if preview}<div class="backup-preview">
+        <p>
+          {t('ui_backup_counts', {
+            folders: preview.layout.folders.length,
+            buttons: preview.layout.folders.reduce(
+              (count, folder) => count + folder.buttons.length,
+              0,
+            ),
+          })}
+        </p>
+        <button onclick={apply}>{t('ui_apply_backup_to_draft')}</button><button
+          onclick={() => {
+            inspection++;
+            preview = null;
+          }}>{t('ui_cancel_restore')}</button
+        >
+      </div>{/if}
+  </SettingsCard>
+  <SettingsCard title={t('ui_backup_export')} icon="copy">
+    <p>{t('ui_your_unsaved_draft_remains_available_after_a_save_conflict')}</p>
+    <div class="row">
+      <button onclick={download}>{t('ui_download_backup')}</button><button
+        aria-describedby={editor.saving ? 'settings-save-status' : undefined}
+        disabled={editor.saving}
+        onclick={reload}>{t('ui_reload_configuration')}</button
       >
-    </div>{/if}
-  <p>{t('ui_your_unsaved_draft_remains_available_after_a_save_conflict')}</p>
-  <div class="row">
-    <button onclick={download}>{t('ui_download_backup')}</button><button
-      aria-describedby={editor.saving ? 'settings-save-status' : undefined}
-      disabled={editor.saving}
-      onclick={reload}>{t('ui_reload_configuration')}</button
-    >
-  </div>
-</section>
+    </div>
+  </SettingsCard>
+</div>
 
 <style>
   .backup-preview {

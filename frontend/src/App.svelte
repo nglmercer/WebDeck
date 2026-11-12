@@ -1,7 +1,8 @@
 <script lang="ts">
   import { provideTranslations } from './lib/i18n';
 
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
+  import Learn from './features/learn/Learn.svelte';
   import type { Button } from './lib/contracts';
   import { ApiError, setToken } from './lib/api/client';
   import { Session } from './lib/session.svelte';
@@ -17,7 +18,6 @@
   import PairingApprovals from './features/pairing/PairingApprovals.svelte';
   import Feedback from './components/Feedback.svelte';
   import DeckControls from './features/deck/DeckControls.svelte';
-  import FirstUseHint from './features/deck/FirstUseHint.svelte';
   import EditorToolbar from './features/editor/EditorToolbar.svelte';
   import { UsageMonitor } from './features/deck/usage.svelte';
   import { Navigation } from './lib/navigation.svelte';
@@ -26,6 +26,13 @@
   import { appearanceOf } from './features/editor/appearance';
   const connection = new ConnectionController();
   let connectionRequest = $state(0);
+  let learning: { open: () => void } | undefined = $state();
+  async function openLearning() {
+    interactions.controls = false;
+    interactions.help = false;
+    await tick();
+    learning?.open();
+  }
   onMount(() => {
     connection.start();
     const remove = onDeviceEvent((event) => {
@@ -73,7 +80,11 @@
   );
   const interactions = new DeckInteractions({
     enabled: () => !!session.deck && navigation.panel === 'deck',
-    hasDialog: () => !!draft.button,
+    hasDialog: () =>
+      !!draft.button ||
+      !!document.querySelector(
+        '.settings-shell dialog[open], [data-learning-dialog], .driver-popover',
+      ),
     closeEditor: () => {
       closeButtonEditor();
       if (!draft.button && navigation.panel === 'settings') navigation.navigate(navigation.active);
@@ -231,17 +242,13 @@
 >
 <div
   class="application"
-  style:--feedback-bottom={`${navigation.panel === 'deck' && session.editor ? (editing ? 180 : 100) : 12}px`}
-  style:--feedback-mobile-bottom={`${navigation.panel === 'deck' && session.editor ? 100 : 12}px`}
+  style:--feedback-bottom={`${navigation.panel === 'deck' && editing ? 180 : 12}px`}
+  style:--feedback-mobile-bottom={`${navigation.panel === 'deck' && editing ? 120 : 12}px`}
   style:background-image={session.backgroundUrls[0]
-    ? `linear-gradient(#10121acc,#10121acc), url("${session.backgroundUrls[0]}")`
+    ? `url("${session.backgroundUrls[0]}")`
     : undefined}
 >
-  <Feedback bind:error bind:notice>
-    {#if !session.pairing && !session.loading && session.deck && navigation.panel === 'deck' && !editing}<FirstUseHint
-        canEdit={!!session.editor}
-      />{/if}
-  </Feedback>
+  <Feedback bind:error bind:notice />
   {#if session.pairing}<PairingView
       connect={async (token, remember) => {
         setToken(token, remember);
@@ -251,7 +258,7 @@
     />
   {:else if session.loading}<main aria-busy="true"><p>{t('ui_loading_webdeck')}</p></main>
   {:else if session.deck}
-    <main>
+    <main class:deck-main={navigation.panel === 'deck'} class:editing>
       {#if ['reconnecting', 'offline'].includes(connection.state)}<p role="status">
           {t('ui_connection_reconnecting')}
         </p>{/if}
@@ -266,21 +273,8 @@
           }}>{t('ui_request_access')}</button
         >{/if}
       {#if navigation.panel === 'deck'}
-        {#if !session.deck.can_edit}<PermissionRequest
-            capabilities={session.deck.capabilities}
-            {attempt}
-            authorizationChanged={() => void connection.refresh()}
-          />{/if}
-        {#if session.deck.can_edit}<button
-            class="primary"
-            onclick={() => {
-              settingsTab = 'devices';
-              connectionRequest++;
-              openSettings();
-            }}>{t('ui_connect_device')}</button
-          >{/if}
-        <h1 class="sr-only">{current?.label ?? 'Deck'}</h1>
-        {#if current && session.editor}<EditorToolbar
+        <h1 class="sr-only">{current?.label ?? t('ui_control_deck')}</h1>
+        {#if editing && current && session.editor}<EditorToolbar
             {editing}
             editor={session.editor}
             {current}
@@ -320,6 +314,8 @@
       {:else if navigation.panel === 'settings' && session.editor}
         <SettingsView
           bind:activeTab={settingsTab}
+          assetUrls={session.assetUrls}
+          learn={() => void openLearning()}
           {connectionRequest}
           editor={session.editor}
           languages={session.languages}
@@ -350,12 +346,36 @@
 <DeckControls
   {interactions}
   canEdit={!!session.editor}
+  learn={() => void openLearning()}
+  edit={() => void attempt(toggleEdit)}
+  connect={() => {
+    settingsTab = 'devices';
+    connectionRequest++;
+    openSettings();
+  }}
   back={() => navigation.back()}
   home={() => navigate(navigation.root)}
   settings={openSettings}
   reload={() => {
     void attempt(load);
   }}
+>
+  {#if session.deck && !session.deck.can_edit}<PermissionRequest
+      capabilities={session.deck.capabilities}
+      {attempt}
+      authorizationChanged={() => void connection.refresh()}
+    />{/if}
+</DeckControls>
+<Learn
+  bind:this={learning}
+  canEdit={!!session.editor}
+  prepare={() => navigate(navigation.active)}
+  restore={() =>
+    document
+      .querySelector<HTMLElement>(
+        navigation.panel === 'settings' ? '.settings-help' : '.deck-scroll',
+      )
+      ?.focus()}
 />
 {#if draft.button && layout}
   <ButtonEditorDialog
@@ -366,6 +386,7 @@
     assetUrls={session.assetUrls}
     refreshAssets={(id) => session.refreshAsset(id)}
     moveButton={(delta) => draft.move(delta)}
+    protectedSettings={session.editor?.isSettingsButton(draft.button.id) ?? false}
     removeButton={() => draft.remove()}
     duplicateButton={() => {
       draft.duplicate();

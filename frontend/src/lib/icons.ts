@@ -6,6 +6,7 @@ export type RegisteredIcon = {
   stroke?: string;
   fill?: string;
   background?: string;
+  paths?: { path: string; stroke?: string; fill?: string }[];
 };
 const icons: Record<string, RegisteredIcon> = registry.icons;
 const aliases: Record<string, string> = registry.aliases;

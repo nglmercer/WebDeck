@@ -70,12 +70,16 @@
   let viewportWidth = $state(0);
   let viewportHeight = $state(0);
   let availableWidth = $state(0);
+  let deckTop = $state(0);
   let deckElement: HTMLDivElement;
   onMount(() => {
-    const observer = new ResizeObserver(([entry]) => {
-      availableWidth = entry?.contentRect.width ?? 0;
+    const observer = new ResizeObserver(() => {
+      availableWidth = deckElement.clientWidth;
+      deckTop = deckElement.getBoundingClientRect().top + globalThis.scrollY;
     });
     observer.observe(deckElement);
+    const main = deckElement.closest('main');
+    if (main) observer.observe(main);
     return () => observer.disconnect();
   });
   let selectedRow = $state(0);
@@ -109,7 +113,7 @@
           naturalWidth,
           naturalHeight,
           availableWidth,
-          Math.max(100, viewportHeight - (coarse ? 220 : 180)),
+          Math.max(100, viewportHeight - deckTop - 12),
         )
       : 1,
   );
@@ -170,11 +174,12 @@
 <!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable fixed-cell decks need a keyboard focus target for arrow-key panning.) -->
 <div
   bind:this={deckElement}
+  data-tour="deck"
   class="deck-scroll"
   class:fitted
   class:touch-deck={coarse && fitted}
   style:height={fitted
-    ? `${coarse ? Math.max(180, viewportHeight - 116) : naturalHeight * scale}px`
+    ? `${coarse ? Math.max(180, viewportHeight - deckTop - 8) : naturalHeight * scale}px`
     : undefined}
   role="region"
   aria-label={t('ui_control_deck')}
@@ -203,6 +208,7 @@
         style:grid-row={`${Math.max(1, (rotated ? slot.cell % layout.columns : Math.floor(slot.cell / layout.columns) - startRow) + 1)} / span ${rotated ? slot.columns : visibleRows(slot.cell, slot.rows)}`}
       >
         {#if slot.button}{@const b = slot.button}<button
+            data-tour={b.action.type === 'folder' ? 'folders' : undefined}
             class="deck-button button wd_button"
             style={buttonStyle(b)}
             class:active={dynamic[b.id]?.active}
@@ -260,10 +266,10 @@
               <button
                 aria-label={t('ui_edit_named_button', { label: b.label })}
                 onclick={() => edit(b)}><Icon name="edit" size={18} /></button
-              ><button
-                aria-label={t('ui_remove_named_button', { label: b.label })}
-                onclick={() => remove(b)}><Icon name="trash" size={18} /></button
-              >
+              >{#if b.action.type !== 'settings'}<button
+                  aria-label={t('ui_remove_named_button', { label: b.label })}
+                  onclick={() => remove(b)}><Icon name="trash" size={18} /></button
+                >{/if}
             </div>{/if}
         {:else if editing}<button
             class="deck-button add"

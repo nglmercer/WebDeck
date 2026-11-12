@@ -71,7 +71,17 @@ export class Editor {
     for (const folder of this.draft.layout.folders)
       preserveCells(folder.buttons, this.draft.layout.columns, this.draft.layout.rows);
   }
+  isSettingsButton(buttonId: string) {
+    return [this.draft, this.persisted].some((config) =>
+      config.layout.folders.some((folder) =>
+        folder.buttons.some(
+          (button) => button.id === buttonId && button.action.type === 'settings',
+        ),
+      ),
+    );
+  }
   removeButton(buttonId: string) {
+    if (this.isSettingsButton(buttonId)) return;
     if (
       !this.draft.layout.folders.some((folder) =>
         folder.buttons.some((button) => button.id === buttonId),
@@ -86,6 +96,8 @@ export class Editor {
     this.recoveryGeneration = this.generation;
   }
   applyButton(button: Button, folderId: string, originId: string) {
+    if (this.isSettingsButton(button.id) && button.action.type !== 'settings')
+      throw new Error('The Settings button must keep its settings action.');
     contract('Button', button);
     const folder = this.draft.layout.folders.find((folder) => folder.id === folderId);
     if (!folder) throw new Error('Destination folder is unavailable');
@@ -185,6 +197,17 @@ export class Editor {
       folder.buttons = folder.buttons.filter(
         (button) => !(button.action.type === 'folder' && button.action.folder_id === folderId),
       );
+    const removed = this.draft.layout.folders.find((folder) => folder.id === folderId);
+    const root = this.draft.layout.folders[0]!;
+    for (const button of removed?.buttons ?? []) {
+      if (!this.isSettingsButton(button.id)) continue;
+      button.extensions.appearance = {
+        ...((button.extensions.appearance ?? {}) as Record<string, unknown>),
+        cell: placeButtons(root.buttons, this.draft.layout.columns, this.draft.layout.rows)
+          .firstFree,
+      };
+      root.buttons.push(button);
+    }
     this.draft.layout.folders = this.draft.layout.folders.filter(
       (folder) => folder.id !== folderId,
     );

@@ -2,6 +2,15 @@ export class DeckInteractions {
   controls = $state(false);
   help = $state(false);
   private timer: ReturnType<typeof setTimeout> | undefined;
+  private held = false;
+  private suppressClickUntil = 0;
+  private preventHoldClick = (event: MouseEvent) => {
+    if (event.detail > 0 && Date.now() < this.suppressClickUntil) {
+      this.suppressClickUntil = 0;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  };
   private point: { x: number; y: number } | undefined;
   constructor(
     private actions: {
@@ -12,7 +21,9 @@ export class DeckInteractions {
       settings: () => void;
       back: () => void;
     },
-  ) {}
+  ) {
+    window.addEventListener('click', this.preventHoldClick, true);
+  }
   keyboard = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
       if (this.actions.hasDialog()) return;
@@ -70,10 +81,15 @@ export class DeckInteractions {
     this.stopHold();
     this.point = { x: event.clientX, y: event.clientY };
     this.timer = setTimeout(() => {
+      this.held = true;
       this.controls = true;
     }, 600);
   };
   stopHold = () => {
+    if (this.held) {
+      this.suppressClickUntil = Date.now() + 500;
+      this.held = false;
+    }
     if (this.timer) clearTimeout(this.timer);
     this.timer = undefined;
     this.point = undefined;
@@ -83,6 +99,7 @@ export class DeckInteractions {
       this.stopHold();
   };
   dispose() {
+    window.removeEventListener('click', this.preventHoldClick, true);
     this.stopHold();
   }
 }

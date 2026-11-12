@@ -18,7 +18,7 @@ include!(concat!(env!("OUT_DIR"), "/frontend.rs"));
 
 #[cfg(webdeck_embedded_frontend)]
 pub(super) fn translation(name: &str) -> Option<String> {
-    embedded_file(&format!("/translations/{name}.lang"))
+    embedded_file(&format!("/translations/{name}.json"))
         .and_then(|bytes| std::str::from_utf8(bytes).ok())
         .map(str::to_owned)
 }

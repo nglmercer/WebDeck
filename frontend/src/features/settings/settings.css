@@ -1,0 +1,381 @@
+/* Flat, neutral settings tokens. Scoped here so the control deck keeps its theme. */
+.settings-shell,
+body:has(.settings-shell) dialog {
+  --canvas: #111214;
+  --surface: #191a1d;
+  --surface-raised: #25272c;
+  --surface-hover: #2d3036;
+  --text: #eeeef0;
+  --text-muted: #a7aab2;
+  --border: #555963;
+  --border-subtle: #32353b;
+  --accent: #c6cad3;
+  --accent-surface: #363940;
+  --error-text: #e0b0b0;
+  --error-surface: #322426;
+  --success-text: #b8cabe;
+  --success-surface: #233029;
+  --warning-text: #d9c8a8;
+  --warning-surface: #302b22;
+  --radius-control: 7px;
+  --radius-panel: 10px;
+  --shadow-dialog: none;
+  color: var(--text);
+  max-width: 1280px;
+  margin: 12px auto 40px;
+  min-width: 0;
+}
+.application:has(.settings-shell) {
+  background: #111214 !important;
+}
+.settings-shell *,
+.settings-shell *::before,
+.settings-shell *::after {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+.settings-shell button,
+.settings-shell input,
+.settings-shell select,
+.settings-shell textarea {
+  min-height: 44px;
+}
+.settings-shell button {
+  font-size: 0.82rem;
+}
+.settings-shell label {
+  font-size: 0.78rem;
+}
+.settings-shell p,
+.settings-shell li,
+.settings-shell dd,
+.settings-shell dt {
+  font-size: 0.82rem;
+  line-height: 1.65;
+}
+.settings-shell p {
+  color: var(--text-muted);
+}
+.settings-shell a {
+  color: var(--text);
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+.settings-shell input,
+.settings-shell textarea {
+  border-color: var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text);
+}
+.settings-shell input:invalid[aria-invalid='true'] {
+  border-color: var(--error-text);
+}
+.settings-shell button.primary {
+  border-color: #555963;
+  background: #363940;
+  color: var(--text);
+}
+.settings-shell button.primary:hover {
+  background: #444850;
+}
+.settings-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 24px;
+  align-items: center;
+  padding: 8px 0 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.settings-heading {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  min-width: 0;
+}
+.settings-heading h1 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.025em;
+}
+.settings-back {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border: 0;
+  padding: 8px 0;
+  background: transparent;
+  color: var(--text-muted);
+}
+.settings-back:hover {
+  background: transparent;
+  color: var(--text);
+}
+.settings-header-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.settings-header #settings-save-status {
+  grid-column: 1 / -1;
+  text-align: right;
+  font-size: 0.75rem;
+  margin: 0;
+}
+.settings-header #settings-save-status.unsaved {
+  color: var(--text);
+}
+.settings-layout {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 32px;
+  padding-top: 28px;
+}
+.settings-navigation {
+  min-width: 0;
+}
+.settings-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.settings-tabs button {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  min-height: 48px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 12px;
+}
+.settings-tabs button svg {
+  flex-shrink: 0;
+}
+.settings-tabs button:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+.settings-tabs button[aria-selected='true'] {
+  color: var(--text);
+  background: var(--surface-raised);
+  border-color: var(--border-subtle);
+}
+.settings-help {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--text-muted);
+  margin-top: 28px;
+  border: 0;
+  background: transparent;
+  padding: 12px;
+  text-align: left;
+}
+.settings-sections,
+.settings-sections > div,
+.settings-page {
+  min-width: 0;
+}
+.settings-page,
+.settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+.settings-page-heading h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.settings-page-heading p {
+  margin: 8px 0 0;
+}
+.settings-fields {
+  display: grid;
+  gap: 0 16px;
+  min-width: 0;
+}
+.two-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.settings-shell section {
+  max-width: none;
+  border-color: var(--border-subtle);
+}
+.settings-file-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  margin: 8px 0;
+}
+.settings-file-item > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+.settings-shell .device-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  display: block;
+}
+.settings-shell .device-card > .device-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.settings-shell fieldset {
+  min-width: 0;
+  border-color: var(--border-subtle);
+}
+.settings-shell input[type='checkbox'] {
+  accent-color: #aeb4bf;
+}
+.settings-shell .check {
+  min-height: 44px;
+  margin: 0;
+}
+.settings-shell .check input {
+  min-height: 0;
+}
+.settings-shell button.danger {
+  color: var(--error-text);
+}
+.settings-shell .plugin-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+}
+.settings-shell .plugin-list li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border-subtle);
+  overflow-wrap: anywhere;
+}
+.settings-shell .plugin-list li > span {
+  flex: 1;
+  min-width: 180px;
+}
+.settings-shell .plugin-list small {
+  display: block;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+@media (max-width: 800px) {
+  .settings-shell {
+    margin: 0 auto 24px;
+  }
+  .settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    padding-top: 16px;
+  }
+  .settings-navigation {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .settings-tabs {
+    flex-direction: row;
+    gap: 4px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+  .settings-tabs button {
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+  .settings-tabs button svg {
+    display: none;
+  }
+  .settings-help {
+    align-self: flex-start;
+    margin: 0;
+    padding: 6px 0;
+  }
+  .settings-heading {
+    flex-wrap: wrap;
+    gap: 4px 16px;
+  }
+  .settings-header {
+    gap: 8px 12px;
+    padding-bottom: 12px;
+  }
+  .settings-heading h1 {
+    font-size: 1.1rem;
+  }
+  .settings-back {
+    font-size: 0.75rem;
+  }
+  .settings-page-heading h2 {
+    font-size: 1.2rem;
+  }
+}
+@media (max-width: 480px) {
+  .settings-heading {
+    display: block;
+  }
+  .settings-header-actions button {
+    max-width: 160px;
+  }
+  .two-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .settings-shell .settings-fields.two-columns:has(.number-field) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 10px;
+  }
+}
+.settings-shell .settings-card section {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  margin: 20px 0 0;
+}
+.settings-shell .settings-card section > h2 {
+  font-size: 0.95rem;
+}
+.settings-shell dialog {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border-subtle);
+  border-radius: 10px;
+}
+@media (pointer: coarse) {
+  .settings-shell .with-controls button {
+    flex-basis: 44px;
+    min-width: 44px;
+  }
+}
+.settings-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--canvas);
+}
+
+body:has(.settings-shell) dialog {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: none;
+  border: 1px solid var(--border-subtle);
+}
+body:has(.settings-shell) dialog * {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import SettingsCard from './ui/SettingsCard.svelte';
+  import StatusBadge from './ui/StatusBadge.svelte';
   import { onMount } from 'svelte';
   import { useTranslations } from '../../lib/i18n';
   import { request } from '../../lib/api/http';
@@ -45,33 +47,41 @@
   });
 </script>
 
-<section id="settings-runtime" aria-labelledby="runtime-title">
-  <h2 id="runtime-title">{t('ui_runtime')}</h2>
-  {#if status}
-    <p>
-      {t('ui_runtime_status')}: {status.healthy ? t('ui_runtime_ready') : t('ui_runtime_failed')}
-    </p>
-    <p>{t('ui_runtime_commands', { count: status.commands.length })}</p>
-    {#if status.plugins.length}
-      <ul>
-        {#each status.plugins as plugin}<li>
-            {plugin.id}
-            {plugin.version} — {plugin.backend === 'trusted_process'
-              ? t('ui_trusted_native_plugin')
-              : t('ui_sandbox_plugin')}
-            {#if !plugin.id.startsWith('builtin.')}
-              <button
-                onclick={() =>
-                  attempt(() => toggle(plugin.id, status!.disabled_plugins.includes(plugin.id)))}
-                >{status.disabled_plugins.includes(plugin.id)
-                  ? t('ui_enable_plugin')
-                  : t('ui_disable_plugin')}</button
+<div id="settings-runtime" class="settings-page" aria-labelledby="runtime-title">
+  <div class="settings-page-heading"><h2 id="runtime-title">{t('ui_runtime')}</h2></div>
+  <SettingsCard title={t('ui_runtime_status')} icon="grid">
+    {#if status}
+      <p>
+        <StatusBadge
+          label={status.healthy ? t('ui_runtime_ready') : t('ui_runtime_failed')}
+          tone={status.healthy ? 'success' : 'error'}
+        />
+      </p>
+      <p>{t('ui_runtime_commands', { count: status.commands.length })}</p>
+      {#if status.plugins.length}
+        <ul class="plugin-list">
+          {#each status.plugins as plugin}<li>
+              <span
+                ><strong>{plugin.id}</strong><small
+                  >{plugin.version} · {plugin.backend === 'trusted_process'
+                    ? t('ui_trusted_native_plugin')
+                    : t('ui_sandbox_plugin')}</small
+                ></span
               >
-            {/if}
-          </li>{/each}
-      </ul>
-    {:else}<p>{t('ui_runtime_no_plugins')}</p>{/if}
-  {/if}
-  {#if failure}<p role="alert">{failure}</p>{/if}
-  <button disabled={busy} onclick={() => attempt(refresh)}>{t('ui_reload_plugins')}</button>
-</section>
+              {#if !plugin.id.startsWith('builtin.')}
+                <button
+                  onclick={() =>
+                    attempt(() => toggle(plugin.id, status!.disabled_plugins.includes(plugin.id)))}
+                  >{status.disabled_plugins.includes(plugin.id)
+                    ? t('ui_enable_plugin')
+                    : t('ui_disable_plugin')}</button
+                >
+              {/if}
+            </li>{/each}
+        </ul>
+      {:else}<p>{t('ui_runtime_no_plugins')}</p>{/if}
+    {/if}
+    {#if failure}<p role="alert">{failure}</p>{/if}
+    <button disabled={busy} onclick={() => attempt(refresh)}>{t('ui_reload_plugins')}</button>
+  </SettingsCard>
+</div>

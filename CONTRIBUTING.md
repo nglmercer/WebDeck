@@ -32,7 +32,7 @@ The server serves the production frontend from disk. Rebuild the frontend after 
 | Staged button form | `frontend/src/features/editor/button-draft.svelte.ts` |
 | Deck placement, gestures, polling, command feedback | `frontend/src/features/deck/` |
 | Settings and pairing presentation | `frontend/src/features/settings/`, `features/pairing/` |
-| Interface language | `frontend/src/lib/messages.ts`, translations helpers, `webdeck/translations/*.lang` |
+| Interface language | `webdeck/translations/*.json`, `tools/i18n/generate.mjs`, translations helpers |
 | Shared visual tokens | `frontend/src/styles/tokens.css` |
 | Server composition and route policy | `src/server.rs`, `src/server/` |
 | Accepted execution ownership and admission | `src/executor.rs` |

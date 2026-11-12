@@ -24,14 +24,9 @@ describe('translation lookup', () => {
     expect(t('legacy')).toBe('%count% Einträge');
   });
   it('ships every UI key in the English resource with matching placeholders', () => {
-    const lines = readFileSync('../webdeck/translations/en_US.lang', 'utf8').split('\n');
+    const catalog = JSON.parse(readFileSync('../webdeck/translations/en_US.json', 'utf8'));
     const resource = Object.fromEntries(
-      lines
-        .filter((line) => line.startsWith('ui_'))
-        .map((line) => {
-          const separator = line.indexOf('=');
-          return [line.slice(0, separator), line.slice(separator + 1)];
-        }),
+      Object.entries(catalog).filter(([key]) => key.startsWith('ui_')),
     );
     expect(resource).toEqual(messages);
   });

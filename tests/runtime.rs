@@ -509,6 +509,15 @@ fn javascript_scripts_are_isolated_and_nested_calls_keep_the_root_grant() {
     assert_eq!(result, json!({"value":{"data":{"text":"nested"}}}));
     assert_eq!(
         runtime
+            .invoke(
+                &script("await new Promise(resolve => setTimeout(() => resolve('timer'), 1))"),
+                &allowed,
+            )
+            .unwrap(),
+        json!({"value":"timer"})
+    );
+    assert_eq!(
+        runtime
             .invoke(&script("globalThis.leak=42; leak;"), &allowed)
             .unwrap(),
         json!({"value":42})

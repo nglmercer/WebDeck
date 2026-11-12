@@ -54,7 +54,7 @@ test('touch decks retain readable labels, reachable cells and a fixed primary ed
   await page.getByRole('button', { name: 'Folder 1', exact: true }).waitFor();
   const tile = page.locator('[data-cell="0"] > .deck-button');
   const before = await tile.boundingBox();
-  await page.getByRole('button', { name: 'Edit', exact: true }).click();
+  await page.keyboard.press('q');
   expect(await tile.boundingBox()).toEqual(before);
   const dock = page.locator('.editor-toolbar');
   await expect(page.getByRole('button', { name: 'Done', exact: true })).toBeInViewport();

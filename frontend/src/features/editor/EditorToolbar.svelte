@@ -148,7 +148,7 @@
     }
   }}
 />
-<section class="editor-toolbar" aria-label={t('ui_deck_editor')}>
+<section data-tour="editor" class="editor-toolbar" aria-label={t('ui_deck_editor')}>
   <div class="editor-context">
     <Icon name={isFolder ? 'folder' : 'grid'} size={22} />
     <div class="editor-title" class:folder-context={isFolder}>

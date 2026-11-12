@@ -95,6 +95,7 @@ test('theme and image uploads, folder creation and settings round trip', async (
     mimeType: 'text/css',
     buffer: Buffer.from('.deck-grid{--test-theme:loaded}.deck-button{border-top:3px solid rgb(1,2,3)}'),
   });
+  await expect(page.getByRole('button', { name: 'Remove', exact: true })).toHaveCount(1);
   const image = {
     name: 'image.png',
     mimeType: 'image/png',
@@ -104,6 +105,7 @@ test('theme and image uploads, folder creation and settings round trip', async (
     ),
   };
   await page.getByLabel('Upload a background').setInputFiles(image);
+  await expect(page.getByRole('button', { name: 'Remove', exact: true })).toHaveCount(2);
   await page.getByRole('tab', { name: 'Appearance', exact: true }).click();
   await page.getByLabel('Columns', { exact: true }).fill('3');
   await page.getByRole('button', { name: /^Save( changes)?$/, exact: true }).click();
@@ -169,8 +171,7 @@ test('typed realtime correlation, retired routes, revoked sessions and offline c
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
   await page.keyboard.press('Control+,');
   await page.getByRole('tab', { name: 'Devices & Connections', exact: true }).click();
-  await page.getByText('Advanced connection', { exact: true }).click();
-  await page.locator('#settings-connection select').selectOption('socket');
+  await page.locator('#settings-connection input[type=radio][value=socket]').check();
   await expect(page.getByLabel('Realtime connection', { exact: true })).toHaveText('Connected');
   await page.getByRole('button', { name: 'Back to deck' }).click();
   await page.getByRole('button', { name: 'Play / pause', exact: true }).click();
@@ -180,11 +181,9 @@ test('typed realtime correlation, retired routes, revoked sessions and offline c
   await expect(page.getByRole('alert')).toBeVisible();
   for (const width of [360, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
-    const hint = await page.getByRole('note', { name: 'Deck tips' }).boundingBox();
     const alert = await page.getByRole('alert').boundingBox();
-    expect(hint).not.toBeNull();
     expect(alert).not.toBeNull();
-    expect(hint!.y + hint!.height).toBeLessThanOrEqual(alert!.y);
+    expect(alert!.y).toBeGreaterThanOrEqual(0);
   }
   await captureState(page, testInfo, 'offline');
   await page.context().setOffline(false);
@@ -239,7 +238,7 @@ test('live usage returns typed metrics and the UI presents memory and CPU', asyn
   expect(v.usage.memory_total).toBeGreaterThan(0);
   expect(Array.isArray(v.usage.gpus)).toBe(true);
   await page.goto('/');
-  await expect(page.locator('header, aside, footer')).toHaveCount(0);
+  await expect(page.locator('header, aside, footer, .editor-toolbar')).toHaveCount(0);
   const cpu = page.getByRole('button', { name: 'CPU', exact: true });
   await expect(cpu.locator('.metric-value')).toContainText('%');
   await expect(cpu.getByRole('progressbar')).toHaveCount(1);
@@ -308,17 +307,17 @@ test('Q edits fixed cells, F1 shows shortcuts, and removing preserves neighborin
   await expect(page.getByRole('dialog', {name:'Keyboard shortcuts'})).toContainText('Q');
   await page.keyboard.press('Escape');
   await page.keyboard.press('q');
-  await page.getByRole('button', {name:'Remove Settings', exact:true}).click();
+  await page.getByRole('button', {name:'Remove Play / pause', exact:true}).click();
   await expect(page.getByRole('button', {name:'CPU', exact:true}).locator('..')).toHaveAttribute('data-cell', before!);
   await page.keyboard.press('q');
   await page.reload();
   await page.getByRole('button', {name:'CPU', exact:true}).waitFor();
   await expect(page.getByRole('button', {name:'CPU', exact:true}).locator('..')).toHaveAttribute('data-cell', before!);
   await page.keyboard.press('q');
-  await page.getByRole('button', {name:'Add button in cell 2', exact:true}).click();
+  await page.getByRole('button', {name:'Add button in cell 1', exact:true}).click();
   await page.getByLabel('Label', {exact:true}).fill('Replacement');
   await page.getByRole('button', {name:'Apply to draft'}).click();
-  await expect(page.getByRole('button', {name:'Replacement', exact:true}).locator('..')).toHaveAttribute('data-cell','1');
+  await expect(page.getByRole('button', {name:'Replacement', exact:true}).locator('..')).toHaveAttribute('data-cell','0');
 });
 
 test('cancelled placement edits leave the draft and neighboring cells unchanged', async ({ page }) => {
@@ -517,13 +516,16 @@ test('shortcut controls stage typed keys and deletion undo restores a duplicate'
 
   await page.getByRole('tab', { name: 'Action', exact: true }).click();
   await selectCommand(page, 'key');
-  for (let n=1;n<=12;n++) await expect(page.getByRole('button', {name:`F${n}`,exact:true})).toBeVisible();
+  await page.getByRole('button', { name: 'Choose keys', exact: true }).click();
+  const picker = page.getByRole('dialog', { name: 'Choose keys', exact: true });
+  for (let n=1;n<=12;n++) await expect(picker.getByRole('button', { name: new RegExp(`^F${n},`) })).toBeVisible();
+  await picker.getByRole('button', { name: 'Cancel', exact: true }).click();
   await page.getByRole('button', {name:'Record shortcut',exact:true}).click();
   await page.keyboard.press('Control+Shift+F12');
-  await expect(page.getByRole('button', {name:'Remove F12',exact:true})).toBeVisible();
-  await page.getByRole('button', { name: 'Reset to Ctrl+C' }).click();
-  await expect(page.getByRole('button', { name: 'Remove Ctrl', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Remove C', exact: true })).toBeVisible();
+  await expect(page.locator('.shortcut-preview output')).toHaveText('Ctrl + Shift + F12');
+  await page.getByRole('button', { name: 'Record shortcut', exact: true }).click();
+  await page.keyboard.press('Control+c');
+  await expect(page.locator('.shortcut-preview output')).toHaveText('Ctrl + C');
   await page.getByRole('button', {name:'Record shortcut', exact:true}).click();
   await page.keyboard.press('Control+v');
   await expect(page.getByRole('button', {name:'Record shortcut',exact:true})).toHaveAttribute('aria-pressed','false');
@@ -587,7 +589,6 @@ test('long translations and missing keys remain usable at 200 percent browser zo
   await expect.poll(() => page.evaluate(() => innerWidth)).toBe(360);
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.getByRole('button', { name: 'Diese ausführlichen Hinweise habe ich jetzt verstanden' }).click();
   await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Ändern Play / pause', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
@@ -618,13 +619,14 @@ test('long translations and missing keys remain usable at 200 percent browser zo
 test('saving Spanish updates controls and action names while preserving configured button content', async ({ page, request }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Language', exact: true }).selectOption('es_ES');
+  await page.locator('input[type=radio][value=es_ES]').check();
   await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Configuración', exact: true })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'es');
   await page.getByRole('tab', { name: 'Dispositivos y conexiones', exact: true }).click();
-  await page.locator('#settings-devices summary').click();
+  await page.locator('#settings-devices > button').click();
   await expect(page.getByRole('checkbox', { name: 'Ver el panel y las mediciones', exact: true })).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: 'Cerrar', exact: true }).click();
   const snapshot = await (await request.get('/api/v2/config')).json();
   expect(snapshot.config.settings.language).toBe('es_ES');
   await page.getByRole('button', { name: 'Volver al panel', exact: true }).click();
@@ -695,7 +697,7 @@ test('a delayed token copy cannot clear a newer device approval', async ({ page 
     });
   });
   await page.getByRole('tab', { name: 'Devices & Connections', exact: true }).click();
-  await page.locator('#settings-devices summary').click();
+  await page.locator('#settings-devices > button').click();
   await page.getByLabel('Device name', { exact: true }).fill('First approval');
   await page.getByRole('button', { name: 'Approve device', exact: true }).click();
   const token = page.locator('#settings-devices .token');
@@ -703,7 +705,6 @@ test('a delayed token copy cannot clear a newer device approval', async ({ page 
   const first = await token.textContent();
   await page.getByRole('button', { name: 'Copy token', exact: true }).click();
   await expect.poll(() => page.evaluate(() => typeof Reflect.get(window, 'finishTokenCopy'))).toBe('function');
-  await page.getByRole('tab', { name: 'Devices & Connections', exact: true }).click();
   await page.getByLabel('Device name', { exact: true }).fill('Second approval');
   await page.getByRole('button', { name: 'Approve device', exact: true }).click();
   await expect(token).not.toHaveText(first!);
@@ -1083,9 +1084,10 @@ test('device loading failures stay distinct from an empty list and support retry
   await pending;
   await page.getByRole('tab', { name: 'Devices & Connections', exact: true }).click();
   const devices = page.locator('#settings-devices');
-  await devices.locator('summary').click();
+  await devices.getByRole('button', { name: 'Use a pairing token instead', exact: true }).click();
   await expect(devices.getByRole('button', { name: 'Approve device' })).toBeDisabled();
   await expect(devices.getByRole('button', { name: 'Approve device' })).toHaveAccessibleDescription('Enter a device name and select at least one permission to approve it.');
+  await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
   await expect(devices.getByRole('status')).toHaveText('Loading devices…');
   await expect(devices.getByText('No devices paired yet.', { exact: true })).toHaveCount(0);
   release();
@@ -1308,20 +1310,16 @@ test('running commands explain the disabled tile and never repeat the request', 
   } finally { release(); }
 });
 
-test('dismissed first-use tips stay dismissed after reload without adding deck chrome', async ({ page, request }) => {
+test('normal deck has no permanent chrome or hints after reload', async ({ page, request }) => {
   const original = await (await request.get('/api/v2/config')).json();
   await page.goto('/');
-  const hint = page.getByRole('note', { name: 'Deck tips', exact: true });
-  await expect(hint).toBeVisible();
-  await hint.getByRole('button', { name: 'Got it', exact: true }).click();
-  await expect(hint).toHaveCount(0);
+  await expect(page.locator('.deck-grid')).toBeVisible();
+  await expect(page.locator('header, aside, footer, .editor-toolbar, [role="note"]')).toHaveCount(0);
   await page.reload();
   await expect(page.getByRole('button', { name: 'Play / pause', exact: true })).toBeVisible();
-  await expect(hint).toHaveCount(0);
-  await expect(page.locator('header, aside, footer')).toHaveCount(0);
+  await expect(page.locator('.editor-toolbar')).toHaveCount(0);
   expect(await (await request.get('/api/v2/config')).json()).toEqual(original);
 });
-
 
 test('grid button creation stages a free cell and categories show readable labels', async ({ page, request }) => {
   const original = await (await request.get('/api/v2/config')).json();
@@ -1455,11 +1453,10 @@ test('mobile settings navigation reaches its sections and keeps transport in adv
   await navigation.getByRole('tab', { name: 'Backups', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Backups', exact: true })).toBeInViewport();
   await navigation.getByRole('tab', { name: 'Devices & Connections', exact: true }).click();
-  await page.getByText('Advanced connection', { exact: true }).click();
-  await page.getByText('Advanced connection', { exact: true }).scrollIntoViewIfNeeded();
-  await expect(page.getByText('Advanced connection', { exact: true })).toBeInViewport();
-  await expect(page.locator('#settings-connection').getByRole('combobox', { name: 'Connection', exact: true })).toBeVisible();
-  await expect(page.locator('#settings-appearance').getByRole('combobox', { name: 'Connection', exact: true })).toHaveCount(0);
+  await page.getByText('Phone access', { exact: true }).scrollIntoViewIfNeeded();
+  await expect(page.getByText('Phone access', { exact: true })).toBeInViewport();
+  await expect(page.locator('#settings-connection').getByRole('group', { name: 'Connection', exact: true })).toBeVisible();
+  await expect(page.locator('#settings-appearance').getByRole('group', { name: 'Connection', exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
@@ -1470,7 +1467,7 @@ test('pending device revocation explains its disabled state and becomes visibly 
   await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
   await page.keyboard.press('Control+,');
   await page.getByRole('tab', { name: 'Devices & Connections', exact: true }).click();
-  const row = page.locator('#settings-devices .row').filter({ hasText: 'Revoke description' });
+  const row = page.locator('#settings-devices .device-card').filter({ hasText: 'Revoke description' });
   const revoke = row.getByRole('button', { name: 'Revoke', exact: true });
   let release!: () => void;
   const held = new Promise<void>(resolve => { release = resolve; });
@@ -1523,7 +1520,7 @@ test('touch settings controls expose usable targets including checkbox labels an
       const rect = element.getBoundingClientRect();
       return rect.width > 0 && rect.height > 0;
     }).map(element => {
-      const target = element instanceof HTMLInputElement && element.type === 'checkbox' ? element.closest('label') ?? element : element;
+      const target = element instanceof HTMLInputElement && ['checkbox', 'radio', 'file'].includes(element.type) ? element.closest('label') ?? element : element;
       const rect = target.getBoundingClientRect();
       return { label: target.textContent?.trim() || element.getAttribute('aria-label') || element.tagName, width: rect.width, height: rect.height };
     })));
@@ -1548,7 +1545,7 @@ test('touch action fields keep full-size controls across specialized and generic
       await selectCommand(page, type);
       if (type === 'debug') await dialog.getByRole('button', { name: 'Add field', exact: true }).click();
       const small = await dialog.evaluate(root => Array.from(root.querySelectorAll('button,input,select,textarea')).filter(element => {
-        const target = element instanceof HTMLInputElement && element.type === 'checkbox' ? element.closest('label') ?? element : element;
+        const target = element instanceof HTMLInputElement && ['checkbox', 'radio', 'file'].includes(element.type) ? element.closest('label') ?? element : element;
         const rect = target.getBoundingClientRect();
         return rect.width > 0 && rect.height > 0 && (rect.width < 44 || rect.height < 44);
       }).map(element => ({ tag: element.tagName, label: element.getAttribute('aria-label') || element.closest('label')?.textContent?.trim(), height: element.getBoundingClientRect().height })));
@@ -1564,10 +1561,10 @@ test('runtime settings inspect embedded packages and reload without losing confi
   await page.keyboard.press('Control+,');
   await page.getByRole('tab', { name: 'Runtime and plugins', exact: true }).click();
   const runtime=page.locator('#settings-runtime');
-  await expect(runtime.getByText('Runtime status: Ready')).toBeVisible();
+  await expect(runtime.getByText('Ready', { exact: true })).toBeVisible();
   await expect(runtime.getByText(/builtin.obs/)).toBeVisible();
   await runtime.getByRole('button',{name:'Reload plugins',exact:true}).click();
-  await expect(runtime.getByText('Runtime status: Ready')).toBeVisible();
+  await expect(runtime.getByText('Ready', { exact: true })).toBeVisible();
   const config=await (await request.get('/api/v2/config')).json();
   expect(config.config.layout.folders[0].label).toBe('Home');
 });
@@ -1734,7 +1731,7 @@ test('compact toolbar follows folder context and stages on-demand rename without
   await expect(page.locator('.deck-grid')).not.toHaveClass(/editing/);
   const saved = await (await request.get('/api/v2/config')).json();
   expect(saved.config.layout.folders.find((folder: { id: string }) => folder.id === 'work').label).toBe('Studio');
-  await page.getByRole('button', { name: 'Edit', exact: true }).click();
+  await page.keyboard.press('q');
   for (const width of [1440, 768, 360]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(toolbar.getByRole('button', { name: 'Done', exact: true })).toBeInViewport();
@@ -1757,13 +1754,13 @@ test('local phone settings apply immediately and refresh QR without leaving sett
   await page.goto('/');
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('tab', { name: 'Devices & Connections', exact: true }).click();
-  await page.getByText('Advanced connection', { exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Phone access', exact: true })).toBeVisible();
   await page.getByLabel('Allow phones on my local network').check();
   await page.getByRole('button', { name: 'Use detected address', exact: true }).click();
   await expect(page.getByLabel('Computer network address')).toHaveValue(detected.suggested_address);
-  await page.getByLabel('Phone connection port').fill('59995');
+  await page.getByLabel('Phone connection port', { exact: true }).fill('59995');
   await page.getByRole('button', { name: 'Apply phone access', exact: true }).click();
+  await page.getByRole('button', { name: 'Show QR code', exact: true }).click();
   const qr = page.getByAltText('QR code to open the deck on your phone');
   await expect(qr).toBeVisible();
   await expect(page.getByRole('link', { name: `http://${detected.suggested_address}:59995/` })).toBeVisible();
@@ -1771,15 +1768,14 @@ test('local phone settings apply immediately and refresh QR without leaving sett
   await page.setViewportSize({ width: 360, height: 900 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: 'test-results/phone-settings-360.png', fullPage: true });
-  await page.getByRole('button', { name: 'Refresh address and QR', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Show QR code', exact: true }).getByRole('button', { name: 'Refresh address and QR', exact: true }).click();
   await expect(qr).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
   await page.getByRole('tab', { name: 'Devices & Connections', exact: true }).click();
-  await page.getByText('Advanced connection', { exact: true }).click();
   await expect(page.getByLabel('Allow phones on my local network')).toBeChecked();
   await page.getByLabel('Allow phones on my local network').uncheck();
   await page.getByRole('button', { name: 'Apply phone access', exact: true }).click();
   await expect(qr).toHaveCount(0);
-  await expect(page.getByText('Phone access is off. Only this computer can use the deck.').last()).toBeVisible();
+  await expect(page.getByText('Local access disabled').last()).toBeVisible();
 });

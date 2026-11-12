@@ -1,4 +1,8 @@
 <script lang="ts">
+  import Icon from '../../components/Icon.svelte';
+  import Modal from '../../components/Modal.svelte';
+  import ChoiceField from './ui/ChoiceField.svelte';
+  import StatusBadge from './ui/StatusBadge.svelte';
   import { capabilityNames } from '../../lib/capability-labels';
   import { useTranslations } from '../../lib/i18n';
   const t = useTranslations();
@@ -17,6 +21,7 @@
   let presence = $state<DevicePresenceList | null>(null),
     profiles = $state<Profiles | null>(null),
     selected = $state<Device | null>(null);
+  let tokenDialog = $state(false);
   let newName = $state(''),
     newCapabilities = $state<Capability[]>([]),
     newTtl = $state(2592000);
@@ -152,94 +157,197 @@
 </script>
 
 <section id="settings-devices">
-  <h2>{t('ui_paired_devices')}</h2>
-  {#if loading}<p role="status">{t('ui_loading_devices')}</p>{:else if loadError}<p role="alert">
+  <div class="devices-heading">
+    <h3>{t('ui_paired_devices')}</h3>
+    <span>{devices.filter((device) => !device.revoked).length}</span>
+  </div>
+  {#if loading && !devices.length}<p role="status">
+      {t('ui_loading_devices')}
+    </p>{:else if loadError}<p role="alert">
       {t(loadError)}
     </p>
     <button onclick={getDevices}>{t('ui_retry')}</button>{:else if !devices.length}<p>
       {t('ui_no_devices_paired_yet')}
     </p>{/if}
   {#if selected}
-    <fieldset disabled={working}>
-      <legend>{t('ui_manage_device')}</legend>
-      <label>{t('ui_device_name')}<input bind:value={newName} maxlength="128" /></label>
-      <PermissionProfiles
-        bind:selected={newCapabilities}
-        recommended={profiles?.recommended ?? ['read']}
-      />
-      <label
-        >{t('ui_trust_duration')}<select bind:value={newTtl}
-          ><option value={900}>{t('ui_current_session')}</option><option value={2592000}
-            >{t('ui_30_days')}</option
-          ><option value={315360000}>{t('ui_until_revoked')}</option></select
-        ></label
-      >
-      <button
-        disabled={!newName.trim() || !newCapabilities.length}
-        onclick={() => attempt(saveDevice)}>{t('ui_save_changes')}</button
-      >
-      <button onclick={() => (selected = null)}>{t('ui_cancel')}</button>
-    </fieldset>
-  {/if}
-  {#each devices as device}<div class="row">
-      <div>
-        <strong>{device.name}</strong> ·
-        <span id={`device-state-${device.id}`}
-          >{device.revoked
-            ? t('ui_revoked')
-            : revoking[device.id]
-              ? t('ui_revoking_device')
-              : presence?.devices.find((p) => p.device.id === device.id)?.online
-                ? t('ui_connected')
-                : t('ui_offline')}</span
+    <Modal label={t('ui_manage_device')} width="640px" close={() => (selected = null)}>
+      <p>
+        {selected.capabilities
+          .map((capability) => t(capabilityNames[capability] ?? capability))
+          .join(', ')}
+      </p>
+      {#if presence?.devices.find((item) => item.device.id === selected?.id)?.last_seen}<p>
+          {t('ui_last_seen')}: {new Date(
+            presence.devices.find((item) => item.device.id === selected?.id)!.last_seen * 1000,
+          ).toLocaleString()}
+        </p>{/if}
+      <fieldset disabled={working}>
+        <legend>{t('ui_manage_device')}</legend>
+        <label>{t('ui_device_name')}<input bind:value={newName} maxlength="128" /></label>
+        <PermissionProfiles
+          bind:selected={newCapabilities}
+          recommended={profiles?.recommended ?? ['read']}
+        />
+        <ChoiceField
+          label={t('ui_trust_duration')}
+          value={newTtl}
+          options={[
+            { value: 900, label: t('ui_current_session') },
+            { value: 2592000, label: t('ui_30_days') },
+            { value: 315360000, label: t('ui_until_revoked') },
+          ]}
+          onchange={(value) => (newTtl = value)}
+        />
+        <button
+          disabled={!newName.trim() || !newCapabilities.length}
+          onclick={() => attempt(saveDevice)}>{t('ui_save_changes')}</button
         >
-        <p>{t('ui_permission_profile')}: {t(profileName(device))}</p>
-        <p class="device-details">
+        <button onclick={() => (selected = null)}>{t('ui_cancel')}</button>
+      </fieldset>
+    </Modal>
+  {/if}
+  {#each devices as device}<article class="device-card">
+      <div class="device-identity">
+        <div class="device-title">
+          <Icon name="devices" size={20} /><strong>{device.name}</strong>
+          <span id={`device-state-${device.id}`}
+            ><StatusBadge
+              label={device.revoked
+                ? t('ui_revoked')
+                : revoking[device.id]
+                  ? t('ui_revoking_device')
+                  : presence?.devices.find((p) => p.device.id === device.id)?.online
+                    ? t('ui_connected')
+                    : t('ui_offline')}
+              tone={device.revoked
+                ? 'neutral'
+                : presence?.devices.find((p) => p.device.id === device.id)?.online
+                  ? 'success'
+                  : 'neutral'}
+            /></span
+          >
+        </div>
+        <p class="device-profile">{t(profileName(device))}</p>
+        <p class="device-expiry">
           {t('ui_device_expiry', {
             expiry:
               device.expires_at === 9007199254740991
                 ? t('ui_until_revoked')
-                : new Date(device.expires_at * 1000).toLocaleString(document.documentElement.lang),
-          })} · {device.capabilities
-            .map((capability) => t(capabilityNames[capability] ?? capability))
-            .join(', ')}
+                : new Date(device.expires_at * 1000).toLocaleDateString(
+                    document.documentElement.lang,
+                    { dateStyle: 'medium' },
+                  ),
+          })}
         </p>
-        {#if presence?.devices.find((p) => p.device.id === device.id)?.last_seen}<p>
-            {t('ui_last_seen')}: {new Date(
-              presence!.devices.find((p) => p.device.id === device.id)!.last_seen * 1000,
-            ).toLocaleString()}
-          </p>{/if}
       </div>
-      <button disabled={device.revoked} onclick={() => edit(device)}>{t('ui_manage_device')}</button
-      >
-      <button
-        aria-describedby={`device-state-${device.id}`}
-        disabled={device.revoked || revoking[device.id]}
-        onclick={() => attempt(() => revokeDevice(device.id))}>{t('ui_revoke')}</button
-      >
-    </div>{/each}
-  <details>
-    <summary>{t('ui_use_pairing_token')}</summary>
-    <label>{t('ui_device_name')}<input bind:value={deviceName} maxlength="128" /></label>
-    <PermissionProfiles
-      bind:selected={grantCapabilities}
-      recommended={profiles?.recommended ?? ['read']}
-    />
-    <p id="device-approval-help">{t('ui_device_approval_help')}</p>
-    <button
-      aria-describedby="device-approval-help"
-      disabled={working || !deviceName.trim() || !grantCapabilities.length}
-      onclick={() => attempt(addDevice)}>{t('ui_approve_device')}</button
+      <div class="device-actions">
+        <button disabled={device.revoked} onclick={() => edit(device)}
+          >{t('ui_manage_device')}</button
+        >
+        <button
+          aria-describedby={`device-state-${device.id}`}
+          disabled={device.revoked || revoking[device.id]}
+          onclick={() => attempt(() => revokeDevice(device.id))}>{t('ui_revoke')}</button
+        >
+      </div>
+    </article>{/each}
+  <button class="manual-token" onclick={() => (tokenDialog = true)}
+    >{t('ui_use_pairing_token')}</button
+  >
+  {#if tokenDialog}<Modal
+      label={t('ui_use_pairing_token')}
+      width="640px"
+      close={() => {
+        tokenDialog = false;
+        grant = null;
+      }}
     >
-    {#if grant}<p>{t('ui_copy_this_token_now_it_will_not_be_shown_again')}</p>
-      <code class="token">{grant.token}</code><button onclick={() => attempt(copyToken)}
-        >{t('ui_copy_token')}</button
-      ><button onclick={() => (grant = null)}>{t('ui_hide_token')}</button>{/if}
-    {#if copied}<p role="status">{t('ui_token_copied_keep_it_somewhere_safe')}</p>{/if}
-  </details>
+      <div class="heading">
+        <h3>{t('ui_use_pairing_token')}</h3>
+        <button
+          onclick={() => {
+            tokenDialog = false;
+            grant = null;
+          }}>{t('ui_close')}</button
+        >
+      </div>
+      <label>{t('ui_device_name')}<input bind:value={deviceName} maxlength="128" /></label>
+      <PermissionProfiles
+        bind:selected={grantCapabilities}
+        recommended={profiles?.recommended ?? ['read']}
+      />
+      <p id="device-approval-help">{t('ui_device_approval_help')}</p>
+      <button
+        aria-describedby="device-approval-help"
+        disabled={working || !deviceName.trim() || !grantCapabilities.length}
+        onclick={() => attempt(addDevice)}>{t('ui_approve_device')}</button
+      >
+      {#if grant}<p>{t('ui_copy_this_token_now_it_will_not_be_shown_again')}</p>
+        <code class="token">{grant.token}</code><button onclick={() => attempt(copyToken)}
+          >{t('ui_copy_token')}</button
+        ><button onclick={() => (grant = null)}>{t('ui_hide_token')}</button>{/if}
+      {#if copied}<p role="status">{t('ui_token_copied_keep_it_somewhere_safe')}</p>{/if}
+    </Modal>{/if}
 </section>
 
 <style>
+  #settings-devices {
+    min-width: 0;
+    margin: 0;
+    padding: 20px;
+  }
+  .devices-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .devices-heading h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0;
+  }
+  .devices-heading > span {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+  }
+  #settings-devices .device-card {
+    padding: 14px 0;
+    border: 0;
+    border-top: 1px solid var(--border-subtle);
+    border-radius: 0;
+    margin: 0;
+  }
+  .device-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .device-title strong {
+    flex: 1;
+    font-size: 0.85rem;
+    overflow-wrap: anywhere;
+  }
+  .device-profile {
+    margin: 10px 0 4px;
+  }
+  .device-expiry {
+    font-size: 0.75rem;
+    margin: 0;
+  }
+  .manual-token {
+    margin-top: 16px;
+    background: transparent;
+    color: var(--text-muted);
+  }
+  @media (max-width: 600px) {
+    #settings-devices {
+      padding: 16px;
+    }
+  }
+
   .token {
     display: block;
     overflow-wrap: anywhere;

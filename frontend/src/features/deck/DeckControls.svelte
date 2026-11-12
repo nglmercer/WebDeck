@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
   import Icon from '../../components/Icon.svelte';
   import { useTranslations } from '../../lib/i18n';
   const t = useTranslations();
@@ -12,6 +13,10 @@
     home,
     settings,
     reload,
+    learn,
+    edit,
+    connect,
+    children,
   }: {
     interactions: DeckInteractions;
     canEdit: boolean;
@@ -19,6 +24,10 @@
     home: () => void;
     settings: () => void;
     reload: () => void;
+    learn: () => void;
+    edit: () => void;
+    connect: () => void;
+    children?: Snippet;
   } = $props();
 </script>
 
@@ -75,14 +84,22 @@
         }}><Icon name="back" />{t('ui_back')}</button
       >
       <button onclick={home}><Icon name="home" />{t('ui_home')}</button>
-      {#if canEdit}<button onclick={settings}><Icon name="settings" />{t('ui_settings')}</button
-        >{/if}
+      {#if canEdit}<button
+          onclick={() => {
+            interactions.controls = false;
+            edit();
+          }}><Icon name="edit" />{t('ui_edit')}</button
+        >
+        <button onclick={connect}><Icon name="devices" />{t('ui_connect_device')}</button>
+        <button onclick={settings}><Icon name="settings" />{t('ui_settings')}</button>{/if}
       <button
         onclick={() => {
           interactions.controls = false;
           reload();
         }}><Icon name="refresh" />{t('ui_reload')}</button
       >
+      {@render children?.()}
+      <button onclick={learn}><Icon name="grid" />{t('ui_learn')}</button>
       <p>
         {t(
           canEdit
@@ -98,6 +115,8 @@
       hidden={!interactions.help}
     >
       <h2>{t('ui_shortcuts')}</h2>
+      {@render children?.()}
+      <button onclick={learn}>{t('ui_learn')}</button>
       {#if canEdit}<p>{t('ui_q_toggle_edit_mode_saves_changes_when_leaving')}</p>
         <p>{t('ui_ctrl_settings')}</p>{/if}
       <p>{t('ui_f1_show_or_hide_shortcuts')}</p>

@@ -6,12 +6,27 @@
     close,
     children,
     width = '340px',
-  }: { label: string; close: () => void; children: Snippet; width?: string } = $props();
+    nonModal = false,
+  }: {
+    label: string;
+    close: () => void;
+    children: Snippet;
+    width?: string;
+    nonModal?: boolean;
+  } = $props();
 </script>
 
 <dialog
-  use:modal
+  use:modal={{ modal: !nonModal }}
   class="deck-menu"
+  class:non-modal={nonModal}
+  onkeydown={(event) => {
+    if (nonModal && event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+    }
+  }}
   style:--modal-width={width}
   aria-label={label}
   oncancel={(event) => {
@@ -23,6 +38,9 @@
 </dialog>
 
 <style>
+  .non-modal {
+    z-index: 24;
+  }
   .deck-menu {
     position: fixed;
     inset: 0;

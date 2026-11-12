@@ -193,3 +193,40 @@ it('cannot delete the root deck even when other folders exist', () => {
   expect(editor.dirty).toBe(false);
   expect(editor.canUndoDeletion).toBe(false);
 });
+
+it('protects Settings from deletion while other buttons remain removable', () => {
+  const editor = new Editor(snapshot());
+  const folder = editor.draft.layout.folders[0]!;
+  const settings = folder.buttons.find((button) => button.action.type === 'settings')!;
+  const ordinary = folder.buttons.find((button) => button.action.type !== 'settings')!;
+  const before = clone(editor.draft);
+  editor.removeButton(settings.id);
+  expect(editor.draft).toEqual(before);
+  expect(editor.dirty).toBe(false);
+  editor.removeButton(ordinary.id);
+  expect(folder.buttons.some((button) => button.id === ordinary.id)).toBe(false);
+  expect(folder.buttons.some((button) => button.id === settings.id)).toBe(true);
+});
+
+it('does not allow changing Settings into a removable action', () => {
+  const editor = new Editor(snapshot());
+  const folder = editor.draft.layout.folders[0]!;
+  const button = clone(folder.buttons.find((button) => button.action.type === 'settings')!);
+  button.action = { type: 'none' };
+  expect(() => editor.applyButton(button, folder.id, folder.id)).toThrow('Settings');
+  expect(editor.dirty).toBe(false);
+});
+
+it('moves Settings home when deleting its containing folder', () => {
+  const editor = new Editor(snapshot());
+  const root = editor.draft.layout.folders[0]!;
+  const settings = clone(root.buttons.find((button) => button.action.type === 'settings')!);
+  const child = editor.createFolder(root.id);
+  editor.applyButton(settings, child.id, root.id);
+  editor.removeFolder(child.id);
+  expect(editor.draft.layout.folders.some((folder) => folder.id === child.id)).toBe(false);
+  expect(
+    editor.draft.layout.folders[0]!.buttons.find((button) => button.id === settings.id)?.action
+      .type,
+  ).toBe('settings');
+});

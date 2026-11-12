@@ -35,14 +35,14 @@ Returning devices restore their saved access on the same browser origin.
 Controllers invoke button references; the server resolves and authorizes each
 request, including nested actions and plugin permissions.
 
-The host view shows the button grid and Connect Device. Usage readings live in buttons, folders
-open as pages, and settings/edit shortcuts can be removed like any other button.
+The host view uses the viewport for the button grid. Usage readings live in buttons and folders
+open as pages. Settings is protected; other shortcuts can be removed.
 Right-click or hold the deck for controls, `Q` to edit, or `Ctrl+,` for settings.
 
 ## Phone access and hot reload
 
 1. Open WebDeck on your computer.
-2. Click **Connect Device**.
+2. Open **Settings → Devices & Connections → Connect Device** (also available from the deck controls).
 3. Scan the QR with your phone or tablet.
 4. Compare the code and approve your phone on the computer.
 5. Start controlling your deck.
@@ -67,8 +67,9 @@ boundary; it must never make forwarded clients appear local. See
 
 ### Advanced network configuration
 
-Expand **Advanced connection** for a specific address/port, listener disable,
-manual token pairing, and HTTP/realtime transport selection. Check that the
+**Devices & Connections** groups phone access, address/port, paired devices and
+HTTP/realtime transport. QR codes, manual token pairing and troubleshooting open
+in separate dialogs. Check that the
 computer and phone use the same network, allow the TCP port in the host firewall,
 and disable router client isolation if needed. VPN and virtual interfaces are
 ranked after ordinary network interfaces; choose an override when appropriate.
@@ -170,9 +171,19 @@ See [implementation and validation status](docs/v2/STATUS.md) for platform gaps 
 
 The v2 deck adapts its visual orientation to portrait screens without rewriting saved cell positions. Q opens a fixed editing dock: tiles and labels keep their coordinates. Button settings are organized into Content, Appearance and Action tabs; host settings and the controls dialog also support keyboard-accessible tabs. Built-in icons use `icon:folder`, `icon:settings`, `icon:play`, and other SVG names available in the button icon picker. Uploaded `asset:` images remain supported.
 
-The frontend JavaScript budget is 300 KB uncompressed / 91 KB gzip. This includes the inline SVG icon library, icon chooser and accessible tab panels; the demo no longer requires raster files for its built-in icons.
+The frontend JavaScript budget is 385 KB uncompressed / 112 KB gzip. This includes the inline SVG icon library, icon chooser, accessible tab panels, workspace and practice controls, and the on-demand Driver.js tour chunk; the demo no longer requires raster files for its built-in icons.
 
 Start with [the v2 quickstart](docs/quickstart-v2.md). Preliminary native installers and remaining hardware checks are described in [release preparation](docs/v2/preliminary-release.md).
+
+## Guided learning
+
+Right-click or touch and hold the deck, then choose **Learn WebDeck** to take the Driver.js tour or open an
+interactive practice deck. The tour adapts to editing permissions and supports
+Next, Previous, Escape, and replay. The practice scenes, microphone, and recording
+controls only change browser state; they never send commands or save deck changes.
+Normal use shows only the deck and its configured background. Editing, settings,
+and device connections are available from the controls menu; the editing toolbar
+appears only after entering edit mode.
 
 ## Documentation guide
 
@@ -181,6 +192,7 @@ Start with [the v2 quickstart](docs/quickstart-v2.md). Preliminary native instal
 - [Automation](docs/automation.md): generate buttons from recipes and use plugin actions.
 - [Build and release](docs/build-release.md): build and package the application.
 - [Contributing](CONTRIBUTING.md): development workflow and validation.
+- [Translations](docs/i18n.md): JSON catalogs and the generated TypeScript fallback.
 - [v2 documentation](docs/v2/README.md): architecture, migration and implementation status.
 
 ### Keyboard shortcuts and OBS projects

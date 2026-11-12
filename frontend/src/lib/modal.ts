@@ -1,9 +1,10 @@
 /** Native modal semantics plus deterministic Tab cycling and focus restoration. */
-export function modal(dialog: HTMLDialogElement) {
+export function modal(dialog: HTMLDialogElement, options: { modal?: boolean } = {}) {
   const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  dialog.showModal();
+  if (options.modal === false) dialog.show();
+  else dialog.showModal();
   const keydown = (event: KeyboardEvent) => {
-    if (event.key !== 'Tab') return;
+    if (options.modal === false || event.key !== 'Tab') return;
     const targets = [
       ...dialog.querySelectorAll<HTMLElement>(
         'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary, [tabindex]',

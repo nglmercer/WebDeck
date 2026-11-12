@@ -8,4 +8,4 @@ The default directory is `.config`, overridable by `--config-dir` or `WEBDECK_CO
 
 Settings exports canonical backups and imports them into a draft; saving still requires the loaded revision. Older documents are rejected without automatic conversion, including documents with the old `front` layout. Archive them before starting with an empty directory. Do not change their version marker to bypass validation.
 
-Translations remain `.lang` files under `webdeck/translations`. Themes, backgrounds and button images are uploaded assets referenced by IDs in the canonical layout.
+Translations use flat UTF-8 `.json` catalogs under `webdeck/translations`. Themes, backgrounds and button images are uploaded assets referenced by IDs in the canonical layout.

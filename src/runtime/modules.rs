@@ -1,6 +1,9 @@
 use napi_vm::{Interpreter, Value};
 
 pub(super) fn install(vm: &mut Interpreter) {
+    // Core no longer installs scheduling globals. Opt in to guest timers only;
+    // filesystem, networking and process access still use our authorized bridge.
+    napi_vm::runtime::install_timers(&mut vm.global.borrow_mut());
     vm.global
         .borrow_mut()
         .set("__webdeckLog", Value::host_function("log.metadata", 7));

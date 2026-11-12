@@ -84,7 +84,7 @@ fn main() {
     source.push_str("_ => None,\n }\n}\n");
     let languages: Vec<_> = files(&root.join("webdeck/translations"))
         .into_iter()
-        .filter(|path| path.extension().is_some_and(|ext| ext == "lang"))
+        .filter(|path| path.extension().is_some_and(|ext| ext == "json"))
         .map(|path| path.file_stem().unwrap().to_str().unwrap().to_owned())
         .collect();
     source.push_str(&format!(

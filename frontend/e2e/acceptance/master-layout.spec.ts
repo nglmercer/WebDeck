@@ -10,7 +10,6 @@ test('master demo preserves cells, icons and folder history at desktop and mobil
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
-  await page.getByRole('button', { name: 'Got it', exact: true }).click();
   await expect(page.locator('.deck-cell')).toHaveCount(32);
   await expect(page.locator('[data-cell="24"] button')).toHaveAccessibleName('Settings');
   for (const width of [360, 768, 1440]) {
@@ -54,7 +53,6 @@ test('a failed boot offers recovery instead of an empty screen', async ({ page }
 test('Q preserves tile geometry and orientation changes never mutate the saved layout', async ({ page, request }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Got it', exact: true }).click();
   const tile = page.locator('[data-cell="0"] > .deck-button');
   const before = await tile.boundingBox();
   await page.keyboard.press('q');

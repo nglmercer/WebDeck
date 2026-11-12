@@ -7,41 +7,55 @@
       "category": "media"
     },
     "play": {
-      "path": "M8 5l12 7-12 7z",
+      "path": "M8 5.8a.8.8 0 0 1 1.2-.7l10 6.2a.8.8 0 0 1 0 1.4l-10 6.2a.8.8 0 0 1-1.2-.7Z",
       "category": "media"
     },
     "settings": {
-      "path": "M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1zM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8",
-      "category": "system"
+      "path": "M19.48 8.90L19.92 10.32L22.27 10.37L22.27 13.63L19.92 13.68L19.48 15.10L18.79 16.41L20.41 18.11L18.11 20.41L16.41 18.79L15.10 19.48L13.68 19.92L13.63 22.27L10.37 22.27L10.32 19.92L8.90 19.48L7.59 18.79L5.89 20.41L3.59 18.11L5.21 16.41L4.52 15.10L4.08 13.68L1.73 13.63L1.73 10.37L4.08 10.32L4.52 8.90L5.21 7.59L3.59 5.89L5.89 3.59L7.59 5.21L8.90 4.52L10.32 4.08L10.37 1.73L13.63 1.73L13.68 4.08L15.10 4.52L16.41 5.21L18.11 3.59L20.41 5.89L18.79 7.59ZM8 12a4 4 0 1 0 8 0 4 4 0 0 0-8 0Z",
+      "category": "system",
+      "fill": "currentColor",
+      "stroke": "none"
     },
     "folder": {
-      "path": "M3 7V5h6l2 2h10v13H3z",
-      "stroke": "#e7a500",
+      "path": "M3 8V5.5A1.5 1.5 0 0 1 4.5 4H9l2 2h8.5A1.5 1.5 0 0 1 21 7.5V9Z",
+      "stroke": "none",
       "fill": "#ffbf00",
-      "category": "folders"
+      "category": "folders",
+      "paths": [
+        {
+          "path": "M3 7h18a1 1 0 0 1 1 1l-1.3 11a1.5 1.5 0 0 1-1.5 1.3H4.8A1.5 1.5 0 0 1 3.3 19L2 8a1 1 0 0 1 1-1Z",
+          "fill": "#ffbf00",
+          "stroke": "none"
+        },
+        {
+          "path": "M4.5 8.5h15",
+          "stroke": "#ffdc66",
+          "fill": "none"
+        }
+      ]
     },
     "fullscreen": {
-      "path": "M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5",
+      "path": "M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 1-2 2h-3",
       "category": "devices"
     },
     "refresh": {
-      "path": "M20 7v5h-5M20 12a8 8 0 1 0-2 6",
+      "path": "M20.5 7v5h-5M20 12a8 8 0 1 0-2.3 5.7M20.5 12 16 7.5",
       "category": "system"
     },
     "cpu": {
-      "path": "M7 7h10v10H7zM9 2v5m6-5v5M9 17v5m6-5v5M2 9h5m-5 6h5m10-6h5m-5 6h5",
+      "path": "M8 5h8a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3ZM9 9h6v6H9ZM9 2v3m6-3v3M9 19v3m6-3v3M2 9h3m-3 6h3m14-6h3m-3 6h3",
       "category": "devices"
     },
     "memory": {
-      "path": "M3 7h18v10H3zM6 10v4m4-4v4m4-4v4m4-4v4M6 17v3m4-3v3m4-3v3m4-3v3",
+      "path": "M3 6h18v11H3ZM6 9h4v5H6Zm8 0h4v5h-4ZM6 17v3m4-3v3m4-3v3m4-3v3",
       "category": "devices"
     },
     "grid": {
-      "path": "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z",
+      "path": "M4 3h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm11 0h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1ZM4 14h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1Zm11 0h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1Z",
       "category": "ui"
     },
     "monitor": {
-      "path": "M3 3h18v14H3zM8 21h8m-4-4v4",
+      "path": "M4 3h16a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2ZM8 22h8m-4-4v4",
       "category": "devices"
     },
     "plus": {
@@ -49,11 +63,11 @@
       "category": "system"
     },
     "edit": {
-      "path": "M15 4l5 5M4 16L16 4l4 4L8 20H4z",
+      "path": "m15.5 4.5 4 4M4 16 16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1Z",
       "category": "system"
     },
     "trash": {
-      "path": "M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7",
+      "path": "M3 6h18M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M5 6l1 14a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1l1-14M10 10v7m4-7v7",
       "category": "system"
     },
     "close": {
@@ -65,11 +79,11 @@
       "category": "folders"
     },
     "home": {
-      "path": "M3 10l9-7 9 7M5 9v12h5v-7h4v7h5V9",
+      "path": "m3 10 9-7 9 7M5 9v11a1 1 0 0 0 1 1h4v-7h4v7h4a1 1 0 0 0 1-1V9",
       "category": "folders"
     },
     "image": {
-      "path": "M3 3h18v18H3zM3 16l6-6 5 5 3-3 4 4M15 7h.01",
+      "path": "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm-2 13 5-5 5 5 3-3 5 5M14 7a1 1 0 1 0 2 0 1 1 0 0 0-2 0",
       "category": "media"
     },
     "music": {
@@ -89,7 +103,7 @@
       "category": "media"
     },
     "camera": {
-      "path": "M3 7h4l2-3h6l2 3h4v14H3zM8 13a4 4 0 1 0 8 0 4 4 0 0 0-8",
+      "path": "M3 7h4l2-3h6l2 3h4a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Zm5 6a4 4 0 1 0 8 0 4 4 0 0 0-8 0",
       "category": "media"
     },
     "layers": {
@@ -101,7 +115,7 @@
       "category": "system"
     },
     "more": {
-      "path": "M5 11h.01v2H5zM12 11h.01v2H12zM19 11h.01v2H19z",
+      "path": "M4 12a1 1 0 1 0 2 0 1 1 0 0 0-2 0m7 0a1 1 0 1 0 2 0 1 1 0 0 0-2 0m7 0a1 1 0 1 0 2 0 1 1 0 0 0-2 0",
       "category": "system"
     },
     "bug": {
@@ -247,6 +261,10 @@
     "circle-off": {
       "path": "M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0M6 6l12 12",
       "category": "ui"
+    },
+    "devices": {
+      "path": "M4 3h11a2 2 0 0 1 2 2v7M8 18H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2ZM5 21h4m-2-3v3M14 9h6a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1Zm2 9h2",
+      "category": "devices"
     }
   },
   "aliases": {

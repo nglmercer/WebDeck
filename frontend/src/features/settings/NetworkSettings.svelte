@@ -1,4 +1,9 @@
 <script lang="ts">
+  import Modal from '../../components/Modal.svelte';
+  import Icon from '../../components/Icon.svelte';
+  import StatusBadge from './ui/StatusBadge.svelte';
+  import NumberField from '../../components/NumberField.svelte';
+  import SwitchField from './ui/SwitchField.svelte';
   import { onMount, onDestroy } from 'svelte';
   import { useTranslations } from '../../lib/i18n';
   import { request } from '../../lib/api/client';
@@ -8,6 +13,8 @@
   let { attempt }: { attempt: (work: () => Promise<void>) => Promise<void> } = $props();
   let settings = $state<NetworkSettings>({ enabled: false, address: '', port: 5000 });
   let status = $state<NetworkStatus | null>(null);
+  let validPort = $state(true);
+  let qrOpen = $state(false);
   let loading = $state(true),
     working = $state(false),
     error = $state(''),
@@ -19,13 +26,17 @@
     generation++;
     if (qr) URL.revokeObjectURL(qr);
   });
-  async function display(value: NetworkStatus) {
-    const current = ++generation;
-    status = value;
-    settings = { ...value.settings };
+  function closeQr() {
+    qrOpen = false;
+    generation++;
     if (qr) URL.revokeObjectURL(qr);
     qr = '';
-    if (!value.settings.enabled) return;
+  }
+  async function loadQr() {
+    const current = ++generation;
+    if (qr) URL.revokeObjectURL(qr);
+    qr = '';
+    if (!status?.settings.enabled) return;
     const response = await fetch('/api/v2/network/qr', {
       headers: credentials(),
       cache: 'no-store',
@@ -34,6 +45,18 @@
     const blob = await response.blob();
     if (destroyed || current !== generation) return;
     qr = URL.createObjectURL(blob);
+  }
+  async function display(value: NetworkStatus) {
+    generation++;
+    status = value;
+    settings = { ...value.settings };
+    if (qr) URL.revokeObjectURL(qr);
+    qr = '';
+    if (!value.settings.enabled) {
+      qrOpen = false;
+      return;
+    }
+    if (qrOpen) await loadQr();
   }
   async function load() {
     loading = true;
@@ -48,6 +71,7 @@
     }
   }
   async function apply() {
+    if (!validPort) return;
     working = true;
     try {
       const value = await request<NetworkStatus>('network', 'NetworkStatus', {
@@ -64,71 +88,186 @@
   });
 </script>
 
-<section>
-  <h2>{t('ui_phone_access')}</h2>
-  <p>{t('ui_phone_access_help')}</p>
+<section class="network-card">
+  <header class="network-heading">
+    <h3>{t('ui_phone_access')}</h3>
+    <button aria-label={t('ui_refresh_connection')} disabled={loading || working} onclick={load}
+      ><Icon name="refresh" size={18} /></button
+    >
+  </header>
   {#if loading}<p role="status">{t('ui_loading_connection_status')}</p>
   {:else if error}<p role="alert">{error}</p>
     <button onclick={load}>{t('ui_retry')}</button>
   {:else}
     <fieldset disabled={working}>
-      <label class="check"
-        ><input type="checkbox" bind:checked={settings.enabled} />{t(
-          'ui_enable_phone_access',
-        )}</label
-      >
-      <label
-        >{t('ui_computer_address')}<input
-          bind:value={settings.address}
-          placeholder={status?.suggested_address}
-        /></label
-      >
-      <button
-        disabled={!status?.suggested_address}
-        onclick={() => {
-          if (status) settings.address = status.suggested_address;
-        }}>{t('ui_use_detected_address')}</button
-      >
-      <label
-        >{t('ui_phone_port')}<input
-          type="number"
-          min="1"
-          max="65535"
-          bind:value={settings.port}
-        /></label
-      >
-      <button class="primary" onclick={() => attempt(apply)}
-        >{working ? t('ui_applying') : t('ui_apply_phone_access')}</button
-      >
-      <button onclick={load}>{t('ui_refresh_connection')}</button>
+      <SwitchField
+        label={t('ui_enable_phone_access')}
+        checked={settings.enabled}
+        onchange={(value) => (settings.enabled = value)}
+      />
+      <div class="network-fields">
+        <label
+          >{t('ui_computer_address')}<input
+            bind:value={settings.address}
+            placeholder={status?.suggested_address}
+          /></label
+        >
+        <NumberField
+          controls
+          onvalidity={(valid) => (validPort = valid)}
+          label={t('ui_phone_port')}
+          value={settings.port}
+          min={1}
+          max={65535}
+          onchange={(value) => (settings.port = value)}
+        />
+      </div>
+      <div class="network-actions">
+        <button class="primary" disabled={!validPort} onclick={() => attempt(apply)}
+          >{working ? t('ui_applying') : t('ui_apply_phone_access')}</button
+        >
+        <button
+          disabled={!status?.suggested_address}
+          onclick={() => {
+            if (status) settings.address = status.suggested_address;
+          }}>{t('ui_use_detected_address')}</button
+        >
+      </div>
     </fieldset>
-    <p>{t('ui_phone_applies_immediately')}</p>
-    {#if status?.settings.enabled}
-      <p role="status">{t('ui_phone_access_enabled')}</p>
-      <a href={status.url} target="_blank" rel="noreferrer">{status.url}</a>
-      {#if qr}<img src={qr} alt={t('ui_phone_qr_alt')} width="290" height="290" />{/if}
+    <p class="apply-help">{t('ui_network_apply_note')}</p>
+    <div class="network-footer">
+      <span role="status"
+        ><StatusBadge
+          label={t(status?.settings.enabled ? 'ui_network_ready' : 'ui_network_off')}
+          tone={status?.settings.enabled ? 'success' : 'neutral'}
+        /></span
+      >
+      {#if status?.settings.enabled}<button
+          onclick={() =>
+            attempt(async () => {
+              qrOpen = true;
+              await loadQr();
+            })}><Icon name="grid" size={16} />{t('ui_show_qr')}</button
+        >{/if}
+    </div>
+  {/if}
+  {#if qrOpen && status?.settings.enabled}<Modal
+      nonModal
+      label={t('ui_show_qr')}
+      width="440px"
+      close={closeQr}
+    >
+      <div class="heading">
+        <h2>{t('ui_show_qr')}</h2>
+        <button onclick={closeQr}>{t('ui_close')}</button>
+      </div>
+      <div class="network-qr">
+        {#if qr}<img src={qr} alt={t('ui_phone_qr_alt')} width="240" height="240" />{:else}<p
+            role="status"
+          >
+            {t('ui_loading_connection_status')}
+          </p>{/if}
+        <a href={status.url} target="_blank" rel="noreferrer">{status.url}</a>
+      </div>
       <ol>
         <li>{t('ui_phone_pair_step')}</li>
         <li>{t('ui_phone_scan_step')}</li>
         <li>{t('ui_phone_token_step')}</li>
       </ol>
-      <p>{t('ui_phone_troubleshooting')}</p>
-    {:else}<p role="status">{t('ui_phone_access_disabled')}</p>{/if}
-  {/if}
+      <button onclick={load}>{t('ui_refresh_connection')}</button>
+    </Modal>{/if}
 </section>
 
 <style>
+  .network-card {
+    margin: 0;
+    padding: 20px;
+    min-width: 0;
+  }
+  .network-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .network-heading h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+  .network-heading > button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    background: transparent;
+    border: 0;
+  }
   fieldset {
     border: 0;
     padding: 0;
+    margin: 0;
   }
-  img {
+  .network-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(136px, 1fr);
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 14px;
+  }
+  .network-fields label {
+    margin-bottom: 0;
+  }
+  .network-actions,
+  .network-footer {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .network-footer {
+    justify-content: space-between;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-subtle);
+  }
+  .network-footer button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .apply-help {
+    font-size: 0.75rem;
+    margin: 12px 0 16px;
+  }
+  .heading {
+    margin: 0;
+  }
+  .heading h2 {
+    margin: 0;
+  }
+  .network-qr {
+    text-align: center;
+  }
+  .network-qr img {
     display: block;
     max-width: 100%;
     height: auto;
-    margin: 16px 0;
+    margin: 16px auto;
   }
   a {
     overflow-wrap: anywhere;
+    font-size: 0.8rem;
+  }
+  @media (max-width: 600px) {
+    .network-card {
+      padding: 16px;
+    }
+    .network-fields {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+    }
+    .network-actions {
+      margin-top: 16px;
+    }
   }
 </style>

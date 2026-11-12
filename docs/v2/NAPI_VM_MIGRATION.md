@@ -2,8 +2,11 @@
 
 Implementation branch: `codex/v2-napi-vm`. Baseline: `a005d6244a050f62afe5b08e212a6dd39270c5e3`.
 The runtime and trusted plugin SDK/host are pinned to napi-vm revision
-`881cc8f1cec262049b6d31fa499b0d601ba673c5`. The VM dependency disables its Node
+`29d7c77c7645c85d3c91911814831e36d919550f`. The VM dependency disables its Node
 binding/default features. WebDeck requires no Node, Bun or npm at runtime.
+The upstream core/runtime split requires explicitly enabling the `runtime` feature
+and installing guest timers in each interpreter. WebDeck selects only timer globals;
+host filesystem, network, process and environment APIs remain behind its own bridge.
 
 ## Ownership
 

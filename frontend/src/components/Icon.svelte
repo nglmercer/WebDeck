@@ -11,14 +11,19 @@
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
-    stroke-width="1.8"
+    stroke-width="1.75"
     stroke-linecap="round"
     stroke-linejoin="round"
     aria-hidden="true"
     focusable="false"
   >
     {#if icon.background}<circle cx="12" cy="12" r="11" fill={icon.background} stroke="none" />{/if}
-    <path d={icon.path} stroke={icon.stroke} fill={icon.fill ?? 'none'} />
+    <path d={icon.path} stroke={icon.stroke} fill={icon.fill ?? 'none'} fill-rule="evenodd" />
+    {#each icon.paths ?? [] as layer}<path
+        d={layer.path}
+        stroke={layer.stroke ?? 'currentColor'}
+        fill={layer.fill ?? 'none'}
+      />{/each}
   </svg>
 {:else}
   <span aria-hidden="true" style:font-size={`${size}px`}

@@ -1,30 +1,42 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { spawnSync } from 'node:child_process';
 const root = path.resolve(import.meta.dirname, '../..');
 const require = createRequire(path.join(root, 'frontend/package.json'));
 const { parse } = require('svelte/compiler');
 const errors = [];
-const messageSource = fs.readFileSync(path.join(root, 'frontend/src/lib/messages.ts'), 'utf8');
-const messageAst = parse(`<script lang="ts">${messageSource}</script>`, { modern: true });
-let object = messageAst.instance.content.body.find((node) => node.declaration?.type === 'VariableDeclaration').declaration.declarations[0].init;
-while (object.expression) object = object.expression;
-const messages = new Map(object.properties.map((property) => [property.key.name ?? property.key.value, property.value.value]));
-const placeholders = (text) => [...text.matchAll(/\{([a-zA-Z0-9_]+)\}|%([a-zA-Z0-9_]+)%/g)].map((match) => match[1] ?? match[2]).sort().join(',');
-for (const file of fs.readdirSync(path.join(root, 'webdeck/translations')).filter((file) => file.endsWith('.lang'))) {
+const directory = path.join(root, 'webdeck/translations');
+const readCatalog = (file) => {
+  const source = fs.readFileSync(path.join(directory, file), 'utf8');
+  const catalog = JSON.parse(source);
+  if (!catalog || typeof catalog !== 'object' || Array.isArray(catalog) || Object.values(catalog).some(value => typeof value !== 'string')) throw Error(`${file}: expected a flat string dictionary`);
   const seen = new Set();
-  for (const line of fs.readFileSync(path.join(root, 'webdeck/translations', file), 'utf8').split(/\r?\n/)) {
-    if (!line.startsWith('ui_')) continue;
-    const separator = line.indexOf('=');
-    const key = line.slice(0, separator).trim(), value = line.slice(separator + 1).trim();
-    if (!messages.has(key)) errors.push(`${file}: unknown UI key ${key}`);
-    if (seen.has(key)) errors.push(`${file}: duplicate UI key ${key}`);
+  // The catalogs are flat JSON objects. Tokenize complete strings, including escapes,
+  // so quotes inside a translated value cannot be mistaken for a property name.
+  for (const token of source.matchAll(/"(?:[^"\\]|\\.)*"/g)) {
+    if (!source.slice(token.index + token[0].length).trimStart().startsWith(':')) continue;
+    const key = JSON.parse(token[0]);
+    if (seen.has(key)) errors.push(`${file}: duplicate key ${key}`);
     seen.add(key);
-    if (!value || placeholders(value) !== placeholders(messages.get(key) ?? '')) errors.push(`${file}: missing/changed placeholders in ${key}`);
-    if (file === 'en_US.lang' && value !== messages.get(key)) errors.push(`${file}: English copy differs for ${key}`);
   }
-  if (file === 'en_US.lang') for (const key of messages.keys()) if (!seen.has(key)) errors.push(`${file}: missing ${key}`);
+  return catalog;
+};
+const english = readCatalog('en_US.json');
+const messages = new Map(Object.entries(english).filter(([key]) => key.startsWith('ui_')));
+const placeholders = (text) => [...text.matchAll(/\{([a-zA-Z0-9_]+)\}|%([a-zA-Z0-9_]+)%/g)].map((match) => match[1] ?? match[2]).sort().join(',');
+for (const file of fs.readdirSync(directory).filter((file) => file.endsWith('.json'))) {
+  try {
+    const catalog = readCatalog(file);
+    for (const [key, value] of Object.entries(catalog)) {
+      if (!key.startsWith('ui_')) continue;
+      if (!messages.has(key)) errors.push(`${file}: unknown UI key ${key}`);
+      if (!value || placeholders(value) !== placeholders(messages.get(key) ?? '')) errors.push(`${file}: missing/changed placeholders in ${key}`);
+    }
+  } catch (error) { errors.push(String(error)); }
 }
+const generated = spawnSync(process.execPath, [path.join(root, 'tools/i18n/generate.mjs'), '--check'], { encoding: 'utf8' });
+if (generated.status !== 0) errors.push(generated.stderr.trim() || 'Generated English fallback is stale');
 function walk(node, file) {
   if (!node || typeof node !== 'object') return;
   if (node.type === 'Text') {

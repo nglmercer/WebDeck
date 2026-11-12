@@ -4,3 +4,5 @@ import './styles/tokens.css';
 import './styles/base.css';
 import './features/deck/deck.css';
 mount(App, { target: document.getElementById('app')! });
+
+import './styles/learn.css';

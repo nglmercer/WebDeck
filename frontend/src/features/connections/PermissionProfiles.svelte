@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ChoiceField from '../settings/ui/ChoiceField.svelte';
   import { useTranslations } from '../../lib/i18n';
   import { capabilityNames } from '../../lib/capability-labels';
   import type { Capability } from '../../lib/contracts';
@@ -26,17 +27,17 @@
   }
 </script>
 
-<label
-  >{t('ui_permission_profile')}<select
-    value={profile}
-    onchange={(e) => choose(e.currentTarget.value)}
-  >
-    <option value="view">{t('ui_profile_view')}</option>
-    <option value="deck">{t('ui_profile_deck')}</option>
-    <option value="full">{t('ui_profile_full')}</option>
-    <option value="custom">{t('ui_profile_custom')}</option>
-  </select></label
->
+<ChoiceField
+  label={t('ui_permission_profile')}
+  value={profile}
+  options={[
+    { value: 'view', label: t('ui_profile_view') },
+    { value: 'deck', label: t('ui_profile_deck') },
+    { value: 'full', label: t('ui_profile_full') },
+    { value: 'custom', label: t('ui_profile_custom') },
+  ]}
+  onchange={choose}
+/>
 {#if profile === 'full'}<p>{t('ui_full_controller_help')}</p>{/if}
 {#if profile === 'custom'}<fieldset>
     <legend>{t('ui_permissions')}</legend>
