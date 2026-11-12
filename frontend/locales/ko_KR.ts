@@ -1,6 +1,7 @@
 import type { CompleteLocale } from './schema';
 
 export default {
+  desktop: { running: 'WebDeck 실행 중' },
   meta: {
     nativeName: '한국어',
     englishName: 'Korean',

@@ -1,4 +1,5 @@
 export default {
+  desktop: { running: 'WebDeck is running' },
   meta: {
     nativeName: 'English',
     englishName: 'English',

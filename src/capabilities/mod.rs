@@ -90,6 +90,7 @@ impl Platform {
         let mut command = Process::new("sh");
         #[cfg(not(windows))]
         command.args(["-c", source]);
+        suppress_console(&mut command);
         let status = ManagedChild::spawn(command)?.wait(timeout)?;
         if status.success() {
             Ok(json!({"exit_code":status.code()}))

@@ -1,0 +1,49 @@
+{
+  "scope": "Windows background tray, native menu and settings/tutorial deep links",
+  "before": {
+    "js_bytes": 903562,
+    "gzip_bytes": 283830,
+    "source": "device-connection.json; frontend unchanged at 6e5393b"
+  },
+  "after": {
+    "js_bytes": 904126,
+    "gzip_bytes": 284044
+  },
+  "chunks": [
+    {
+      "name": "Learn-CmhAzkJK.js",
+      "bytes": 29788,
+      "gzip_bytes": 6010
+    },
+    {
+      "name": "driver.js-XlMiXr6O.js",
+      "bytes": 19932,
+      "gzip_bytes": 5836
+    },
+    {
+      "name": "editor-D4nQLMVm.js",
+      "bytes": 409497,
+      "gzip_bytes": 139639
+    },
+    {
+      "name": "index-CWmvfNPF.js",
+      "bytes": 439505,
+      "gzip_bytes": 130405
+    },
+    {
+      "name": "runner-UuiV7pqr.js",
+      "bytes": 5404,
+      "gzip_bytes": 2154
+    }
+  ],
+  "dependencies_added": [],
+  "validation": {
+    "frontend_unit_tests": 109,
+    "catalogue_tests": 4,
+    "browser_tests": 6,
+    "tray_tests": 2,
+    "windows_binary_header_check": "Added to native Windows CI; GUI behavior is not exercised on Linux.",
+    "process_ownership_tests": 11,
+    "windows_cross_check": "cargo check --locked --target x86_64-pc-windows-gnu --bin webdeck --bin webdeck-qr"
+  }
+}

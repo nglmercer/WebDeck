@@ -293,7 +293,10 @@ jobs:
           cargo test --locked --test runtime trusted_process_fixture -- --ignored
 
       - name: Build real Windows host
-        run: cargo build --locked --timings --bin webdeck
+        run: cargo build --locked --timings --bin webdeck --bin webdeck-qr --bin webdeckctl
+
+      - name: Verify Windows GUI and console subsystems
+        run: node tools/validation/windows-subsystem.ts
 
       - name: Install Playwright Chromium
         working-directory: frontend

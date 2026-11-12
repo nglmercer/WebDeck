@@ -1,6 +1,7 @@
 import type { CompleteLocale } from './schema';
 
 export default {
+  desktop: { running: 'WebDeck запущен' },
   meta: {
     nativeName: 'Русский',
     englishName: 'Russian',

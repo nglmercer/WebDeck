@@ -5,6 +5,10 @@ export class Navigation {
   constructor(
     private layout: () => Layout | undefined,
     private canEdit: () => boolean,
+    private settingsLinks: {
+      section: (section: string) => void;
+      tutorials: () => void;
+    } = { section: () => {}, tutorials: () => {} },
   ) {}
   get root() {
     return this.layout()?.folders[0]?.id ?? 'home';
@@ -13,13 +17,24 @@ export class Navigation {
     if (!this.layout()?.folders.some((item) => item.id === folder)) return;
     this.active = folder;
     this.panel = 'deck';
-    const hash = `#folder=${encodeURIComponent(folder)}`;
-    if (replace) history.replaceState(null, '', hash);
-    else history.pushState(null, '', hash);
+    this.write(`#folder=${encodeURIComponent(folder)}`, replace);
   }
   route() {
-    if (location.hash === '#settings' && this.canEdit()) {
+    const query = new URLSearchParams(location.search);
+    if (
+      (location.hash === '#settings' || (!location.hash && query.get('view') === 'settings')) &&
+      this.canEdit()
+    ) {
       this.panel = 'settings';
+      if (!location.hash) {
+        const section = query.get('section') ?? 'appearance';
+        this.settingsLinks.section(
+          ['appearance', 'integrations', 'devices', 'backups', 'runtime'].includes(section)
+            ? section
+            : 'appearance',
+        );
+        if (section === 'tutorials') this.settingsLinks.tutorials();
+      }
       return;
     }
     this.panel = 'deck';
@@ -37,6 +52,14 @@ export class Navigation {
   settings() {
     if (!this.canEdit()) return;
     this.panel = 'settings';
-    history.pushState(null, '', '#settings');
+    this.write('#settings');
+  }
+  private write(hash: string, replace = false) {
+    const url = new URL(location.href);
+    url.searchParams.delete('view');
+    url.searchParams.delete('section');
+    url.hash = hash;
+    if (replace) history.replaceState(null, '', url);
+    else history.pushState(null, '', url);
   }
 }

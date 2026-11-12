@@ -102,6 +102,10 @@
   const navigation: Navigation = new Navigation(
     () => layout,
     () => !!session.editor,
+    {
+      section: (section) => (settingsTab = section),
+      tutorials: () => void openLearning(),
+    },
   );
   const interactions = new DeckInteractions({
     enabled: () => !!session.deck && navigation.panel === 'deck',

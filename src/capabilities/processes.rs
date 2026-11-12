@@ -3,6 +3,17 @@ mod launcher;
 mod owner;
 pub(super) use owner::{ManagedChild, ProcessOwner};
 
+/// Internal helpers run in the background without opening a Windows terminal.
+pub(super) fn suppress_console(command: &mut Process) {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(::windows::Win32::System::Threading::CREATE_NO_WINDOW.0);
+    }
+    #[cfg(not(windows))]
+    let _ = command;
+}
+
 pub(super) fn stop(c: &mut Child) {
     #[cfg(unix)]
     unsafe {
@@ -10,10 +21,10 @@ pub(super) fn stop(c: &mut Child) {
     }
     #[cfg(windows)]
     {
-        if let Ok(mut cleanup) = Process::new("taskkill")
-            .args(["/PID", &c.id().to_string(), "/T", "/F"])
-            .spawn()
-        {
+        let mut command = Process::new("taskkill");
+        command.args(["/PID", &c.id().to_string(), "/T", "/F"]);
+        suppress_console(&mut command);
+        if let Ok(mut cleanup) = command.spawn() {
             let deadline = Instant::now() + Duration::from_secs(2);
             loop {
                 match cleanup.try_wait() {
@@ -43,6 +54,7 @@ pub fn open(s: &str) -> Result<()> {
     let mut command = Process::new("xdg-open");
     #[cfg(not(windows))]
     command.arg(s);
+    suppress_console(&mut command);
     launcher::launch(command)?;
     Ok(())
 }
@@ -59,6 +71,7 @@ pub(super) fn run_at(deadline: Instant, program: &str, args: &[&str]) -> Result<
 pub(super) fn run_timeout(program: &str, args: &[&str], timeout: Duration) -> Result<Value> {
     let mut command = Process::new(program);
     command.args(args);
+    suppress_console(&mut command);
     let status = ManagedChild::spawn(command)?.wait(timeout)?;
     if status.success() {
         Ok(json!({}))

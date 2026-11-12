@@ -14,6 +14,8 @@
 //! the displayed frame, `QUIT` closes the window. A null/closed stdin
 //! simply yields no frames.
 
+#![cfg_attr(windows, windows_subsystem = "windows")]
+
 use std::io::BufRead;
 use std::path::PathBuf;
 use std::sync::mpsc;
@@ -86,17 +88,17 @@ fn main() {
     let (w, h) = match qr::parse_size(&args.size) {
         Some(size) => size,
         None => {
-            eprintln!(
+            webdeck::desktop::report_error(&format!(
                 "webdeck-qr: invalid --size {:?}, want WxH like 310x360",
                 args.size
-            );
+            ));
             std::process::exit(2);
         }
     };
     let mut gray = match load_gray(&args) {
         Ok(img) => img,
         Err(e) => {
-            eprintln!("webdeck-qr: {e}");
+            webdeck::desktop::report_error(&format!("webdeck-qr: {e}"));
             std::process::exit(1);
         }
     };
@@ -113,7 +115,7 @@ fn main() {
     ) {
         Ok(window) => window,
         Err(e) => {
-            eprintln!("webdeck-qr: cannot open window: {e}");
+            webdeck::desktop::report_error(&format!("webdeck-qr: cannot open window: {e}"));
             std::process::exit(1);
         }
     };

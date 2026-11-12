@@ -1,6 +1,7 @@
 import type { CompleteLocale } from './schema';
 
 export default {
+  desktop: { running: 'WebDeck est en cours d’exécution' },
   meta: {
     nativeName: 'Français',
     englishName: 'French',

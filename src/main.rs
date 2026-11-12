@@ -1,3 +1,5 @@
+#![cfg_attr(windows, windows_subsystem = "windows")]
+
 use clap::Parser;
 use std::{net::SocketAddr, path::PathBuf, sync::Arc};
 use webdeck::{
@@ -36,7 +38,7 @@ struct Args {
 #[tokio::main]
 async fn main() {
     if let Err(e) = start().await {
-        eprintln!("WebDeck: {e}");
+        webdeck::desktop::report_error(&e.to_string());
         std::process::exit(1);
     }
 }
@@ -155,10 +157,16 @@ async fn start() -> Result<()> {
         let handle = tokio::runtime::Handle::current();
         let tray_config = app.config.clone();
         std::thread::spawn(move || {
-            if let Err(e) =
-                webdeck::desktop::run(url, qr_url, phone_network, handle, notify, tray_config)
-            {
-                eprintln!("Tray: {e}");
+            if let Err(e) = webdeck::desktop::run(
+                url,
+                qr_url,
+                phone_network,
+                handle,
+                notify.clone(),
+                tray_config,
+            ) {
+                webdeck::desktop::report_error(&format!("Tray: {e}"));
+                notify.notify_one();
             }
         });
     }
