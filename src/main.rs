@@ -153,8 +153,11 @@ async fn start() -> Result<()> {
         let notify = shutdown.clone();
         let phone_network = network.clone();
         let handle = tokio::runtime::Handle::current();
+        let tray_config = app.config.clone();
         std::thread::spawn(move || {
-            if let Err(e) = webdeck::desktop::run(url, qr_url, phone_network, handle, notify) {
+            if let Err(e) =
+                webdeck::desktop::run(url, qr_url, phone_network, handle, notify, tray_config)
+            {
                 eprintln!("Tray: {e}");
             }
         });

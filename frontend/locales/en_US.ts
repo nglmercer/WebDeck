@@ -210,6 +210,7 @@ export default {
     closeTour: 'Close tour',
   },
   common: {
+    openWebDeck: 'Open WebDeck',
     on: 'On',
     off: 'Off',
     select: 'Select',
@@ -1146,6 +1147,13 @@ export default {
     variable: 'Variable',
   },
   errors: {
+    commandDisconnected: 'Connection lost; execution outcome is unknown. No retry was sent.',
+    realtimeOffline: 'Realtime connection is offline',
+    resultTimeout: 'Result timed out; execution outcome is unknown. No retry was sent.',
+    invalidResponse: 'The server returned an invalid response. Reload and try again.',
+    settingsActionProtected: 'The Settings button must keep its settings action.',
+    rootProtected: 'The root deck cannot be deleted',
+
     invalidJson: 'Enter valid JSON, for example true, 42, "text", or {"key": "value"}.',
     commandTimeout: 'Request timed out; execution outcome is unknown. No retry was sent.',
     requestTimeout: 'Request timed out. Try again.',

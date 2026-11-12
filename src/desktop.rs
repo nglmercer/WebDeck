@@ -35,6 +35,7 @@ pub fn run(
     network: Arc<crate::network::Network>,
     runtime: tokio::runtime::Handle,
     shutdown: Arc<tokio::sync::Notify>,
+    config: Arc<crate::storage::ConfigStore>,
 ) -> Result<()> {
     use tao::{
         event::{Event, StartCause},
@@ -66,15 +67,26 @@ pub fn run(
         let _ = proxy.send_event(TrayEvent::Icon(e));
     }));
     let menu = Menu::new();
-    let deck = MenuItem::new("Open WebDeck", true, None);
-    let settings = MenuItem::new("Settings", true, None);
-    let qr = MenuItem::new("Show QR code", true, None);
-    let quit = MenuItem::new("Quit", true, None);
+    let mut language = config.language();
+    let labels = menu_labels(&language)?;
+    let deck = MenuItem::new(&labels[0], true, None);
+    let settings = MenuItem::new(&labels[1], true, None);
+    let qr = MenuItem::new(&labels[2], true, None);
+    let quit = MenuItem::new(&labels[3], true, None);
     menu.append_items(&[&deck, &settings, &qr, &quit])
         .map_err(|_| Error::execution())?;
     let icon = load_tray_icon()?;
     let mut tray = None;
     events.run_return(move |event, _, flow| {
+        let selected = config.language();
+        if selected != language {
+            if let Ok(labels) = menu_labels(&selected) {
+                for (item, label) in [&deck, &settings, &qr, &quit].iter().zip(labels) {
+                    item.set_text(label);
+                }
+                language = selected;
+            }
+        }
         *flow = ControlFlow::Wait;
         match event {
             Event::NewEvents(StartCause::Init) => {
@@ -134,4 +146,43 @@ pub fn run(
     MenuEvent::set_event_handler(None::<fn(MenuEvent)>);
     TrayIconEvent::set_event_handler(None::<fn(TrayIconEvent)>);
     Ok(())
+}
+
+fn menu_labels(language: &str) -> Result<[String; 4]> {
+    let catalog = crate::server::translations::dictionary(language)?;
+    let mut labels = Vec::new();
+    for key in [
+        "common.openWebDeck",
+        "common.settings",
+        "connections.showQr",
+        "commands.exit",
+    ] {
+        labels.push(catalog.get(key).cloned().ok_or_else(Error::execution)?);
+    }
+    labels.try_into().map_err(|_| Error::execution())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn tray_labels_share_the_selected_web_dictionary_in_every_language() {
+        for (locale, settings) in [
+            ("en_US", "Settings"),
+            ("es_ES", "Configuración"),
+            ("de_DE", "Einstellungen"),
+            ("fr_FR", "Paramètres"),
+            ("ko_KR", "설정"),
+            ("pl_PL", "Ustawienia"),
+            ("ru_RU", "Настройки"),
+        ] {
+            let labels = menu_labels(locale).unwrap();
+            assert!(labels[0].contains("WebDeck"));
+            assert_eq!(labels[1], settings);
+            let dictionary = crate::server::translations::dictionary(locale).unwrap();
+            assert_eq!(labels[2], dictionary["connections.showQr"]);
+            assert_eq!(labels[3], dictionary["commands.exit"]);
+        }
+        assert_eq!(menu_labels("zz_ZZ").unwrap(), menu_labels("en_US").unwrap());
+    }
 }

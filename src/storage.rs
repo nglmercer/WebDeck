@@ -147,6 +147,16 @@ impl ConfigStore {
         self.reload(&mut s)?;
         Ok(s.snapshot.clone())
     }
+    pub fn language(&self) -> String {
+        self.state
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .snapshot
+            .config
+            .settings
+            .language
+            .clone()
+    }
     pub fn last_valid(&self) -> ConfigResponse {
         self.state
             .lock()

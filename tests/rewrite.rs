@@ -1489,7 +1489,7 @@ async fn json_translation_catalogs_merge_locale_values_and_preserve_english_fall
         .all(|key| key.contains('.')));
     assert_eq!(
         dictionary["translations"]["connections.networkApplyNote"],
-        "Network changes apply immediately."
+        "Los cambios de red se aplican inmediatamente."
     );
     assert!(dictionary["languages"]
         .as_array()

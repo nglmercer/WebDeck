@@ -19,7 +19,8 @@
     "check:budget": "node ../tools/validation/performance-budget.mjs",
     "demo:capture": "node ../tools/demo/capture.mjs",
     "test:devices": "playwright test --config devices.config.ts",
-    "i18n:generate": "node ../tools/i18n/generate.mjs"
+    "i18n:generate": "node ../tools/i18n/generate.mjs",
+    "i18n:audit": "node ../tools/i18n/audit.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

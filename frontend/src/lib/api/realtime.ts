@@ -42,7 +42,7 @@ export function disconnect() {
   reportConnection(false);
   for (const p of pending.values()) {
     clearTimeout(p.timer);
-    p.reject(new Error('Connection lost; execution outcome is unknown. No retry was sent.'));
+    p.reject(new Error('errors.commandDisconnected'));
   }
   pending.clear();
 }
@@ -93,7 +93,7 @@ export function connect() {
     reportConnection(false);
     for (const p of pending.values()) {
       clearTimeout(p.timer);
-      p.reject(new Error('Connection lost; execution outcome is unknown. No retry was sent.'));
+      p.reject(new Error('errors.commandDisconnected'));
     }
     pending.clear();
   });
@@ -109,11 +109,11 @@ export async function execute(
   if (transport === 'http')
     return request('commands', 'CommandEvent', { method: 'POST', body: JSON.stringify(body) });
   connect();
-  if (!socket?.connected) throw new Error('Realtime connection is offline');
+  if (!socket?.connected) throw new Error('errors.realtimeOffline');
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       pending.delete(request_id);
-      reject(new Error('Result timed out; execution outcome is unknown. No retry was sent.'));
+      reject(new Error('errors.resultTimeout'));
     }, 35000);
     pending.set(request_id, { resolve, reject, timer });
     socket?.volatile.emit('command', body);

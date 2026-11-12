@@ -28,7 +28,8 @@ function inspectObjects(node, file) {
 }
 for (const file of fs.readdirSync(localeDirectory).filter((file) => file.endsWith('.ts'))) {
   // Only the AST parser's copy is escaped; authored message values stay unchanged.
-  const script = fs.readFileSync(path.join(localeDirectory, file), 'utf8')
+  const script = fs
+    .readFileSync(path.join(localeDirectory, file), 'utf8')
     .replace(/<\/script/gi, (tag) => tag.replace('/', '\\/'));
   inspectObjects(
     parse(`<script lang="ts">${script}</script>`, { modern: true }).instance.content,
@@ -42,8 +43,27 @@ const generated = spawnSync(
 );
 if (generated.status !== 0)
   errors.push(generated.stderr.trim() || 'Generated JSON catalogues are stale');
+function inspectVisibleExpression(node, file) {
+  if (!node) return;
+  if (node.type === 'Literal' && typeof node.value === 'string') {
+    if (/[a-zA-Z]/.test(node.value) && !['JavaScript', 'JSON', 'Shell'].includes(node.value))
+      errors.push(`${file}: untranslated expression at ${node.start}`);
+  } else if (node.type === 'ConditionalExpression') {
+    inspectVisibleExpression(node.consequent, file);
+    inspectVisibleExpression(node.alternate, file);
+  } else if (node.type === 'LogicalExpression') {
+    inspectVisibleExpression(node.left, file);
+    inspectVisibleExpression(node.right, file);
+  } else if (node.type === 'TemplateLiteral') {
+    for (const part of node.quasis)
+      if (/[a-zA-Z]/.test(part.value.cooked ?? ''))
+        errors.push(`${file}: untranslated template text at ${part.start}`);
+  }
+}
 function walk(node, file) {
   if (!node || typeof node !== 'object') return;
+  if (node.type.endsWith('Directive')) return;
+  if (node.type === 'ExpressionTag') inspectVisibleExpression(node.expression, file);
   if (node.type === 'Text') {
     if (/[a-zA-Z]/.test(node.data.trim()))
       errors.push(`${file}: untranslated markup at ${node.start}`);
@@ -54,9 +74,11 @@ function walk(node, file) {
       ['aria-label', 'title', 'placeholder', 'label', 'alt'].includes(node.name) &&
       Array.isArray(node.value)
     ) {
-      for (const value of node.value)
+      for (const value of node.value) {
+        if (value.type === 'ExpressionTag') inspectVisibleExpression(value.expression, file);
         if (value.type === 'Text' && /[a-zA-Z]/.test(value.data))
           errors.push(`${file}: untranslated ${node.name} at ${value.start}`);
+      }
     }
     return;
   }

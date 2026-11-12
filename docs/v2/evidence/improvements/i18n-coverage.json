@@ -1,0 +1,125 @@
+{
+  "scope": "Full UI translation coverage for every shipped language, including the native tray menu",
+  "before": {
+    "canonical_leaves": 895,
+    "authored": {
+      "de_DE": 58,
+      "en_US": 895,
+      "es_ES": 895,
+      "fr_FR": 58,
+      "ko_KR": 58,
+      "pl_PL": 57,
+      "ru_RU": 58
+    }
+  },
+  "after": [
+    {
+      "locale": "de_DE",
+      "status": "complete",
+      "authored": 896,
+      "total": 896,
+      "missing": 0,
+      "reviewed_unchanged": 34,
+      "unreviewed_english": 0
+    },
+    {
+      "locale": "en_US",
+      "status": "complete",
+      "authored": 896,
+      "total": 896,
+      "missing": 0,
+      "reviewed_unchanged": 0,
+      "unreviewed_english": 0
+    },
+    {
+      "locale": "es_ES",
+      "status": "complete",
+      "authored": 896,
+      "total": 896,
+      "missing": 0,
+      "reviewed_unchanged": 22,
+      "unreviewed_english": 0
+    },
+    {
+      "locale": "fr_FR",
+      "status": "complete",
+      "authored": 896,
+      "total": 896,
+      "missing": 0,
+      "reviewed_unchanged": 36,
+      "unreviewed_english": 0
+    },
+    {
+      "locale": "ko_KR",
+      "status": "complete",
+      "authored": 896,
+      "total": 896,
+      "missing": 0,
+      "reviewed_unchanged": 19,
+      "unreviewed_english": 0
+    },
+    {
+      "locale": "pl_PL",
+      "status": "complete",
+      "authored": 896,
+      "total": 896,
+      "missing": 0,
+      "reviewed_unchanged": 24,
+      "unreviewed_english": 0
+    },
+    {
+      "locale": "ru_RU",
+      "status": "complete",
+      "authored": 896,
+      "total": 896,
+      "missing": 0,
+      "reviewed_unchanged": 19,
+      "unreviewed_english": 0
+    }
+  ],
+  "implementation": [
+    "Every shipped non-English catalogue satisfies CompleteLocale",
+    "Shared catalogue reader rejects missing keys, blank values, placeholder drift, copied English without a reviewed exemption, and undeclared/partial shipped locales",
+    "All newly added natural-language values were reviewed as static locale text; only reviewed brands, protocols, formats and shared vocabulary reuse English values",
+    "Rust HTTP responses and native tray labels use one JSON dictionary reader",
+    "Tray text follows the saved language on native event processing, using a lightweight configuration-language read"
+  ],
+  "validation": {
+    "frontend_unit_tests": 103,
+    "catalog_tests": 4,
+    "browser_distinct_scenarios": 33,
+    "final_all_language_browser_scenarios": 7,
+    "rust_tests": 5,
+    "checks": [
+      "Svelte: 0 errors / 0 warnings",
+      "TypeScript",
+      "all-language catalogue audit",
+      "generated JSON freshness",
+      "canonical contracts",
+      "formatting",
+      "knip",
+      "production frontend build",
+      "native binary build",
+      "bundle budget"
+    ]
+  },
+  "limits": [
+    "Native menu labels are validated in Rust; live tray interaction is not covered by headless browser tests.",
+    "The pre-existing Platform::play too_many_arguments lint prevents strict Clippy. The remaining warnings are checked with only that lint allowed.",
+    "User-configured content, canonical key identifiers, plugin IDs, protocol values and external diagnostic details remain data."
+  ],
+  "bundle": {
+    "js_bytes": 897731,
+    "gzip_bytes": 281757,
+    "loading": "Only English is bundled; the selected full locale is served as JSON. No translation model or new translation service is required by WebDeck."
+  },
+  "screenshots": [
+    "docs/screenshots/i18n-editor-de_DE-mobile.png",
+    "docs/screenshots/i18n-editor-en_US-mobile.png",
+    "docs/screenshots/i18n-editor-es_ES-mobile.png",
+    "docs/screenshots/i18n-editor-fr_FR-mobile.png",
+    "docs/screenshots/i18n-editor-ko_KR-mobile.png",
+    "docs/screenshots/i18n-editor-pl_PL-mobile.png",
+    "docs/screenshots/i18n-editor-ru_RU-mobile.png"
+  ]
+}

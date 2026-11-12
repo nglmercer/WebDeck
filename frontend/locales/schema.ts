@@ -1,10 +1,14 @@
 import type english from './en_US';
 
+type Strings<T> = { [K in keyof T]: T[K] extends string ? string : Strings<T[K]> };
+/** Fully translated locales must keep pace with every canonical message. */
+export type CompleteLocale = Strings<typeof english>;
+
 type PartialStrings<T> = {
   [K in keyof T]?: T[K] extends string ? string : PartialStrings<T[K]>;
 };
 
-/** Locales can translate individual leaves; English supplies every omitted value. */
+/** Partial runtime dictionaries can omit leaves; shipped catalogues use CompleteLocale. */
 export type Locale = PartialStrings<Omit<typeof english, 'meta'>> & {
   meta: { [K in keyof typeof english.meta]: string };
 };

@@ -81,7 +81,7 @@
         </ul>
       {:else}<p>{t('runtime.runtimeNoPlugins')}</p>{/if}
     {/if}
-    {#if failure}<p role="alert">{failure}</p>{/if}
+    {#if failure}<p role="alert">{t.message(failure)}</p>{/if}
     <button data-guide="runtime-reload" disabled={busy} onclick={() => attempt(refresh)}
       >{t('runtime.reloadPlugins')}</button
     >

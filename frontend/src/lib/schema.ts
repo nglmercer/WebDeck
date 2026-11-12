@@ -78,7 +78,7 @@ function valid(s: Schema, v: unknown, depth = 0): boolean {
 }
 export function contract<T>(name: string, v: unknown): T {
   if (!definitions[name] || !valid(definitions[name], v))
-    throw new Error(`Invalid ${name} response`);
+    throw new Error('errors.invalidResponse', { cause: `Invalid ${name} response` });
   return v as T;
 }
 export function resolve(s: Schema): Schema {

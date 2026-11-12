@@ -3,7 +3,13 @@ import assert from 'node:assert/strict';
 import { flattenMessages, readCatalogs, placeholders } from './catalog.mjs';
 
 test('shared serializer preserves nested leaves, Unicode and interpolation through JSON', () => {
-  const catalog = { common: { save: 'Español = 日本語', help: 'one\ntwo {name} %count%', literal: '</script>' } };
+  const catalog = {
+    common: {
+      save: 'Español = 日本語',
+      help: 'one\ntwo {name} %count%',
+      literal: '</script>',
+    },
+  };
   const flat = JSON.parse(JSON.stringify(flattenMessages(catalog)));
   assert.deepEqual(flat, {
     'common.save': 'Español = 日本語',
@@ -28,7 +34,7 @@ test('catalogues reject ambiguous keys, unsafe properties and non-string leaves'
     assert.throws(() => flattenMessages(catalog));
 });
 
-test('every authored locale is a valid partial dictionary with no retired keys', async () => {
+test('every shipped locale has every canonical leaf and no retired keys', async () => {
   const { catalogs, messages } = await readCatalogs();
   assert(catalogs.has('en_US'));
   assert(catalogs.has('es_ES'));
@@ -37,7 +43,43 @@ test('every authored locale is a valid partial dictionary with no retired keys',
     const flat = flattenMessages(catalog);
     assert.equal(typeof flat['meta.langCode'], 'string');
     assert(Object.keys(flat).every((key) => key.includes('.') && !key.startsWith('ui_')));
+    assert.deepEqual(Object.keys(flat).sort(), Object.keys(messages).sort());
     const merged = { ...messages, ...flat };
     assert.equal(Object.keys(merged).length, Object.keys(messages).length);
   }
+});
+
+test('complete locales reject omissions and copied English while partial locales retain fallback', async () => {
+  const { validateCoverage } = await import('./coverage.mjs');
+  const english = {
+    common: { save: 'Save changes', number: '{label} {index}' },
+  };
+  const spanish = {
+    common: { save: 'Guardar cambios', number: '{label} {index}' },
+  };
+  const catalogs = new Map([
+    ['en_US', english],
+    ['es_ES', spanish],
+    ['fr_FR', { common: { save: 'Enregistrer' } }],
+  ]);
+  const messages = flattenMessages(english);
+  const policy = {
+    complete: ['en_US', 'es_ES'],
+    allowUnchanged: { es_ES: ['common.number'] },
+  };
+  const reports = validateCoverage(catalogs, messages, policy);
+  assert.deepEqual(reports.find((report) => report.locale === 'es_ES').missing, []);
+  assert.deepEqual(reports.find((report) => report.locale === 'fr_FR').missing, ['common.number']);
+  catalogs.set('es_ES', { common: { save: 'Guardar cambios' } });
+  assert.throws(
+    () => validateCoverage(catalogs, messages, policy),
+    /missing translations: common.number/,
+  );
+  catalogs.set('es_ES', {
+    common: { save: 'Save changes', number: '{label} {index}' },
+  });
+  assert.throws(
+    () => validateCoverage(catalogs, messages, policy),
+    /unreviewed English text: common.save/,
+  );
 });

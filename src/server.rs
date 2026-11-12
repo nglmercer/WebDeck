@@ -14,6 +14,7 @@ use assets::*;
 mod integrations;
 use integrations::*;
 mod metadata;
+pub(crate) mod translations;
 use metadata::*;
 mod commands;
 use commands::*;

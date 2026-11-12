@@ -66,7 +66,12 @@ export class Session {
       ]);
       if (generation !== this.generation) return false;
       this.deck = deck;
-      this.editor = snapshot ? new Editor(snapshot) : null;
+      this.editor = snapshot
+        ? new Editor(
+            snapshot,
+            createTranslator(() => this.translations),
+          )
+        : null;
       this.pairing = false;
       this.translations = translations.translations;
       this.languages = translations.languages;

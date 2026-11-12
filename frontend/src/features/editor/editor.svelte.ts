@@ -19,6 +19,7 @@ function sameContent(left: unknown, right: unknown): boolean {
     keys.every((key) => Object.hasOwn(b, key) && sameContent(a[key], b[key]))
   );
 }
+import { createTranslator, type Translator } from '../../lib/translations';
 import type { ConfigResponse, Config, Button, Folder } from '../../lib/contracts';
 import { placeButtons, preserveCells } from '../deck/deck';
 import { id } from '../../lib/id';
@@ -38,7 +39,10 @@ export class Editor {
   recoveryGeneration = -1;
   private pendingSave: Promise<ConfigResponse> | null = null;
   private persisted: Config;
-  constructor(snapshot: ConfigResponse) {
+  constructor(
+    snapshot: ConfigResponse,
+    private translate: Translator = createTranslator(() => ({})),
+  ) {
     this.revision = snapshot.revision;
     this.draft = clone(snapshot.config);
     this.persisted = clone(snapshot.config);
@@ -97,7 +101,7 @@ export class Editor {
   }
   applyButton(button: Button, folderId: string, originId: string) {
     if (this.isSettingsButton(button.id) && button.action.type !== 'settings')
-      throw new Error('The Settings button must keep its settings action.');
+      throw new Error('errors.settingsActionProtected');
     contract('Button', button);
     const folder = this.draft.layout.folders.find((folder) => folder.id === folderId);
     if (!folder) throw new Error('errors.destinationUnavailable');
@@ -145,12 +149,12 @@ export class Editor {
     ).firstFree;
     const folder: Folder = {
       id: id(),
-      label: 'New folder',
+      label: this.translate('editor.newFolder'),
       extensions: {},
       buttons: [
         {
           id: id(),
-          label: 'Back',
+          label: this.translate('common.back'),
           icon: '↩',
           color: '#273549',
           action: { type: 'folder', folder_id: parentId },
@@ -188,7 +192,7 @@ export class Editor {
   removeFolder(folderId: string) {
     if (this.draft.layout.folders.length <= 1) throw new Error('errors.lastFolder');
     if (folderId === this.draft.layout.folders[0]?.id || folderId === 'home')
-      throw new Error('The root deck cannot be deleted');
+      throw new Error('errors.rootProtected');
     if (!this.draft.layout.folders.some((folder) => folder.id === folderId)) return;
     this.recovery = clone(this.draft);
     this.freezeCells();

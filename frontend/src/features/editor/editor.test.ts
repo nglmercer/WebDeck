@@ -1,3 +1,6 @@
+import { createTranslator } from '../../lib/translations';
+import { flattenMessages } from '../../../locales/schema';
+import spanish from '../../../locales/es_ES';
 import { describe, it, expect } from 'vitest';
 import { Editor, clone } from './editor.svelte';
 import { ButtonDraft } from './button-draft.svelte';
@@ -188,7 +191,7 @@ it('stages resizing and preserves IDs, order and extensions on commit', () => {
 it('cannot delete the root deck even when other folders exist', () => {
   const editor = new Editor(snapshot());
   const before = clone(editor.draft);
-  expect(() => editor.removeFolder(before.layout.folders[0]!.id)).toThrow('root deck');
+  expect(() => editor.removeFolder(before.layout.folders[0]!.id)).toThrow('errors.rootProtected');
   expect(editor.draft).toEqual(before);
   expect(editor.dirty).toBe(false);
   expect(editor.canUndoDeletion).toBe(false);
@@ -213,7 +216,9 @@ it('does not allow changing Settings into a removable action', () => {
   const folder = editor.draft.layout.folders[0]!;
   const button = clone(folder.buttons.find((button) => button.action.type === 'settings')!);
   button.action = { type: 'none' };
-  expect(() => editor.applyButton(button, folder.id, folder.id)).toThrow('Settings');
+  expect(() => editor.applyButton(button, folder.id, folder.id)).toThrow(
+    'errors.settingsActionProtected',
+  );
   expect(editor.dirty).toBe(false);
 });
 
@@ -229,4 +234,21 @@ it('moves Settings home when deleting its containing folder', () => {
     editor.draft.layout.folders[0]!.buttons.find((button) => button.id === settings.id)?.action
       .type,
   ).toBe('settings');
+});
+
+it('uses the current locale for new folder content and preserves existing labels after a language change', () => {
+  let dictionary: Record<string, string> = {};
+  const editor = new Editor(
+    snapshot(),
+    createTranslator(() => dictionary),
+  );
+  const first = editor.createFolder(editor.draft.layout.folders[0]!.id);
+  expect(first.label).toBe('New folder');
+  expect(first.buttons[0]!.label).toBe('Back');
+  dictionary = flattenMessages(spanish);
+  const second = editor.createFolder(editor.draft.layout.folders[0]!.id);
+  expect(second.label).toBe('Nueva carpeta');
+  expect(second.buttons[0]!.label).toBe('Volver');
+  expect(first.label).toBe('New folder');
+  expect(first.buttons[0]!.label).toBe('Back');
 });

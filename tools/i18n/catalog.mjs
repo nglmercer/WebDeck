@@ -1,6 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { validateCoverage } from './coverage.mjs';
 import { flattenMessages } from '../../frontend/locales/schema.ts';
 
 export { flattenMessages };
@@ -30,6 +31,12 @@ export async function readCatalogs() {
         throw Error(`${locale}: changed placeholders in ${key}`);
     }
   }
+  const coverage = validateCoverage(catalogs, messages);
+  const partial = coverage.filter((report) => report.status !== 'complete');
+  if (partial.length)
+    throw Error(
+      `Shipped locales must declare complete coverage: ${partial.map((report) => report.locale).join(', ')}`,
+    );
   return { catalogs, messages };
 }
 
