@@ -214,6 +214,8 @@ fn spawn() -> TestServer {
                 io: Arc::new(tokio::sync::Semaphore::new(4)),
                 queries: Arc::new(tokio::sync::Semaphore::new(2)),
                 authorization: Arc::new(tokio::sync::Semaphore::new(4)),
+                runtime: Arc::new(tokio::sync::Semaphore::new(1)),
+                media: Arc::new(tokio::sync::Semaphore::new(2)),
                 port,
                 plugins: Arc::new(vec![builtin_manifest(), echo_manifest()]),
                 config: server_store,

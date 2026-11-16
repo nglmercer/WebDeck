@@ -43,6 +43,8 @@ fn app(t: &Temp) -> App {
         io: Arc::new(tokio::sync::Semaphore::new(4)),
         queries: Arc::new(tokio::sync::Semaphore::new(2)),
         authorization: Arc::new(tokio::sync::Semaphore::new(4)),
+        runtime: Arc::new(tokio::sync::Semaphore::new(1)),
+        media: Arc::new(tokio::sync::Semaphore::new(2)),
         port: 5000,
         config: store(t),
         sessions: Arc::new(Sessions::open(t.0.join("devices.json")).unwrap()),

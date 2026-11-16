@@ -174,6 +174,8 @@ async fn http_executor_vm_metrics_response_and_drain() {
         io: Arc::new(tokio::sync::Semaphore::new(4)),
         queries: Arc::new(tokio::sync::Semaphore::new(2)),
         authorization: Arc::new(tokio::sync::Semaphore::new(4)),
+        runtime: Arc::new(tokio::sync::Semaphore::new(1)),
+        media: Arc::new(tokio::sync::Semaphore::new(2)),
         port: 5000,
         plugins: Arc::new(vec![]),
         config: Arc::new(ConfigStore::open(temp.0.join("config.json")).unwrap()),
@@ -1173,4 +1175,73 @@ fn automation_plugin_package_loads_and_executes_declared_actions() {
             expected
         );
     }
+}
+
+#[test]
+fn a_plugin_error_is_reported_with_its_message_and_the_plugin_stays_on() {
+    let temp = Temp::new();
+    sandbox_plugin(
+        &temp,
+        "picky",
+        "export function invoke_action(action, args) { throw new Error('Kind must be song'); }",
+        vec![Capability::Read],
+    );
+    let plugins = webdeck::runtime::plugins::load_plugins(&Assets {
+        root: temp.0.clone(),
+    })
+    .unwrap();
+    let runtime =
+        VmRuntime::with_plugins(Arc::new(FakeMetrics::default()), native(&temp), plugins).unwrap();
+    let context = Context {
+        capabilities: vec![Capability::Plugin, Capability::Read],
+        ..context()
+    };
+    let call = Command::Plugin {
+        plugin_id: "picky".into(),
+        version: "2.0.0".into(),
+        action_id: "echo".into(),
+        args: std::collections::BTreeMap::from([("text".into(), json!("hi"))]),
+    };
+    for _ in 0..2 {
+        let error = runtime.invoke(&call, &context).unwrap_err();
+        assert_eq!(error.code, ErrorCode::ExecutionFailed);
+        assert_eq!(error.message, "Kind must be song");
+    }
+}
+
+#[test]
+fn a_runaway_plugin_is_switched_off_until_reloaded() {
+    let temp = Temp::new();
+    sandbox_plugin(
+        &temp,
+        "runaway",
+        "export function invoke_action() { while (true) {} }",
+        vec![Capability::Read],
+    );
+    let plugins = webdeck::runtime::plugins::load_plugins(&Assets {
+        root: temp.0.clone(),
+    })
+    .unwrap();
+    let runtime =
+        VmRuntime::with_plugins(Arc::new(FakeMetrics::default()), native(&temp), plugins).unwrap();
+    let context = Context {
+        capabilities: vec![Capability::Plugin, Capability::Read],
+        ..context()
+    };
+    let call = Command::Plugin {
+        plugin_id: "runaway".into(),
+        version: "2.0.0".into(),
+        action_id: "echo".into(),
+        args: std::collections::BTreeMap::from([("text".into(), json!("hi"))]),
+    };
+    assert_eq!(
+        runtime.invoke(&call, &context).unwrap_err().code,
+        ErrorCode::ExecutionFailed
+    );
+    let again = runtime.invoke(&call, &context).unwrap_err();
+    assert!(
+        again.message.contains("Plugin disabled"),
+        "{}",
+        again.message
+    );
 }

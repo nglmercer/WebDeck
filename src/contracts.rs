@@ -461,6 +461,12 @@ pub struct PluginAction {
 pub struct PluginArgument {
     pub r#type: String,
     pub required: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub r#enum: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub minimum: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maximum: Option<f64>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -646,6 +652,8 @@ pub struct RuntimeSnapshot {
     pub plugins: Vec<PluginManifest>,
     pub loaded_plugins: Vec<String>,
     pub queue_capacity: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rejected_plugins: Option<u64>,
     pub disabled_plugins: Vec<String>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

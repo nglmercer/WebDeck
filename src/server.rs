@@ -18,6 +18,8 @@ pub(crate) mod translations;
 use metadata::*;
 mod commands;
 use commands::*;
+mod plugin_watch;
+pub use plugin_watch::spawn as spawn_plugin_watch;
 mod realtime;
 use crate::{
     contracts::*,
@@ -52,18 +54,29 @@ pub struct App {
     pub io: Arc<tokio::sync::Semaphore>,
     pub queries: Arc<tokio::sync::Semaphore>,
     pub authorization: Arc<tokio::sync::Semaphore>,
+    /// Plugin and runtime reloads. Its own pool, so configuration and device traffic cannot
+    /// make a reload fail, and reloads run one at a time.
+    pub runtime: Arc<tokio::sync::Semaphore>,
+    /// Image imports and downloads, which can wait on the network for a long time.
+    pub media: Arc<tokio::sync::Semaphore>,
 }
+/// How long a request waits for a permit before it is refused. Short bursts queue; only work
+/// that keeps a permit for longer than this makes new requests fail.
+const ADMISSION_WAIT: std::time::Duration = std::time::Duration::from_secs(2);
 // Permits belong to the blocking task, so observer cancellation cannot release capacity early.
 async fn blocking<T: Send + 'static>(
     admission: Arc<tokio::sync::Semaphore>,
     work: impl FnOnce() -> Result<T> + Send + 'static,
 ) -> Result<T> {
-    let permit = admission.try_acquire_owned().map_err(|_| {
-        Error::new(
-            ErrorCode::CapacityExhausted,
-            "Blocking work capacity exhausted",
-        )
-    })?;
+    let permit = tokio::time::timeout(ADMISSION_WAIT, admission.acquire_owned())
+        .await
+        .map_err(|_| {
+            Error::new(
+                ErrorCode::CapacityExhausted,
+                "Blocking work capacity exhausted",
+            )
+        })?
+        .map_err(|_| Error::new(ErrorCode::ShuttingDown, "Blocking work is unavailable"))?;
     tokio::task::spawn_blocking(move || {
         let _owned = permit;
         work()
@@ -245,5 +258,21 @@ mod blocking_tests {
             .unwrap();
         drop(permit);
         assert_eq!(admission.available_permits(), 1);
+    }
+
+    #[tokio::test]
+    async fn a_short_burst_waits_for_its_turn_instead_of_failing() {
+        let admission = Arc::new(tokio::sync::Semaphore::new(1));
+        let owner = admission.clone();
+        let first = tokio::spawn(async move {
+            blocking(owner, || {
+                std::thread::sleep(std::time::Duration::from_millis(300));
+                Ok(())
+            })
+            .await
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        assert_eq!(blocking(admission.clone(), || Ok(7)).await.unwrap(), 7);
+        first.await.unwrap().unwrap();
     }
 }

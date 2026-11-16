@@ -1,0 +1,384 @@
+{
+  "schema_version": 2,
+  "id": "sonora",
+  "version": "1.0.0",
+  "entry": "index.js",
+  "backend": "sandbox_js",
+  "digest": "dbe72763bfa9cb36dd215c5f4a2f2d76d57a2eb0765d4a48ea7bf30b077e480f",
+  "origin": "local",
+  "contract": "",
+  "actions": [
+    {
+      "id": "current",
+      "label": "Sonora: Current track",
+      "capabilities": [
+        "read"
+      ],
+      "arguments": {},
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "queue",
+      "label": "Sonora: Queue",
+      "capabilities": [
+        "read"
+      ],
+      "arguments": {},
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "lyrics",
+      "label": "Sonora: Lyrics",
+      "capabilities": [
+        "read"
+      ],
+      "arguments": {},
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "providers",
+      "label": "Sonora: Providers",
+      "capabilities": [
+        "read"
+      ],
+      "arguments": {},
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "play",
+      "label": "Sonora: Play",
+      "capabilities": [
+        "audio"
+      ],
+      "arguments": {},
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "pause",
+      "label": "Sonora: Pause",
+      "capabilities": [
+        "audio"
+      ],
+      "arguments": {},
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "toggle",
+      "label": "Sonora: Play or pause",
+      "capabilities": [
+        "audio"
+      ],
+      "arguments": {},
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "next",
+      "label": "Sonora: Next track",
+      "capabilities": [
+        "audio"
+      ],
+      "arguments": {},
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "previous",
+      "label": "Sonora: Previous track",
+      "capabilities": [
+        "audio"
+      ],
+      "arguments": {},
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "seek",
+      "label": "Sonora: Seek",
+      "capabilities": [
+        "audio"
+      ],
+      "arguments": {
+        "percent": {
+          "type": "number",
+          "required": true,
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "volume",
+      "label": "Sonora: Set volume",
+      "capabilities": [
+        "audio"
+      ],
+      "arguments": {
+        "percent": {
+          "type": "number",
+          "required": true,
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "mute",
+      "label": "Sonora: Mute",
+      "capabilities": [
+        "audio"
+      ],
+      "arguments": {
+        "state": {
+          "type": "string",
+          "required": true,
+          "enum": [
+            "on",
+            "off",
+            "toggle"
+          ]
+        }
+      },
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "shuffle",
+      "label": "Sonora: Shuffle",
+      "capabilities": [
+        "audio"
+      ],
+      "arguments": {
+        "state": {
+          "type": "string",
+          "required": true,
+          "enum": [
+            "on",
+            "off",
+            "toggle"
+          ]
+        }
+      },
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "repeat",
+      "label": "Sonora: Repeat",
+      "capabilities": [
+        "audio"
+      ],
+      "arguments": {
+        "mode": {
+          "type": "string",
+          "required": true,
+          "enum": [
+            "off",
+            "all",
+            "one"
+          ]
+        }
+      },
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "like",
+      "label": "Sonora: Like track",
+      "capabilities": [
+        "audio"
+      ],
+      "arguments": {
+        "state": {
+          "type": "string",
+          "required": true,
+          "enum": [
+            "on",
+            "off",
+            "toggle"
+          ]
+        }
+      },
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "provider",
+      "label": "Sonora: Switch provider",
+      "capabilities": [
+        "audio"
+      ],
+      "arguments": {
+        "slug": {
+          "type": "string",
+          "required": true,
+          "enum": [
+            "spotify",
+            "apple",
+            "youtube",
+            "subsonic",
+            "jellyfin",
+            "deezer",
+            "tidal"
+          ]
+        }
+      },
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "search",
+      "label": "Sonora: Search",
+      "capabilities": [
+        "network"
+      ],
+      "arguments": {
+        "text": {
+          "type": "string",
+          "required": true
+        },
+        "kind": {
+          "type": "string",
+          "required": true,
+          "enum": [
+            "song",
+            "album",
+            "artist",
+            "playlist"
+          ]
+        }
+      },
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "search_play",
+      "label": "Sonora: Search and play",
+      "capabilities": [
+        "network",
+        "audio"
+      ],
+      "arguments": {
+        "text": {
+          "type": "string",
+          "required": true
+        },
+        "kind": {
+          "type": "string",
+          "required": true,
+          "enum": [
+            "song",
+            "album",
+            "artist",
+            "playlist"
+          ]
+        }
+      },
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "queue_link",
+      "label": "Sonora: Queue link",
+      "capabilities": [
+        "network"
+      ],
+      "arguments": {
+        "link": {
+          "type": "string",
+          "required": true
+        }
+      },
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    },
+    {
+      "id": "play_link",
+      "label": "Sonora: Play link",
+      "capabilities": [
+        "network",
+        "audio"
+      ],
+      "arguments": {
+        "link": {
+          "type": "string",
+          "required": true
+        }
+      },
+      "result": {
+        "type": "object",
+        "required": true
+      }
+    }
+  ],
+  "automation": {
+    "integrations": [
+      {
+        "id": "sonora.connection",
+        "label": "Sonora",
+        "required_settings": [],
+        "configuration": [],
+        "probe": {
+          "type": "plugin",
+          "plugin_id": "sonora",
+          "version": "1.0.0",
+          "action_id": "providers",
+          "args": {}
+        },
+        "success": {
+          "pointer": "/value/providers"
+        }
+      }
+    ],
+    "button_recipes": [],
+    "presentations": []
+  }
+}

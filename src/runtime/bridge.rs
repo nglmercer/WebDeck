@@ -6,6 +6,9 @@ use napi_vm::{
 };
 use std::{cell::RefCell, sync::Arc};
 
+/// Key a plugin's thrown error is returned under, so the host can report its message.
+const PLUGIN_ERROR: &str = "__webdeckPluginError";
+
 pub(super) struct Bridge {
     pub events: tokio::sync::broadcast::Sender<serde_json::Value>,
     pub plugins: RefCell<std::collections::HashMap<String, super::plugins::RuntimePlugin>>,
@@ -285,6 +288,9 @@ impl Bridge {
             .capabilities
             .retain(|c| action.capabilities.contains(c));
         *self.context.borrow_mut() = Some(narrowed.clone());
+        // Set only when the plugin's own code failed (a thrown error, a rejected promise, an
+        // unconvertible result), as opposed to a refusal the host gave the call.
+        let faulted = std::cell::Cell::new(false);
         let result = (|| {
             let args = serde_json::to_value(&args).map_err(|_| Error::invalid())?;
             if plugin.manifest.backend == "trusted_process" {
@@ -343,18 +349,33 @@ impl Bridge {
                     "__webdeckArguments",
                     value_from_json(&args).map_err(|_| errors::failed())?,
                 );
+                // A plugin that throws is reporting a failure of this action, so the error is
+                // caught here and its message returned, instead of the engine failing.
+                *self.error.borrow_mut() = None;
                 let value = vm
                     .eval_source(
-                        "__webdeckPlugin.invoke_action(__webdeckAction, __webdeckArguments, ctx)",
+                        // The loop budget is a catchable RangeError in napi-vm; a runaway loop must
+                        // still fail the engine, so that one is rethrown rather than reported.
+                        "(function () { try { return __webdeckPlugin.invoke_action(__webdeckAction, __webdeckArguments, ctx); } catch (error) { if (error && error.message === 'Maximum loop iterations exceeded') throw error; return { __webdeckPluginError: String((error && error.message) || error) }; } })()",
                     )
-                    .map_err(|_| {
-                        self.error
-                            .borrow_mut()
-                            .take()
-                            .unwrap_or_else(errors::failed)
+                    .map_err(|_| match self.error.borrow_mut().take() {
+                        // The host refused the call: that answer goes to the caller as it is.
+                        Some(error) => error,
+                        // Budget or time ran out, or the engine failed: the plugin misbehaved.
+                        None => {
+                            faulted.set(true);
+                            errors::failed()
+                        }
                     })?;
                 let value = super::sandbox::settle(&mut vm, value)?;
-                value_to_json(&mut vm, &value).map_err(|_| errors::failed())
+                let value = value_to_json(&mut vm, &value).map_err(|_| errors::failed())?;
+                if let Some(message) = value.get(PLUGIN_ERROR).and_then(|m| m.as_str()) {
+                    // A host refusal the plugin caught and re-raised keeps its own code.
+                    return Err(self.error.borrow_mut().take().unwrap_or_else(|| {
+                        Error::new(crate::contracts::ErrorCode::ExecutionFailed, message)
+                    }));
+                }
+                Ok(value)
             })();
             self.active_plugins.borrow_mut().remove(&plugin_id);
             if result.is_ok() {
@@ -363,15 +384,24 @@ impl Bridge {
             result
         })();
         *self.context.borrow_mut() = Some(original);
-        if result
-            .as_ref()
-            .is_err_and(|e| e.code == crate::contracts::ErrorCode::ExecutionFailed)
-        {
-            self.disabled_plugins.borrow_mut().insert(plugin_id.clone());
+        // A plugin whose own code failed is switched off until it is reloaded. A refusal from the
+        // host, such as a service that is not running, fails only that call.
+        if let Err(error) = &result {
+            if faulted.get() {
+                // Logged, so the reason is visible in the terminal without a debugger.
+                eprintln!(
+                    "WebDeck: plugin '{plugin_id}' disabled after its code failed in '{action_id}': {}",
+                    error.message
+                );
+                self.disabled_plugins.borrow_mut().insert(plugin_id.clone());
+            }
         }
         let value = result?;
         narrowed.check_budget()?;
         if super::plugins::validate_type(&action.result, &value).is_err() {
+            eprintln!(
+                "WebDeck: plugin '{plugin_id}' disabled: action '{action_id}' returned a value outside its declared result"
+            );
             self.disabled_plugins.borrow_mut().insert(plugin_id.clone());
             return Err(Error::new(
                 crate::contracts::ErrorCode::ExecutionFailed,

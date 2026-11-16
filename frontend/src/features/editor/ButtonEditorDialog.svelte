@@ -33,7 +33,13 @@
   import { contract } from '../../lib/schema';
   import IconField from './IconField.svelte';
   import ActionPickerModal from './ActionPickerModal.svelte';
-  import { actionOptions, type ActionOption } from './action-options';
+  import {
+    actionOptions,
+    pluginActionOptions,
+    pluginArgumentsSchema,
+    pluginOptionId,
+    type ActionOption,
+  } from './action-options';
   import SegmentedControl from '../../components/SegmentedControl.svelte';
   import { fileSize, type MediaMetadata } from './audio';
   import ImageSourceFields from './ImageSourceFields.svelte';
@@ -103,9 +109,17 @@
     });
   }
   const selectedActionId = $derived(
-    button.action.type === 'command' ? `command:${button.action.command.type}` : button.action.type,
+    button.action.type !== 'command'
+      ? button.action.type
+      : button.action.command.type === 'plugin'
+        ? pluginOptionId(button.action.command.plugin_id, button.action.command.action_id)
+        : `command:${button.action.command.type}`,
   );
-  const selectedAction = $derived(actionOptions.find((option) => option.id === selectedActionId));
+  const selectedAction = $derived(
+    [...actionOptions, ...pluginActionOptions(catalog?.plugins ?? [])].find(
+      (option) => option.id === selectedActionId,
+    ),
+  );
   const actionSchema = $derived(
     button.action.type === 'command'
       ? selectedAction?.schema
@@ -227,19 +241,16 @@
         )
       : undefined,
   );
-  function pluginActionSchema(m: PluginManifest, actionId: string): Schema {
-    const a = m.actions.find((a) => a.id === actionId);
-    return {
-      type: 'object',
-      additionalProperties: false,
-      properties: Object.fromEntries(
-        Object.entries(a?.arguments ?? {}).map(([k, v]) => [k, { type: v.type }]),
-      ),
-    };
-  }
   function selectAction(option: ActionOption) {
     if (!button) return;
     actionValid = true;
+    if (option.plugin) {
+      // The action the person picked, from the plugin that provides it. Never the first plugin.
+      const manifest = catalog?.plugins.find((m) => m.id === option.plugin!.pluginId);
+      if (manifest) pluginCommand(manifest, option.plugin.actionId);
+      else actionValid = false;
+      return;
+    }
     const type = option.type;
     if (type === 'command' && option.schema) {
       const command = defaultValue(option.schema) as Command;
@@ -259,20 +270,7 @@
         language: 'javascript',
         source: { type: 'inline', code: '' },
       };
-    else if (type === 'plugin') {
-      const manifest = catalog?.plugins[0];
-      if (manifest)
-        button.action = {
-          type,
-          plugin_id: manifest.id,
-          version: manifest.version,
-          action_id: manifest.actions[0]!.id,
-          args: defaultValue(pluginActionSchema(manifest, manifest.actions[0]!.id)) as Record<
-            string,
-            unknown
-          >,
-        };
-    } else if (type === 'metric')
+    else if (type === 'metric')
       button.action = { type, metric: 'cpu', target: '', interval_ms: 1000 };
     else if (type === 'folder')
       button.action = { type, folder_id: layout?.folders[0]?.id ?? 'home' };
@@ -361,8 +359,8 @@
       await importImage({ type: 'local', path: result.source.path });
     }
   }
-  function pluginCommand(m: PluginManifest) {
-    const action = m.actions[0];
+  function pluginCommand(m: PluginManifest, actionId?: string) {
+    const action = m.actions.find((candidate) => candidate.id === actionId) ?? m.actions[0];
     if (!action || !button) return;
     button.action = {
       type: 'command',
@@ -382,7 +380,7 @@
                   ? []
                   : v.type === 'object'
                     ? {}
-                    : '',
+                    : (v.enum?.[0] ?? ''),
           ]),
         ),
       },
@@ -650,6 +648,7 @@
                 value={selectedActionId}
                 close={() => (actionPickerOpen = false)}
                 select={selectAction}
+                plugins={catalog?.plugins ?? []}
               />{/if}
           {/if}
           {#if button.action.type === 'workflow' || button.action.type === 'script' || button.action.type === 'plugin'}
@@ -729,7 +728,7 @@
                       ) {
                         button.action.command.action_id = e.currentTarget.value;
                         button.action.command.args = defaultValue(
-                          pluginActionSchema(selectedPlugin!, e.currentTarget.value),
+                          pluginArgumentsSchema(selectedPlugin!, e.currentTarget.value),
                         ) as Record<string, unknown>;
                       }
                     }}
@@ -737,7 +736,7 @@
                       >{/each}</select
                   ></label
                 ><Fields
-                  schema={pluginActionSchema(selectedPlugin, button.action.command.action_id)}
+                  schema={pluginArgumentsSchema(selectedPlugin, button.action.command.action_id)}
                   value={button.action.command.args}
                   onchange={(args) => {
                     if (

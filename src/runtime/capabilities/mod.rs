@@ -74,6 +74,9 @@ pub fn required_capability(operation: &str) -> Result<Capability> {
         "process.shell" | "storage.source" => Ok(Capability::Script),
         "storage.button" | "storage.pluginGet" => Ok(Capability::Read),
         "storage.pluginSet" => Ok(Capability::Plugin),
+        "sonora.query" => Ok(Capability::Read),
+        "sonora.control" => Ok(Capability::Audio),
+        "sonora.remote" => Ok(Capability::Network),
         _ => Err(crate::domain::Error::invalid()),
     }
 }

@@ -22,6 +22,7 @@
       failure = error instanceof Error ? error.message : String(error);
     }
   }
+  // A failed reload keeps the list on screen and shows the reason beside it.
   async function refresh() {
     busy = true;
     try {
@@ -29,17 +30,26 @@
         method: 'POST',
       });
       failure = '';
-      await reload();
+    } catch (error) {
+      failure = error instanceof Error ? error.message : String(error);
+      return;
     } finally {
       busy = false;
     }
+    await reload();
   }
   async function toggle(id: string, enabled: boolean) {
-    status = await request<RuntimeSnapshot>(
-      `runtime/plugins/${encodeURIComponent(id)}`,
-      'RuntimeSnapshot',
-      { method: 'PUT', body: JSON.stringify({ enabled }) },
-    );
+    try {
+      status = await request<RuntimeSnapshot>(
+        `runtime/plugins/${encodeURIComponent(id)}`,
+        'RuntimeSnapshot',
+        { method: 'PUT', body: JSON.stringify({ enabled }) },
+      );
+      failure = '';
+    } catch (error) {
+      failure = error instanceof Error ? error.message : String(error);
+      return;
+    }
     await reload();
   }
   onMount(() => {
@@ -80,6 +90,9 @@
             </li>{/each}
         </ul>
       {:else}<p>{t('runtime.runtimeNoPlugins')}</p>{/if}
+      {#if status.rejected_plugins}
+        <p role="status">{t('runtime.rejectedPlugins', { count: status.rejected_plugins })}</p>
+      {/if}
     {/if}
     {#if failure}<p role="alert">{t.message(failure)}</p>{/if}
     <button data-guide="runtime-reload" disabled={busy} onclick={() => attempt(refresh)}

@@ -91,6 +91,8 @@ async fn start() -> Result<()> {
         io: Arc::new(tokio::sync::Semaphore::new(4)),
         queries: Arc::new(tokio::sync::Semaphore::new(2)),
         authorization: Arc::new(tokio::sync::Semaphore::new(4)),
+        runtime: Arc::new(tokio::sync::Semaphore::new(1)),
+        media: Arc::new(tokio::sync::Semaphore::new(2)),
         port: args.port,
         plugins,
         config,
@@ -98,6 +100,7 @@ async fn start() -> Result<()> {
         executor: executor.clone(),
         assets,
     };
+    webdeck::server::spawn_plugin_watch(app.clone());
     let bind_host = if args.lan {
         std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED)
     } else {
