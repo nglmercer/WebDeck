@@ -2,18 +2,32 @@ use super::*;
 mod owner;
 pub(super) use owner::AudioOwner;
 
+/// How a sound plays: the output, the level, whether it goes to the microphone, and the part of
+/// the file to play.
+pub(super) struct PlayOptions<'a> {
+    pub volume: u64,
+    pub device: &'a str,
+    pub microphone: bool,
+    pub local_only: bool,
+    pub start_ms: u64,
+    pub end_ms: Option<u64>,
+}
+
 impl Platform {
     pub(super) fn play(
         &self,
         s: &FileSource,
-        volume: u64,
-        device: &str,
-        microphone: bool,
-        local_only: bool,
-        start_ms: u64,
-        end_ms: Option<u64>,
+        options: PlayOptions<'_>,
         context: &Context,
     ) -> Result<Value> {
+        let PlayOptions {
+            volume,
+            device,
+            microphone,
+            local_only,
+            start_ms,
+            end_ms,
+        } = options;
         context.check(Capability::Audio)?;
         if start_ms > 86_400_000 || end_ms.is_some_and(|end| end <= start_ms || end > 86_400_000) {
             return Err(Error::invalid());

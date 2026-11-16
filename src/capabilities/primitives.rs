@@ -192,24 +192,26 @@ impl CapabilityHost for Platform {
                 self.audio.stop();
                 Ok(json!({}))
             }
-            "audio.play" => self.play(
-                &field(input, "source")?,
-                field(input, "volume")?,
-                &field::<String>(input, "outputDevice")?,
-                field(input, "microphone")?,
-                field(input, "localOnly")?,
-                input
-                    .get("startMs")
-                    .map(|_| field(input, "startMs"))
-                    .transpose()?
-                    .unwrap_or(0),
-                input
-                    .get("endMs")
-                    .filter(|v| !v.is_null())
-                    .map(|_| field(input, "endMs"))
-                    .transpose()?,
-                context,
-            ),
+            "audio.play" => {
+                let device = field::<String>(input, "outputDevice")?;
+                let options = audio::PlayOptions {
+                    volume: field(input, "volume")?,
+                    device: &device,
+                    microphone: field(input, "microphone")?,
+                    local_only: field(input, "localOnly")?,
+                    start_ms: input
+                        .get("startMs")
+                        .map(|_| field(input, "startMs"))
+                        .transpose()?
+                        .unwrap_or(0),
+                    end_ms: input
+                        .get("endMs")
+                        .filter(|v| !v.is_null())
+                        .map(|_| field(input, "endMs"))
+                        .transpose()?,
+                };
+                self.play(&field(input, "source")?, options, context)
+            }
             "storage.source" => {
                 let source = self.source(&field(input, "source")?)?;
                 if source.len() > 65536 {
