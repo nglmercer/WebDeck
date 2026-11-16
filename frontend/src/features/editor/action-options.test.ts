@@ -114,3 +114,26 @@ describe('declared choices in the form', () => {
     });
   });
 });
+
+describe('declared bounds in the form', () => {
+  it('passes the minimum and maximum of a number argument to its form field', () => {
+    const plugin = {
+      id: 'sonora',
+      version: '1.0.0',
+      actions: [
+        {
+          id: 'volume',
+          label: 'Set volume',
+          capabilities: ['audio'],
+          arguments: { percent: { type: 'number', required: true, minimum: 0, maximum: 100 } },
+          result,
+        },
+      ],
+    } as unknown as PluginManifest;
+    expect(pluginArgumentsSchema(plugin, 'volume').properties?.percent).toEqual({
+      type: 'number',
+      minimum: 0,
+      maximum: 100,
+    });
+  });
+});

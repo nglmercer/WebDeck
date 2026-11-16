@@ -4,6 +4,7 @@
   import VolumeField from './VolumeField.svelte';
   import MapField from './MapField.svelte';
   import SwitchField from '../../components/SwitchField.svelte';
+  import RangeField from '../../components/RangeField.svelte';
   import Icon from '../../components/Icon.svelte';
   import type { FileSource, ScriptSource, VolumeChange } from '../../lib/contracts';
   import { fieldLabels } from '../../lib/field-labels';
@@ -103,6 +104,16 @@
   >
 {:else if s.type === 'boolean'}
   <SwitchField {label} checked={Boolean(value)} onchange={(next) => onchange(next)} />
+{:else if (s.type === 'integer' || s.type === 'number') && s.minimum !== undefined && s.maximum !== undefined && s.maximum - s.minimum <= 200}
+  <!-- A short bounded range reads better as a slider; wide ranges keep the exact number field. -->
+  <RangeField
+    {label}
+    value={Number.isFinite(Number(value)) ? Number(value) : s.minimum}
+    min={s.minimum}
+    max={s.maximum}
+    step={s.type === 'integer' ? 1 : 0.1}
+    onchange={(next) => onchange(next)}
+  />
 {:else if s.type === 'integer' || s.type === 'number'}
   <label
     >{label}<input

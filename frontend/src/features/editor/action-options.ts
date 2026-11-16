@@ -189,10 +189,15 @@ export function pluginArgumentsSchema(plugin: PluginManifest, actionId: string):
     type: 'object',
     additionalProperties: false,
     properties: Object.fromEntries(
-      // A declared list of choices becomes a select in the form; the generic fields render it.
+      // Choices become a select and bounds become a slider in the form; the generic fields render both.
       Object.entries(action?.arguments ?? {}).map(([name, argument]) => [
         name,
-        argument.enum ? { type: argument.type, enum: argument.enum } : { type: argument.type },
+        {
+          type: argument.type,
+          ...(argument.enum ? { enum: argument.enum } : {}),
+          ...(argument.minimum === undefined ? {} : { minimum: argument.minimum }),
+          ...(argument.maximum === undefined ? {} : { maximum: argument.maximum }),
+        },
       ]),
     ),
   };

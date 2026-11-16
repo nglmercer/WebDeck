@@ -125,7 +125,9 @@
       "arguments": {
         "percent": {
           "type": "number",
-          "required": true
+          "required": true,
+          "minimum": 0,
+          "maximum": 100
         }
       },
       "result": {
@@ -142,7 +144,9 @@
       "arguments": {
         "percent": {
           "type": "number",
-          "required": true
+          "required": true,
+          "minimum": 0,
+          "maximum": 100
         }
       },
       "result": {

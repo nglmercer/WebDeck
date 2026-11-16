@@ -103,11 +103,21 @@ pub fn load_package(directory: &Path) -> Result<RuntimePlugin> {
         return Err(Error::invalid());
     }
     crate::automation::validate_plugin(&manifest)?;
-    // Choices only make sense for text; a list on a number or boolean is a mistake in the package.
+    // Choices only make sense for text, and bounds only for numbers; a bound that is inverted is
+    // a mistake in the package.
     for action in &manifest.actions {
         for argument in action.arguments.values() {
             if argument.r#enum.is_some() && argument.r#type != "string" {
                 return Err(Error::invalid());
+            }
+            let bounded = argument.minimum.is_some() || argument.maximum.is_some();
+            if bounded && argument.r#type != "number" {
+                return Err(Error::invalid());
+            }
+            if let (Some(low), Some(high)) = (argument.minimum, argument.maximum) {
+                if low > high {
+                    return Err(Error::invalid());
+                }
             }
         }
     }
@@ -180,7 +190,13 @@ pub(crate) fn validate_type(field: &PluginArgument, value: &Value) -> Result<()>
             .as_str()
             .is_some_and(|text| choices.iter().any(|choice| choice == text))
     });
-    if valid && chosen {
+    // Declared bounds apply to numbers and include both ends.
+    let within = match (field.minimum, field.maximum, value.as_f64()) {
+        (Some(low), _, Some(number)) if number < low => false,
+        (_, Some(high), Some(number)) if number > high => false,
+        _ => true,
+    };
+    if valid && chosen && within {
         Ok(())
     } else {
         Err(Error::invalid())
@@ -201,8 +217,8 @@ pub fn builtins() -> Vec<RuntimePlugin> {
                 automation: None, schema_version: 2, id: id.into(), version: "2.0.0".into(), entry: "index.js".into(), backend: "sandbox_js".into(), origin: "embedded".into(), contract: String::new(), digest: format!("{:x}", Sha256::digest(source.as_bytes())),
                 actions: vec![crate::contracts::PluginAction {
                     id: "execute".into(), label: format!("Execute {command}"), capabilities: vec![capability],
-                    arguments: std::collections::BTreeMap::from([("command".into(), crate::contracts::PluginArgument { r#type: "object".into(), required: true, r#enum: None })]),
-                    result: crate::contracts::PluginArgument { r#type: "object".into(), required: true, r#enum: None },
+                    arguments: std::collections::BTreeMap::from([("command".into(), crate::contracts::PluginArgument { r#type: "object".into(), required: true, r#enum: None, minimum: None, maximum: None })]),
+                    result: crate::contracts::PluginArgument { r#type: "object".into(), required: true, r#enum: None, minimum: None, maximum: None },
                 }],
             }, root: PathBuf::new(), source: Some(source),
         }
