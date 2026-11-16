@@ -1,6 +1,6 @@
 import type { TranslationKey } from '../../lib/translations';
 import { commandSchema, type Schema } from '../../lib/schema';
-import type { Command, ButtonAction } from '../../lib/contracts';
+import type { Command, ButtonAction, PluginManifest } from '../../lib/contracts';
 import { localActionNames } from '../../lib/action-labels';
 export const categories: Record<string, TranslationKey> = {
   read: 'actions.readingsAndReferences',
@@ -73,6 +73,9 @@ export type ActionOption = {
   type: string;
   command?: string;
   label: string;
+  /** Plain text from a plugin manifest, shown as written rather than looked up as a key. */
+  detail?: string;
+  plugin?: { pluginId: string; actionId: string };
   category: string;
   icon: string;
   description?: TranslationKey | undefined;
@@ -173,3 +176,49 @@ export const actionOptions: ActionOption[] = [
     icon: icons[type] ?? 'grid',
   })),
 ];
+
+/** The picker id of a plugin action, which is also how the editor recognises the action it runs. */
+export function pluginOptionId(pluginId: string, actionId: string): string {
+  return `plugin:${pluginId}:${actionId}`;
+}
+
+/** The argument fields of one plugin action, as the editor's form schema. */
+export function pluginArgumentsSchema(plugin: PluginManifest, actionId: string): Schema {
+  const action = plugin.actions.find((candidate) => candidate.id === actionId);
+  return {
+    type: 'object',
+    additionalProperties: false,
+    properties: Object.fromEntries(
+      // A declared list of choices becomes a select in the form; the generic fields render it.
+      Object.entries(action?.arguments ?? {}).map(([name, argument]) => [
+        name,
+        argument.enum ? { type: argument.type, enum: argument.enum } : { type: argument.type },
+      ]),
+    ),
+  };
+}
+
+/** One picker entry per action of every loaded plugin, so each action is found by its own name. */
+export function pluginActionOptions(plugins: PluginManifest[]): ActionOption[] {
+  return plugins.flatMap((plugin) =>
+    plugin.actions.map((action) => ({
+      id: pluginOptionId(plugin.id, action.id),
+      type: 'command',
+      command: 'plugin',
+      label: action.label,
+      detail: `${plugin.id} · ${plugin.version}`,
+      category: 'plugin',
+      icon: icons.plugin ?? 'puzzle',
+      plugin: { pluginId: plugin.id, actionId: action.id },
+      schema: pluginArgumentsSchema(plugin, action.id),
+    })),
+  );
+}
+
+/** The picker's entries: built-in actions, with the generic plugin entries replaced by one per plugin action. */
+export function pickerActionOptions(plugins: PluginManifest[]): ActionOption[] {
+  return [
+    ...actionOptions.filter((option) => option.command !== 'plugin' && option.type !== 'plugin'),
+    ...pluginActionOptions(plugins),
+  ];
+}

@@ -4,21 +4,30 @@
   import Modal from '../../components/Modal.svelte';
   import Icon from '../../components/Icon.svelte';
   import { useTranslations, common } from '../../lib/i18n';
-  import { actionOptions, categories, type ActionOption } from './action-options';
+  import { categories, pickerActionOptions, type ActionOption } from './action-options';
+  import type { PluginManifest } from '../../lib/contracts';
   const t = useTranslations();
   let {
     value,
     close,
     select,
-  }: { value: string; close: () => void; select: (option: ActionOption) => void } = $props();
+    plugins = [],
+  }: {
+    value: string;
+    close: () => void;
+    select: (option: ActionOption) => void;
+    plugins?: PluginManifest[];
+  } = $props();
   let query = $state('');
   let category = $state('all');
   let selected = $state(untrack(() => value));
+  // Rebuilt when the plugin catalogue changes, so a reloaded plugin shows up without reopening.
+  const options = $derived(pickerActionOptions(plugins));
   const visible = $derived(
-    actionOptions.filter(
+    options.filter(
       (option) =>
         (category === 'all' || option.category === category) &&
-        `${t.message(option.label)} ${option.command ?? option.type}`
+        `${option.detail ?? ''} ${option.plugin ? option.label : t.message(option.label)} ${option.command ?? option.type}`
           .toLowerCase()
           .includes(query.trim().toLowerCase()),
     ),
@@ -61,9 +70,9 @@
           aria-pressed={selected === option.id}
           onclick={() => (selected = option.id)}
           ><Icon name={option.icon} /><span
-            ><strong>{t.message(option.label)}</strong>{#if option.description}<small
-                >{t.message(option.description)}</small
-              >{/if}</span
+            ><strong>{option.plugin ? option.label : t.message(option.label)}</strong
+            >{#if option.description}<small>{t.message(option.description)}</small
+              >{:else if option.detail}<small>{option.detail}</small>{/if}</span
           ></button
         >{/each}
       {#if !visible.length}<p role="status">{t('actions.noActionsFound')}</p>{/if}

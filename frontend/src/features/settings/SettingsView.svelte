@@ -8,6 +8,7 @@
   import Icon from '../../components/Icon.svelte';
   import './settings.css';
   import type { Editor } from '../editor/editor.svelte';
+  import type { CatalogResponse } from '../../lib/contracts';
   import AppearanceSettings from './AppearanceSettings.svelte';
   import IntegrationSettings from './IntegrationSettings.svelte';
   import ConnectionHub from '../connections/ConnectionHub.svelte';
@@ -18,6 +19,7 @@
     activeTab = $bindable('appearance'),
     connectionRequest = 0,
     editor,
+    catalog = null,
     languages,
     transport = $bindable(),
     assets,
@@ -33,6 +35,7 @@
     activeTab?: string;
     connectionRequest?: number;
     editor: Editor;
+    catalog?: CatalogResponse | null;
     languages: string[];
     transport: 'http' | 'socket';
     assets: () => Promise<void>;
@@ -160,7 +163,7 @@
         aria-labelledby="tab-integrations"
         hidden={activeTab !== 'integrations'}
       >
-        <IntegrationSettings {editor} persist={validatedPersist} {attempt} />
+        <IntegrationSettings {editor} {catalog} persist={validatedPersist} {attempt} />
       </div>
       <div
         role="tabpanel"

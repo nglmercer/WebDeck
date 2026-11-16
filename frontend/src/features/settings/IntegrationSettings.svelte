@@ -8,16 +8,23 @@
   import StatusBadge from './ui/StatusBadge.svelte';
   import NumberField from '../../components/NumberField.svelte';
   import type { Editor } from '../editor/editor.svelte';
-  import type { SpotifyConnect, IntegrationStatus, IntegrationState } from '../../lib/contracts';
+  import type {
+    CatalogResponse,
+    SpotifyConnect,
+    IntegrationStatus,
+    IntegrationState,
+  } from '../../lib/contracts';
   import { request } from '../../lib/api/client';
   let {
     editor,
     persist,
     attempt,
+    catalog = null,
   }: {
     editor: Editor;
     persist: () => Promise<void>;
     attempt: (work: () => Promise<void>) => Promise<void>;
+    catalog?: CatalogResponse | null;
   } = $props();
   let status = $state<IntegrationStatus | null>(null);
   let statusError = $state('');
@@ -101,6 +108,28 @@
       if (!disposed && started === generation) throw error;
     } finally {
       connecting = false;
+    }
+  }
+  // Integrations that loaded plugins declare, such as Sonora's connection. Their labels come from
+  // the plugin manifests in the catalogue; their state comes from the status.
+  const pluginIntegrations = $derived(
+    (catalog?.plugins ?? []).flatMap((plugin) => plugin.automation?.integrations ?? []),
+  );
+  let pluginChecking = $state('');
+  async function checkPlugin(id: string) {
+    if (pluginChecking) return;
+    pluginChecking = id;
+    statusError = '';
+    try {
+      status = await request<IntegrationStatus>(
+        `integrations/${encodeURIComponent(id)}/check`,
+        'IntegrationStatus',
+        { method: 'POST' },
+      );
+    } catch (error) {
+      statusError = error instanceof Error ? error.message : String(error);
+    } finally {
+      pluginChecking = '';
     }
   }
 </script>
@@ -214,6 +243,30 @@
           >{t('integrations.continueToSpotify')}</a
         >{/if}
     </SettingsCard>
+    {#each pluginIntegrations as definition (definition.id)}
+      {@const health = status?.integrations?.[definition.id]}
+      <SettingsCard id={`guide-plugin-${definition.id}`} title={definition.label} icon="puzzle">
+        <p role="status">
+          <StatusBadge
+            label={health
+              ? t(stateLabels[health.state])
+              : t('integrations.loadingConnectionStatus')}
+            tone={health?.state === 'connected'
+              ? 'success'
+              : health?.state === 'failed'
+                ? 'error'
+                : 'neutral'}
+          />
+        </p>
+        <button
+          disabled={pluginChecking !== '' || checking || connecting}
+          onclick={() => attempt(() => checkPlugin(definition.id))}
+          >{pluginChecking === definition.id
+            ? t('integrations.checkingConnection')
+            : t('integrations.checkPluginConnection')}</button
+        >
+      </SettingsCard>
+    {/each}
   </div>
   <p>{t('settings.updatesDisabled')}</p>
 </div>

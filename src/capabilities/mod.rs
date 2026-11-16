@@ -2,6 +2,7 @@ mod desktop_input;
 use desktop_input::*;
 mod processes;
 use processes::*;
+pub mod sonora_ipc;
 mod fake;
 mod metrics;
 mod network;
@@ -53,6 +54,8 @@ pub struct Platform {
     trusted: trusted::TrustedOwner,
     websockets: websocket::WebSocketOwner,
     pub shutdown: Arc<tokio::sync::Notify>,
+    /// Sonora's control socket. `None` resolves the release socket of this account on each call.
+    pub sonora_socket: Option<std::path::PathBuf>,
 }
 impl Platform {
     pub fn new(
@@ -68,6 +71,7 @@ impl Platform {
             trusted: trusted::TrustedOwner::default(),
             websockets: websocket::WebSocketOwner::default(),
             shutdown,
+            sonora_socket: None,
         })
     }
     fn source(&self, s: &ScriptSource) -> Result<String> {

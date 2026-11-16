@@ -353,6 +353,7 @@
           learn={() => void openLearning()}
           {connectionRequest}
           editor={session.editor}
+          catalog={session.catalog}
           languages={session.languages}
           bind:transport
           {assets}

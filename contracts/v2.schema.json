@@ -2021,6 +2021,16 @@
         },
         "required": {
           "type": "boolean"
+        },
+        "enum": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
         }
       },
       "required": [
@@ -2710,6 +2720,11 @@
         "queue_capacity": {
           "type": "integer",
           "minimum": 1,
+          "maximum": 64
+        },
+        "rejected_plugins": {
+          "type": "integer",
+          "minimum": 0,
           "maximum": 64
         },
         "disabled_plugins": {

@@ -152,7 +152,7 @@ pub(super) async fn import_image(
         &serde_json::to_value(&r).map_err(|_| Error::invalid())?,
     )?;
     Ok(Json(
-        blocking(a.io.clone(), move || {
+        blocking(a.media.clone(), move || {
             crate::image_assets::import(&a.assets, r)
         })
         .await?,
@@ -166,7 +166,7 @@ pub(super) async fn refresh_image(
     i.local()?;
     i.require(Capability::Settings)?;
     Ok(Json(
-        blocking(a.io.clone(), move || {
+        blocking(a.media.clone(), move || {
             crate::image_assets::refresh(&a.assets, &id)
         })
         .await?,

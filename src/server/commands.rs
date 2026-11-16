@@ -99,7 +99,15 @@ pub(super) async fn runtime_status(
     i.local()?;
     i.require(Capability::Settings)?;
     Ok(Json(
-        blocking(a.queries.clone(), move || a.executor.management(None)).await?,
+        blocking(a.queries.clone(), move || {
+            // Counted from the folder, so the settings page shows quarantined packages before
+            // anyone presses reload.
+            let (_, rejected) = crate::runtime::plugins::discover_plugins(&a.assets)?;
+            let mut snapshot = a.executor.management(None)?;
+            snapshot["rejected_plugins"] = json!(rejected);
+            Ok(snapshot)
+        })
+        .await?,
     ))
 }
 pub(super) async fn runtime_reload(
@@ -108,18 +116,29 @@ pub(super) async fn runtime_reload(
 ) -> Result<Json<Value>> {
     i.local()?;
     i.require(Capability::Settings)?;
-    Ok(Json(
-        blocking(a.io.clone(), move || {
-            let plugins = crate::runtime::plugins::load_plugins(&a.assets)?;
-            let response = a.executor.management(Some(plugins))?;
-            a.integration_health
-                .lock()
-                .unwrap_or_else(|p| p.into_inner())
-                .clear();
-            Ok(response)
-        })
-        .await?,
-    ))
+    Ok(Json(reload_runtime(&a).await?))
+}
+
+/// Reloads every plugin package and the runtime. Shared by the button and the folder watcher.
+/// A package that fails validation is left out and counted, so one bad package does not stop
+/// the others from loading.
+pub(super) async fn reload_runtime(a: &App) -> Result<Value> {
+    let owner = a.clone();
+    blocking(a.runtime.clone(), move || {
+        let (plugins, rejected) = crate::runtime::plugins::discover_plugins(&owner.assets)?;
+        if rejected > 0 {
+            eprintln!("WebDeck: {rejected} plugin packages were rejected during reload");
+        }
+        let mut response = owner.executor.management(Some(plugins))?;
+        owner
+            .integration_health
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .clear();
+        response["rejected_plugins"] = json!(rejected);
+        Ok(response)
+    })
+    .await
 }
 
 pub(super) async fn plugin_enabled(

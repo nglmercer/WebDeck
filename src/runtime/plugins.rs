@@ -103,6 +103,14 @@ pub fn load_package(directory: &Path) -> Result<RuntimePlugin> {
         return Err(Error::invalid());
     }
     crate::automation::validate_plugin(&manifest)?;
+    // Choices only make sense for text; a list on a number or boolean is a mistake in the package.
+    for action in &manifest.actions {
+        for argument in action.arguments.values() {
+            if argument.r#enum.is_some() && argument.r#type != "string" {
+                return Err(Error::invalid());
+            }
+        }
+    }
     let source_path = confined(directory, &manifest.entry)?;
     let bytes = read_bounded(&source_path)?;
     if format!("{:x}", Sha256::digest(&bytes)) != manifest.digest {
@@ -166,7 +174,13 @@ pub(crate) fn validate_type(field: &PluginArgument, value: &Value) -> Result<()>
         "array" => value.is_array(),
         _ => false,
     };
-    if valid {
+    // A declared list of choices admits only one of them.
+    let chosen = field.r#enum.as_ref().is_none_or(|choices| {
+        value
+            .as_str()
+            .is_some_and(|text| choices.iter().any(|choice| choice == text))
+    });
+    if valid && chosen {
         Ok(())
     } else {
         Err(Error::invalid())
@@ -187,8 +201,8 @@ pub fn builtins() -> Vec<RuntimePlugin> {
                 automation: None, schema_version: 2, id: id.into(), version: "2.0.0".into(), entry: "index.js".into(), backend: "sandbox_js".into(), origin: "embedded".into(), contract: String::new(), digest: format!("{:x}", Sha256::digest(source.as_bytes())),
                 actions: vec![crate::contracts::PluginAction {
                     id: "execute".into(), label: format!("Execute {command}"), capabilities: vec![capability],
-                    arguments: std::collections::BTreeMap::from([("command".into(), crate::contracts::PluginArgument { r#type: "object".into(), required: true })]),
-                    result: crate::contracts::PluginArgument { r#type: "object".into(), required: true },
+                    arguments: std::collections::BTreeMap::from([("command".into(), crate::contracts::PluginArgument { r#type: "object".into(), required: true, r#enum: None })]),
+                    result: crate::contracts::PluginArgument { r#type: "object".into(), required: true, r#enum: None },
                 }],
             }, root: PathBuf::new(), source: Some(source),
         }

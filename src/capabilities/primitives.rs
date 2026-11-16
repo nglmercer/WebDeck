@@ -28,6 +28,9 @@ impl CapabilityHost for Platform {
             "storage.pluginGet" | "storage.pluginSet" => {
                 self.plugin_storage(operation, input, context)
             }
+            "sonora.query" | "sonora.control" | "sonora.remote" => {
+                sonora_ipc::invoke(self.sonora_socket.as_deref(), operation, input, context)
+            }
             "obs.request" => {
                 if context.principal.as_deref() != Some("builtin.obs") {
                     return Err(Error::new(ErrorCode::Forbidden, "OBS scope denied"));

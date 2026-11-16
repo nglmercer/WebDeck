@@ -2,6 +2,7 @@ import { createTranslator } from './translations';
 import type { DeckBoot, CatalogResponse, TranslationsResponse, ConfigResponse } from './contracts';
 import { boot, config, request, asset, connect, disconnect, ApiError } from './api/client';
 import { AssetCache } from './assets';
+import { onRuntimeEvent } from './api/realtime';
 import { Editor } from '../features/editor/editor.svelte';
 export type SessionApi = {
   boot: () => Promise<DeckBoot>;
@@ -42,6 +43,19 @@ export class Session {
       window.confirm(createTranslator(() => this.translations)('editor.confirmReload')),
   ) {
     this.cache = new AssetCache(api.asset);
+    // Plugins were reloaded, by the button or by the folder watcher: refresh only the catalogue,
+    // so an open editor keeps its draft.
+    onRuntimeEvent((event) => {
+      if (event.type === 'runtime.reloaded') void this.refreshCatalog();
+    });
+  }
+  /** Asks for the command catalogue again. A failure keeps the last one. */
+  async refreshCatalog() {
+    try {
+      this.catalog = await this.api.catalog();
+    } catch {
+      // The next reload or load asks again.
+    }
   }
   get layout() {
     return this.editor?.draft.layout ?? this.deck?.layout;
