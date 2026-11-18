@@ -67,7 +67,12 @@ enigo = "0.6.1"
 nvml-wrapper = "0.13.0"
 rodio = "0.22.2"
 socketioxide = "0.18.7"
-rfd = { version = "0.17.2", default-features = false, features = ["common-controls-v6", "xdg-portal"] }
+# Do not enable rfd's common-controls-v6: it statically imports
+# TaskDialogIndirect from comctl32.dll v6, but Windows loads v5.82 unless the
+# executable embeds a ComCtl32 v6 manifest. Without one the loader fails with
+# 0xC0000139 (STATUS_ENTRYPOINT_NOT_FOUND) before main(), so no diagnostic can
+# be printed. The plain MessageBox fallback covers our error reports.
+rfd = { version = "0.17.2", default-features = false, features = ["xdg-portal"] }
 regex = "1"
 
 [target.'cfg(windows)'.dependencies]

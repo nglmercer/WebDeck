@@ -17,10 +17,7 @@ test('startup diagnostics decode the reported Windows exit code', () => {
   assert.match(message, /^Acceptance host exited before readiness \(code 3221225785\)/);
   assert.match(message, /exitCode: 3221225785/);
   // 3221225785 is 0xC0000139, not 0xC0000409: a DLL entry point was missing.
-  assert.match(
-    message,
-    /hexExitCode: 0xC0000139 \(STATUS_ENTRYPOINT_NOT_FOUND \(native DLL\/ABI mismatch\)\)/,
-  );
+  assert.match(message, /hexExitCode: 0xC0000139 \(STATUS_ENTRYPOINT_NOT_FOUND \(missing DLL export/);
   assert.match(message, /signalCode: none/);
   assert.match(message, /command: "C:\\\\work\\\\target\\\\debug\\\\webdeck\.exe" "--no-tray"/);
 });

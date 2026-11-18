@@ -15,9 +15,11 @@ const root = path.resolve(import.meta.dirname, '../..');
 const WINDOWS_STATUS_HINTS = {
   '0xC0000005': 'STATUS_ACCESS_VIOLATION',
   '0xC00000FD': 'STATUS_STACK_OVERFLOW',
-  // 3221225785 is this code, not 0xC0000409: a DLL import could not be
-  // resolved, i.e. a native dependency/ABI mismatch loaded before main().
-  '0xC0000139': 'STATUS_ENTRYPOINT_NOT_FOUND (native DLL/ABI mismatch)',
+  // 3221225785 is this code, not 0xC0000409: a DLL export could not be
+  // resolved. A common Rust cause is rfd/muda importing ComCtl32 v6's
+  // TaskDialogIndirect without embedding the v6 application manifest.
+  '0xC0000139':
+    'STATUS_ENTRYPOINT_NOT_FOUND (missing DLL export; often ComCtl32 v6 TaskDialogIndirect without a manifest)',
   '0xC0000374': 'STATUS_HEAP_CORRUPTION',
   '0xC0000409': 'STATUS_STACK_BUFFER_OVERRUN / __fastfail',
 };
