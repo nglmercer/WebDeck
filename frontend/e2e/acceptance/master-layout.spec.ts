@@ -35,7 +35,7 @@ test('master demo preserves cells, icons and folder history at desktop and mobil
 test('an invalid catalog keeps the deck and settings usable', async ({ page }) => {
   await page.route('**/api/v2/commands', route => route.fulfill({ json: { api_version: 2, commands: 'invalid', plugins: [] } }));
   await page.goto('/');
-  await expect(page.getByRole('alert')).toContainText('Invalid CatalogResponse');
+  await expect(page.getByRole('alert')).toContainText('The server returned an invalid response');
   await expect(page.getByRole('button', { name: 'Folder 1', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Back to deck', exact: true })).toBeVisible();

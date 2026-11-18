@@ -1,4 +1,9 @@
-/** Inspect the built Windows binaries; a GUI subsystem must not allocate a console. */
+/** Inspect the built Windows binaries.
+ *
+ * Release builds use the GUI subsystem so the app never allocates a console.
+ * Debug builds stay console-subsystem: the acceptance fixture spawns them and
+ * needs standard handles for startup output and clean termination to work.
+ */
 import assert from "node:assert/strict";
 import { closeSync, openSync, readSync } from "node:fs";
 import path from "node:path";
@@ -39,8 +44,8 @@ function subsystem(file: string): number {
 }
 
 for (const [name, expected] of [
-  ["webdeck", 2],
-  ["webdeck-qr", 2],
+  ["webdeck", 3],
+  ["webdeck-qr", 3],
   ["webdeckctl", 3],
 ] as const) {
   const file = path.join("target", "debug", `${name}.exe`);
@@ -49,5 +54,5 @@ for (const [name, expected] of [
     expected,
     `${file}: unexpected Windows subsystem`,
   );
-  console.log(`${file}: ${expected === 2 ? "Windows GUI" : "console CLI"}`);
+  console.log(`${file}: ${expected === 2 ? "Windows GUI" : "console app"}`);
 }

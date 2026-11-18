@@ -14,7 +14,9 @@
 //! the displayed frame, `QUIT` closes the window. A null/closed stdin
 //! simply yields no frames.
 
-#![cfg_attr(windows, windows_subsystem = "windows")]
+// Keep the shipped QR viewer console-free; debug builds stay attached to the
+// console so local runs and automated hosts can report startup failures.
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
 use std::io::BufRead;
 use std::path::PathBuf;

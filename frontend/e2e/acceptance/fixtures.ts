@@ -33,11 +33,18 @@ export const test = base.extend({
     const executable =
       process.env.WEBDECK_ACCEPTANCE_BINARY ??
       path.join(root, 'target/debug/webdeck' + (process.platform === 'win32' ? '.exe' : ''));
+    // Keep the host's output: when it fails to start, the last lines explain why.
+    let hostOutput = '';
+    const capture = (chunk: Buffer | string) => {
+      hostOutput = (hostOutput + chunk.toString()).slice(-8000);
+    };
     const child = spawn(executable, ['--no-tray', '--host', '127.0.0.1', '--port', String(port)], {
       cwd: root,
       env: { ...process.env, WEBDECK_CONFIG_DIR: directory, WEBDECK_FAKE_EFFECTS: '1' },
-      stdio: 'ignore',
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
+    child.stdout?.on('data', capture);
+    child.stderr?.on('data', capture);
     let spawnError: Error | undefined;
     child.on('error', (error) => (spawnError = error));
     const url = `http://127.0.0.1:${port}`;
@@ -47,7 +54,10 @@ export const test = base.extend({
           async () => {
             if (spawnError) throw spawnError;
             if (child.exitCode !== null || child.signalCode !== null)
-              throw Error('Acceptance host exited before readiness');
+              throw Error(
+                `Acceptance host exited before readiness (code ${child.exitCode ?? child.signalCode})` +
+                  (hostOutput.trim() ? `:\n${hostOutput.trim()}` : ''),
+              );
             try {
               return (await fetch(`${url}/api/v2/boot`)).ok;
             } catch {

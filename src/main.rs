@@ -1,4 +1,6 @@
-#![cfg_attr(windows, windows_subsystem = "windows")]
+// Keep the shipped app console-free, but leave debug builds attached to the
+// console so acceptance hosts can be spawned and their startup errors observed.
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
 use clap::Parser;
 use std::{net::SocketAddr, path::PathBuf, sync::Arc};

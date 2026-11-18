@@ -15,10 +15,10 @@ initial.layout.folders[0].buttons.push({
 });
 initial.layout.folders.push({ id: 'work', label: 'Work', buttons: [], extensions: {} });
 async function selectCommand(page: Page, type: string) {
-  await page.getByRole('button', { name: 'Change action', exact: true }).click();
-  const picker = page.getByRole('dialog', { name: 'Select action', exact: true });
+  await page.getByRole('button', { name: /^(Change action|Cambiar acción)$/ }).click();
+  const picker = page.getByRole('dialog', { name: /^(Select action|Seleccionar acción)$/ });
   await picker.locator(`[data-action-id="command:${type}"]`).click();
-  await picker.getByRole('button', { name: 'Select action', exact: true }).click();
+  await picker.getByRole('button', { name: /^(Select action|Seleccionar acción)$/ }).click();
 }
 async function cancelButtonEditor(page: Page, label = 'Cancel') {
   await page.getByRole('button', { name: label, exact: true }).click();
@@ -124,8 +124,10 @@ test('theme and image uploads, folder creation and settings round trip', async (
   await page.keyboard.press('q');
   await page.getByRole('button', { name: /Add button in cell/ }).first().click();
   await page.getByLabel('Label', { exact: true }).fill('Image button');
-  await page.getByLabel('Upload image').setInputFiles(image);
-  await expect(page.getByRole('button', { name: 'Icon', exact: true })).toContainText('Use a custom image');
+  const editor = page.getByRole('dialog', { name: 'Edit button', exact: true });
+  await editor.getByRole('radio', { name: 'Image', exact: true }).check();
+  await editor.locator('input[type=file]').setInputFiles(image);
+  await expect(editor.getByText('image.png', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Apply to draft' }).click();
   await expect(page.getByRole('button', { name: 'Image button', exact: true }).locator('img')).toBeVisible();
   const unsaved = await (await page.request.get('/api/v2/config')).json();
@@ -518,7 +520,7 @@ test('shortcut controls stage typed keys and deletion undo restores a duplicate'
   await selectCommand(page, 'key');
   await page.getByRole('button', { name: 'Choose keys', exact: true }).click();
   const picker = page.getByRole('dialog', { name: 'Choose keys', exact: true });
-  for (let n=1;n<=12;n++) await expect(picker.getByRole('button', { name: new RegExp(`^F${n},`) })).toBeVisible();
+  for (let n=1;n<=12;n++) await expect(picker.getByRole('button', { name: new RegExp(`^F${n}$`) })).toBeVisible();
   await picker.getByRole('button', { name: 'Cancel', exact: true }).click();
   await page.getByRole('button', {name:'Record shortcut',exact:true}).click();
   await page.keyboard.press('Control+Shift+F12');
@@ -830,7 +832,8 @@ test('saved notices and command errors remain visible and independently dismissi
   await page.getByRole('button', { name: 'Play / pause', exact: true }).waitFor();
   await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Edit Play / pause', exact: true }).click();
-  await page.getByLabel('Color', { exact: true }).fill('#112233');
+  await page.getByRole('tab', { name: 'Appearance', exact: true }).click();
+  await page.getByLabel('Hex color', { exact: true }).fill('#112233');
   await page.getByRole('button', { name: 'Apply to draft', exact: true }).click();
   await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(page.locator('.save-status')).toHaveText('All changes saved');
@@ -1364,7 +1367,8 @@ test('invalid JSON blocks Apply and exposes a field description until corrected'
   await page.getByRole('tab', { name: 'Action', exact: true }).click();
   await selectCommand(page, 'debug');
   await page.getByRole('button', { name: 'Add field', exact: true }).click();
-  const data = page.getByLabel('field1', { exact: true });
+  await page.getByLabel('Name 1', { exact: true }).fill('field1');
+  const data = page.getByLabel('Value 1', { exact: true });
   await data.fill('{broken');
   await data.blur();
   await expect(data).toHaveAttribute('aria-invalid', 'true');
@@ -1391,7 +1395,8 @@ test('live preview and numeric validation preserve the host until a valid draft 
   await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Edit Play / pause', exact: true }).click();
   await page.getByLabel('Label', { exact: true }).fill('Preview label');
-  await page.getByLabel('Color', { exact: true }).fill('#ffffff');
+  await page.getByRole('tab', { name: 'Appearance', exact: true }).click();
+  await page.getByLabel('Hex color', { exact: true }).fill('#ffffff');
   const preview = page.getByRole('img', { name: 'Button preview', exact: true });
   await expect(preview).toContainText('Preview label');
   await expect(preview).toHaveCSS('color', 'rgb(0, 0, 0)');
@@ -1545,6 +1550,8 @@ test('touch action fields keep full-size controls across specialized and generic
       await selectCommand(page, type);
       if (type === 'debug') await dialog.getByRole('button', { name: 'Add field', exact: true }).click();
       const small = await dialog.evaluate(root => Array.from(root.querySelectorAll('button,input,select,textarea')).filter(element => {
+        // The 1px proxy textarea behind the code editor is aria-hidden and not touchable.
+        if (element.getAttribute('aria-hidden') === 'true') return false;
         const target = element instanceof HTMLInputElement && ['checkbox', 'radio', 'file'].includes(element.type) ? element.closest('label') ?? element : element;
         const rect = target.getBoundingClientRect();
         return rect.width > 0 && rect.height > 0 && (rect.width < 44 || rect.height < 44);
@@ -1598,16 +1605,18 @@ test('icon registry search and uploaded icon reuse persist through reload', asyn
   await picker.getByLabel('Search icons', { exact: true }).fill('camera');
   await picker.getByRole('option', { name: 'camera', exact: true }).click();
   await picker.getByRole('button', { name: 'Select', exact: true }).click();
-  await expect(dialog.getByLabel('Icon', { exact: true })).toHaveAttribute('data-icon', 'icon:camera');
-  await dialog.getByLabel('Upload image', { exact: true }).setInputFiles({
+  await expect(dialog.getByRole('button', { name: 'Icon', exact: true })).toHaveAttribute('data-icon', 'icon:camera');
+  await dialog.getByRole('radio', { name: 'Image', exact: true }).check();
+  await dialog.locator('input[type=file]').setInputFiles({
     name: 'custom-icon.svg',
     mimeType: 'image/svg+xml',
     buffer: Buffer.from(
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="red"/></svg>',
     ),
   });
-  await expect(dialog.getByLabel('Icon', { exact: true })).toHaveAttribute('data-icon', /^asset:/);
-  const savedIcon = (await dialog.getByLabel('Icon', { exact: true }).getAttribute('data-icon'))!;
+  const selected = dialog.locator('.image-library button[aria-pressed="true"]');
+  await expect(selected).toHaveCount(1);
+  const savedIcon = `asset:${(await selected.getAttribute('aria-label'))!.replace('Select uploaded icon ', '')}`;
   await dialog.getByRole('button', { name: 'Apply to draft' }).click();
   await page.getByRole('button', { name: /^Save( changes)?$/, exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: /^Saved/ })).toBeVisible();
@@ -1615,12 +1624,12 @@ test('icon registry search and uploaded icon reuse persist through reload', asyn
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
   await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Edit CPU' }).click();
-  await page.getByRole('dialog').getByText('Use a custom image', { exact: true }).click();
+  await page.getByRole('dialog').getByRole('radio', { name: 'Image', exact: true }).check();
   await page
     .getByRole('dialog')
     .getByRole('button', { name: `Select uploaded icon ${savedIcon.slice(6)}`, exact: true })
     .click();
-  await expect(page.getByRole('dialog').getByLabel('Icon', { exact: true })).toHaveAttribute('data-icon', savedIcon);
+  await expect(page.getByRole('dialog').locator('.image-library button[aria-pressed="true"]')).toHaveAttribute('aria-label', `Select uploaded icon ${savedIcon.slice(6)}`);
   await page.getByRole('button', { name: 'Apply to draft' }).click();
   await page.getByRole('button', { name: /^Save( changes)?$/, exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: /^Saved/ })).toBeVisible();
@@ -1639,13 +1648,13 @@ test('local imports survive removal of the source file and URL imports offer liv
   await page.keyboard.press('q');
   await page.getByRole('button', { name: 'Edit Play / pause' }).click();
   const dialog = page.getByRole('dialog', { name: 'Edit button' });
-  await dialog.getByText('Use a custom image', { exact: true }).click();
+  await dialog.getByRole('radio', { name: 'Image', exact: true }).check();
   await dialog.getByRole('button', { name: 'Local file', exact: true }).click();
   await dialog.getByLabel('Local image path on this server', { exact: true }).fill(sourcePath);
   await dialog.getByRole('button', { name: 'Import local image', exact: true }).click();
-  await expect(dialog.getByLabel('Icon', { exact: true })).toHaveAttribute('data-icon', /^asset:/);
-  const icon = (await dialog.getByLabel('Icon', { exact: true }).getAttribute('data-icon'))!;
-  const id = icon.slice(6);
+  const selectedIcon = dialog.locator('.image-library button[aria-pressed="true"]');
+  await expect(selectedIcon).toHaveCount(1);
+  const id = (await selectedIcon.getAttribute('aria-label'))!.replace('Select uploaded icon ', '');
   rmSync(sourcePath);
   expect((await request.get(`/api/v2/assets/${id}`)).ok()).toBeTruthy();
 
@@ -1660,7 +1669,7 @@ test('local imports survive removal of the source file and URL imports offer liv
     refreshes++;
     await route.fulfill({ json: { type: 'asset', id } });
   });
-  await dialog.getByRole('button', { name: 'Image URL', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Import URL', exact: true }).click();
   await dialog.getByLabel('Image URL', { exact: true }).fill('https://images.example/icon.svg');
   await dialog.getByLabel('Keep URL for manual refresh', { exact: true }).check();
   await dialog.getByRole('button', { name: 'Import image URL', exact: true }).click();
@@ -1669,14 +1678,14 @@ test('local imports survive removal of the source file and URL imports offer liv
   await dialog.getByRole('button', { name: 'Refresh live image', exact: true }).click();
   await expect(dialog.getByRole('button', { name: 'Refresh live image', exact: true })).toBeEnabled();
   expect(refreshes).toBe(1);
-  await expect(dialog.getByLabel('Icon', { exact: true })).toHaveAttribute('data-icon', icon);
+  await expect(selectedIcon).toHaveAttribute('aria-label', `Select uploaded icon ${id}`);
   await dialog.getByRole('button', { name: 'Apply to draft' }).click();
   await page.getByRole('button', { name: /^Save( changes)?$/, exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: /^Saved/ })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('button', { name: 'Play / pause', exact: true })).toBeVisible();
   const config = await (await request.get('/api/v2/config')).json();
-  expect(config.config.layout.folders[0].buttons.find((b: { id: string }) => b.id === 'media').icon).toBe(icon);
+  expect(config.config.layout.folders[0].buttons.find((b: { id: string }) => b.id === 'media').icon).toBe(`asset:${id}`);
 });
 
 test('compact toolbar follows folder context and stages on-demand rename without root deletion', async ({ page, request }, info) => {
