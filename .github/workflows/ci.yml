@@ -129,10 +129,11 @@ jobs:
           npm run build --prefix runtime
           npm run build --prefix frontend
 
-      - name: Verify plugin digests and validation process cleanup
+      - name: Verify plugin digests and validation helpers
         run: |
           node tools/validation/plugin-digests.mjs
           node --test tools/validation/child-process.test.mjs
+          node --test tools/validation/acceptance-host.test.mjs
 
       - name: Rust formatting and Clippy
         run: |
@@ -274,10 +275,11 @@ jobs:
           npm run build --prefix runtime
           npm run build --prefix frontend
 
-      - name: Verify plugin digests and validation process cleanup
+      - name: Verify plugin digests and validation helpers
         run: |
           node tools/validation/plugin-digests.mjs
           node --test tools/validation/child-process.test.mjs
+          node --test tools/validation/acceptance-host.test.mjs
 
       - name: Windows Rust Clippy
         run: cargo clippy --locked --all-targets --all-features -- -D warnings
@@ -301,6 +303,28 @@ jobs:
       - name: Install Playwright Chromium
         working-directory: frontend
         run: npx playwright install chromium
+
+      # A host that cannot start used to fail every acceptance test at setup.
+      # Inspect the runner, then boot the exact fixture host once so one clear
+      # failure replaces 133 duplicate Playwright setup errors.
+      - name: Inspect Windows acceptance environment
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          node --version
+          npm --version
+          Get-ComputerInfo | Select-Object WindowsBuildLabEx, OsArchitecture
+          Get-ChildItem ./frontend/dist -ErrorAction SilentlyContinue
+          where.exe rustc
+          rustc --version
+          where.exe python
+          python --version
+          Get-Process -Name 'webdeck' -ErrorAction SilentlyContinue | Stop-Process -Force
+          Remove-Item -Recurse -Force ./frontend/test-results -ErrorAction SilentlyContinue
+
+      - name: Smoke test acceptance host
+        if: runner.os == 'Windows'
+        run: node tools/validation/acceptance-host.mjs
 
       - name: Windows browser acceptance
         run: npm run test:acceptance --prefix frontend
