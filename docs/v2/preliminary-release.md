@@ -1,6 +1,6 @@
 # Preliminary release preparation
 
-The current version remains `2.0.0-alpha.1`. This work prepares artifacts and verification; it does not tag or publish a public release.
+The current version is `2.1.0-rc1`. This work prepares artifacts and verification; it does not tag or publish a public release.
 
 ## Reproducible artifacts
 

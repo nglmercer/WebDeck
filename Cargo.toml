@@ -1,6 +1,6 @@
 [package]
 name = "webdeck"
-version = "2.0.0-alpha.1"
+version = "2.1.0-rc1"
 edition = "2021"
 description = "WebDeck v2 desktop controller (prerelease)"
 license = "GPL-3.0-or-later"

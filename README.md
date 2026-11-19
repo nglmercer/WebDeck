@@ -1,7 +1,7 @@
 # WebDeck v2
 
 WebDeck turns a browser into a control deck for a Windows or Linux computer. This
-`2.0.0-alpha.1` prerelease rebuilds the application around typed actions, stable
+`2.1.0-rc1` prerelease rebuilds the application around typed actions, stable
 button and folder IDs, paired devices, revision-aware storage and a Svelte UI.
 
 ## Run from source
