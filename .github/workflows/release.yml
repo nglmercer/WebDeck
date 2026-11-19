@@ -26,6 +26,7 @@ jobs:
   validate:
     name: Validate release tag
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     outputs:
       tag: ${{ steps.version.outputs.tag }}
       version: ${{ steps.version.outputs.version }}
@@ -96,6 +97,7 @@ jobs:
   build:
     name: Build / ${{ matrix.platform }}
     needs: validate
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -157,8 +159,8 @@ jobs:
 
       - name: Install JavaScript build dependencies
         run: |
-          npm ci --prefix runtime
-          npm ci --prefix frontend
+          npm ci --no-audit --no-fund --prefix runtime
+          npm ci --no-audit --no-fund --prefix frontend
 
       - name: Build embedded plugin runtime
         run: npm run build --prefix runtime
@@ -222,6 +224,7 @@ jobs:
     name: Publish GitHub Release
     needs: [validate, build]
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:

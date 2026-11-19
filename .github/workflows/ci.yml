@@ -25,6 +25,10 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: "1"
+  # Keep line-level backtraces while shrinking CI objects and caches on every
+  # platform (the Windows job previously set these locally).
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
+  CARGO_PROFILE_TEST_DEBUG: line-tables-only
 
 jobs:
   frontend:
@@ -46,9 +50,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci --prefix frontend
-          npm ci --prefix runtime
-          npm ci --prefix tools/component-check
+          npm ci --no-audit --no-fund --prefix frontend
+          npm ci --no-audit --no-fund --prefix runtime
+          npm ci --no-audit --no-fund --prefix tools/component-check
 
       - name: Check and rebuild embedded runtime
         run: |
@@ -112,7 +116,8 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
         with:
-          key: linux-v2-${{ env.WEBDECK_CI_LINKER || 'default' }}
+          key: linux-v3-line-tables-${{ env.WEBDECK_CI_LINKER || 'default' }}
+          cache-on-failure: true
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
@@ -124,8 +129,8 @@ jobs:
       # Debug Rust tests serve frontend/dist directly, so build it FIRST.
       - name: Build frontend and embedded plugin runtime
         run: |
-          npm ci --prefix frontend
-          npm ci --prefix runtime
+          npm ci --no-audit --no-fund --prefix frontend
+          npm ci --no-audit --no-fund --prefix runtime
           npm run build --prefix runtime
           npm run build --prefix frontend
 
@@ -224,10 +229,6 @@ jobs:
     name: Windows native, browser and packaging
     runs-on: windows-2025
     timeout-minutes: 60
-    env:
-      # Keep line-level backtraces while reducing object and PDB size in CI.
-      CARGO_PROFILE_DEV_DEBUG: line-tables-only
-      CARGO_PROFILE_TEST_DEBUG: line-tables-only
     steps:
       - uses: actions/checkout@v7
         with:
@@ -270,8 +271,8 @@ jobs:
       # Debug Rust tests read frontend/dist/index.html on disk.
       - name: Build frontend and embedded plugin runtime
         run: |
-          npm ci --prefix frontend
-          npm ci --prefix runtime
+          npm ci --no-audit --no-fund --prefix frontend
+          npm ci --no-audit --no-fund --prefix runtime
           npm run build --prefix runtime
           npm run build --prefix frontend
 
@@ -308,12 +309,14 @@ jobs:
       # Inspect the runner, then boot the exact fixture host once so one clear
       # failure replaces 133 duplicate Playwright setup errors.
       - name: Inspect Windows acceptance environment
-        if: runner.os == 'Windows'
         shell: pwsh
         run: |
           node --version
           npm --version
-          Get-ComputerInfo | Select-Object WindowsBuildLabEx, OsArchitecture
+          # Get-ComputerInfo takes tens of seconds; the registry is instant.
+          Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' |
+            Select-Object ProductName, CurrentBuild, UBR
+          $env:PROCESSOR_ARCHITECTURE
           Get-ChildItem ./frontend/dist -ErrorAction SilentlyContinue
           where.exe rustc
           rustc --version
@@ -323,7 +326,6 @@ jobs:
           Remove-Item -Recurse -Force ./frontend/test-results -ErrorAction SilentlyContinue
 
       - name: Smoke test acceptance host
-        if: runner.os == 'Windows'
         run: node tools/validation/acceptance-host.mjs
 
       - name: Windows browser acceptance
