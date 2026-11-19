@@ -23,6 +23,9 @@ test('QR invitation connects a separate phone, remembers trust, recovers Wi-Fi a
   await expect(mobile.getByRole('heading', { name: 'Waiting for the host', exact: true })).toBeVisible();
   expect(await mobile.evaluate(() => location.hash)).toBe('');
   const code = await mobile.locator('.pair-code').textContent();
+  // Read the suggestion the phone actually sent: the UA-derived name differs
+  // between runners (Chrome · Linux here, Chrome · Windows on windows-2025).
+  const suggestedName = (await mobile.locator('.device-name').textContent())!.trim();
   const approval = page.locator('.approvals article').filter({ hasText: code!.trim() });
   await expect(approval).toBeVisible({ timeout: 10000 });
   await approval.getByRole('combobox', { name: 'Expires after' }).click();
@@ -31,7 +34,6 @@ test('QR invitation connects a separate phone, remembers trust, recovers Wi-Fi a
   await expect(mobile.getByRole('button', { name: 'Play / pause', exact: true })).toBeVisible();
   await mobile.reload();
   await expect(mobile.getByRole('button', { name: 'Play / pause', exact: true })).toBeVisible();
-  const suggestedName = await mobile.evaluate(() => navigator.userAgent.includes('Chrome') ? 'Chrome · Linux' : 'My phone');
   const remembered = await phone.storageState();
   await phone.close();
   const returning = await browser.newContext({ storageState: remembered, viewport: { width: 844, height: 390 } });
