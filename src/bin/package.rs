@@ -36,7 +36,21 @@ fn main() -> io::Result<()> {
         return Err(io::Error::other("Frontend build failed"));
     }
     let mut build = Command::new("cargo");
-    build.args(["build", "--locked", "--bins"]);
+    // Build only the binaries the archive contains. Building `--bins` would
+    // also recompile this `package` binary while it is running; on Windows
+    // Cargo then cannot replace target/{profile}/package.exe (Access denied).
+    build.args([
+        "build",
+        "--locked",
+        "--bin",
+        "webdeck",
+        "--bin",
+        "update",
+        "--bin",
+        "webdeck-qr",
+        "--bin",
+        "console",
+    ]);
     if !dev {
         build.arg("--release");
     }
